@@ -1,0 +1,185 @@
+<style>
+  button {
+    width: 100%;
+    background-color: #d9f2ff;
+    border: 1px solid #a3c2d9;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.5s, transform 0.5s;
+  }
+
+  button:hover {
+    background-color: #a5a733;
+  }
+
+  button:active {
+    background-color: #551e22;
+    transform: scale(0.98);
+  }
+
+  #계산표시 td {
+    resize: both;
+    overflow: auto;
+    min-width: 50px;
+    min-height: 30px;
+  }
+</style>
+
+<table id="계산방식선택" style="width: 100%; table-layout: auto;">
+  <tr>
+    <th colspan="2">
+      <button id="원리금선택">원리금균등 계산</button>
+    </th>
+    <th colspan="2">
+      <button id="원금균등선택">원금균등 계산</button>
+    </th>
+  </tr>
+</table>
+
+<table border="1" style="width: 100%; table-layout: auto;">
+  <tr id="계산표시" style="text-align: center;">
+    <td ID="연소득입력" style="width: 27%;"><input type="text" placeholder="연소득 입력" style="width: 100%;"></td>
+    <td ID="DSR확인" style="width: 22%;">DSR표시</td>
+    <td ID="DIT확인" style="width: 22%;">DTI표시</td>
+    <td ID="신DTI확인" style="width: 22%;">신DTI표시</td>
+  </tr>
+</table>
+
+<table border="1" style="width: 100%; table-layout: auto; margin-top: 20px;">
+  <tr>
+    <th id="제목2" colspan="4" style="background-color: #d9f2ff;">주담대 입력</th>
+  </tr>
+  <tr style="text-align: center;">
+    <td ID="대출원금1"><input type="text" placeholder="대출원금1" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출금리1"><input type="text" placeholder="대출금리1" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="상환기간1"><input type="text" placeholder="상환기간1" style="width: 100%;" oninput="calculate();"></td>
+  </tr>
+  <tr style="text-align: center;">
+    <td ID="대출원금2"><input type="text" placeholder="대출원금2" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출금리2"><input type="text" placeholder="대출금리2" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="상환기간2"><input type="text" placeholder="상환기간2" style="width: 100%;" oninput="calculate();"></td>
+  </tr>
+  <tr style="text-align: center;">
+    <td ID="대출원금3"><input type="text" placeholder="대출원금3" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출금리3"><input type="text" placeholder="대출금리3" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="상환기간3"><input type="text" placeholder="상환기간3" style="width: 100%;" oninput="calculate();"></td>
+  </tr>
+  <th id="제목3" colspan="4" style="background-color: #d9f2ff;">신DTI 입력</th>
+  </tr>
+  <tr style="text-align: center;">
+    <td ID="신DTI대출원금1"><input type="text" placeholder="신DTI대출원금1" style="width: 100%;"></td>
+    <td ID="신DTI대출금리1"><input type="text" placeholder="신DTI대출금리1" style="width: 100%;"></td>
+    <td ID="신DTI상환기간1"><input type="text" placeholder="신DTI상환기간1" style="width: 100%;"></td>
+  </tr>
+  <tr style="text-align: center;">
+    <td ID="신DTI대출원금2"><input type="text" placeholder="신DTI대출원금2" style="width: 100%;"></td>
+    <td ID="신DIT대출금리2"><input type="text" placeholder="신DTI대출금리2" style="width: 100%;"></td>
+    <td ID="신DTI상환기간2"><input type="text" placeholder="신DTI상환기간2" style="width: 100%;"></td>
+  </tr>
+</table>
+
+<table border="1" style="width: 100%; table-layout: auto; margin-top: 20px;">
+    <tr>
+      <th id="제목4" colspan="4" style="background-color: #d9f2ff;">기타대출</th>
+    </tr>
+    <tr>
+        <td ID="기타대출금액1"><input type="text" placeholder="기타대출금액1" style="width: 100%;"></td>
+        <td ID="기타대출금리1"><input type="text" placeholder="기타대출금리1" style="width: 100%;"></td>
+        <td ID="기타대출기간1"><input type="text" placeholder="기타대출기간1" style="width: 100%;"></td>
+    </tr>
+    <tr>
+        <td ID="기타대출금액2"><input type="text" placeholder="기타대출금액2" style="width: 100%;"></td>
+        <td ID="기타대출금리2"><input type="text" placeholder="기타대출금리2" style="width: 100%;"></td>
+        <td ID="기타대출기간2"><input type="text" placeholder="기타대출기간2" style="width: 100%;"></td>
+    </tr>
+    <tr>
+        <td ID="기타대출금액3"><input type="text" placeholder="기타대출금액3" style="width: 100%;"></td>
+        <td ID="기타대출금리3"><input type="text" placeholder="기타대출금리3" style="width: 100%;"></td>
+        <td ID="기타대출기간3"><input type="text" placeholder="기타대출기간3" style="width: 100%;"></td>
+    </tr>
+    <tr>
+        <td ID="기타대출금액4"><input type="text" placeholder="기타대출금액4" style="width: 100%;"></td>
+        <td ID="기타대출금리4"><input type="text" placeholder="기타대출금리4" style="width: 100%;"></td>
+        <td ID="기타대출기간4"><input type="text" placeholder="기타대출기간4" style="width: 100%;"></td>
+    </tr>
+    <tr>
+        <td ID="기타대출금액5"><input type="text" placeholder="기타대출금액5" style="width: 100%;"></td>
+        <td ID="기타대출금리5"><input type="text" placeholder="기타대출금리5" style="width: 100%;"></td>
+        <td ID="기타대출기간5"><input type="text" placeholder="기타대출기간5" style="width: 100%;"></td>
+    </tr>
+    <tr>
+        <td ID="기타대출금액6"><input type="text" placeholder="기타대출금액6" style="width: 100%;"></td>
+        <td ID="기타대출금리6"><input type="text" placeholder="기타대출금리6" style="width: 100%;"></td>
+        <td ID="기타대출기간6"><input type="text" placeholder="기타대출기간6" style="width: 100%;"></td>
+    </tr>
+  </table>
+
+
+  <script>
+    function calculateLoan(대출원금, 대출금리, 상환기간) {
+      if (!isNaN(대출금리) && !isNaN(상환기간) && !isNaN(대출원금) && 상환기간 > 0) {
+        const 월이자율 = 대출금리 / 12;
+        const 첫달이자 = 대출원금 * 월이자율;
+        const 연이자계산 = 첫달이자 * 12;
+        const 월상환금액 = 대출원금 * 월이자율 / (1 - Math.pow(1 + 월이자율, -상환기간));
+        const 첫달원금 = 월상환금액 - 첫달이자;
+        const 연원금계산 = 첫달원금 * 12;
+        return { 연이자계산, 연원금계산, 대출합계: 연이자계산 + 연원금계산 };
+      }
+      return { 연이자계산: 0, 연원금계산: 0, 대출합계: 0 };
+    }
+  
+    function calculate() {
+      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value) || 0;
+  
+      const 대출합계 = [1, 2, 3].reduce((합계, i) => {
+        const 대출 = calculateLoan(
+          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value) || 0,
+          parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0,
+          parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0
+        );
+        return 합계 + 대출.대출합계;
+      }, 0);
+  
+      const 기타대출 = [1, 2, 3, 4, 5, 6].reduce(
+        (합계, i) => {
+          const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
+          const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
+          const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
+  
+          const 연이자 = 금액 * 금리;
+          const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
+  
+          합계.연이자합계 += 연이자;
+          합계.연원금합계 += 연원금;
+  
+          return 합계;
+        },
+        { 연이자합계: 0, 연원금합계: 0 }
+      );
+  
+      const 기타대출합계 = 기타대출.연이자합계;
+  
+  
+      // DSR 계산
+      if (연소득입력 > 0) {
+        const dsr값 = ((대출합계 + 기타대출합계) / 연소득입력) * 100;
+        document.getElementById("DSR확인").innerText = dsr값.toFixed(2) + "%";
+      }
+  
+      // DTI 계산
+      if (연소득입력 > 0) {
+        const dti값 = (대출합계 + 기타대출.연이자합계) / 연소득입력;
+        document.getElementById("DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
+      }
+
+  
+      // 결과 로그
+      console.log("총 대출 합계:", Math.round(대출합계));
+      console.log("기타대출 연이자 합계:", Math.round(기타대출.연이자합계));
+    }
+  
+    document.getElementById("원리금선택").addEventListener("click", calculate);
+  </script>
+  
