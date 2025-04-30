@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DTI 계산기</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overscroll-behavior: contain; /* 추가: 모바일 브라우저 끌어내림 새로고침 방지 */
+    }
+    iframe {
+      width: 100%;
+      height: calc(100% - 50px);
+      border: none;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+    button {
+      width: 130px;
+      height: 35px;
+      padding: 3px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }  
+  </style>
+  <script>
+    function loadPage(page) {
+      const version = '250430_3'; // 버전 정보
+      document.getElementById('content-frame').src = `${page}?v=${version}`;
+    }
+  </script>
+</head>
+<body onload="loadPage('main.html')">
+  <div class="button-container">
+    <button onclick="loadPage('main.html')">DTI 계산기</button>
+    <button onclick="loadPage('MCG.html')">MCG 계산기</button>
+  </div>
+  <iframe id="content-frame" src=""></iframe>
+</body>
+</html>
