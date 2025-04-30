@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>생애최초 특례보증 계산(MCG)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      vertical-align: middle;
+    }
+    input[type="number"], input[type="text"], select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    input[type="tel"] {
+      padding: 8px 8px; /* 위아래 12px, 좌우 10px */
+    }
+    select, input[type="number"] {
+      text-align: center; /* 글자 정렬 중앙 */
+    }
+    .bold {
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 10px;
+      }
+      table, td {
+        font-size: 12px;
+      }
+      input[type="number"], input[type="text"], select, textarea {
+        font-size: 12px;
+        padding: 8px;
+      }
+      button {
+        font-size: 14px;
+        padding: 8px;
+      }
+    }
+    h2 {
+      text-align: center;
+    }
+    .금액입력폰트설정 {
+      font-size: 12px; /* 기본 폰트 크기 */
+    }
+    .비율폰트설정 {
+      font-size: 30px; /* 기본 폰트 크기 */
+    }
+    .설명박스폰트설정 {
+      font-size: 15px; /* 기본 폰트 크기 */
+    }
+  </style>
+</head>
+<body>
+
+  <h2>생애최초 특례보증 계산(MCG)</h2>
+
+  <table>
+    <tr>
+      <td style="width: 27%;">
+        <select id="city" onchange="updateDistricts(); updateRatio();">
+          <option value="">지역</option>
+        </select>
+      </td>
+      <td style="width: 27%;">
+        <select id="district" onchange="updateRatio();">
+          <option value="">시군구</option>
+        </select>
+      </td>
+      <td style="width: 27%;">
+        <select id="property" onchange="updateRatio();">
+          <option value="">물건</option>
+        </select>
+      </td>
+      <td style="width: 19%;">
+        <input type="number" id="ratio" placeholder="자동" readonly>
+      </td>
+    </tr>
+  </table>
+
+  <table style="text-align: center; width: 100%;">
+    <tr>
+      <td class="bold" style="width: 27%;">
+        <input type="tel" id="소액임차금액" class="금액입력폰트설정" placeholder="예: 소액임차금액" style="width: 85%;" oninput="handleInput(event);">
+      </td>
+      <td class="bold" style="width: 27%;">
+        <input type="tel" id="주택가격" class="금액입력폰트설정" placeholder="예: 주택가격입력" style="width: 85%;" oninput="handleInput(event);">
+      </td>
+      <td class="bold" style="width: 27%;">
+        <input type="tel" id="필요금액" class="금액입력폰트설정" placeholder="예: 필요금액입력" style="width: 85%;" oninput="handleInput(event);">
+      </td>
+      <td class="bold" style="width: 19%;">
+        <input type="text" id="LTV" class="비율폰트설정" readonly placeholder="자동계산" style="width: 90%;">
+      </td>
+    </tr>
+  </table>
+
+  <table style="text-align: center;">
+    <tr>
+      <td style="width: 33%;">LTV 80%</td>
+      <td id="담보인정비">LTV 인정비</td>
+      <td style="width: 34%;">최대가능금액</td>
+    </tr>
+    <tr>
+      <td id="ltv80per">주택가격 입력대기</td>
+      <td id="담보인정비율">물건지 선택대기</td>
+      <td id="최대가능금액">자동계산</td>
+    </tr>
+  </table>
+
+  <br>
+
+  <table border="1" style="text-align: center;">
+    <tr>
+      <td>보증가입금액</td>
+      <td>보증료</td>
+      <td>35% 초과여부</td>
+    </tr>
+    <tr>
+      <td id="보증가입금액">-</td>
+      <td id="보증료">-</td>
+      <td id="초과여부">미만</td>
+    </tr>
+  </table>
+
+  <br>
+
+  <!-- <button onclick="calculate()">계산하기</button> -->
+
+  <br><br>
+
+  <textarea id="additionalTextBox" class="설명박스폰트설정" placeholder="추가 텍스트 입력" rows="9">
+- 보증가입금액
+   ->필요금액 - 주택가 x 인정비율 - 소액임차 
+- 보증료       = 보증가입금액 x 0.2% 
+- 보증가입금액 > 주택가 x 35% 초과여부 확인 필요
+- 신청금액이 담보인정비율보다 높을 것.
+- 인정비율 이하 신청할경우 MCI 사용.
+- 주택가 9억이하 / 대출 최대 가능 금액은 6억
+- 최대가능금액칸은 위 조건들을 모두 충족하는 금액임
+  </textarea>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbz5owwe6LrljbuK0ZjvpBR0WdOG2GXNzcI0zQKmdRitbVefN8VQJrEkkheN6mdB2EUA/exec";
+    let ratioData = [];
+
+    async function loadRatios() {
+      try {
+        const res = await fetch(apiUrl);
+        ratioData = await res.json();
+
+        const uniqueCities = [...new Set(ratioData.map(d => d.city))];
+        document.getElementById("city").innerHTML = `<option value="">지역</option>` +
+          uniqueCities.map(city => `<option value="${city}">${city}</option>`).join('');
+        updateTypes();
+      } catch (error) {
+        alert("데이터를 불러오는 데 실패했습니다.");
+      }
+    }
+
+    function updateDistricts() {
+      const selectedCity = document.getElementById("city").value;
+      const filtered = ratioData.filter(d => d.city === selectedCity);
+      const districts = [...new Set(filtered.map(d => d.district))];
+
+      document.getElementById("district").innerHTML = `<option value="">시군구</option>` +
+        districts.map(d => `<option value="${d}">${d}</option>`).join('');
+      document.getElementById("ratio").value = '';
+    }
+
+    function updateTypes() {
+      const propertyTypes = [...new Set(ratioData.map(d => d.type))];
+      document.getElementById("property").innerHTML = `<option value="">물건</option>` +
+        propertyTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    function updateRatio() {
+      const city = document.getElementById("city").value;
+      const district = document.getElementById("district").value;
+      const property = document.getElementById("property").value;
+
+      const match = ratioData.find(d => d.city === city && d.district === district && d.type === property);
+      const ratioField = document.getElementById("ratio");
+      const 담보인정비 = document.getElementById("담보인정비");
+
+      if (match) {
+        ratioField.value = match.ratio;
+        담보인정비.textContent = `LTV ${match.ratio}%`;
+      } else {
+        ratioField.value = '';
+        담보인정비.textContent = '담보인정비';
+      }
+
+      calculate(); // ratio 변경 시 담보인정비 값 갱신
+    }
+
+    function calculate() {
+      const price = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
+      const ratio = parseFloat(document.getElementById('ratio').value);
+      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
+      const smallLeaseAmount = parseFloat(document.getElementById('소액임차금액').value.replace(/,/g, '')) || 0; // 소액임차금액 기본값 0
+
+      if (!isNaN(price)) {
+        const ltv80per = price * 0.8;
+        document.getElementById('ltv80per').textContent = ltv80per.toLocaleString() + ' 원';
+      } else {
+        document.getElementById('ltv80per').textContent = '입력대기';
+      }
+
+      if (!isNaN(price) && !isNaN(ratio)) {
+        const 인정비값 = Math.floor(price * (ratio / 100));
+        document.getElementById('담보인정비').textContent = `LTV ${ratio}% `;
+        document.getElementById('담보인정비율').textContent = 인정비값.toLocaleString() + ' 원';
+
+        // 추가된 조건: 필요금액이 담보인정비율보다 낮을 경우
+        if (requiredAmount < 인정비값) {
+          document.getElementById('보증가입금액').textContent = '일반대출로 진행';
+          document.getElementById('보증료').textContent = '-';
+          document.getElementById('초과여부').textContent = '-';
+          document.getElementById('초과여부').style.backgroundColor = 'white'; // 기본 배경색
+          document.getElementById('초과여부').style.color = ''; // 기본 글자색
+          document.getElementById('최대가능금액').textContent = '-';
+          return; // 조건 만족 시 계산 종료
+        }
+
+        const 기준값 = price * 0.35;
+        const 보증가입금액 = Math.floor(requiredAmount - (인정비값 - smallLeaseAmount));
+
+        if (보증가입금액 <= 0) {
+          document.getElementById('보증가입금액').textContent = '일반대출로 진행';
+          document.getElementById('보증료').textContent = '-';
+          document.getElementById('초과여부').textContent = '-';
+          document.getElementById('초과여부').style.backgroundColor = 'white'; // 기본 배경색
+          document.getElementById('초과여부').style.color = ''; // 기본 글자색
+        } else {
+          document.getElementById('보증가입금액').textContent = 보증가입금액.toLocaleString() + ' 원';
+
+          const 보증료 = Math.floor(보증가입금액 * 0.002); // 보증가입금액의 0.2%
+          document.getElementById('보증료').textContent = 보증료.toLocaleString() + ' 원';
+          const 초과여부Cell = document.getElementById('초과여부');
+          if (보증가입금액 > 기준값) {
+            const 초과차액 = 보증가입금액 - 기준값;
+            초과여부Cell.textContent = `초과 (${초과차액.toLocaleString()} 원)`;
+            초과여부Cell.style.backgroundColor = 'red'; // 배경색 빨간색
+            초과여부Cell.style.color = 'white'; // 글자색 흰색
+          } else {
+            초과여부Cell.textContent = '미만';
+            초과여부Cell.style.backgroundColor = 'white'; // 기본 배경색
+            초과여부Cell.style.color = ''; // 기본 글자색
+          }
+        }
+
+        // 최대가능금액 계산: 조건에 따라 탐색
+        const ltv80per = price * 0.8;
+        let 최대가능금액 = ltv80per;
+
+        while (최대가능금액 > 0) {
+          const 보증가입금액 = Math.floor(최대가능금액 - (인정비값 - smallLeaseAmount));
+          if (보증가입금액 <= 기준값) {
+            break; // 조건을 만족하면 탐색 종료
+          }
+          최대가능금액 -= 100000; // 100,000원 단위로 감소
+        }
+
+        // 최대가능금액이 6억을 초과할 경우 6억으로 제한
+        최대가능금액 = Math.min(최대가능금액, 600000000);
+
+        document.getElementById('최대가능금액').textContent = 최대가능금액 > 0 ? 최대가능금액.toLocaleString() + ' 원' : '계산 불가';
+      } else {
+        resetResults();
+        document.getElementById('담보인정비율').textContent = '-';
+        document.getElementById('최대가능금액').textContent = '-';
+      }
+    }
+
+    function resetResults() {
+      document.getElementById('보증가입금액').textContent = '-';
+      document.getElementById('보증료').textContent = '-';
+      document.getElementById('초과여부').textContent = '-';
+    }
+
+    function formatWithCommas(inputId) {
+      const input = document.getElementById(inputId);
+      input.addEventListener('input', () => {
+        const caret = input.selectionStart;
+        const original = input.value.replace(/,/g, '');
+        if (!isNaN(original) && original !== '') {
+          const formatted = parseFloat(original).toLocaleString();
+          input.value = formatted;
+          const diff = formatted.length - original.length;
+          input.setSelectionRange(caret + diff, caret + diff);
+        }
+      });
+    }
+
+    function restrictToNumbers(inputId) {
+      const input = document.getElementById(inputId);
+      input.value = input.value.replace(/[^0-9]/g, ''); // 숫자가 아닌 문자는 제거
+    }
+
+    function handleInput(event) {
+      const inputId = event.target.id;
+      restrictToNumbers(inputId);
+      calculate();
+    }
+
+    // 소액임차금액 저장 및 로드 함수 추가
+    function saveSmallLeaseAmount() {
+      const value = document.getElementById('소액임차금액').value;
+      localStorage.setItem('소액임차금액', value);
+    }
+
+    function loadSmallLeaseAmount() {
+      const savedValue = localStorage.getItem('소액임차금액');
+      if (savedValue !== null) {
+        const input = document.getElementById('소액임차금액');
+        input.value = parseFloat(savedValue).toLocaleString(); // 콤마 적용
+      }
+    }
+
+    // 소액임차금액 입력 이벤트에 저장 함수 연결
+    document.getElementById('소액임차금액').addEventListener('input', saveSmallLeaseAmount);
+
+    document.getElementById('필요금액').addEventListener('input', () => {
+      const housePrice = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
+      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
+      if (!isNaN(housePrice) && !isNaN(requiredAmount) && housePrice > 0) {
+        const ltv = ((requiredAmount / housePrice) * 100).toFixed(2);
+        document.getElementById('LTV').value = ltv + '%';
+        calculate();
+      } else {
+        document.getElementById('LTV').value = '';
+      }
+    });
+
+    document.getElementById('주택가격').addEventListener('input', () => {
+      const housePrice = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
+      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
+      if (!isNaN(housePrice) && !isNaN(requiredAmount) && housePrice > 0) {
+        const ltv = ((requiredAmount / housePrice) * 100).toFixed(2);
+        document.getElementById('LTV').value = ltv + '%';
+        calculate();
+      } else {
+        document.getElementById('LTV').value = '';
+      }
+    });
+
+    window.onload = () => {
+      loadRatios();
+      formatWithCommas('주택가격');
+      formatWithCommas('필요금액');
+      formatWithCommas('소액임차금액'); // 소액임차금액에 콤마 자동 추가
+      loadSmallLeaseAmount(); // 소액임차금액 로드
+    };
+  </script>
+</body>
+</html>
