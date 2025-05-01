@@ -131,11 +131,11 @@
     }
 
     function 원리금균등_계산() {
-      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value) || 0;
+      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value.replace(/,/g, '')) || 0;
 
       const 대출합계 = [1, 2, 3].reduce((합계, i) => {
         const 대출 = 원리금균등_계산대출(
-          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value) || 0,
+          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value.replace(/,/g, '')) || 0,
           parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0,
           parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0
         );
@@ -143,7 +143,7 @@
       }, 0);
 
       const 신dti = [1, 2].reduce((합계, i) => {
-        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value) || 0;
+        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
         const 대출금리 = parseFloat(document.getElementById(`신DTI대출금리${i}`).querySelector("input").value) / 100 || 0;
 
         const 입력된상환기간 = parseInt(document.getElementById(`신DTI상환기간${i}`).querySelector("input").value) || 0;
@@ -165,7 +165,7 @@
       const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
 
       const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
-        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
+        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
         const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
         const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
 
@@ -183,7 +183,9 @@
       // DSR 계산
       if (연소득입력 > 0) {
         const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
-        document.getElementById("DSR확인").innerText = dsr값.toFixed(2) + "%";
+        const dsrElement = document.getElementById("DSR확인");
+        dsrElement.innerText = dsr값.toFixed(2) + "%";
+        dsrElement.style.backgroundColor = dsr값 >= 40 ? "red" : ""; // 40% 이상이면 빨간색
       }
 
       // DTI 계산
@@ -220,11 +222,11 @@
     }
 
     function 원금균등_계산() {
-      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value) || 0;
+      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value.replace(/,/g, '')) || 0;
 
       const 대출합계 = [1, 2, 3].reduce((합계, i) => {
         const 대출 = 원금균등_계산대출(
-          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value) || 0,
+          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value.replace(/,/g, '')) || 0,
           parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0,
           parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0
         );
@@ -232,7 +234,7 @@
       }, 0);
 
       const 신dti = [1, 2].reduce((합계, i) => {
-        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value) || 0;
+        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
         const 대출금리 = parseFloat(document.getElementById(`신DTI대출금리${i}`).querySelector("input").value) / 100 || 0;
 
         const 입력된상환기간 = parseInt(document.getElementById(`신DTI상환기간${i}`).querySelector("input").value) || 0;
@@ -254,7 +256,7 @@
       const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
 
       const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
-        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
+        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
         const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
         const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
 
@@ -272,7 +274,9 @@
       // DSR 계산
       if (연소득입력 > 0) {
         const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
-        document.getElementById("DSR확인").innerText = dsr값.toFixed(2) + "%";
+        const dsrElement = document.getElementById("DSR확인");
+        dsrElement.innerText = dsr값.toFixed(2) + "%";
+        dsrElement.style.backgroundColor = dsr값 >= 40 ? "red" : ""; // 40% 이상이면 빨간색
       }
 
       // DTI 계산
@@ -293,6 +297,28 @@
       console.log("신DTI 입력된 합계:", Math.round(신dti입력된합계));
       console.log("신DTI 고정 합계:", Math.round(신dti고정합계));
     }
+
+    function addCommaToInput(input) {
+      input.value = input.value.replace(/\D/g, ''); // 숫자만 남기기
+      if (input.value) {
+        input.value = parseInt(input.value, 10).toLocaleString(); // 콤마 추가
+      }
+    }
+
+    function setupCommaFormatting(ids) {
+      ids.forEach(id => {
+        const inputElement = document.getElementById(id).querySelector("input");
+        inputElement.addEventListener("input", () => addCommaToInput(inputElement));
+      });
+    }
+
+    setupCommaFormatting([
+      "연소득입력",
+      "대출원금1", "대출원금2", "대출원금3",
+      "신DTI대출원금1", "신DTI대출원금2",
+      "기타대출금액1", "기타대출금액2", "기타대출금액3",
+      "기타대출금액4", "기타대출금액5", "기타대출금액6"
+    ]);
 
     document.getElementById("원금균등선택").addEventListener("click", 원금균등_계산);
     document.getElementById("원리금선택").addEventListener("click", 원리금균등_계산);
