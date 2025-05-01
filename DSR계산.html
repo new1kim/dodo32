@@ -51,19 +51,19 @@
     <th id="제목2" colspan="4" style="background-color: #d9f2ff;">주담대 입력</th>
   </tr>
   <tr style="text-align: center;">
-    <td ID="대출원금1"><input type="text" placeholder="대출원금1" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="대출금리1"><input type="text" placeholder="대출금리1" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="상환기간1"><input type="text" placeholder="상환기간1" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출원금1"><input type="text" placeholder="대출원금1" style="width: 100%;"></td>
+    <td ID="대출금리1"><input type="text" placeholder="대출금리1" style="width: 100%;"></td>
+    <td ID="상환기간1"><input type="text" placeholder="상환기간1" style="width: 100%;"></td>
   </tr>
   <tr style="text-align: center;">
-    <td ID="대출원금2"><input type="text" placeholder="대출원금2" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="대출금리2"><input type="text" placeholder="대출금리2" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="상환기간2"><input type="text" placeholder="상환기간2" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출원금2"><input type="text" placeholder="대출원금2" style="width: 100%;"></td>
+    <td ID="대출금리2"><input type="text" placeholder="대출금리2" style="width: 100%;"></td>
+    <td ID="상환기간2"><input type="text" placeholder="상환기간2" style="width: 100%;"></td>
   </tr>
   <tr style="text-align: center;">
-    <td ID="대출원금3"><input type="text" placeholder="대출원금3" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="대출금리3"><input type="text" placeholder="대출금리3" style="width: 100%;" oninput="calculate();"></td>
-    <td ID="상환기간3"><input type="text" placeholder="상환기간3" style="width: 100%;" oninput="calculate();"></td>
+    <td ID="대출원금3"><input type="text" placeholder="대출원금3" style="width: 100%;"></td>
+    <td ID="대출금리3"><input type="text" placeholder="대출금리3" style="width: 100%;"></td>
+    <td ID="상환기간3"><input type="text" placeholder="상환기간3" style="width: 100%;"></td>
   </tr>
   <th id="제목3" colspan="4" style="background-color: #d9f2ff;">신DTI 입력</th>
   </tr>
@@ -74,7 +74,7 @@
   </tr>
   <tr style="text-align: center;">
     <td ID="신DTI대출원금2"><input type="text" placeholder="신DTI대출원금2" style="width: 100%;"></td>
-    <td ID="신DIT대출금리2"><input type="text" placeholder="신DTI대출금리2" style="width: 100%;"></td>
+    <td ID="신DTI대출금리2"><input type="text" placeholder="신DTI대출금리2" style="width: 100%;"></td>
     <td ID="신DTI상환기간2"><input type="text" placeholder="신DTI상환기간2" style="width: 100%;"></td>
   </tr>
 </table>
@@ -117,7 +117,7 @@
 
 
   <script>
-    function calculateLoan(대출원금, 대출금리, 상환기간) {
+    function 원리금균등_계산대출(대출원금, 대출금리, 상환기간) {
       if (!isNaN(대출금리) && !isNaN(상환기간) && !isNaN(대출원금) && 상환기간 > 0) {
         const 월이자율 = 대출금리 / 12;
         const 첫달이자 = 대출원금 * 월이자율;
@@ -129,57 +129,171 @@
       }
       return { 연이자계산: 0, 연원금계산: 0, 대출합계: 0 };
     }
-  
-    function calculate() {
+
+    function 원리금균등_계산() {
       const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value) || 0;
-  
+
       const 대출합계 = [1, 2, 3].reduce((합계, i) => {
-        const 대출 = calculateLoan(
+        const 대출 = 원리금균등_계산대출(
           parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value) || 0,
           parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0,
           parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0
         );
         return 합계 + 대출.대출합계;
       }, 0);
-  
-      const 기타대출 = [1, 2, 3, 4, 5, 6].reduce(
-        (합계, i) => {
-          const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
-          const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
-          const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
-  
-          const 연이자 = 금액 * 금리;
-          const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
-  
-          합계.연이자합계 += 연이자;
-          합계.연원금합계 += 연원금;
-  
-          return 합계;
-        },
-        { 연이자합계: 0, 연원금합계: 0 }
-      );
-  
-      const 기타대출합계 = 기타대출.연이자합계;
-  
-  
+
+      const 신dti = [1, 2].reduce((합계, i) => {
+        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value) || 0;
+        const 대출금리 = parseFloat(document.getElementById(`신DTI대출금리${i}`).querySelector("input").value) / 100 || 0;
+
+        const 입력된상환기간 = parseInt(document.getElementById(`신DTI상환기간${i}`).querySelector("input").value) || 0;
+        const 고정상환기간 = 180;
+
+        const 입력된상환계산 = 원리금균등_계산대출(대출원금, 대출금리, 입력된상환기간);
+        const 고정상환계산 = 원리금균등_계산대출(대출원금, 대출금리, 고정상환기간);
+
+        합계.입력된연이자합계 += 입력된상환계산.연이자계산 || 0;
+        합계.입력된연원금합계 += 입력된상환계산.연원금계산 || 0;
+
+        합계.고정연이자합계 += 고정상환계산.연이자계산 || 0;
+        합계.고정연원금합계 += 고정상환계산.연원금계산 || 0;
+
+        return 합계;
+      }, { 입력된연이자합계: 0, 입력된연원금합계: 0, 고정연이자합계: 0, 고정연원금합계: 0 });
+
+      const 신dti입력된합계 = 신dti.입력된연이자합계 + 신dti.입력된연원금합계;
+      const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
+
+      const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
+        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
+        const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
+        const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
+
+        const 연이자 = 금액 * 금리;
+        const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
+
+        합계.연이자합계 += 연이자;
+        합계.연원금합계 += 연원금;
+
+        return 합계;
+      }, { 연이자합계: 0, 연원금합계: 0 });
+
+      const 기타대출합계 = 기타대출.연이자합계 + 기타대출.연원금합계;
+
       // DSR 계산
       if (연소득입력 > 0) {
-        const dsr값 = ((대출합계 + 기타대출합계) / 연소득입력) * 100;
+        const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
         document.getElementById("DSR확인").innerText = dsr값.toFixed(2) + "%";
       }
-  
+
       // DTI 계산
       if (연소득입력 > 0) {
-        const dti값 = (대출합계 + 기타대출.연이자합계) / 연소득입력;
+        const dti값 = (대출합계 + 기타대출.연이자합계 + 신dti입력된합계) / 연소득입력;
         document.getElementById("DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
       }
 
-  
+      // 신DTI 계산 (고정 상환기간 기준)
+      if (연소득입력 > 0) {
+        const 신dti값 = (대출합계 + 기타대출.연이자합계 + 신dti고정합계) / 연소득입력;
+        document.getElementById("신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
+      }
+
       // 결과 로그
       console.log("총 대출 합계:", Math.round(대출합계));
       console.log("기타대출 연이자 합계:", Math.round(기타대출.연이자합계));
+      console.log("신DTI 입력된 합계:", Math.round(신dti입력된합계));
+      console.log("신DTI 고정 합계:", Math.round(신dti고정합계));
     }
-  
-    document.getElementById("원리금선택").addEventListener("click", calculate);
+
+
+    function 원금균등_계산대출(대출원금, 대출금리, 상환기간) {
+      if (!isNaN(대출금리) && !isNaN(상환기간) && !isNaN(대출원금) && 상환기간 > 0) {
+        const 월이자율 = 대출금리 / 12;
+        const 월원금 = 대출원금 / 상환기간;
+        const 첫달이자 = 대출원금 * 월이자율;
+        const 첫달상환금액 = 월원금 + 첫달이자;
+        const 연이자계산 = ((첫달이자 + (월원금 * 월이자율)) / 2) * 12;
+        const 연원금계산 = 월원금 * 12;
+        return { 연이자계산, 연원금계산, 대출합계: 연이자계산 + 연원금계산 };
+      }
+      return { 연이자계산: 0, 연원금계산: 0, 대출합계: 0 };
+    }
+
+    function 원금균등_계산() {
+      const 연소득입력 = parseFloat(document.getElementById("연소득입력").querySelector("input").value) || 0;
+
+      const 대출합계 = [1, 2, 3].reduce((합계, i) => {
+        const 대출 = 원금균등_계산대출(
+          parseFloat(document.getElementById(`대출원금${i}`).querySelector("input").value) || 0,
+          parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0,
+          parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0
+        );
+        return 합계 + 대출.대출합계;
+      }, 0);
+
+      const 신dti = [1, 2].reduce((합계, i) => {
+        const 대출원금 = parseFloat(document.getElementById(`신DTI대출원금${i}`).querySelector("input").value) || 0;
+        const 대출금리 = parseFloat(document.getElementById(`신DTI대출금리${i}`).querySelector("input").value) / 100 || 0;
+
+        const 입력된상환기간 = parseInt(document.getElementById(`신DTI상환기간${i}`).querySelector("input").value) || 0;
+        const 고정상환기간 = 180;
+
+        const 입력된상환계산 = 원금균등_계산대출(대출원금, 대출금리, 입력된상환기간);
+        const 고정상환계산 = 원금균등_계산대출(대출원금, 대출금리, 고정상환기간);
+
+        합계.입력된연이자합계 += 입력된상환계산.연이자계산 || 0;
+        합계.입력된연원금합계 += 입력된상환계산.연원금계산 || 0;
+
+        합계.고정연이자합계 += 고정상환계산.연이자계산 || 0;
+        합계.고정연원금합계 += 고정상환계산.연원금계산 || 0;
+
+        return 합계;
+      }, { 입력된연이자합계: 0, 입력된연원금합계: 0, 고정연이자합계: 0, 고정연원금합계: 0 });
+
+      const 신dti입력된합계 = 신dti.입력된연이자합계 + 신dti.입력된연원금합계;
+      const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
+
+      const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
+        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value) || 0;
+        const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
+        const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
+
+        const 연이자 = 금액 * 금리;
+        const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
+
+        합계.연이자합계 += 연이자;
+        합계.연원금합계 += 연원금;
+
+        return 합계;
+      }, { 연이자합계: 0, 연원금합계: 0 });
+
+      const 기타대출합계 = 기타대출.연이자합계 + 기타대출.연원금합계;
+
+      // DSR 계산
+      if (연소득입력 > 0) {
+        const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
+        document.getElementById("DSR확인").innerText = dsr값.toFixed(2) + "%";
+      }
+
+      // DTI 계산
+      if (연소득입력 > 0) {
+        const dti값 = (대출합계 + 기타대출.연이자합계 + 신dti입력된합계) / 연소득입력;
+        document.getElementById("DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
+      }
+
+      // 신DTI 계산 (고정 상환기간 기준)
+      if (연소득입력 > 0) {
+        const 신dti값 = (대출합계 + 기타대출.연이자합계 + 신dti고정합계) / 연소득입력;
+        document.getElementById("신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
+      }
+
+      // 결과 로그
+      console.log("총 대출 합계:", Math.round(대출합계));
+      console.log("기타대출 연이자 합계:", Math.round(기타대출.연이자합계));
+      console.log("신DTI 입력된 합계:", Math.round(신dti입력된합계));
+      console.log("신DTI 고정 합계:", Math.round(신dti고정합계));
+    }
+
+    document.getElementById("원금균등선택").addEventListener("click", 원금균등_계산);
+    document.getElementById("원리금선택").addEventListener("click", 원리금균등_계산);
   </script>
-  
