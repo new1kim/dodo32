@@ -24,9 +24,13 @@
     min-width: 50px;
     min-height: 30px;
   }
+
+  td:first-child {
+    background-color: #d9f2ff; /* 하늘색 배경 */
+  }
 </style>
 
-<table id="계산방식선택" style="width: 100%; table-layout: auto;">
+<!-- <table id="계산방식선택" style="width: 100%; table-layout: auto;">
   <tr>
     <th colspan="2">
       <button id="원리금선택">원리금균등 계산</button>
@@ -35,16 +39,42 @@
       <button id="원금균등선택">원금균등 계산</button>
     </th>
   </tr>
-</table>
+</table> -->
 
 <table border="1" style="width: 100%; table-layout: auto;">
-  <tr id="계산표시" style="text-align: center;">
-    <td ID="연소득입력" style="width: 27%;"><input type="text" inputmode="numeric" placeholder="연소득 입력" style="width: 100%;"></td>
-    <td ID="DSR확인" style="width: 22%;">DSR표시</td>
-    <td ID="DIT확인" style="width: 22%;">DTI표시</td>
-    <td ID="신DTI확인" style="width: 22%;">신DTI표시</td>
+  <tr style="text-align: center; background-color: #d9f2ff;"> <!-- 하늘색 배경 추가 -->
+    <td style="width: 27%;">상환 구분</td>
+    <td style="width: 22%;">D S R</td>
+    <td style="width: 22%;">D T I</td>
+    <td style="width: 22%;">신 DTI</td>
+  </tr>
+  
+  <tr style="text-align: center;">
+    <!-- <td ID="연소득입력" style="width: 27%;"><input type="text" inputmode="numeric" placeholder="연소득 입력" style="width: 100%;">원리금균등</td> -->
+    <td style="width: 27%;">원리금 균등</td>
+    <td ID="원리금DSR확인" style="width: 22%;">DSR표시</td>
+    <td ID="원리금DIT확인" style="width: 22%;">DTI표시</td>
+    <td ID="원리금신DTI확인" style="width: 22%;">신DTI표시</td>
+  </tr>
+
+<table border="1" style="width: 100%; table-layout: auto;">
+  <tr style="text-align: center;">
+    <!-- <td ID="연소득입력" style="width: 27%;"><input type="text" inputmode="numeric" placeholder="연소득 입력" style="width: 100%;">원금균등</td> -->
+    <td style="width: 27%;">원금 균등</td>
+    <td ID="원금DSR확인" style="width: 22%;">DSR표시</td>
+    <td ID="원금DIT확인" style="width: 22%;">DTI표시</td>
+    <td ID="원금신DTI확인" style="width: 22%;">신DTI표시</td>
   </tr>
 </table>
+
+
+<table border="1" style="width: 100%; table-layout: auto;">
+  <tr style="text-align: center;">
+    <td style="width: 40%;">연소득 입력</td>
+    <td ID="연소득입력" style="width: 60%;"><input type="text" inputmode="numeric" placeholder="연소득 입력" style="width: 100%;"></td>
+  </tr>
+</table>
+
 
 <table border="1" style="width: 100%; table-layout: auto; margin-top: 20px;">
   <tr>
@@ -183,21 +213,21 @@
       // DSR 계산
       if (연소득입력 > 0) {
         const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
-        const dsrElement = document.getElementById("DSR확인");
+        const dsrElement = document.getElementById("원리금DSR확인");
         dsrElement.innerText = dsr값.toFixed(2) + "%";
-        dsrElement.style.backgroundColor = dsr값 >= 40 ? "red" : ""; // 40% 이상이면 빨간색
+        dsrElement.style.backgroundColor = dsr값 >= 40 ? "#FF3636" : ""; // 40% 이상이면 옅은 빨간색
       }
 
       // DTI 계산
       if (연소득입력 > 0) {
         const dti값 = (대출합계 + 기타대출.연이자합계 + 신dti입력된합계) / 연소득입력;
-        document.getElementById("DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
+        document.getElementById("원리금DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
       }
 
       // 신DTI 계산 (고정 상환기간 기준)
       if (연소득입력 > 0) {
         const 신dti값 = (대출합계 + 기타대출.연이자합계 + 신dti고정합계) / 연소득입력;
-        document.getElementById("신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
+        document.getElementById("원리금신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
       }
 
       // 결과 로그
@@ -274,21 +304,21 @@
       // DSR 계산
       if (연소득입력 > 0) {
         const dsr값 = ((대출합계 + 기타대출합계 + 신dti입력된합계) / 연소득입력) * 100;
-        const dsrElement = document.getElementById("DSR확인");
+        const dsrElement = document.getElementById("원금DSR확인");
         dsrElement.innerText = dsr값.toFixed(2) + "%";
-        dsrElement.style.backgroundColor = dsr값 >= 40 ? "red" : ""; // 40% 이상이면 빨간색
+        dsrElement.style.backgroundColor = dsr값 >= 40 ? "#FF3636" : ""; // 40% 이상이면 옅은 빨간색
       }
 
       // DTI 계산
       if (연소득입력 > 0) {
         const dti값 = (대출합계 + 기타대출.연이자합계 + 신dti입력된합계) / 연소득입력;
-        document.getElementById("DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
+        document.getElementById("원금DIT확인").innerText = (dti값 * 100).toFixed(2) + "%";
       }
 
       // 신DTI 계산 (고정 상환기간 기준)
       if (연소득입력 > 0) {
         const 신dti값 = (대출합계 + 기타대출.연이자합계 + 신dti고정합계) / 연소득입력;
-        document.getElementById("신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
+        document.getElementById("원금신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
       }
 
       // 결과 로그
@@ -312,14 +342,49 @@
       });
     }
 
+    function setupInputTriggers(ids) {
+      ids.forEach(id => {
+        const inputElement = document.getElementById(id).querySelector("input");
+        inputElement.addEventListener("input", () => {
+          addCommaToInput(inputElement);
+          원리금균등_계산();
+          원금균등_계산();
+        });
+      });
+    }
+
     setupCommaFormatting([
       "연소득입력",
       "대출원금1", "대출원금2", "대출원금3",
+      "대출금리1", "대출금리2", "대출금리3",
+      "상환기간1", "상환기간2", "상환기간3",
       "신DTI대출원금1", "신DTI대출원금2",
+      "신DTI대출금리1", "신DTI대출금리2",
+      "신DTI상환기간1", "신DTI상환기간2",
       "기타대출금액1", "기타대출금액2", "기타대출금액3",
-      "기타대출금액4", "기타대출금액5", "기타대출금액6"
+      "기타대출금액4", "기타대출금액5", "기타대출금액6",
+      "기타대출금리1", "기타대출금리2", "기타대출금리3",
+      "기타대출금리4", "기타대출금리5", "기타대출금리6",
+      "기타대출기간1", "기타대출기간2", "기타대출기간3",
+      "기타대출기간4", "기타대출기간5", "기타대출기간6"
     ]);
 
-    document.getElementById("원금균등선택").addEventListener("click", 원금균등_계산);
-    document.getElementById("원리금선택").addEventListener("click", 원리금균등_계산);
+    setupInputTriggers([
+      "연소득입력",
+      "대출원금1", "대출원금2", "대출원금3",
+      "대출금리1", "대출금리2", "대출금리3",
+      "상환기간1", "상환기간2", "상환기간3",
+      "신DTI대출원금1", "신DTI대출원금2",
+      "신DTI대출금리1", "신DTI대출금리2",
+      "신DTI상환기간1", "신DTI상환기간2",
+      "기타대출금액1", "기타대출금액2", "기타대출금액3",
+      "기타대출금액4", "기타대출금액5", "기타대출금액6",
+      "기타대출금리1", "기타대출금리2", "기타대출금리3",
+      "기타대출금리4", "기타대출금리5", "기타대출금리6",
+      "기타대출기간1", "기타대출기간2", "기타대출기간3",
+      "기타대출기간4", "기타대출기간5", "기타대출기간6"
+    ]);
+
+    // document.getElementById("원금균등선택").addEventListener("click", 원금균등_계산);
+    // document.getElementById("원리금선택").addEventListener("click", 원리금균등_계산);
   </script>
