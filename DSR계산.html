@@ -28,6 +28,20 @@
   td:first-child {
     background-color: #d9f2ff; /* 하늘색 배경 */
   }
+
+  #refreshButton {
+    width: 100%;
+    background-color: #ffcccb;
+    border: 1px solid #ff9999;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+
+  #refreshButton:hover {
+    background-color: #ff9999;
+  }
 </style>
 
 <!-- <table id="계산방식선택" style="width: 100%; table-layout: auto;">
@@ -145,8 +159,10 @@
     </tr>
   </table>
 
+<!-- 새로고침 버튼 추가 -->
+<!-- <button id="refreshButton" onclick="hardRefresh()">하드 새로고침</button> -->
 
-  <script>
+<script>
     function 원리금균등_계산대출(대출원금, 대출금리, 상환기간) {
       if (!isNaN(대출금리) && !isNaN(상환기간) && !isNaN(대출원금) && 상환기간 > 0) {
         const 월이자율 = 대출금리 / 12;
@@ -384,6 +400,11 @@
       "기타대출기간1", "기타대출기간2", "기타대출기간3",
       "기타대출기간4", "기타대출기간5", "기타대출기간6"
     ]);
+
+    // 하드 새로고침 함수
+    function hardRefresh() {
+      location.reload(true);
+    }
 
     // document.getElementById("원금균등선택").addEventListener("click", 원금균등_계산);
     // document.getElementById("원리금선택").addEventListener("click", 원리금균등_계산);
