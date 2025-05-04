@@ -203,19 +203,29 @@
       buttons.forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
 
       if (type === "카드사용액") {
-        formula.value = "연 사용액 ÷ 43.4% × 90%";
+        let 카드전환_비율 = document.getElementById("카드전환비율");
+        let 카드비율 = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
+        formula.value = `연 사용액 ÷ ${카드비율}% × 90%`;
         annualUsageLabel.textContent = "연 사용액";
         document.querySelector(".카드버튼").classList.add("activeButton");
       } else if (type === "건강보험") {
-        formula.value = "3개월 평균 금액 ÷ 3.545% × 12 × 95%";
+        let 건보전환_비율 = document.getElementById("건보전환비율");
+        let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
+        formula.value = `3개월 평균 금액 ÷ ${건보비율}% × 12 × 95%`;
         annualUsageLabel.textContent = "평균 금액";
         document.querySelector(".건보버튼").classList.add("activeButton");
       } else if (type === "연금납부") {
-        formula.value = "3개월 평균 금액 ÷ 9% × 12 × 95%";
+        // 연금납부 전환비율 입력값(%) 사용, 없으면 9
+        let 연금전환_비율 = document.getElementById("연금전환비율");
+        let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
+        formula.value = `3개월 평균 금액 ÷ ${연금비율}% × 12 × 95%`;
         annualUsageLabel.textContent = "평균 금액";
         document.querySelector(".연금버튼").classList.add("activeButton");
       } else if (type === "전월세") {
-        formula.value = "HF,HUG 전환율 5.8% + 보증금";
+        // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
+        let 전월세전환_비율 = document.getElementById("전월세전환비율");
+        let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
+        formula.value = `HF,HUG 전환율 ${전월세비율}% + 보증금`;
         annualUsageLabel.textContent = "1년 월세";
         document.querySelector(".전월세버튼").classList.add("activeButton");  
       } else if (type === "주신보") {
@@ -247,14 +257,25 @@
       let convertedValue = 0;
       let 주신보110 = Math.floor(annualUsage * 3.5 / 0.9 * 1.1);
       let 주신보120 = Math.floor(annualUsage * 3.5 / 0.9 * 1.2);
+
       if (selectedType === "카드사용액") {
-        convertedValue = (annualUsage / 0.434) * 0.9;
+        let 카드전환_비율 = document.getElementById("카드전환비율");
+        let cardRate = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
+        convertedValue = (annualUsage / (cardRate / 100)) * 0.9;
       } else if (selectedType === "건강보험") {
-        convertedValue = (annualUsage / 0.03545) * 12 * 0.95;
+        let 건보전환_비율 = document.getElementById("건보전환비율");
+        let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
+        convertedValue = (annualUsage / (건보비율 / 100)) * 12 * 0.95;
       } else if (selectedType === "연금납부") {
-        convertedValue = (annualUsage / 0.09) * 12 * 0.95;
+        // 연금납부 전환비율 입력값(%) 사용, 없으면 9
+        let 연금전환_비율 = document.getElementById("연금전환비율");
+        let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
+        convertedValue = (annualUsage / (연금비율 / 100)) * 12 * 0.95;
       } else if (selectedType === "전월세") {
-        convertedValue = (annualUsage / 0.058);
+        // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
+        let 전월세전환_비율 = document.getElementById("전월세전환비율");
+        let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
+        convertedValue = (annualUsage / (전월세비율 / 100));
       } else if (selectedType === "주신보") {
         const strValue =
         주신보110.toLocaleString() + " / " + 주신보120.toLocaleString();
