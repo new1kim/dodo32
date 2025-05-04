@@ -52,6 +52,8 @@
     margin: 0 auto; /* 화면 중앙 정렬 */
   }
 </style>
+</head>
+<body>
 
 <table id="계산방식선택" style="width: 100%; table-layout: auto;">
   <tr>
@@ -443,7 +445,7 @@
       "기타대출기간4", "기타대출기간5", "기타대출기간6"
     ]);
 
-    var Choice = 0;
+    var Choice
     document.getElementById("원금균등선택").addEventListener("click", () => {
         Choice=1;
         원금균등_계산();
@@ -456,4 +458,5 @@
     });
 
   </script>
+</body>
 </html>

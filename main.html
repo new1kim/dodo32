@@ -286,6 +286,7 @@
     function setupPopupButton() {
       const popupContainer = document.getElementById("imagePopup");
       const futureIncomePopupContainer = document.getElementById("futureIncomePopup");
+      const settingsPopupContainer = document.getElementById("settingsPopup");
 
       document.getElementById("showPopup").addEventListener("click", () => {
         popupContainer.style.display = "flex";
@@ -295,12 +296,19 @@
         futureIncomePopupContainer.style.display = "flex";
       });
 
+      document.getElementById("showSettingsPopup").addEventListener("click", () => {
+        settingsPopupContainer.style.display = "flex";
+      });
+
       window.addEventListener("click", event => {
         if (event.target == popupContainer) {
           popupContainer.style.display = "none";
         }
         if (event.target == futureIncomePopupContainer) {
           futureIncomePopupContainer.style.display = "none";
+        }
+        if (event.target == settingsPopupContainer) {
+          settingsPopupContainer.style.display = "none";
         }
       });
     }
@@ -324,10 +332,31 @@
       }
     }
 
+    // 설정값 저장 및 불러오기 함수 추가
+    function saveSetting(key, value) {
+      localStorage.setItem(key, value);
+    }
+    function loadSetting(key) {
+      return localStorage.getItem(key) || "";
+    }
+    function setupSettingsPersistence() {
+      const ids = ["카드전환비율", "건보전환비율", "연금전환비율", "전월세전환비율"];
+      ids.forEach(id => {
+        const input = document.getElementById(id);
+        // 저장된 값 불러오기
+        input.value = loadSetting(id);
+        // 값이 바뀔 때마다 저장
+        input.addEventListener("input", () => {
+          saveSetting(id, input.value);
+        });
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       resetFields();
       setupPopupButton();
       startWorkerRecordAccess();
+      setupSettingsPersistence();
       document.querySelector(".카드버튼").click();
       const now = new Date();
       const formattedTime = now.getFullYear().toString().slice(2) +
@@ -377,6 +406,7 @@
 
     <button id="showPopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">신용점수 기준</button>
     <button id="showFutureIncomePopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">장래예상소득</button>
+    <button id="showSettingsPopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">설정</button>
 
     <div id="imagePopup" class="popup-container">
       <div class="popup-content">
@@ -386,6 +416,27 @@
     <div id="futureIncomePopup" class="popup-container">
       <div class="popup-content">
         <img id="futureIncomeImg" src="장래예상소득증가율.png" alt="장래예상소득 증가율 이미지">
+      </div>
+    </div>
+    <!-- 설정 팝업 추가 -->
+    <div id="settingsPopup" class="popup-container">
+      <div class="popup-content">
+        <table style="width:100%; border-collapse:collapse; text-align:center; table-layout:fixed;">
+          <tbody>
+            <tr>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;">카드</td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;">건보</td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;">연금</td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;">전월세</td>
+            </tr>
+            <tr style="text-align: center;">
+              <td style="border:1px solid #ccc; padding:8px; width:25%;"><input id="카드전환비율" type="number" placeholder="전환비율" style="width:95%;"></td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;"><input id="건보전환비율" type="number" placeholder="전환비율" style="width:95%;"></td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;"><input id="연금전환비율" type="number"placeholder="전환비율" style="width:95%;"></td>
+              <td style="border:1px solid #ccc; padding:8px; width:25%;"><input id="전월세전환비율" type="number" placeholder="전환비율" style="width:95%;"></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
