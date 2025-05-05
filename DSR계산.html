@@ -14,12 +14,10 @@
     cursor: pointer; /* 마우스 커서를 포인터로 변경 */
     transition: background-color 0.5s, transform 0.5s; /* 배경색과 크기 변화에 애니메이션 추가 */
   }
-
   /* 버튼 호버 시 스타일 */
   button:hover {
     background-color: #a5a733; /* 호버 시 배경색 변경 */
   }
-
   /* 버튼 클릭 시 스타일 */
   button:active {
     background-color: #551e22; /* 클릭 시 배경색 변경 */
@@ -48,9 +46,30 @@
 
   /* 테이블 크기 제한 */
   table {
-    max-width: 600px; /* 테이블 최대 너비 설정 */
-    margin: 0 auto; /* 화면 중앙 정렬 */
+    margin: 0 auto;
+    max-width: 600px;
+    width: 100%;
+    table-layout: fixed; /* 고정 너비 */
   }
+
+
+  td input {
+            width: 95%;
+            box-sizing: border-box;
+        }
+
+        body {
+          text-align: center;
+        }
+
+        .center-table {
+            margin: 0 auto;
+            max-width: 600px;
+            width: 100%;
+            table-layout: fixed;
+        }       
+
+
 </style>
 </head>
 <body>
@@ -79,7 +98,7 @@
     <td ID="DIT확인" style="width: 22%; text-align: center;">-</td>
     <td ID="신DTI확인" style="width: 22%; text-align: center;">-</td>
   </tr>
-
+</table>
 
   <table border="1" style="width: 100%; table-layout: fixed;">
     <tr style="text-align: center; background-color: #d9f2ff;"> 
@@ -137,7 +156,7 @@
   </tr>
 </table>
 
-<table border="1" style="width: 100%; table-layout: auto; margin-top: 20px;">
+<!-- <table border="1" style="width: 100%; table-layout: auto; margin-top: 20px;">
     <tr style="text-align: center;">
       <th id="제목4" colspan="4" style="background-color: #d9f2ff;">기타대출</th>
     </tr>
@@ -171,6 +190,31 @@
         <td ID="기타대출금리6"><input type="text" inputmode="numeric" placeholder="기타대출금리6" style="width: 90%;"></td>
         <td ID="기타대출기간6"><input type="text" inputmode="numeric" placeholder="기타대출기간6" style="width: 90%;"></td>
     </tr>
+  </table> -->
+<br>
+
+    <!-- 4x2 테이블 -->
+    <table id="기타대출Table" border="1" class="center-table">
+      <colgroup>
+          <col style="width:15%">
+          <col style="width:35%">
+          <col style="width:25%">
+          <col style="width:25%">
+      </colgroup>
+      <tbody>
+          <tr style="text-align: center;">
+              <td class="하늘색배경"><div onclick="기타대출행추가()">추가</div></td>
+              <td>기타금액</td>
+              <td>기타금리</td>
+              <td>기타기간</td>
+          </tr>
+          <tr style="text-align: center;">
+              <td>순번 1</td>
+              <td><input id="기타금액1" type="text" placeholder="기타금액1" oninput="logInput('기타금액1')"></td>
+              <td><input id="기타금리1" type="text" placeholder="기타금리1" oninput="logInput('기타금리1')"></td>
+              <td><input id="기타기간1" type="text" placeholder="기타기간1" oninput="logInput('기타기간1')"></td>
+          </tr>
+      </tbody>
   </table>
 
 <script>
@@ -236,20 +280,15 @@
         const 신dti입력된합계 = 신dti.입력된연이자합계 + 신dti.입력된연원금합계;
         const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
 
-        const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
-            const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
-            const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
-            const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
-
-            const 연이자 = 금액 * 금리;
-            const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
-
+        // 기타대출Table에서 동적으로 계산
+        const 기타대출목록 = getDynamicEtcLoans();
+        const 기타대출 = 기타대출목록.reduce((합계, 항목) => {
+            const 연이자 = 항목.금액 * 항목.금리;
+            const 연원금 = 항목.기간 > 0 ? (항목.금액 / 항목.기간) * 12 : 0;
             합계.연이자합계 += 연이자;
             합계.연원금합계 += 연원금;
-
             return 합계;
         }, { 연이자합계: 0, 연원금합계: 0 });
-
         const 기타대출합계 = 기타대출.연이자합계 + 기타대출.연원금합계;
 
         // DSR 계산
@@ -350,20 +389,15 @@
       const 신dti입력된합계 = 신dti.입력된연이자합계 + 신dti.입력된연원금합계;
       const 신dti고정합계 = 신dti.고정연이자합계 + 신dti.고정연원금합계;
 
-      const 기타대출 = [1, 2, 3, 4, 5, 6].reduce((합계, i) => {
-        const 금액 = parseFloat(document.getElementById(`기타대출금액${i}`).querySelector("input").value.replace(/,/g, '')) || 0;
-        const 금리 = parseFloat(document.getElementById(`기타대출금리${i}`).querySelector("input").value) / 100 || 0;
-        const 기간 = parseInt(document.getElementById(`기타대출기간${i}`).querySelector("input").value) || 0;
-
-        const 연이자 = 금액 * 금리;
-        const 연원금 = 기간 > 0 ? (금액 / 기간) * 12 : 0;
-
+      // 기타대출Table에서 동적으로 계산
+      const 기타대출목록 = getDynamicEtcLoans();
+      const 기타대출 = 기타대출목록.reduce((합계, 항목) => {
+        const 연이자 = 항목.금액 * 항목.금리;
+        const 연원금 = 항목.기간 > 0 ? (항목.금액 / 항목.기간) * 12 : 0;
         합계.연이자합계 += 연이자;
         합계.연원금합계 += 연원금;
-
         return 합계;
       }, { 연이자합계: 0, 연원금합계: 0 });
-
       const 기타대출합계 = 기타대출.연이자합계 + 기타대출.연원금합계;
 
       // DSR 계산
@@ -413,9 +447,7 @@
     function setupInputTriggers(ids) {
       // 대출금리1,2,3 id는 소수점 허용
       const decimalIds = ["대출금리1", "대출금리2", "대출금리3",
-                          "신DTI대출금리1", "신DTI대출금리2",
-                          "기타대출금리1", "기타대출금리2", "기타대출금리3",
-                          "기타대출금리4", "기타대출금리5", "기타대출금리6",];
+                          "신DTI대출금리1", "신DTI대출금리2"];
       ids.forEach(id => {
         const inputElement = document.getElementById(id).querySelector("input");
         inputElement.addEventListener("input", () => {
@@ -438,13 +470,7 @@
       "신DTI대출원금1", "신DTI대출원금2",
       "신DTI대출금리1", "신DTI대출금리2",
       "신DTI상환기간1", "신DTI상환기간2",
-      "기타대출금액1", "기타대출금액2", "기타대출금액3",
-      "기타대출금액4", "기타대출금액5", "기타대출금액6",
-      "기타대출금리1", "기타대출금리2", "기타대출금리3",
-      "기타대출금리4", "기타대출금리5", "기타대출금리6",
-      "기타대출기간1", "기타대출기간2", "기타대출기간3",
-      "기타대출기간4", "기타대출기간5", "기타대출기간6"
-    ]);
+]);
 
     var Choice=0;
 
@@ -458,8 +484,109 @@
         //원금균등_월부담액_계산();
     });
 
+        let rowNumber = 2; // 다음에 추가될 행의 번호
+        let currentRows = 1; // 현재 데이터 행 개수(순번1은 이미 있음)
+        const maxRows = 10; // 최대 표시 행 수
+        const maxNumber = 30; // 최대 번호
 
+    function 기타대출행추가() {
+            if (currentRows >= maxRows) {
+                alert("최대 10행까지만 추가할 수 있습니다.");
+                return;
+            }
+            if (rowNumber > maxNumber) {
+                alert("최대 번호는 30번까지입니다.");
+                return;
+            }
+            const table = document.getElementById('기타대출Table').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            newRow.setAttribute('style', 'text-align: center;');
+            // 첫 번째 셀: 순번N (삭제 버튼 포함)
+            const cell1 = newRow.insertCell();
+            cell1.innerHTML = `순번 ${rowNumber}`;
+            // 두 번째 셀: 기타금액N
+            const cell2 = newRow.insertCell();
+            cell2.innerHTML = `<input id="기타금액${rowNumber}" type="text" placeholder="기타금액${rowNumber}" oninput="logInput('기타금액${rowNumber}')">`;
+            // 세 번째 셀: 기타금리N
+            const cell3 = newRow.insertCell();
+            cell3.innerHTML = `<input id="기타금리${rowNumber}" type="text" placeholder="기타금리${rowNumber}" oninput="logInput('기타금리${rowNumber}')">`;
+            // 네 번째 셀: 기타기간N
+            const cell4 = newRow.insertCell();
+            cell4.innerHTML = `<input id="기타기간${rowNumber}" type="text" placeholder="기타기간${rowNumber}" oninput="logInput('기타기간${rowNumber}')">`;
+            rowNumber++;
+            currentRows++;
+            // 새 행에 이벤트 연결
+            if (window._attachEventsToRow) window._attachEventsToRow(newRow);
+        }
 
-  </script>
+        function deleteRow(btn) {
+            const row = btn.closest('tr');
+            row.parentNode.removeChild(row);
+            currentRows--;
+        }
+
+        function logInput(id) {
+            const value = document.getElementById(id).value;
+            console.log(`${id}: ${value}`);
+        }
+
+    // 기타대출Table에서 입력값을 모두 읽어오는 함수
+    function getDynamicEtcLoans() {
+        const table = document.getElementById('기타대출Table').getElementsByTagName('tbody')[0];
+        const rows = Array.from(table.rows).slice(1); // 첫 행(제목)은 제외
+        const result = [];
+        rows.forEach(row => {
+            const 금액 = parseFloat(row.cells[1].querySelector('input').value.replace(/,/g, '')) || 0;
+            const 금리 = parseFloat(row.cells[2].querySelector('input').value) / 100 || 0;
+            const 기간 = parseInt(row.cells[3].querySelector('input').value) || 0;
+            result.push({ 금액, 금리, 기간 });
+        });
+        return result;
+    }
+
+    // 기타대출Table의 input에 입력 이벤트 연결
+    function setupDynamicEtcLoanInputEvents() {
+        const table = document.getElementById('기타대출Table').getElementsByTagName('tbody')[0];
+        function attachEventsToRow(row) {
+            for (let i = 1; i <= 3; i++) {
+                const input = row.cells[i].querySelector('input');
+                if (!input) continue;
+                input.addEventListener('input', () => {
+                    // 금액 입력은 콤마, 금리(2번째 셀)는 소수점, 기간은 숫자만
+                    if (i === 1) {
+                        input.value = input.value.replace(/\D/g, '');
+                        if (input.value) input.value = parseInt(input.value, 10).toLocaleString();
+                    } else if (i === 2) {
+                        // 소수점 입력 허용, 소수점 1개, 소수점 둘째자리까지
+                        let value = input.value.replace(/[^0-9.]/g, '');
+                        const parts = value.split('.');
+                        if (parts.length > 2) {
+                            value = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                        if (parts[1]) {
+                            parts[1] = parts[1].substring(0, 2);
+                            value = parts[0] + '.' + parts[1];
+                        }
+                        input.value = value;
+                    } else {
+                        input.value = input.value.replace(/\D/g, '');
+                    }
+                    if (Choice == 0) {
+                        원리금균등_계산();
+                    } else {
+                        원금균등_계산();
+                    }
+                });
+            }
+        }
+        // 기존 행들에 이벤트 연결
+        Array.from(table.rows).slice(1).forEach(attachEventsToRow);
+        // addRows 함수에서 새 행 추가 시에도 이벤트 연결 필요
+        window._attachEventsToRow = attachEventsToRow;
+    }
+
+    // 기타대출Table 동적 입력 이벤트 연결 초기화
+    setupDynamicEtcLoanInputEvents();
+</script>
 </body>
 </html>
