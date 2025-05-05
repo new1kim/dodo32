@@ -210,9 +210,9 @@
           </tr>
           <tr style="text-align: center;">
               <td>순번 1</td>
-              <td><input id="기타금액1" type="text" placeholder="기타금액1" oninput="logInput('기타금액1')"></td>
-              <td><input id="기타금리1" type="text" placeholder="기타금리1" oninput="logInput('기타금리1')"></td>
-              <td><input id="기타기간1" type="text" placeholder="기타기간1" oninput="logInput('기타기간1')"></td>
+              <td><input id="기타금액1" type="text" inputmode="numeric" placeholder="기타금액1" oninput="logInput('기타금액1')"></td>
+              <td><input id="기타금리1" type="text" inputmode="numeric" placeholder="기타금리1" oninput="logInput('기타금리1')"></td>
+              <td><input id="기타기간1" type="text" inputmode="numeric" placeholder="기타기간1" oninput="logInput('기타기간1')"></td>
           </tr>
       </tbody>
   </table>
@@ -506,13 +506,13 @@
             cell1.innerHTML = `순번 ${rowNumber}`;
             // 두 번째 셀: 기타금액N
             const cell2 = newRow.insertCell();
-            cell2.innerHTML = `<input id="기타금액${rowNumber}" type="text" placeholder="기타금액${rowNumber}" oninput="logInput('기타금액${rowNumber}')">`;
+            cell2.innerHTML = `<input id="기타금액${rowNumber}" type="number" inputmode="numeric" placeholder="기타금액${rowNumber}" oninput="logInput('기타금액${rowNumber}')">`;
             // 세 번째 셀: 기타금리N
             const cell3 = newRow.insertCell();
-            cell3.innerHTML = `<input id="기타금리${rowNumber}" type="text" placeholder="기타금리${rowNumber}" oninput="logInput('기타금리${rowNumber}')">`;
+            cell3.innerHTML = `<input id="기타금리${rowNumber}" type="number" inputmode="numeric" placeholder="기타금리${rowNumber}" oninput="logInput('기타금리${rowNumber}')">`;
             // 네 번째 셀: 기타기간N
             const cell4 = newRow.insertCell();
-            cell4.innerHTML = `<input id="기타기간${rowNumber}" type="text" placeholder="기타기간${rowNumber}" oninput="logInput('기타기간${rowNumber}')">`;
+            cell4.innerHTML = `<input id="기타기간${rowNumber}" type="number" inputmode="numeric" placeholder="기타기간${rowNumber}" oninput="logInput('기타기간${rowNumber}')">`;
             rowNumber++;
             currentRows++;
             // 새 행에 이벤트 연결
