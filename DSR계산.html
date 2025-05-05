@@ -81,6 +81,21 @@
   </tr>
 
 
+  <table border="1" style="width: 100%; table-layout: fixed;">
+    <tr style="text-align: center; background-color: #d9f2ff;"> 
+      <td rowspan="2" style="width: 20%;">월부담액</td>
+      <td style="width: 27%;">합   계</td>
+      <td style="width: 27%;">월 원금</td>
+      <td style="width: 27%;">월 이자</td>
+    </tr>
+    <tr style="text-align: center;">
+      <td id="월합계" style="width: 26%;">-</td>
+      <td id="월원금" style="width: 26%;">-</td>
+      <td id="월이자" style="width: 26%;">-</td>
+    </tr>
+  </table>
+
+
 <table border="2" style="width: 100%; table-layout: fixed;">
   <tr style="text-align: center;">
     <td style="width: 30%;">연소득 입력</td>
@@ -157,21 +172,6 @@
         <td ID="기타대출기간6"><input type="text" inputmode="numeric" placeholder="기타대출기간6" style="width: 90%;"></td>
     </tr>
   </table>
-
-
-<table border="1" style="width: 100%; table-layout: fixed;">
-  <tr style="text-align: center; background-color: #d9f2ff;"> 
-    <td rowspan="2" style="width: 20%;">월부담액</td>
-    <td style="width: 27%;">합  계</td>
-    <td style="width: 27%;">월 원금</td>
-    <td style="width: 27%;">월 이자</td>
-  </tr>
-  <tr style="text-align: center;">
-    <td id="월합계" style="width: 26%;">-</td>
-    <td id="월원금" style="width: 26%;">-</td>
-    <td id="월이자" style="width: 26%;">-</td>
-  </tr>
-</table>
 
 <script>
     function 원리금균등_계산대출(대출원금, 대출금리, 상환기간) {
@@ -385,6 +385,7 @@
         const 신dti값 = (대출합계 + 기타대출.연이자합계 + 신dti고정합계) / 연소득입력;
         document.getElementById("신DTI확인").innerText = (신dti값 * 100).toFixed(2) + "%";
       }
+      원금균등_월부담액_계산();
     }
 
     function addCommaOrDecimalToInput(input, allowDecimal = false) {
@@ -419,7 +420,7 @@
         const inputElement = document.getElementById(id).querySelector("input");
         inputElement.addEventListener("input", () => {
           addCommaOrDecimalToInput(inputElement, decimalIds.includes(id));
-          if ( Choice==1){
+          if ( Choice==0){
              원리금균등_계산();
             }
             else{
@@ -445,17 +446,19 @@
       "기타대출기간4", "기타대출기간5", "기타대출기간6"
     ]);
 
-    var Choice
-    document.getElementById("원금균등선택").addEventListener("click", () => {
-        Choice=1;
-        원금균등_계산();
-        원금균등_월부담액_계산();
-    });
+    var Choice=0;
 
     document.getElementById("원리금선택").addEventListener("click", () => {
         Choice=0;
         원리금균등_계산();
     });
+    document.getElementById("원금균등선택").addEventListener("click", () => {
+        Choice=1;
+        원금균등_계산();
+        //원금균등_월부담액_계산();
+    });
+
+
 
   </script>
 </body>
