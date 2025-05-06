@@ -121,274 +121,275 @@
     }
   </style>
 
-  <script>
-    let selectedType = "";
+<script>
+  let selectedType = "";
 
-    function formatNumber(input) {
-      let value = input.value.replace(/,/g, '');
-      if (!isNaN(value) && value !== '') {
-        input.value = parseInt(value).toLocaleString();
+  function formatNumber(input) {
+    let value = input.value.replace(/,/g, '');
+    if (!isNaN(value) && value !== '') {
+      input.value = parseInt(value).toLocaleString();
+    }
+  }
+
+  function formatPercentage(input) {
+    let value = input.value.replace('%', '');
+    const regex = /^\d{0,2}(\.\d{0,2})?$/;
+    if (value === '' || regex.test(value)) {
+      input.value = value + '%';
+      input.dataset.previousValidValue = input.value;
+    } else {
+      input.value = input.dataset.previousValidValue || '';
+    }
+    if (input.value === '%') input.value = '';
+  }
+
+  function handlePercentageBackspace(input, event) {
+    if (event.keyCode === 8) {
+      let value = input.value;
+      let caretPosition = input.selectionStart;
+      if (caretPosition > 0 && caretPosition === value.length && value.endsWith('%')) {
+        input.value = value.slice(0, -1);
+        input.selectionStart = caretPosition - 1;
+        input.selectionEnd = caretPosition - 1;
+        event.preventDefault();
       }
     }
+  }
 
-    function formatPercentage(input) {
-      let value = input.value.replace('%', '');
-      const regex = /^\d{0,2}(\.\d{0,2})?$/;
-      if (value === '' || regex.test(value)) {
-        input.value = value + '%';
-        input.dataset.previousValidValue = input.value;
-      } else {
-        input.value = input.dataset.previousValidValue || '';
+  function 월납부액계산() {
+    let 대출금액 = document.getElementById("대출금액").value.replace(/,/g, '');
+    let 대출금리 = document.getElementById("대출금리").value.replace('%', '');
+    if (대출금액 && 대출금리 && !isNaN(대출금액) && !isNaN(대출금리)) {
+      let 월상환액 = (대출금액 * (parseFloat(대출금리) / 100)) / 12;
+      document.getElementById("월상환액").value = parseInt(월상환액).toLocaleString();
+      calculateDTI();
+    } else {
+      document.getElementById("월상환액").value = "";
+      document.getElementById("DTI").value = "";
+    }
+  }
+
+  function calculateDTI() {
+    let 월상환액 = document.getElementById("월상환액").value.replace(/,/g, '') || 0;
+    let 부채금액 = document.getElementById("부채금액").value.replace(/,/g, '') || 0;
+    let 부채금리 = document.getElementById("부채금리").value.replace('%', '') || 0;
+    let 연소득 = document.getElementById("연소득").value.replace(/,/g, '') || 0;
+    let 부채상환액 = (parseFloat(부채금액) * parseFloat(부채금리)) / 1200;
+    let 총월부채상환액 = parseFloat(월상환액) + 부채상환액;
+    let 월소득 = parseFloat(연소득) / 12;
+    let DTI = (총월부채상환액 / 월소득) * 100;
+    let dtiField = document.getElementById("DTI");
+
+    if (!isNaN(DTI)) {
+      dtiField.value = DTI.toFixed(2) + "%";
+      dtiField.style.color = DTI >= 40 ? "red" : "black";
+      dtiField.style.fontWeight = DTI >= 40 ? "bold" : "normal";
+    } else {
+      dtiField.value = "";
+      dtiField.style.color = "black";
+      dtiField.style.fontWeight = "normal";
+    }
+  }
+
+  function updateFields(type) {
+    selectedType = type;
+    document.getElementById("annualUsage").value = "";
+    document.getElementById("conversionAmount").value = "";
+
+    let formula = document.getElementById("conversionFormula");
+    let annualUsageLabel = document.querySelector(".blue label");
+    let buttons = document.querySelectorAll(".button-group button");
+
+    buttons.forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
+
+    if (type === "카드사용액") {
+      let 카드전환_비율 = document.getElementById("카드전환비율");
+      let 카드비율 = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
+      formula.value = `연 사용액 ÷ ${카드비율}% × 90%`;
+      annualUsageLabel.textContent = "연 사용액";
+      document.querySelector(".카드버튼").classList.add("activeButton");
+    } else if (type === "건강보험") {
+      let 건보전환_비율 = document.getElementById("건보전환비율");
+      let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
+      formula.value = `3개월 평균 금액 ÷ ${건보비율}% × 12 × 95%`;
+      annualUsageLabel.textContent = "평균 금액";
+      document.querySelector(".건보버튼").classList.add("activeButton");
+    } else if (type === "연금납부") {
+      // 연금납부 전환비율 입력값(%) 사용, 없으면 9
+      let 연금전환_비율 = document.getElementById("연금전환비율");
+      let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
+      formula.value = `3개월 평균 금액 ÷ ${연금비율}% × 12 × 95%`;
+      annualUsageLabel.textContent = "평균 금액";
+      document.querySelector(".연금버튼").classList.add("activeButton");
+    } else if (type === "전월세") {
+      // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
+      let 전월세전환_비율 = document.getElementById("전월세전환비율");
+      let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
+      formula.value = `HF,HUG 전환율 ${전월세비율}% + 보증금`;
+      annualUsageLabel.textContent = "1년 월세";
+      document.querySelector(".전월세버튼").classList.add("activeButton");  
+    } else if (type === "주신보") {
+      formula.value = "연소득 × 3.5 ÷ 90% × 110% / 120%";
+      annualUsageLabel.textContent = "연소득";
+      document.querySelector(".주신보").classList.add("activeButton");
+    }
+
+    buttons.forEach(btn => {
+      if (!btn.classList.contains("activeButton")) {
+        btn.classList.add("inactiveButton");
       }
-      if (input.value === '%') input.value = '';
+    });
+
+    updateConversionAmount();
+  }
+
+  function updateConversionAmount() {
+    let annualUsage = document.getElementById("annualUsage").value.replace(/,/g, '');
+    let conversionAmount = document.getElementById("conversionAmount");
+    let incomeField = document.getElementById("연소득");
+
+    if (!annualUsage || isNaN(annualUsage)) {
+      conversionAmount.value = "";
+      incomeField.value = "";
+      return;
     }
 
-    function handlePercentageBackspace(input, event) {
-      if (event.keyCode === 8) {
-        let value = input.value;
-        let caretPosition = input.selectionStart;
-        if (caretPosition > 0 && caretPosition === value.length && value.endsWith('%')) {
-          input.value = value.slice(0, -1);
-          input.selectionStart = caretPosition - 1;
-          input.selectionEnd = caretPosition - 1;
-          event.preventDefault();
-        }
+    let convertedValue = 0;
+    let 주신보110 = Math.floor(annualUsage * 3.5 / 0.9 * 1.1);
+    let 주신보120 = Math.floor(annualUsage * 3.5 / 0.9 * 1.2);
+
+    if (selectedType === "카드사용액") {
+      let 카드전환_비율 = document.getElementById("카드전환비율");
+      let cardRate = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
+      convertedValue = (annualUsage / (cardRate / 100)) * 0.9;
+    } else if (selectedType === "건강보험") {
+      let 건보전환_비율 = document.getElementById("건보전환비율");
+      let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
+      convertedValue = (annualUsage / (건보비율 / 100)) * 12 * 0.95;
+    } else if (selectedType === "연금납부") {
+      // 연금납부 전환비율 입력값(%) 사용, 없으면 9
+      let 연금전환_비율 = document.getElementById("연금전환비율");
+      let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
+      convertedValue = (annualUsage / (연금비율 / 100)) * 12 * 0.95;
+    } else if (selectedType === "전월세") {
+      // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
+      let 전월세전환_비율 = document.getElementById("전월세전환비율");
+      let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
+      convertedValue = (annualUsage / (전월세비율 / 100));
+    } else if (selectedType === "주신보") {
+      const strValue =
+      주신보110.toLocaleString() + " / " + 주신보120.toLocaleString();
+      conversionAmount.value = strValue;
+      return; // 숫자 계산 건너뜀
+    }
+    conversionAmount.value = parseInt(convertedValue).toLocaleString();
+
+    if (["카드사용액", "건강보험", "연금납부"].includes(selectedType)) {
+      const incomeValue = Math.min(convertedValue, 50000000);
+      incomeField.value = parseInt(incomeValue).toLocaleString();
+      calculateDTI();
+    }
+  }
+
+  function resetFields() {
+    ["conversionAmount", "conversionFormula", "월상환액", "대출금액", "대출금리", "연소득", "부채금액", "부채금리", "DTI", "annualUsage"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("conversionFormula").value = "계산할 방법 선택하세요";
+    selectedType = "";
+    document.querySelectorAll(".button-group button").forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
+  }
+
+  function clearInputField(inputId) {
+    document.getElementById(inputId).value = "";
+  }
+
+  function setupPopupButton() {
+    const popupContainer = document.getElementById("imagePopup");
+    const futureIncomePopupContainer = document.getElementById("futureIncomePopup");
+    const settingsPopupContainer = document.getElementById("settingsPopup");
+
+    document.getElementById("showPopup").addEventListener("click", () => {
+      popupContainer.style.display = "flex";
+    });
+
+    document.getElementById("showFutureIncomePopup").addEventListener("click", () => {
+      futureIncomePopupContainer.style.display = "flex";
+    });
+
+    document.getElementById("showSettingsPopup").addEventListener("click", () => {
+      settingsPopupContainer.style.display = "flex";
+    });
+
+    window.addEventListener("click", event => {
+      if (event.target == popupContainer) {
+        popupContainer.style.display = "none";
       }
-    }
-
-    function 월납부액계산() {
-      let 대출금액 = document.getElementById("대출금액").value.replace(/,/g, '');
-      let 대출금리 = document.getElementById("대출금리").value.replace('%', '');
-      if (대출금액 && 대출금리 && !isNaN(대출금액) && !isNaN(대출금리)) {
-        let 월상환액 = (대출금액 * (parseFloat(대출금리) / 100)) / 12;
-        document.getElementById("월상환액").value = parseInt(월상환액).toLocaleString();
-        calculateDTI();
-      } else {
-        document.getElementById("월상환액").value = "";
-        document.getElementById("DTI").value = "";
+      if (event.target == futureIncomePopupContainer) {
+        futureIncomePopupContainer.style.display = "none";
       }
-    }
-
-    function calculateDTI() {
-      let 월상환액 = document.getElementById("월상환액").value.replace(/,/g, '') || 0;
-      let 부채금액 = document.getElementById("부채금액").value.replace(/,/g, '') || 0;
-      let 부채금리 = document.getElementById("부채금리").value.replace('%', '') || 0;
-      let 연소득 = document.getElementById("연소득").value.replace(/,/g, '') || 0;
-      let 부채상환액 = (parseFloat(부채금액) * parseFloat(부채금리)) / 1200;
-      let 총월부채상환액 = parseFloat(월상환액) + 부채상환액;
-      let 월소득 = parseFloat(연소득) / 12;
-      let DTI = (총월부채상환액 / 월소득) * 100;
-      let dtiField = document.getElementById("DTI");
-
-      if (!isNaN(DTI)) {
-        dtiField.value = DTI.toFixed(2) + "%";
-        dtiField.style.color = DTI >= 40 ? "red" : "black";
-        dtiField.style.fontWeight = DTI >= 40 ? "bold" : "normal";
-      } else {
-        dtiField.value = "";
-        dtiField.style.color = "black";
-        dtiField.style.fontWeight = "normal";
+      if (event.target == settingsPopupContainer) {
+        settingsPopupContainer.style.display = "none";
       }
-    }
+    });
+  }
 
-    function updateFields(type) {
-      selectedType = type;
-      document.getElementById("annualUsage").value = "";
-      document.getElementById("conversionAmount").value = "";
-
-      let formula = document.getElementById("conversionFormula");
-      let annualUsageLabel = document.querySelector(".blue label");
-      let buttons = document.querySelectorAll(".button-group button");
-
-      buttons.forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
-
-      if (type === "카드사용액") {
-        let 카드전환_비율 = document.getElementById("카드전환비율");
-        let 카드비율 = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
-        formula.value = `연 사용액 ÷ ${카드비율}% × 90%`;
-        annualUsageLabel.textContent = "연 사용액";
-        document.querySelector(".카드버튼").classList.add("activeButton");
-      } else if (type === "건강보험") {
-        let 건보전환_비율 = document.getElementById("건보전환비율");
-        let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
-        formula.value = `3개월 평균 금액 ÷ ${건보비율}% × 12 × 95%`;
-        annualUsageLabel.textContent = "평균 금액";
-        document.querySelector(".건보버튼").classList.add("activeButton");
-      } else if (type === "연금납부") {
-        // 연금납부 전환비율 입력값(%) 사용, 없으면 9
-        let 연금전환_비율 = document.getElementById("연금전환비율");
-        let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
-        formula.value = `3개월 평균 금액 ÷ ${연금비율}% × 12 × 95%`;
-        annualUsageLabel.textContent = "평균 금액";
-        document.querySelector(".연금버튼").classList.add("activeButton");
-      } else if (type === "전월세") {
-        // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
-        let 전월세전환_비율 = document.getElementById("전월세전환비율");
-        let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
-        formula.value = `HF,HUG 전환율 ${전월세비율}% + 보증금`;
-        annualUsageLabel.textContent = "1년 월세";
-        document.querySelector(".전월세버튼").classList.add("activeButton");  
-      } else if (type === "주신보") {
-        formula.value = "연소득 × 3.5 ÷ 90% × 110% / 120%";
-        annualUsageLabel.textContent = "연소득";
-        document.querySelector(".주신보").classList.add("activeButton");
-      }
-
-      buttons.forEach(btn => {
-        if (!btn.classList.contains("activeButton")) {
-          btn.classList.add("inactiveButton");
-        }
-      });
-
-      updateConversionAmount();
-    }
-
-    function updateConversionAmount() {
-      let annualUsage = document.getElementById("annualUsage").value.replace(/,/g, '');
-      let conversionAmount = document.getElementById("conversionAmount");
-      let incomeField = document.getElementById("연소득");
-
-      if (!annualUsage || isNaN(annualUsage)) {
-        conversionAmount.value = "";
-        incomeField.value = "";
-        return;
-      }
-
-      let convertedValue = 0;
-      let 주신보110 = Math.floor(annualUsage * 3.5 / 0.9 * 1.1);
-      let 주신보120 = Math.floor(annualUsage * 3.5 / 0.9 * 1.2);
-
-      if (selectedType === "카드사용액") {
-        let 카드전환_비율 = document.getElementById("카드전환비율");
-        let cardRate = parseFloat(카드전환_비율 && 카드전환_비율.value) || 43.4;
-        convertedValue = (annualUsage / (cardRate / 100)) * 0.9;
-      } else if (selectedType === "건강보험") {
-        let 건보전환_비율 = document.getElementById("건보전환비율");
-        let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
-        convertedValue = (annualUsage / (건보비율 / 100)) * 12 * 0.95;
-      } else if (selectedType === "연금납부") {
-        // 연금납부 전환비율 입력값(%) 사용, 없으면 9
-        let 연금전환_비율 = document.getElementById("연금전환비율");
-        let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
-        convertedValue = (annualUsage / (연금비율 / 100)) * 12 * 0.95;
-      } else if (selectedType === "전월세") {
-        // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
-        let 전월세전환_비율 = document.getElementById("전월세전환비율");
-        let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 5.8;
-        convertedValue = (annualUsage / (전월세비율 / 100));
-      } else if (selectedType === "주신보") {
-        const strValue =
-        주신보110.toLocaleString() + " / " + 주신보120.toLocaleString();
-        conversionAmount.value = strValue;
-        return; // 숫자 계산 건너뜀
-      }
-      conversionAmount.value = parseInt(convertedValue).toLocaleString();
-
-      if (["카드사용액", "건강보험", "연금납부"].includes(selectedType)) {
-        const incomeValue = Math.min(convertedValue, 50000000);
-        incomeField.value = parseInt(incomeValue).toLocaleString();
-        calculateDTI();
-      }
-    }
-
-    function resetFields() {
-      ["conversionAmount", "conversionFormula", "월상환액", "대출금액", "대출금리", "연소득", "부채금액", "부채금리", "DTI", "annualUsage"].forEach(id => {
-        document.getElementById(id).value = "";
-      });
-      document.getElementById("conversionFormula").value = "계산할 방법 선택하세요";
-      selectedType = "";
-      document.querySelectorAll(".button-group button").forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
-    }
-
-    function clearInputField(inputId) {
-      document.getElementById(inputId).value = "";
-    }
-
-    function setupPopupButton() {
-      const popupContainer = document.getElementById("imagePopup");
-      const futureIncomePopupContainer = document.getElementById("futureIncomePopup");
-      const settingsPopupContainer = document.getElementById("settingsPopup");
-
-      document.getElementById("showPopup").addEventListener("click", () => {
-        popupContainer.style.display = "flex";
-      });
-
-      document.getElementById("showFutureIncomePopup").addEventListener("click", () => {
-        futureIncomePopupContainer.style.display = "flex";
-      });
-
-      document.getElementById("showSettingsPopup").addEventListener("click", () => {
-        settingsPopupContainer.style.display = "flex";
-      });
-
-      window.addEventListener("click", event => {
-        if (event.target == popupContainer) {
-          popupContainer.style.display = "none";
-        }
-        if (event.target == futureIncomePopupContainer) {
-          futureIncomePopupContainer.style.display = "none";
-        }
-        if (event.target == settingsPopupContainer) {
-          settingsPopupContainer.style.display = "none";
-        }
-      });
-    }
-
-    function startWorkerRecordAccess() {
-      if (window.Worker) {
-        const workerCode = `
-          self.addEventListener('message', () => {
-            fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec", {
-              mode: 'no-cors',
-            }).catch((error) => {
-              console.error('접속 기록 실패:', error);
-            });
+  function startWorkerRecordAccess() {
+    if (window.Worker) {
+      const workerCode = `
+        self.addEventListener('message', () => {
+          fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec", {
+            mode: 'no-cors',
+          }).catch((error) => {
+            console.error('접속 기록 실패:', error);
           });
-        `;
-        const blob = new Blob([workerCode], { type: "application/javascript" });
-        const worker = new Worker(URL.createObjectURL(blob));
-        worker.postMessage("start");
-      } else {
-        console.warn("Web Worker를 지원하지 않는 브라우저입니다.");
-      }
-    }
-
-    // 설정값 저장 및 불러오기 함수 추가
-    function saveSetting(key, value) {
-      localStorage.setItem(key, value);
-    }
-    function loadSetting(key) {
-      return localStorage.getItem(key) || "";
-    }
-    function setupSettingsPersistence() {
-      const ids = ["카드전환비율", "건보전환비율", "연금전환비율", "전월세전환비율"];
-      ids.forEach(id => {
-        const input = document.getElementById(id);
-        // 저장된 값 불러오기
-        input.value = loadSetting(id);
-        // 값이 바뀔 때마다 저장
-        input.addEventListener("input", () => {
-          saveSetting(id, input.value);
         });
+      `;
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      const worker = new Worker(URL.createObjectURL(blob));
+      worker.postMessage("start");
+    } else {
+      console.warn("Web Worker를 지원하지 않는 브라우저입니다.");
+    }
+  }
+
+  // 설정값 저장 및 불러오기 함수 추가
+  function saveSetting(key, value) {
+    localStorage.setItem(key, value);
+  }
+  function loadSetting(key) {
+    return localStorage.getItem(key) || "";
+  }
+  function setupSettingsPersistence() {
+    const ids = ["카드전환비율", "건보전환비율", "연금전환비율", "전월세전환비율"];
+    ids.forEach(id => {
+      const input = document.getElementById(id);
+      // 저장된 값 불러오기
+      input.value = loadSetting(id);
+      // 값이 바뀔 때마다 저장
+      input.addEventListener("input", () => {
+        saveSetting(id, input.value);
       });
-    }
+    });
+  }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      resetFields();
-      setupPopupButton();
-      startWorkerRecordAccess();
-      setupSettingsPersistence();
-      document.querySelector(".카드버튼").click();
-      const now = new Date();
-      const formattedTime = now.getFullYear().toString().slice(2) +
-                      String(now.getMonth() + 1).padStart(2, '0') +
-                      String(now.getDate()).padStart(2, '0') + "_" +
-                      String(now.getHours()).padStart(2, '0') +
-                      String(now.getMinutes()).padStart(2, '0');
-      // document.getElementById("currentTime").textContent = formattedTime;
+  document.addEventListener("DOMContentLoaded", () => {
+    resetFields();
+    setupPopupButton();
+    startWorkerRecordAccess();
+    setupSettingsPersistence();
+    document.querySelector(".카드버튼").click();
+    const now = new Date();
+    const formattedTime = now.getFullYear().toString().slice(2) +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + "_" +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0');
+    // document.getElementById("currentTime").textContent = formattedTime;
 
-        });
-  </script>
+      });
+</script>
+
 </head>
 
 <body>
@@ -424,6 +425,24 @@
     <div class="input-box"><label>환산 수식</label><input type="text" id="conversionFormula" value="계산할 방법 선택하세요" style="text-align:center;font-weight: bold;" readonly></div>
 
     <p style="color: blue; font-weight: bold; margin: 5px 0;">"신용,주담대 상환조건으로 서보 DTI 산출 불가."</p>
+
+
+
+    <!-- 쿠팡 파트너스 위젯 시작 -->
+    <div id="coupang-partners-widget" style="margin: 20px 0;">
+      <script src="https://ads-partners.coupang.com/g.js"></script>
+      <script>
+        new PartnersCoupang.G({
+          "id": 862710,
+          "trackingCode": "AF3326698",
+          "subId": null,
+          "template": "carousel",
+          "width": "600",
+          "height": "100"
+        });
+      </script>
+    </div>
+    <!-- 쿠팡 파트너스 위젯 끝 -->
 
     <button id="showPopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">신용점수 기준</button>
     <button id="showFutureIncomePopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">장래예상소득</button>
