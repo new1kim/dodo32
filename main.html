@@ -211,14 +211,14 @@
     } else if (type === "건강보험") {
       let 건보전환_비율 = document.getElementById("건보전환비율");
       let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.545;
-      formula.value = `3개월 평균 금액 ÷ ${건보비율}% × 12 × 95%`;
+      formula.value = `3개월 평균 ÷ ${건보비율}% × 12 × 95%`;
       annualUsageLabel.textContent = "평균 금액";
       document.querySelector(".건보버튼").classList.add("activeButton");
     } else if (type === "연금납부") {
       // 연금납부 전환비율 입력값(%) 사용, 없으면 9
       let 연금전환_비율 = document.getElementById("연금전환비율");
       let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9;
-      formula.value = `3개월 평균 금액 ÷ ${연금비율}% × 12 × 95%`;
+      formula.value = `3개월 평균 ÷ ${연금비율}% × 12 × 95%`;
       annualUsageLabel.textContent = "평균 금액";
       document.querySelector(".연금버튼").classList.add("activeButton");
     } else if (type === "전월세") {
@@ -422,9 +422,18 @@
 
     <div class="input-box blue"><label>연 사용액</label><input type="text" inputmode="numeric" id="annualUsage" oninput="formatNumber(this); updateConversionAmount();"></div>
     <div class="input-box blue"><label>환산 금액</label><input type="text" id="conversionAmount" readonly></div>
-    <div class="input-box"><label>환산 수식</label><input type="text" id="conversionFormula" value="계산할 방법 선택하세요" style="text-align:center;font-weight: bold;" readonly></div>
+    <div class="input-box">
+      <label>환산 수식</label>
+      <input
+        type="text"
+        id="conversionFormula"
+        value="계산할 방법 선택하세요"
+        style="text-align:center;font-weight: bold; width:100%; font-size:min(14px,3vw); overflow:auto;"
+        readonly
+      >
+    </div>
 
-    <p style="color: blue; font-weight: bold; margin: 5px 0;">"신용,주담대 상환조건으로 서보 DTI 산출 불가."</p>
+    <p style="color: blue; font-weight: bold; margin: 5px 0;">" - "</p>
 
 
 
