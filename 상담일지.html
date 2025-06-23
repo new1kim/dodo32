@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>상담일지</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; padding: 0; font-family: '맑은 고딕', Arial, sans-serif; }
+        .table-wrap {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+        th, td {
+            border: 1px solid #7faac7;
+            padding: 6px 4px;
+            font-size: 15px;
+            text-align: center;
+        }
+        th, .label {
+            background: #e3effa;
+            font-weight: bold;
+        }
+        td {
+            background: #f9fcff;
+        }
+        .label {
+            width: 33%;
+        }
+        .content-row {
+            background: #fff;
+            text-align: left;
+            vertical-align: top;
+            padding: 0;
+        }
+        textarea {
+            width: 99%;
+            height: 510px;
+            resize: vertical;
+            border: none;
+            font-size: 15px;
+            font-family: inherit;
+            background: #fff;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        input[type="text"], input[type="date"], input[type="number"] {
+            width: 95%;
+            box-sizing: border-box;
+            font-size: 15px;
+            padding: 4px 2px;
+            border: 1px solid #b3c6d7;
+            background: #fff;
+        }
+        @media (max-width: 600px) {
+            .table-wrap { padding: 2px; }
+            th, td, input, textarea { font-size: 13px; }
+            textarea { height: 240px; }
+        }
+    </style>
+</head>
+<body>
+<div class="table-wrap">
+    <div style="margin-bottom:12px; text-align:right;">
+        <label style="vertical-align:middle; margin-right:10px;">
+            <input type="checkbox" id="saveModeSwitch" checked style="accent-color:#2196f3; width:18px; height:18px; vertical-align:middle;">
+            <span id="saveModeLabel" style="font-size:14px;vertical-align:middle;">On(로컬저장)</span>
+        </label>
+        <button type="button" id="saveBtn">저장</button>
+        <button type="button" id="loadBtn">불러오기</button>
+    </div>
+    <table>
+        <tr>
+            <th>상담일시</th>
+            <th>연락처</th>
+            <th>이름</th>
+        </tr>
+        <tr>
+            <td><span id="currentDateTime"></span></td>
+            <td><input type="text" placeholder="연락처 입력" inputmode="numeric" pattern="[0-9]*"></td>
+            <td><input type="text" placeholder="이름 입력" inputmode="text" lang="ko"></td>
+        </tr>
+        <tr>
+            <td class="label">필요일자</td>
+            <td class="label">필요금액</td>
+            <td class="label">대출구분</td>
+        </tr>
+        <tr>
+            <td><input type="text" placeholder="예: 25/3/02" inputmode="numeric" pattern="[0-9]*"></td>
+            <td><input type="text" placeholder="예: 250,000,000" inputmode="numeric" pattern="[0-9]*"></td>
+            <td><input type="text" placeholder="예: 담보" inputmode="text" lang="ko"></td>
+        </tr>
+        <tr>
+            <td colspan="3" class="label" style="text-align:center;">상담내용</td>
+        </tr>
+        <tr>
+            <td colspan="3" class="content-row">
+                <textarea placeholder="상담내용 입력"></textarea>
+            </td>
+        </tr>
+    </table>
+</div>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+    // 날짜 표시
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    document.getElementById('currentDateTime').textContent =
+        `${y}년 ${m}월 ${d}일 ${dayNames[now.getDay()]}`;
+
+    // 입력 필드 참조
+    const $ = sel => document.querySelector(sel);
+    const phoneInput = $('input[placeholder="연락처 입력"]');
+    const nameInput = $('input[placeholder="이름 입력"]');
+    const dateInput = $('input[placeholder="예: 25/3/02"]');
+    const moneyInput = $('input[placeholder="예: 250,000,000"]');
+    const typeInput = $('input[placeholder="예: 담보"]');
+    const contentInput = $('textarea[placeholder="상담내용 입력"]');
+
+    // 연락처 자동 포맷팅 (000-0000-0000)
+    phoneInput.addEventListener('input', function(e) {
+        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,11);
+        if (v.length > 7) v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
+        else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,4})/, '$1-$2');
+        e.target.value = v.replace(/-+$/,'');
+    });
+
+    // 필요일자 자동 포맷팅 (00/00/00)
+    dateInput.addEventListener('input', function(e) {
+        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,6);
+        if (v.length > 4) v = v.replace(/(\d{2})(\d{2})(\d{0,2})/, '$1/$2/$3');
+        else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,2})/, '$1/$2');
+        e.target.value = v.replace(/\/+$/,'');
+    });
+
+    // 필요금액 자동 포맷팅 (000,000,000)
+    moneyInput.addEventListener('input', function(e) {
+        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,9);
+        if (v) v = Number(v).toLocaleString('ko-KR');
+        e.target.value = v;
+    });
+
+    // On-Off 스위치 동작 및 라벨 변경
+    const saveSwitch = document.getElementById('saveModeSwitch');
+    const saveLabel = document.getElementById('saveModeLabel');
+    saveSwitch.addEventListener('change', function() {
+        if (saveSwitch.checked) {
+            saveLabel.textContent = 'On(로컬저장)';
+        } else {
+            saveLabel.textContent = 'Off(외부저장)';
+        }
+    });
+
+    // 저장 버튼 기능 (On: 로컬 저장, Off: 향후 추가 코드 자리)
+    document.getElementById('saveBtn').addEventListener('click', function() {
+        if (!saveSwitch.checked) {
+            //alert('Off(외부저장) 모드는 추후 구현 예정입니다.');
+            
+
+
+            const payload = {
+    dateTime: document.getElementById('currentDateTime').textContent.trim(),
+    phone: phoneInput.value.trim(),
+    name: nameInput.value.trim(),
+    needDate: dateInput.value.trim(),
+    needAmount: moneyInput.value.trim(),
+    loanType: typeInput.value.trim(),
+    memo: contentInput.value.trim()
+};
+
+fetch('https://script.google.com/macros/s/AKfycbya_1GL3AG8eY3NjCdii6iKQYNyk8oZeRl05sMu0J3ERHrgQdbUnjW3zd0rRbvcHNJc/exec', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+        'Content-Type': 'application/json'
+    }
+})
+.then(response => response.text())
+.then(text => {
+    alert('외부 저장 성공: ' + text);
+})
+.catch(err => {
+    alert('외부 저장 중 오류 발생: ' + err);
+});
+
+
+            
+            return;
+        }
+        // 저장 시 각 필드에 "/"가 들어가지 않도록 치환
+        const safe = s => s.replace(/\//g, '／');
+        const data = [
+            safe(document.getElementById('currentDateTime').textContent.trim()),
+            safe(phoneInput.value.trim()),
+            safe(nameInput.value.trim()),
+            safe(dateInput.value.trim()),
+            safe(moneyInput.value.trim()),
+            safe(typeInput.value.trim()),
+            safe(contentInput.value.trim())
+        ].join('/');
+
+        let db = [];
+        const dbStr = localStorage.getItem('상담일지_DB');
+        if (dbStr) {
+            try { db = JSON.parse(dbStr); } catch (e) { db = []; }
+        }
+        db.push(data);
+        localStorage.setItem('상담일지_DB', JSON.stringify(db));
+        alert('누적 저장되었습니다.');
+    });
+
+    // 불러오기 버튼 기능 (팝업으로 누적 데이터 모두 보기, 역순 표시 및 번호도 역순)
+    document.getElementById('loadBtn').addEventListener('click', function() {
+        const dbStr = localStorage.getItem('상담일지_DB');
+        if (!dbStr) return alert('저장된 데이터가 없습니다.');
+        let db = [];
+        try { db = JSON.parse(dbStr); } catch (e) { return alert('저장된 데이터가 올바르지 않습니다.'); }
+        if (db.length === 0) return alert('저장된 데이터가 없습니다.');
+
+        let html = `
+            <div style="position:relative;">
+                <button id="resetBtn" style="position:absolute;top:0;right:0;font-size:12px;padding:2px 8px;margin:8px;cursor:pointer;">초기화</button>
+                <h3 style="margin-top:0;">상담일지 목록</h3>
+            </div>
+            <ol style="padding-left:18px;">`;
+        const reversed = db.slice().reverse();
+        const total = reversed.length;
+        reversed.forEach(function(item, idx) {
+            // 역슬래시로 치환된 '/'를 다시 복원
+            const arr = item.split('/').map(s => s.replace(/／/g, '/'));
+            // 필요일자 포맷 변환: 00/00/00 → 00/00/00(요일)
+            let 필요일자표시 = arr[3] || '';
+            if (/^\d{2}\/\d{2}\/\d{2}$/.test(필요일자표시)) {
+                const y = 2000 + parseInt(필요일자표시.slice(0,2),10);
+                const m = parseInt(필요일자표시.slice(3,5),10) - 1;
+                const d = parseInt(필요일자표시.slice(6,8),10);
+                const day = dayNames[new Date(y, m, d).getDay()];
+                필요일자표시 += `(${day})`;
+            }
+            html += `<li value="${total-idx}" style="margin-bottom:12px;">`;
+            html += `<div><b>상담일시:</b> ${arr[0] || ''}</div>`;
+            html += `<div><b>연락처:</b> ${arr[1] || ''}</div>`;
+            html += `<div><b>이름:</b> ${arr[2] || ''}</div>`;
+            html += `<div><b>필요일자:</b> ${필요일자표시}</div>`;
+            html += `<div><b>필요금액:</b> ${arr[4] || ''}</div>`;
+            html += `<div><b>대출구분:</b> ${arr[5] || ''}</div>`;
+            html += `<div><b>상담내용:</b><br><pre style="white-space:pre-wrap;font-family:inherit;background:#f9fcff;border:1px solid #eee;padding:6px;">${(arr[6] || '').replace(/</g,"&lt;")}</pre></div>`;
+            html += '</li>';
+        });
+        html += '</ol>';
+        const popup = window.open('', '상담일지목록', 'width=500,height=700,scrollbars=yes');
+        popup.document.body.innerHTML = html;
+        popup.document.title = '상담일지 목록';
+
+        // 초기화 버튼 이벤트
+        popup.document.getElementById('resetBtn').onclick = function() {
+            if (confirm('정말로 모든 저장된 상담일지를 초기화하시겠습니까?')) {
+                localStorage.removeItem('상담일지_DB');
+                popup.document.body.innerHTML = '<p style="margin:30px;text-align:center;">저장된 데이터가 모두 삭제되었습니다.</p>';
+            }
+        };
+    });
+});
+</script>
+</body>
+</html>
