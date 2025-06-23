@@ -172,20 +172,16 @@ window.addEventListener('DOMContentLoaded', function() {
                 memo: contentInput.value.trim()
             };
 
-            fetch('https://script.google.com/macros/s/AKfycbzm-mOFht0qrDgtf6rjh-WFLHAVmKFgtKs01jHNC_VIY0KPqapoOGEtK5-P9ojK-nW3/exec', {
-                method: 'POST',
-                body: JSON.stringify(payload),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            fetch('https://script.google.com/macros/s/AKfycb.../exec', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json'
+            }
             })
             .then(response => response.text())
-            .then(text => {
-                alert('외부 저장 성공: ' + text);
-            })
-            .catch(err => {
-                alert('외부 저장 중 오류 발생: ' + err);
-            });
+            .then(msg => alert('외부 저장 완료: ' + msg))
+            .catch(err => alert('외부 저장 실패: ' + err));
 
             return;
         }
