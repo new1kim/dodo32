@@ -107,14 +107,16 @@
 </div>
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    // 날짜 표시
+    // 날짜+시간 표시 (yy/MM/dd (요일) HH:mm)
     const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     document.getElementById('currentDateTime').textContent =
-        `${y}년 ${m}월 ${d}일 ${dayNames[now.getDay()]}`;
+        `${yy}/${mm}/${dd} (${dayNames[now.getDay()]}) ${hh}:${min}`;
 
     // 입력 필드 참조
     const $ = sel => document.querySelector(sel);
@@ -144,57 +146,50 @@ window.addEventListener('DOMContentLoaded', function() {
     // 필요금액 자동 포맷팅 (000,000,000)
     moneyInput.addEventListener('input', function(e) {
         let v = e.target.value.replace(/[^0-9]/g, '').slice(0,9);
-        if (v) v = Number(v).toLocaleString('ko-KR');
-        e.target.value = v;
+        e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
     });
 
     // On-Off 스위치 동작 및 라벨 변경
     const saveSwitch = document.getElementById('saveModeSwitch');
     const saveLabel = document.getElementById('saveModeLabel');
     saveSwitch.addEventListener('change', function() {
-        if (saveSwitch.checked) {
-            saveLabel.textContent = 'On(로컬저장)';
-        } else {
-            saveLabel.textContent = 'Off(외부저장)';
-        }
+        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(외부저장)';
     });
 
-    // 저장 버튼 기능 (On: 로컬 저장, Off: 향후 추가 코드 자리)
+    // 저장 버튼 기능 (On: 로컬 저장, Off: 외부 저장)
     document.getElementById('saveBtn').addEventListener('click', function() {
-        if (!saveSwitch.checked) {
-            const payload = {
-                dateTime: document.getElementById('currentDateTime').textContent.trim(),
-                phone: phoneInput.value.trim(),
-                name: nameInput.value.trim(),
-                needDate: dateInput.value.trim(),
-                needAmount: moneyInput.value.trim(),
-                loanType: typeInput.value.trim(),
-                memo: contentInput.value.trim()
-            };
+        const dateTime = document.getElementById('currentDateTime').textContent.trim();
+        const phone = phoneInput.value.trim();
+        const name = nameInput.value.trim();
+        const needDate = dateInput.value.trim();
+        const needAmount = moneyInput.value.trim();
+        const loanType = typeInput.value.trim();
+        const memo = contentInput.value.trim();
 
-            fetch('https://script.google.com/macros/s/AKfycb.../exec', {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        if (!saveSwitch.checked) {
+            // 외부 저장
+            const payload = { dateTime, phone, name, needDate, needAmount, loanType, memo };
+            fetch('https://script.google.com/macros/s/AKfycbzWfK2PyW64MkkxsG2DRtdYmneyMRWjKLZ2PSF3EZjEAgYHKL7V3xMO-njSjlFtCOnK/exec', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             })
-            .then(response => response.text())
+            .then(res => res.text())
             .then(msg => alert('외부 저장 완료: ' + msg))
             .catch(err => alert('외부 저장 실패: ' + err));
-
             return;
         }
-        // 저장 시 각 필드에 "/"가 들어가지 않도록 치환
+
+        // 로컬 저장
         const safe = s => s.replace(/\//g, '／');
         const data = [
-            safe(document.getElementById('currentDateTime').textContent.trim()),
-            safe(phoneInput.value.trim()),
-            safe(nameInput.value.trim()),
-            safe(dateInput.value.trim()),
-            safe(moneyInput.value.trim()),
-            safe(typeInput.value.trim()),
-            safe(contentInput.value.trim())
+            safe(dateTime),
+            safe(phone),
+            safe(name),
+            safe(needDate),
+            safe(needAmount),
+            safe(loanType),
+            safe(memo)
         ].join('/');
 
         let db = [];
@@ -248,6 +243,7 @@ window.addEventListener('DOMContentLoaded', function() {
         popup.document.body.innerHTML = html;
         popup.document.title = '상담일지 목록';
 
+        // 팝업 내 모달(확인창) 추가
         const modalHtml = `
             <div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
                 <div style="background:#fff;padding:24px 18px;border-radius:8px;max-width:90vw;box-shadow:0 2px 12px #0002;text-align:center;">
