@@ -19,15 +19,15 @@
     .button-container {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 7px;
       padding: 10px;
       background-color: #f0f0f0;
     }
     button {
-      width: 130px;
+      width: 100px;
       height: 35px;
-      padding: 3px 15px;
-      font-size: 16px;
+      padding: 1px 12px;
+      font-size: 13px;
       cursor: pointer;
     }  
   </style>
@@ -41,9 +41,10 @@
 </head>
 <body onload="loadPage('main.html')">
   <div class="button-container">
-    <button onclick="loadPage('main.html')">DTI 계산기</button>
-    <button onclick="loadPage('DSR계산.html')">DSR 계산기</button>
-    <button onclick="loadPage('MCG.html')">MCG 계산기</button>
+    <button onclick="loadPage('main.html')">DTI 계산</button>
+    <button onclick="loadPage('DSR계산.html')">DSR 계산</button>
+    <button onclick="loadPage('MCG.html')">MCG 계산</button>
+    <button onclick="loadPage('상담일지.html')">상담일지</button>
 
   </div>
   <iframe id="content-frame" src=""></iframe>
