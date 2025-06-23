@@ -162,37 +162,31 @@ window.addEventListener('DOMContentLoaded', function() {
     // 저장 버튼 기능 (On: 로컬 저장, Off: 향후 추가 코드 자리)
     document.getElementById('saveBtn').addEventListener('click', function() {
         if (!saveSwitch.checked) {
-            //alert('Off(외부저장) 모드는 추후 구현 예정입니다.');
-            
-
-
             const payload = {
-    dateTime: document.getElementById('currentDateTime').textContent.trim(),
-    phone: phoneInput.value.trim(),
-    name: nameInput.value.trim(),
-    needDate: dateInput.value.trim(),
-    needAmount: moneyInput.value.trim(),
-    loanType: typeInput.value.trim(),
-    memo: contentInput.value.trim()
-};
+                dateTime: document.getElementById('currentDateTime').textContent.trim(),
+                phone: phoneInput.value.trim(),
+                name: nameInput.value.trim(),
+                needDate: dateInput.value.trim(),
+                needAmount: moneyInput.value.trim(),
+                loanType: typeInput.value.trim(),
+                memo: contentInput.value.trim()
+            };
 
-fetch('https://script.google.com/macros/s/AKfycbzm-mOFht0qrDgtf6rjh-WFLHAVmKFgtKs01jHNC_VIY0KPqapoOGEtK5-P9ojK-nW3/exec', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: {
-        'Content-Type': 'application/json'
-    }
-})
-.then(response => response.text())
-.then(text => {
-    alert('외부 저장 성공: ' + text);
-})
-.catch(err => {
-    alert('외부 저장 중 오류 발생: ' + err);
-});
+            fetch('https://script.google.com/macros/s/AKfycbzm-mOFht0qrDgtf6rjh-WFLHAVmKFgtKs01jHNC_VIY0KPqapoOGEtK5-P9ojK-nW3/exec', {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.text())
+            .then(text => {
+                alert('외부 저장 성공: ' + text);
+            })
+            .catch(err => {
+                alert('외부 저장 중 오류 발생: ' + err);
+            });
 
-
-            
             return;
         }
         // 저장 시 각 필드에 "/"가 들어가지 않도록 치환
@@ -227,16 +221,14 @@ fetch('https://script.google.com/macros/s/AKfycbzm-mOFht0qrDgtf6rjh-WFLHAVmKFgtK
 
         let html = `
             <div style="position:relative;">
-                <button id="resetBtn" style="position:absolute;top:0;right:0;font-size:12px;padding:2px 8px;margin:8px;cursor:pointer;">초기화</button>
-                <h3 style="margin-top:0;">상담일지 목록</h3>
+                <button id="resetBtn" style="position:fixed;top:10px;right:10px;z-index:9999;font-size:14px;padding:6px 16px;margin:0;cursor:pointer;background:#e74c3c;color:#fff;border:none;border-radius:4px;">초기화</button>
+                <h3 style="margin-top:50px;">상담일지 목록</h3>
             </div>
             <ol style="padding-left:18px;">`;
         const reversed = db.slice().reverse();
         const total = reversed.length;
         reversed.forEach(function(item, idx) {
-            // 역슬래시로 치환된 '/'를 다시 복원
             const arr = item.split('/').map(s => s.replace(/／/g, '/'));
-            // 필요일자 포맷 변환: 00/00/00 → 00/00/00(요일)
             let 필요일자표시 = arr[3] || '';
             if (/^\d{2}\/\d{2}\/\d{2}$/.test(필요일자표시)) {
                 const y = 2000 + parseInt(필요일자표시.slice(0,2),10);
@@ -260,12 +252,30 @@ fetch('https://script.google.com/macros/s/AKfycbzm-mOFht0qrDgtf6rjh-WFLHAVmKFgtK
         popup.document.body.innerHTML = html;
         popup.document.title = '상담일지 목록';
 
-        // 초기화 버튼 이벤트
+        const modalHtml = `
+            <div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
+                <div style="background:#fff;padding:24px 18px;border-radius:8px;max-width:90vw;box-shadow:0 2px 12px #0002;text-align:center;">
+                    <div style="margin-bottom:18px;font-size:16px;">정말로 모든 저장된 상담일지를 초기화하시겠습니까?</div>
+                    <button id="modalYes" style="margin-right:16px;padding:6px 18px;background:#e74c3c;color:#fff;border:none;border-radius:4px;font-size:15px;">예</button>
+                    <button id="modalNo" style="padding:6px 18px;background:#bbb;color:#fff;border:none;border-radius:4px;font-size:15px;">아니오</button>
+                </div>
+            </div>
+        `;
+        popup.document.body.insertAdjacentHTML('beforeend', modalHtml);
+
         popup.document.getElementById('resetBtn').onclick = function() {
-            if (confirm('정말로 모든 저장된 상담일지를 초기화하시겠습니까?')) {
+            const modal = popup.document.getElementById('confirmModal');
+            modal.style.display = 'flex';
+            popup.document.body.style.overflow = 'hidden';
+
+            popup.document.getElementById('modalYes').onclick = function() {
                 localStorage.removeItem('상담일지_DB');
                 popup.document.body.innerHTML = '<p style="margin:30px;text-align:center;">저장된 데이터가 모두 삭제되었습니다.</p>';
-            }
+            };
+            popup.document.getElementById('modalNo').onclick = function() {
+                modal.style.display = 'none';
+                popup.document.body.style.overflow = '';
+            };
         };
     });
 });
