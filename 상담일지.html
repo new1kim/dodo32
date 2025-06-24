@@ -120,54 +120,90 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // 입력 필드 참조
     const $ = sel => document.querySelector(sel);
-    const phoneInput = $('input[placeholder="연락처 입력"]');
-    const nameInput = $('input[placeholder="이름 입력"]');
-    const dateInput = $('input[placeholder="예: 25/3/02"]');
-    const moneyInput = $('input[placeholder="예: 250,000,000"]');
-    const typeInput = $('input[placeholder="예: 담보"]');
+    const phoneInput   = $('input[placeholder="연락처 입력"]');
+    const nameInput    = $('input[placeholder="이름 입력"]');
+    const dateInput    = $('input[placeholder="예: 25/3/02"]');
+    const moneyInput   = $('input[placeholder="예: 250,000,000"]');
+    const typeInput    = $('input[placeholder="예: 담보"]');
     const contentInput = $('textarea[placeholder="상담내용 입력"]');
 
     // 연락처 자동 포맷팅 (000-0000-0000)
     phoneInput.addEventListener('input', function(e) {
-        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,11);
-        if (v.length > 7) v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
+        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 7)      v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
         else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,4})/, '$1-$2');
-        e.target.value = v.replace(/-+$/,'');
+        e.target.value = v.replace(/-+$/, '');
     });
 
-    // 필요일자 자동 포맷팅 (00/00/00)
+    // 필요일자 자동 포맷팅 및 요일 자동 표시 (yy/MM/dd(월))
     dateInput.addEventListener('input', function(e) {
-        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,6);
-        if (v.length > 4) v = v.replace(/(\d{2})(\d{2})(\d{0,2})/, '$1/$2/$3');
+        let v = e.target.value.replace(/\D/g, '').slice(0, 6);
+        if (v.length > 4)      v = v.replace(/(\d{2})(\d{2})(\d{0,2})/, '$1/$2/$3');
         else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,2})/, '$1/$2');
-        e.target.value = v.replace(/\/+$/,'');
+        v = v.replace(/\/+$/, '');
+
+        let display = v;
+        if (/^\d{2}\/\d{2}\/\d{2}$/.test(v)) {
+            const y = 2000 + parseInt(v.slice(0,2),10);
+            const m = parseInt(v.slice(3,5),10) - 1;
+            const d = parseInt(v.slice(6,8),10);
+            const dateObj = new Date(y, m, d);
+            if (!isNaN(dateObj)) {
+                display = `${v}(${dayNames[dateObj.getDay()]})`;
+            }
+        }
+        e.target.value = display;
     });
 
-    // 필요금액 자동 포맷팅 (000,000,000)
+    // 필요금액 자동 포맷팅 (0,000,000,000)
     moneyInput.addEventListener('input', function(e) {
-        let v = e.target.value.replace(/[^0-9]/g, '').slice(0,9);
+        let v = e.target.value.replace(/\D/g, '').slice(0, 10);
         e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
+    });
+
+    // 엔터키로 다음 input 이동
+    const inputOrder = [phoneInput, nameInput, dateInput, moneyInput, typeInput, contentInput];
+    inputOrder.forEach((el, idx) => {
+        if (!el) return;
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (el.tagName === 'TEXTAREA') return;
+                const next = inputOrder[idx + 1];
+                if (next) next.focus();
+            }
+        });
     });
 
     // On-Off 스위치 동작 및 라벨 변경
     const saveSwitch = document.getElementById('saveModeSwitch');
-    const saveLabel = document.getElementById('saveModeLabel');
+    const saveLabel  = document.getElementById('saveModeLabel');
     saveSwitch.addEventListener('change', function() {
         saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(외부저장)';
     });
 
     // 저장 버튼 기능 (On: 로컬 저장, Off: 외부 저장)
     document.getElementById('saveBtn').addEventListener('click', function() {
-        const dateTime = document.getElementById('currentDateTime').textContent.trim();
-        const phone = phoneInput.value.trim();
-        const name = nameInput.value.trim();
-        const needDate = dateInput.value.trim();
+        const dateTime   = document.getElementById('currentDateTime').textContent.trim();
+        const phone      = phoneInput.value.trim();
+        const name       = nameInput.value.trim();
+        let needDate     = dateInput.value.trim();
         const needAmount = moneyInput.value.trim();
-        const loanType = typeInput.value.trim();
-        const memo = contentInput.value.trim();
+        const loanType   = typeInput.value.trim();
+        const memo       = contentInput.value.trim();
+
+        // 필요일자에 요일 붙이기
+        if (/^\d{2}\/\d{2}\/\d{2}$/.test(needDate)) {
+            const y = 2000 + parseInt(needDate.slice(0,2),10);
+            const m = parseInt(needDate.slice(3,5),10) - 1;
+            const d = parseInt(needDate.slice(6,8),10);
+            const dateObj = new Date(y, m, d);
+            if (!isNaN(dateObj)) {
+                needDate = `${needDate}(${dayNames[dateObj.getDay()]})`;
+            }
+        }
 
         if (!saveSwitch.checked) {
-            // 외부 저장
             const payload = { dateTime, phone, name, needDate, needAmount, loanType, memo };
             fetch('https://script.google.com/macros/s/AKfycbzWfK2PyW64MkkxsG2DRtdYmneyMRWjKLZ2PSF3EZjEAgYHKL7V3xMO-njSjlFtCOnK/exec', {
                 method: 'POST',
@@ -180,7 +216,6 @@ window.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // 로컬 저장
         const safe = s => s.replace(/\//g, '／');
         const data = [
             safe(dateTime),
@@ -221,12 +256,15 @@ window.addEventListener('DOMContentLoaded', function() {
         reversed.forEach(function(item, idx) {
             const arr = item.split('/').map(s => s.replace(/／/g, '/'));
             let 필요일자표시 = arr[3] || '';
-            if (/^\d{2}\/\d{2}\/\d{2}$/.test(필요일자표시)) {
+            // 이미 (요일)포함되어 있으면 그대로, 아니면 붙여줌
+            if (/^\d{2}\/\d{2}\/\d{2}$/.test(필요일자표시) && !/\(\S\)$/.test(필요일자표시)) {
                 const y = 2000 + parseInt(필요일자표시.slice(0,2),10);
                 const m = parseInt(필요일자표시.slice(3,5),10) - 1;
                 const d = parseInt(필요일자표시.slice(6,8),10);
-                const day = dayNames[new Date(y, m, d).getDay()];
-                필요일자표시 += `(${day})`;
+                const dateObj = new Date(y, m, d);
+                if (!isNaN(dateObj)) {
+                    필요일자표시 = `${필요일자표시}(${dayNames[dateObj.getDay()]})`;
+                }
             }
             html += `<li value="${total-idx}" style="margin-bottom:12px;">`;
             html += `<div><b>상담일시:</b> ${arr[0] || ''}</div>`;
