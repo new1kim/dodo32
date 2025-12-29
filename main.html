@@ -272,7 +272,7 @@
       let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9.5;
       convertedValue = (annualUsage / (연금비율 / 100)) * 12 * 0.95;
     } else if (selectedType === "전월세") {
-      // 전월세 전환비율 입력값(%) 사용, 없으면 6.4
+      // 전월세 전환비율 입력값(%) 사용, 없으면 5.8
       let 전월세전환_비율 = document.getElementById("전월세전환비율");
       let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 6.4;
       convertedValue = (annualUsage / (전월세비율 / 100));
@@ -433,9 +433,25 @@
       >
     </div>
 
-    <p style="color: blue; font-weight: bold; margin: 5px 0;">" - "</p>
+    <p style="color: blue; font-weight: bold; margin: 5px 0;">    </p>   <!-- 전달사항 메모 지금은 공백  -->
 
 
+
+    <!-- 쿠팡 파트너스 위젯 시작 -->
+  <!-- 쿠팡파트너스 광고 중앙 정렬 래퍼 추가 -->
+  <div class="coupang-center-wrap coupang-responsive">
+    <script src="https://ads-partners.coupang.com/g.js"></script>
+    <script>
+      new PartnersCoupang.G({
+        "id": 862710,
+        "trackingCode": "AF3326698",
+        "subId": null,
+        "template": "carousel",
+        "width": "100%", // 100%로 변경
+        "height": "100"
+      });
+    </script>
+    <!-- 쿠팡 파트너스 위젯 끝 -->
 
     <button id="showPopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">신용점수 기준</button>
     <button id="showFutureIncomePopup" style="margin-top: 20px; padding: 10px; font-weight: bold;">장래예상소득</button>
@@ -475,5 +491,3 @@
   </div>
 </body>
 </html>
-
-
