@@ -81,6 +81,24 @@
       display: block; /* 중앙 정렬을 위한 block 지정 */
     }
 
+
+/* 결과 텍스트 자동 맞춤 스타일 */
+.fit-text {
+      font-size: 13px;       /* 기본 PC 화면 폰트 크기 */
+      word-break: keep-all;  /* 단어 중간에서 줄바꿈 금지 (예: 입력대/기 방지) */
+      line-height: 1.2;      /* 줄 간격 좁힘 */
+    }
+
+    @media (max-width: 600px) {
+      .fit-text {
+        /* 화면 너비의 3% 크기로 자동 조절 (화면이 작을수록 글자도 작아짐) */
+        font-size: 3vw; 
+        padding: 5px 2px; /* 좌우 여백을 줄여서 공간 확보 */
+      }
+    }
+
+
+
   </style>
 </head>
 <body>
@@ -129,14 +147,16 @@
 
   <table style="text-align: center;">
     <tr>
-      <td style="width: 33%;">LTV 80%</td>
-      <td id="담보인정비">LTV 인정비</td>
-      <td style="width: 34%;">최대가능금액</td>
+      <td style="width: 25%;">LTV 80%</td>
+      <td style="width: 25%;">LTV 70%</td>
+      <td id="담보인정비" style="width: 25%;">LTV 인정비</td>
+      <td style="width: 25%;">최대가능금액</td>
     </tr>
     <tr>
-      <td id="ltv80per">주택가격 입력대기</td>
-      <td id="담보인정비율">물건지 선택대기</td>
-      <td id="최대가능금액">자동계산</td>
+      <td id="ltv80per" class="fit-text">주택가격 입력대기</td>
+      <td id="ltv70per" class="fit-text">주택가격 입력대기</td>
+      <td id="담보인정비율" class="fit-text">물건지 선택대기</td>
+      <td id="최대가능금액" class="fit-text">자동계산</td>
     </tr>
   </table>
 
@@ -169,21 +189,6 @@
   </textarea>
 <br>
 
-    <!-- 쿠팡 파트너스 위젯 시작 -->
-  <!-- 쿠팡파트너스 광고 중앙 정렬 래퍼 추가 -->
-  <!-- <div class="coupang-center-wrap coupang-responsive">
-    <script src="https://ads-partners.coupang.com/g.js"></script>
-    <script>
-      new PartnersCoupang.G({
-        "id": 862710,
-        "trackingCode": "AF3326698",
-        "subId": null,
-        "template": "carousel",
-        "width": "100%", // 100%로 변경
-        "height": "100"
-      });
-    </script> -->
-    <!-- 쿠팡 파트너스 위젯 끝 -->  
   </div>
   <script>
 
@@ -247,11 +252,17 @@
       const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
       const smallLeaseAmount = parseFloat(document.getElementById('소액임차금액').value.replace(/,/g, '')) || 0; // 소액임차금액 기본값 0
 
+      // LTV 80% 및 70% 계산 로직 수정
       if (!isNaN(price)) {
         const ltv80per = price * 0.8;
         document.getElementById('ltv80per').textContent = ltv80per.toLocaleString() + ' 원';
+        
+        // [추가됨] LTV 70% 계산
+        const ltv70per = price * 0.7;
+        document.getElementById('ltv70per').textContent = ltv70per.toLocaleString() + ' 원';
       } else {
         document.getElementById('ltv80per').textContent = '입력대기';
+        document.getElementById('ltv70per').textContent = '입력대기'; // [추가됨]
       }
 
       if (!isNaN(price) && !isNaN(ratio)) {
@@ -357,11 +368,16 @@
       localStorage.setItem('소액임차금액', value);
     }
 
+    // [수정됨] 소액임차금액 로드 함수 (NaN 방지)
     function loadSmallLeaseAmount() {
       const savedValue = localStorage.getItem('소액임차금액');
-      if (savedValue !== null) {
-        const input = document.getElementById('소액임차금액');
-        input.value = parseFloat(savedValue).toLocaleString(); // 콤마 적용
+      // 저장된 값이 null이 아니고, 빈 문자열이 아니며, "NaN"도 아닐 때만 실행
+      if (savedValue !== null && savedValue.trim() !== "" && savedValue !== "NaN") {
+        const num = parseFloat(savedValue.replace(/,/g, ''));
+        if (!isNaN(num)) {
+            const input = document.getElementById('소액임차금액');
+            input.value = num.toLocaleString(); // 콤마 적용
+        }
       }
     }
 
