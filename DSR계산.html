@@ -33,6 +33,19 @@
       background-color: rgba(0, 0, 0, 0.7); color: white; padding: 15px 25px;
       border-radius: 30px; font-weight: bold; display: none; z-index: 1000;
     }
+
+    /* 수정된 하단 버튼 스타일 (30% 크기 및 중앙 정렬) */
+    .view-btn-wrapper { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
+    .view-btn { width: 30%; background-color: #f39c12; border: 3px solid #e67e22; color: white; padding: 10px; font-size: 14px; }
+
+    /* 팝업(모달) 스타일 */
+    #image-modal {
+      display: none; 
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background-color: rgba(0,0,0,0.8); z-index: 2000;
+      justify-content: center; align-items: center; cursor: pointer;
+    }
+    #image-modal img { max-width: 90%; max-height: 90%; border: 3px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
@@ -82,32 +95,64 @@
 
   <br>
   <table id="기타대출Table">
-    <colgroup><col style="width:15%"><col style="width:40%"><col style="width:20%"><col style="width:20%"></colgroup>
+    <colgroup><col style="width:15%"><col style="width:40%"><col style="width:22%"><col style="width:23%"></colgroup>
     <tr style="background-color: #d9f2ff;">
       <td><button class="add-btn" onclick="기타대출행추가()">추가</button></td>
       <td>기타금액</td><td>기타금리</td><td>기타기간</td>
     </tr>
     <tr>
-      <td id="기타td1" class="no-bg">[ 1 ]</td>
-      <td class="no-bg"><input id="기타금액1" type="text" inputmode="numeric" placeholder="기타금액1"></td>
+      <td id="기타td1" class="no-bg">
+        <span style="vertical-align:middle;">[ 1 ]</span>
+      </td>
+      <td class="no-bg">
+        <input type="checkbox" id="이자만적용1" style="width:15px; height:15px; vertical-align:middle;" onchange="handleInterestOnlyChange(this)">
+        <input id="기타금액1" type="text" inputmode="numeric" placeholder="기타금액1" style="width:75%; vertical-align:middle;">
+      </td>
       <td class="no-bg"><input id="기타금리1" type="text" inputmode="numeric" placeholder="기타금리1"></td>
       <td class="no-bg"><input id="기타기간1" type="text" inputmode="numeric" placeholder="기타기간1"></td>
     </tr>
   </table>
 
+  <div class="view-btn-wrapper">
+    <button class="view-btn" onclick="openModal('DSR계산방식(부동산위키출처).jpg')">DSR 계산(부동산위키)</button>
+    <button class="view-btn" onclick="openModal('장래예상소득증가율.png')">장래예상소득</button>
+  </div>
+
+  <div id="image-modal" onclick="closeModal()">
+    <img id="modal-img" src="" alt="안내 이미지 팝업">
+  </div>
+
   <script>
-    /* 버튼 선택 기능 추가 */
+    /* 팝업 제어 함수 */
+    function openModal(imageSrc) {
+      document.getElementById("modal-img").src = imageSrc;
+      document.getElementById("image-modal").style.display = "flex";
+    }
+    function closeModal() {
+      document.getElementById("image-modal").style.display = "none";
+    }
+
+    /* 버튼 선택 기능 */
     function setRepaymentType(index, type, btn) {
       document.getElementById(`주담대상환방식${index}`).value = type;
       const buttons = btn.parentElement.querySelectorAll('.type-btn');
       buttons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      자동계산(); // 값 변경 후 계산 호출
+      자동계산();
     }
 
-    function showBubble() {
+    function showBubble(text = "신DTI 적용") {
       const b = document.getElementById("bubble-box");
-      b.style.display = "block"; setTimeout(() => b.style.display = "none", 1000);
+      b.innerText = text;
+      b.style.display = "block"; 
+      setTimeout(() => b.style.display = "none", 1000);
+    }
+
+    function handleInterestOnlyChange(checkbox) {
+      if (checkbox.checked) {
+        showBubble("이자만 적용");
+      }
+      자동계산();
     }
 
     // [기존 계산식 100% 유지]
@@ -185,11 +230,15 @@
       const etcRows = Array.from(document.getElementById('기타대출Table').getElementsByTagName('tbody')[0].rows).slice(1);
       let etcInt = 0, etcP = 0;
       etcRows.forEach(row => {
-        const eAmt = parseFloat(row.cells[1].querySelector('input').value.replace(/,/g, '')) || 0;
+        const eAmt = parseFloat(row.cells[1].querySelector('input[type="text"]').value.replace(/,/g, '')) || 0;
         const eRate = parseFloat(row.cells[2].querySelector('input').value) / 100 || 0;
         const eTerm = parseInt(row.cells[3].querySelector('input').value) || 0;
+        const isInterestOnly = row.cells[1].querySelector('input[type="checkbox"]').checked;
+
         etcInt += (eAmt * eRate);
-        etcP += (eTerm > 0 ? (eAmt / eTerm) * 12 : 0);
+        if (!isInterestOnly) {
+          etcP += (eTerm > 0 ? (eAmt / eTerm) * 12 : 0);
+        }
       });
 
       if (income > 0) {
@@ -204,7 +253,6 @@
       }
     }
 
-    // 입력 트리거 설정
     function addInputEvents(input, type) {
       input.addEventListener("input", () => {
         if (type === 'num') {
@@ -217,32 +265,35 @@
       });
     }
 
-    // 초기 주담대 이벤트 연결
     document.querySelectorAll("#연소득입력 input, #mortgage-inputs td[id^='대출원금'] input[type='text'], #mortgage-inputs td[id^='상환기간'] input").forEach(el => addInputEvents(el, 'num'));
     document.querySelectorAll("#mortgage-inputs td[id^='대출금리'] input").forEach(el => addInputEvents(el, 'decimal'));
-    document.querySelectorAll("input[type='checkbox']").forEach(el => {
-      el.addEventListener("change", (e) => { if(e.target.type==='checkbox' && e.target.checked) showBubble(); 자동계산(); });
+    document.querySelectorAll("#mortgage-inputs input[type='checkbox']").forEach(el => {
+      el.addEventListener("change", (e) => { if(e.target.checked) showBubble("신DTI 적용"); 자동계산(); });
     });
 
-    // 기타대출 첫 행 이벤트
     document.getElementById("기타금액1").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); if(e.target.value) e.target.value = parseInt(e.target.value).toLocaleString(); 자동계산(); });
     document.getElementById("기타금리1").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^0-9.]/g, ''); 자동계산(); });
     document.getElementById("기타기간1").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); 자동계산(); });
 
     let rowNo = 2;
     function 기타대출행추가() {
-      if (document.querySelectorAll(".etc-row").length >= 9) return alert("최대 10행까지만 가능합니다.");
+      if (document.querySelectorAll("#기타대출Table tr").length > 10) return alert("최대 10행까지만 가능합니다.");
       const table = document.getElementById('기타대출Table').getElementsByTagName('tbody')[0];
       const newRow = table.insertRow();
       newRow.className = "etc-row";
       newRow.style.textAlign = "center";
       newRow.innerHTML = `
-        <td class="no-bg">[ ${rowNo} ]</td>
-        <td class="no-bg"><input type="text" inputmode="numeric"></td>
+        <td class="no-bg">
+          <span style="vertical-align:middle;">[ ${rowNo} ]</span>
+        </td>
+        <td class="no-bg">
+          <input type="checkbox" style="width:15px; height:15px; vertical-align:middle;" onchange="handleInterestOnlyChange(this)">
+          <input type="text" inputmode="numeric" style="width:75%; vertical-align:middle;">
+        </td>
         <td class="no-bg"><input type="text" inputmode="numeric"></td>
         <td class="no-bg"><input type="text" inputmode="numeric"></td>
       `;
-      const inputs = newRow.querySelectorAll("input");
+      const inputs = newRow.querySelectorAll("input[type='text']");
       inputs[0].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); if(e.target.value) e.target.value = parseInt(e.target.value).toLocaleString(); 자동계산(); });
       inputs[1].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^0-9.]/g, ''); 자동계산(); });
       inputs[2].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); 자동계산(); });
