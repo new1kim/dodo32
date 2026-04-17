@@ -9,6 +9,14 @@
     button:hover { background-color: #a5a733; }
     button:active { background-color: #551e22; transform: scale(0.98); }
 
+    /* 추가된 버튼 선택기 스타일 */
+    .type-btn-group { display: flex; gap: 2px; justify-content: center; }
+    .type-btn { 
+      padding: 4px 2px; font-size: 11px; cursor: pointer; border: 1px solid #ccc; 
+      background: #f9f9f9; width: 50% !important; height: 30px; 
+    }
+    .type-btn.active { background-color: #58b3e0; color: white; border-color: #0eb6cc; font-weight: bold; }
+
     /* 테이블 스타일 */
     table { margin: 10px auto 0; max-width: 600px; width: 100%; table-layout: fixed; border-collapse: collapse; }
     td, th { border: 1px solid #ccc; padding: 5px; }
@@ -58,10 +66,11 @@
               </td>
               <td id="대출금리${i}" class="no-bg"><input type="text" inputmode="decimal" placeholder="금리"></td>
               <td class="no-bg">
-                <select id="주담대상환방식${i}" style="height:26px;">
-                  <option value="원리금">원리금 균등</option>
-                  <option value="원금">원금 균등</option>
-                </select>
+                <div class="type-btn-group">
+                  <button type="button" class="type-btn active" onclick="setRepaymentType(${i}, '원리금', this)">원리금</button>
+                  <button type="button" class="type-btn" onclick="setRepaymentType(${i}, '원금', this)">원금</button>
+                </div>
+                <input type="hidden" id="주담대상환방식${i}" value="원리금">
               </td>
               <td id="상환기간${i}" class="no-bg"><input type="text" inputmode="numeric" placeholder="기간"></td>
             </tr>
@@ -87,6 +96,15 @@
   </table>
 
   <script>
+    /* 버튼 선택 기능 추가 */
+    function setRepaymentType(index, type, btn) {
+      document.getElementById(`주담대상환방식${index}`).value = type;
+      const buttons = btn.parentElement.querySelectorAll('.type-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      자동계산(); // 값 변경 후 계산 호출
+    }
+
     function showBubble() {
       const b = document.getElementById("bubble-box");
       b.style.display = "block"; setTimeout(() => b.style.display = "none", 1000);
@@ -131,7 +149,8 @@
       let dsr_mort = 0, newDti_input = 0, newDti_fix = 0;
 
       for (let i = 1; i <= 3; i++) {
-        const amt = parseFloat(document.getElementById(`대출원금${i}`).querySelector("input[type='text']").value.replace(/,/g, '')) || 0;
+        const amtValue = document.getElementById(`대출원금${i}`).querySelector("input[type='text']").value.replace(/,/g, '');
+        const amt = parseFloat(amtValue) || 0;
         const rate = parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0;
         const term = parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0;
         const type = document.getElementById(`주담대상환방식${i}`).value;
@@ -201,7 +220,7 @@
     // 초기 주담대 이벤트 연결
     document.querySelectorAll("#연소득입력 input, #mortgage-inputs td[id^='대출원금'] input[type='text'], #mortgage-inputs td[id^='상환기간'] input").forEach(el => addInputEvents(el, 'num'));
     document.querySelectorAll("#mortgage-inputs td[id^='대출금리'] input").forEach(el => addInputEvents(el, 'decimal'));
-    document.querySelectorAll("select, input[type='checkbox']").forEach(el => {
+    document.querySelectorAll("input[type='checkbox']").forEach(el => {
       el.addEventListener("change", (e) => { if(e.target.type==='checkbox' && e.target.checked) showBubble(); 자동계산(); });
     });
 
