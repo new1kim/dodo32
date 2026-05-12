@@ -18,7 +18,7 @@
     .type-btn.active { background-color: #58b3e0; color: white; border-color: #0eb6cc; font-weight: bold; }
 
     /* 테이블 스타일 */
-    table { margin: 10px auto 0; max-width: 600px; width: 100%; table-layout: fixed; border-collapse: collapse; }
+    table { margin: 10px auto 0; max-width: 700px; width: 100%; table-layout: fixed; border-collapse: collapse; }
     td, th { border: 1px solid #ccc; padding: 5px; }
     td:first-child { background-color: #d9f2ff; }
     .no-bg { background-color: transparent !important; }
@@ -34,7 +34,7 @@
       border-radius: 30px; font-weight: bold; display: none; z-index: 1000;
     }
 
-    /* 수정된 하단 버튼 스타일 (30% 크기 및 중앙 정렬) */
+    /* 하단 버튼 스타일 */
     .view-btn-wrapper { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
     .view-btn { width: 30%; background-color: #f39c12; border: 3px solid #e67e22; color: white; padding: 10px; font-size: 14px; }
 
@@ -66,18 +66,38 @@
   </table>
 
   <table style="margin-top: 20px;">
-    <colgroup><col style="width: 40%;"><col style="width: 15%;"><col style="width: 30%;"><col style="width: 15%;"></colgroup>
-    <tr><th colspan="4" style="background-color: #d9f2ff;">주담대 입력</th></tr>
+    <colgroup>
+        <col style="width: 10%;">
+        <col style="width: 25%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+        <col style="width: 20%;">
+        <col style="width: 15%;">
+    </colgroup>
+    <thead>
+      <tr><th colspan="6" style="background-color: #d9f2ff;">주담대 입력</th></tr>
+      <tr style="background-color: #f2f2f2; font-size: 12px;">
+        <td>신DTI</td>
+        <td>대출원금</td>
+        <td>금리</td>
+        <td>ST금리</td>
+        <td>상환방식</td>
+        <td>상환기간</td>
+      </tr>
+    </thead>
     <tbody id="mortgage-inputs">
       <script>
         for(let i=1; i<=3; i++) {
           document.write(`
             <tr style="text-align: center;">
+              <td class="no-bg">
+                <input type="checkbox" id="신DTI적용${i}" style="width:18px; height:18px;">
+              </td>
               <td id="대출원금${i}" class="no-bg">
-                <input type="checkbox" id="신DTI적용${i}" style="width:15px; height:15px; vertical-align:middle;">
-                <input type="text" inputmode="numeric" placeholder="대출원금${i}" style="width:70%; vertical-align:middle;">
+                <input type="text" inputmode="numeric" placeholder="원금${i}" style="width:95%;">
               </td>
               <td id="대출금리${i}" class="no-bg"><input type="text" inputmode="decimal" placeholder="금리"></td>
+              <td id="ST금리${i}" class="no-bg"><input type="text" inputmode="decimal" placeholder="ST금리"></td>
               <td class="no-bg">
                 <div class="type-btn-group">
                   <button type="button" class="type-btn active" onclick="setRepaymentType(${i}, '원리금', this)">원리금</button>
@@ -155,7 +175,6 @@
       자동계산();
     }
 
-    // [기존 계산식 100% 유지]
     function 원리금균등_계산대출(amt, rate, term) {
       if (rate > 0 && term > 0 && amt > 0) {
         const mRate = rate / 12;
@@ -196,30 +215,44 @@
       for (let i = 1; i <= 3; i++) {
         const amtValue = document.getElementById(`대출원금${i}`).querySelector("input[type='text']").value.replace(/,/g, '');
         const amt = parseFloat(amtValue) || 0;
-        const rate = parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0;
+        
+        const pureRate = parseFloat(document.getElementById(`대출금리${i}`).querySelector("input").value) / 100 || 0;
+        const stRateValue = parseFloat(document.getElementById(`ST금리${i}`).querySelector("input").value) || 0;
+        const combinedRate = (pureRate * 100 + stRateValue) / 100;
+
         const term = parseInt(document.getElementById(`상환기간${i}`).querySelector("input").value) || 0;
         const type = document.getElementById(`주담대상환방식${i}`).value;
         const isNew = document.getElementById(`신DTI적용${i}`).checked;
 
-        let res;
+        let monthlyRes;
         if (type === "원리금") {
-          const calc = 원리금균등_계산대출(amt, rate, term);
-          const fix = 원리금균등_계산대출(amt, rate, 180);
-          res = { m: calc.월상환금액, p: calc.첫달원금, i: calc.첫달이자, annual: calc.월상환금액 * 12, fixAnnual: fix.월상환금액 * 12 };
+            monthlyRes = 원리금균등_계산대출(amt, pureRate, term);
+            sumM += monthlyRes.월상환금액; 
+            sumP += monthlyRes.첫달원금; 
+            sumI += monthlyRes.첫달이자;
         } else {
-          const calcM = 원금균등_월부담액(amt, rate, term);
-          const calcA = 원금균등_연간계산(amt, rate, term);
-          const fixA = 원금균등_연간계산(amt, rate, 180);
-          res = { m: calcM.월합계, p: calcM.월원금, i: calcM.월이자, annual: calcA.대출합계, fixAnnual: fixA.대출합계 };
+            monthlyRes = 원금균등_월부담액(amt, pureRate, term);
+            sumM += monthlyRes.월합계; 
+            sumP += monthlyRes.월원금; 
+            sumI += monthlyRes.월이자;
         }
 
-        sumM += res.m; sumP += res.p; sumI += res.i;
+        let annualRes;
+        if (type === "원리금") {
+          const calc = 원리금균등_계산대출(amt, combinedRate, term);
+          const fix = 원리금균등_계산대출(amt, combinedRate, 180);
+          annualRes = { annual: calc.월상환금액 * 12, fixAnnual: fix.월상환금액 * 12 };
+        } else {
+          const calcA = 원금균등_연간계산(amt, combinedRate, term);
+          const fixA = 원금균등_연간계산(amt, combinedRate, 180);
+          annualRes = { annual: calcA.대출합계, fixAnnual: fixA.대출합계 };
+        }
 
         if (isNew) {
-          newDti_input += res.annual;
-          newDti_fix += res.fixAnnual;
+          newDti_input += annualRes.annual;
+          newDti_fix += annualRes.fixAnnual;
         } else {
-          dsr_mort += res.annual;
+          dsr_mort += annualRes.annual;
         }
       }
 
@@ -266,7 +299,7 @@
     }
 
     document.querySelectorAll("#연소득입력 input, #mortgage-inputs td[id^='대출원금'] input[type='text'], #mortgage-inputs td[id^='상환기간'] input").forEach(el => addInputEvents(el, 'num'));
-    document.querySelectorAll("#mortgage-inputs td[id^='대출금리'] input").forEach(el => addInputEvents(el, 'decimal'));
+    document.querySelectorAll("#mortgage-inputs td[id^='대출금리'] input, #mortgage-inputs td[id^='ST금리'] input").forEach(el => addInputEvents(el, 'decimal'));
     document.querySelectorAll("#mortgage-inputs input[type='checkbox']").forEach(el => {
       el.addEventListener("change", (e) => { if(e.target.checked) showBubble("신DTI 적용"); 자동계산(); });
     });
