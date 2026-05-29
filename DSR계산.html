@@ -448,13 +448,21 @@
         const finalNewDti = ((dsr_mort + etcInt + newDti_fix) / income) * 100;
 
         document.getElementById("DSR확인").innerText = finalDsr.toFixed(2) + "%";
-        document.getElementById("DSR확인").style.backgroundColor = finalDsr >= 40 ? "#ef4444" : "";
-        document.getElementById("DSR확인").style.color = finalDsr >= 40 ? "#ffffff" : "#334155";
+        
+        // DSR 초과 검증 스타일 제약 우회 및 고도화 (옅은 빨간색 배경 적용)
+        if (finalDsr >= 40) {
+          document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
+          document.getElementById("DSR확인").style.color = "#b91c1c";
+        } else {
+          document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
+          document.getElementById("DSR확인").style.color = "#334155";
+        }
+        
         document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
         document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
       } else {
         document.getElementById("DSR확인").innerText = "-";
-        document.getElementById("DSR확인").style.backgroundColor = "";
+        document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
         document.getElementById("DSR확인").style.color = "#334155";
         document.getElementById("DIT확인").innerText = "-";
         document.getElementById("신DTI확인").innerText = "-";
