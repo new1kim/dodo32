@@ -8,32 +8,38 @@
     /* 전체 기본 스타일 모던화 */
     body { 
       text-align: center; 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-      background-color: #f4f7fa; 
-      color: #334155; 
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; 
+      background-color: #f8fafc; 
+      color: #1e293b; 
       margin: 0; 
       padding: 16px;
       -webkit-font-smoothing: antialiased;
     }
 
+    /* 상단 타이틀 또는 컨테이너 최대폭 설정 */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
     /* 테이블을 세련된 카드 레이아웃으로 변경 */
     table { 
-      margin: 14px auto 0; 
-      max-width: 650px; 
+      margin: 16px auto 0; 
+      max-width: 600px; 
       width: 100%; 
       table-layout: fixed; 
       border-collapse: separate; 
       border-spacing: 0;
       background-color: #ffffff;
-      border-radius: 12px !important;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      border-radius: 16px !important;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
       border: 1px solid #e2e8f0 !important;
       overflow: hidden;
     }
     
     td, th { 
       border: 1px solid #f1f5f9 !important; 
-      padding: 6px 4px; 
+      padding: 10px 6px; 
       font-size: 13px;
       vertical-align: middle;
       white-space: nowrap !important; 
@@ -44,11 +50,16 @@
     /* 헤더 및 고정 배경 컬러 정돈 */
     tr[style*="background-color: #d9f2ff"], 
     tr[style*="background-color: #d9f2ff;"] {
-      background-color: #e0f2fe !important; 
-      color: #0369a1;
+      background-color: #f0fdf4 !important; /* 부드러운 그린/블루 톤 적용 */
+      color: #0f766e;
       font-weight: 600;
     }
     
+    thead tr[style*="background-color: #d9f2ff"] {
+      background-color: #f1f5f9 !important;
+      color: #475569;
+    }
+
     thead tr[style*="background-color: #f2f2f2"] {
       background-color: #f8fafc !important;
       color: #64748b;
@@ -56,9 +67,9 @@
     }
     
     td:first-child:not(.no-bg):not(.split-td) { 
-      background-color: #f0f9ff !important; 
+      background-color: #f8fafc !important; 
       font-weight: 600;
-      color: #0369a1;
+      color: #475569;
     }
     
     .no-bg { background-color: transparent !important; }
@@ -67,93 +78,103 @@
     td input[type="text"], 
     td input[type="number"],
     td select { 
-      width: 92%; 
+      width: 100%; 
       box-sizing: border-box; 
       border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      padding: 6px;
+      border-radius: 8px;
+      padding: 7px 4px;
       font-size: 13px;
       text-align: center;
-      background-color: #ffffff;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      color: #1e293b;
+      background-color: #f8fafc;
+      transition: all 0.2s ease;
+      color: #0f172a;
+      font-weight: 500;
     }
     
     td input:focus {
-      border-color: #0284c7;
+      border-color: #3b82f6;
+      background-color: #ffffff;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
 
     #baseIncomeInput {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
+      background-color: #ffffff;
     }
     
+    /* 모던 둥근 체크박스 스타일 감성 부여 */
     input[type="checkbox"] {
-      accent-color: #0284c7;
+      accent-color: #3b82f6;
       cursor: pointer;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      vertical-align: middle;
     }
 
     /* 버튼 스타일 */
     button { 
       width: 100%; 
-      background-color: #0284c7; 
+      background-color: #3b82f6; 
       border: none;
       color: white;
       padding: 12px; 
-      font-size: 15px; 
+      font-size: 14px; 
       font-weight: 600;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer; 
-      transition: all 0.2s; 
-      box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+      transition: all 0.2s ease; 
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
     }
-    button:hover { background-color: #0369a1; }
-    button:active { background-color: #075985; transform: scale(0.98); }
+    button:hover { background-color: #2563eb; }
+    button:active { background-color: #1d4ed8; transform: scale(0.99); }
 
-    /* 일체형 탭 방식의 상환방식 버튼 그룹 */
+    /* 일체형 탭 방식의 상환방식 버튼 그룹 고도화 */
     .type-btn-group { 
       display: flex; 
       gap: 2px; 
       justify-content: center; 
-      background-color: #f1f5f9;
-      border-radius: 6px;
+      background-color: #e2e8f0;
+      border-radius: 8px;
       padding: 2px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .type-btn { 
-      padding: 4px 1px; 
+      padding: 0; 
       font-size: 11px; 
       white-space: nowrap; 
       cursor: pointer; 
       border: none !important; 
       background: transparent !important; 
-      color: #475569 !important;
-      width: 33% !important; 
-      height: 28px !important; 
-      border-radius: 4px;
-      font-weight: 500;
+      color: #64748b !important;
+      width: 33.33% !important; 
+      height: 26px !important; 
+      border-radius: 6px;
+      font-weight: 600;
       box-shadow: none !important;
-      transition: all 0.15s;
+      transition: all 0.2s ease;
     }
     .type-btn.active { 
       background-color: #ffffff !important; 
-      color: #0284c7 !important; 
+      color: #2563eb !important; 
       font-weight: 700; 
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
     }
 
-    /* 행추가 버튼 디자인 */
+    /* 행추가 버튼 디자인 리팩토링 */
     .add-btn { 
       background-color: #10b981; 
       color: white; 
       border: none; 
-      padding: 5px 12px;
-      border-radius: 6px; 
+      padding: 6px 14px;
+      border-radius: 8px; 
       font-weight: 600; 
       font-size: 12px;
       cursor: pointer; 
-      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
       width: auto;
       box-sizing: border-box;
       display: inline-block;
@@ -161,10 +182,24 @@
     }
     .add-btn:hover { background-color: #059669; }
 
+    /* 내부 인풋 정렬을 위한 플렉스 바 생성 */
+    .input-flex-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      align-items: center;
+    }
+    .input-flex-row {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+    }
+
     /* 토스트 버블박스 */
     #bubble-box {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      background-color: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
       color: white; padding: 12px 24px;
       border-radius: 50px; font-weight: 600; font-size: 14px; display: none; z-index: 1000;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
@@ -174,16 +209,16 @@
     .view-btn-wrapper { display: flex; justify-content: center; gap: 12px; margin-top: 24px; }
     .view-btn { 
       width: 48%; 
-      background-color: #f97316; 
+      background-color: #475569; 
       border: none !important;
       color: white; 
       padding: 12px; 
       font-size: 13px; 
       font-weight: 600;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(249, 115, 22, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15);
     }
-    .view-btn:hover { background-color: #ea580c; }
+    .view-btn:hover { background-color: #334155; }
 
     /* 팝업(모달) 스타일 */
     #image-modal {
@@ -202,92 +237,96 @@
       font-weight: 700;
       font-size: 14px;
     }
-    #DSR확인 { transition: background-color 0.3s; }
+    #DSR확인 { transition: background-color 0.3s; font-size: 16px; }
   </style>
 </head>
 <body>
-  <div id="bubble-box">신DTI 적용</div>
+  <div class="container">
+    <div id="bubble-box">신DTI 적용</div>
 
-  <table>
-    <tr style="background-color: #d9f2ff;"><td>D S R</td><td>D T I</td><td>신 D T I</td></tr>
-    <tr><td id="DSR확인" class="no-bg">-</td><td id="DIT확인" class="no-bg">-</td><td id="신DTI확인" class="no-bg">-</td></tr>
-  </table>
+    <table>
+      <tr style="background-color: #d9f2ff;"><td style="width: 33.33%;">D S R</td><td style="width: 33.33%;">D T I</td><td style="width: 33.33%;">신 D T I</td></tr>
+      <tr><td id="DSR확인" class="no-bg">-</td><td id="DIT확인" class="no-bg">-</td><td id="신DTI확인" class="no-bg">-</td></tr>
+    </table>
 
-  <table>
-    <tr>
-      <td class="split-td" style="width: 50%; padding: 6px 0; background-color: #eff6ff !important; font-weight: bold; font-size: 12px; color: #1e40af !important;">DSR 40% 기준</td>
-      <td class="split-td" style="width: 50%; padding: 6px 0; background-color: #f0fdf4 !important; font-weight: bold; font-size: 12px; color: #166534 !important;">DSR 50% 기준</td>
-    </tr>
-    <tr>
-      <td id="DSR최대금액확인40" class="no-bg" style="padding: 4px 0; font-weight: bold; color: #0284c7; font-size: 15px;">-</td>
-      <td id="DSR최대금액확인50" class="no-bg" style="padding: 4px 0; font-weight: bold; color: #0f766e; font-size: 15px;">-</td>
-    </tr>
-  </table>
+    <table>
+      <tr>
+        <td class="split-td" style="width: 50%; padding: 8px 0; background-color: #eff6ff !important; font-weight: bold; font-size: 12px; color: #1e40af !important;">DSR 40% 기준 한도</td>
+        <td class="split-td" style="width: 50%; padding: 8px 0; background-color: #f0fdf4 !important; font-weight: bold; font-size: 12px; color: #166534 !important;">DSR 50% 기준 한도</td>
+      </tr>
+      <tr>
+        <td id="DSR최대금액확인40" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #2563eb; font-size: 14px;">-</td>
+        <td id="DSR최대금액확인50" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #10b981; font-size: 14px;">-</td>
+      </tr>
+    </table>
 
-  <table>
-    <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 20%;">월부담액</td><td>합 계</td><td>월 원금</td><td>월 이자</td></tr>
-    <tr><td id="월합계" class="no-bg">-</td><td id="월원금" class="no-bg">-</td><td id="월이자" class="no-bg">-</td></tr>
-  </table>
+    <table>
+      <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 22%;">월 부 담 액</td><td style="color:#475569; font-weight:normal;">합 계</td><td style="color:#475569; font-weight:normal;">월 원금</td><td style="color:#475569; font-weight:normal;">월 이자</td></tr>
+      <tr><td id="월합계" class="no-bg" style="color:#2563eb;">-</td><td id="월원금" class="no-bg">-</td><td id="월이자" class="no-bg">-</td></tr>
+    </table>
 
-  <table style="border: 2px solid #ccc; margin-top: 20px;">
-    <tr>
-      <td style="width: 20%; font-weight: bold; letter-spacing: -0.5px;"> 연소득 입력<br>
-        <span style="font-size: 11px; color: #64748b; font-weight: normal;">(장래예상소득)</span>
-      </td>
-      <td id="연소득입력" class="no-bg" style="padding: 10px 0;">
-        <input type="hidden" id="computedIncomeHidden" value="">
-        
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 0 3%;">
-          <input type="text" id="baseIncomeInput" inputmode="numeric" placeholder="연소득 입력" style="width: 42%; text-align: center; padding: 6px;">
+    <table style="margin-top: 16px;">
+      <tr>
+        <td style="width: 25%; font-weight: bold; letter-spacing: -0.5px;"> 연소득 입력<br>
+          <span style="font-size: 10px; color: #64748b; font-weight: normal;">(장래예상소득)</span>
+        </td>
+        <td id="연소득입력" class="no-bg" style="padding: 10px 6px;">
+          <input type="hidden" id="computedIncomeHidden" value="">
           
-          <div style="display: flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap;">
-            <input type="checkbox" id="applyRateCheck" style="width: 14px; height: 14px;">
-            <label for="applyRateCheck" style="cursor: pointer; font-weight: 600; color: #334155;">장래예상</label>
-            <span id="rateDisplay" style="color: #dc2626; font-weight: 700; margin-left: 2px;">(-)</span>
+          <div style="display: flex; justify-content: center; align-items: center; gap: 6px;">
+            <input type="text" id="baseIncomeInput" inputmode="numeric" placeholder="연소득 입력" style="width: 45%; text-align: center; padding: 7px 4px;">
+            
+            <div style="display: flex; align-items: center; gap: 2px; font-size: 11px; white-space: nowrap;">
+              <input type="checkbox" id="applyRateCheck">
+              <label for="applyRateCheck" style="cursor: pointer; font-weight: 600; color: #475569; margin-left:1px;">장래예상</label>
+              <span id="rateDisplay" style="color: #ef4444; font-weight: 700; margin-left: 1px;">(-)</span>
+            </div>
+            
+            <input type="number" id="ageInput" placeholder="나이/생년" style="width: 25%; text-align: center; padding: 7px 4px;">
           </div>
-          
-          <input type="number" id="ageInput" placeholder="나이/생년" style="width: 28%; text-align: center; padding: 6px;">
-        </div>
-      </td>
-    </tr>
-  </table>
-
-  <table style="margin-top: 20px;">
-    <colgroup>
-        <col style="width: 7%;">   
-        <col style="width: 7%;">  
-        <col style="width: 7%;">  
-        <col style="width: 33%;">  
-        <col style="width: 12%;">  
-        <col style="width: 34%;">  
-    </colgroup>
-    <thead>
-      <tr style="background-color: #d9f2ff;">
-        <th colspan="3" style="padding: 6px; text-align: center;">
-          <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
-        </th>
-        <th colspan="3" style="text-align: center;">대출 정보 입력</th>
+        </td>
       </tr>
-      <tr style="background-color: #f2f2f2; font-size: 12px; text-align: center; font-weight: 600;">
-        <td style="padding: 10px 2px; white-space: normal !important;">상환<br>조건</td> 
-        <td style="padding: 10px 2px; white-space: normal !important;">이자<br>적용</td> 
-        <td style="padding: 10px 2px; white-space: normal !important;">신<br>DTI</td> 
-        <td style="white-space: normal !important;">대출 원금<br>금리 | ST금리</td>
-        <td style="white-space: normal !important;">상환<br>기간</td>
-        <td style="white-space: normal !important;">상환<br>방식</td>
-      </tr>
-    </thead>
-    <tbody id="mortgage-inputs">
-    </tbody>
-  </table>
+    </table>
 
-  <div class="view-btn-wrapper">
-    <button class="view-btn" onclick="openModal('DSR계산방식(부동산위키출처).jpg')">DSR 계산(부동산위키)</button>
-    <button class="view-btn" onclick="openModal('장래예상소득증가율.png')">장래예상소득</button>
-  </div>
+    <!-- 대출 정보 입력 테이블 (너비 비율 및 줄바꿈 최적화수정) -->
+    <table style="margin-top: 16px;">
+      <colgroup>
+          <col style="width: 9%;">   
+          <col style="width: 9%;">  
+          <col style="width: 9%;">  
+          <col style="width: 34%;">  <!-- 대출정보 테이블 폭 축소 (38% -> 34%) -->
+          <col style="width: 13%;">  
+          <col style="width: 26%;">  <!-- 상환방식 테이블 폭 확대 (22% -> 26%) -->
+      </colgroup>
+      <thead>
+        <tr style="background-color: #d9f2ff;">
+          <th colspan="3" style="padding: 6px; text-align: center;">
+            <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
+          </th>
+          <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px;">대출 정보 입력</th>
+        </tr>
+        <tr style="background-color: #f2f2f2; font-size: 11px; text-align: center; font-weight: 600;">
+          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">상환<br>제외</td> 
+          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">이자<br>만</td> 
+          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">신<br>DTI</td> 
+          <!-- 두 줄 구조로 가독성 개선 및 공간 축소 유도 -->
+          <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
+          <td style="white-space: normal !important; padding: 6px 2px;">기간</td>
+          <td style="white-space: normal !important; padding: 6px 2px;">상환 방식</td>
+        </tr>
+      </thead>
+      <tbody id="mortgage-inputs">
+      </tbody>
+    </table>
 
-  <div id="image-modal" onclick="closeModal()">
-    <img id="modal-img" src="" alt="안내 이미지 팝업">
+    <div class="view-btn-wrapper">
+      <button class="view-btn" onclick="openModal('DSR계산방식(부동산위키출처).jpg')">DSR 계산 방식</button>
+      <button class="view-btn" onclick="openModal('장래예상소득증가율.png')">장래예상소득 기준</button>
+    </div>
+
+    <div id="image-modal" onclick="closeModal()">
+      <img id="modal-img" src="" alt="안내 이미지 팝업">
+    </div>
   </div>
 
   <script>
@@ -301,7 +340,7 @@
         cell.style.fontSize = cell.dataset.origSize;
         let currentCellSize = parseFloat(cell.dataset.origSize);
         
-        while (cell.scrollWidth > cell.clientWidth && currentCellSize > 7) {
+        while (cell.scrollWidth > cell.clientWidth && currentCellSize > 8) {
           currentCellSize -= 0.5;
           cell.style.fontSize = currentCellSize + 'px';
         }
@@ -326,10 +365,10 @@
           ghost.style.fontFamily = window.getComputedStyle(input).fontFamily;
           ghost.style.fontWeight = window.getComputedStyle(input).fontWeight;
           
-          const maxWidth = input.clientWidth - 10; 
+          const maxWidth = input.clientWidth - 6; 
           ghost.innerText = input.value || input.placeholder || "";
           
-          while (currentInputSize > 7) {
+          while (currentInputSize > 8) {
             ghost.style.fontSize = currentInputSize + 'px';
             if (ghost.offsetWidth <= maxWidth) {
               break;
@@ -434,7 +473,7 @@
       const mortRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       mortRows.forEach((row, index) => {
         const isExcluded = row.querySelector('.mort-exclude').checked;
-        if (isExcluded) return; // 상환조건 체크 시 연산 제외 (반대로 변경)
+        if (isExcluded) return; 
 
         const amt = parseFloat(row.querySelector('.mort-amt').value.replace(/,/g, '')) || 0;
         const pureRate = parseFloat(row.querySelector('.mort-rate').value) / 100 || 0;
@@ -455,7 +494,7 @@
             monthlyRes = 원금균등_월부담액(amt, pureRate, term);
         }
         
-        // 첫 번째 행(index === 0)일 때만 하단 월부담액 지표 계산에 누적
+        // [수정항목] 1번째(index 0) 행만 월부담액 계산에 포함하고, 2번째 이상(index > 0) 행들은 누적 합산에서 제외
         if (index === 0) {
           sumM += monthlyRes.월상환금액; 
           sumP += monthlyRes.첫달원금; 
@@ -463,7 +502,6 @@
         }
 
         let annualRes;
-        // [수정 포인트] 이자적용(이자만 적용) 체크박스가 켜져 있다면, 연간 원금상환액을 0으로 잡고 이자만 연간 부담액으로 계산
         if (isInterestOnly) {
           const annualInt = amt * combinedRate;
           annualRes = { annual: annualInt, fixAnnual: annualInt };
@@ -475,14 +513,14 @@
           const calcA = 원금균등_연간계산(amt, combinedRate, term);
           const fixA = 원금균등_연간계산(amt, combinedRate, 180);
           annualRes = { annual: calcA.대출합계, fixAnnual: fixA.대출합계 };
-        } else { // 만기일시 상환
+        } else { 
           const years = term / 12 || 1;
           const annualAnnual = (amt * combinedRate) + (amt / years);
           const fixAnnual = (amt * combinedRate) + (amt / 15);
           annualRes = { annual: annualAnnual, fixAnnual: fixAnnual };
         }
 
-        if (!isNew) { // 반대로 변경 (체크 해제 시 신DTI 연산 적용, 체크 시 일반 DSR/DTI 적용)
+        if (!isNew) { 
           newDti_input += annualRes.annual;
           newDti_fix += annualRes.fixAnnual;
         } else {
@@ -494,7 +532,6 @@
       document.getElementById("월원금").innerText = Math.round(sumP).toLocaleString() + " 원";
       document.getElementById("월이자").innerText = Math.round(sumI).toLocaleString() + " 원";
 
-      // 2. 신용대출(기타대출) 순회 연산 - 테이블이 삭제되어 항상 0으로 처리됩니다.
       let etcInt = 0, etcP = 0;
 
       // 3. 지표 최종 산출 및 규제비율 시각화 조절
@@ -507,16 +544,15 @@
         
         if (finalDsr >= 40) {
           document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
-          document.getElementById("DSR확인").style.color = "#b91c1c";
+          document.getElementById("DSR확인").style.color = "#ef4444";
         } else {
           document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
-          document.getElementById("DSR확인").style.color = "#334155";
+          document.getElementById("DSR확인").style.color = "#1e293b";
         }
         
         document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
         document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
 
-        // DSR 역산 한도 한계 대출액 계산부 (첫번째 행의 주담대 기준)
         const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
         if (firstRow) {
           const pureRate1 = parseFloat(firstRow.querySelector('.mort-rate').value) / 100 || 0;
@@ -543,7 +579,7 @@
             const maxTotalAnnualPayment40 = income * 0.4;
             const availableForMortgage40 = maxTotalAnnualPayment40 - existingOtherDebtPayment;
             if (availableForMortgage40 <= 0) {
-              document.getElementById("DSR최대금액확인40").innerText = "대출 불가 (기존대출 초과)";
+              document.getElementById("DSR최대금액확인40").innerText = "기존대출 초과";
             } else {
               const maxLoan40 = availableForMortgage40 / annualPaymentPerUnit;
               document.getElementById("DSR최대금액확인40").innerText = maxLoan40 > 0 ? formatKoreanAmount(Math.floor(maxLoan40)) : "-";
@@ -552,7 +588,7 @@
             const maxTotalAnnualPayment50 = income * 0.5;
             const availableForMortgage50 = maxTotalAnnualPayment50 - existingOtherDebtPayment;
             if (availableForMortgage50 <= 0) {
-              document.getElementById("DSR최대금액확인50").innerText = "대출 불가 (기존대출 초과)";
+              document.getElementById("DSR최대금액확인50").innerText = "기존대출 초과";
             } else {
               const maxLoan50 = availableForMortgage50 / annualPaymentPerUnit;
               document.getElementById("DSR최대금액확인50").innerText = maxLoan50 > 0 ? formatKoreanAmount(Math.floor(maxLoan50)) : "-";
@@ -565,7 +601,7 @@
       } else {
         document.getElementById("DSR확인").innerText = "-";
         document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
-        document.getElementById("DSR확인").style.color = "#334155";
+        document.getElementById("DSR확인").style.color = "#1e293b";
         document.getElementById("DIT확인").innerText = "-";
         document.getElementById("신DTI확인").innerText = "-";
         document.getElementById("DSR최대금액확인40").innerText = "-";
@@ -600,7 +636,7 @@
       });
     }
 
-    /* 플레이스홀더 이름 제어 시스템 */
+    /* [수정항목] 행 순서에 따라 placeholder 문자열 분기 처리 로직 */
     function updateMortgagePlaceholders() {
       const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       rows.forEach((row, index) => {
@@ -615,7 +651,7 @@
       });
     }
 
-    /* 주담대 행 동적 생성 함수 */
+    /* 주담대 행 동적 생성 함수 (디자인 고도화 구조 반영) */
     let mortCount = 0;
     function 주담대행추가() {
       mortCount++;
@@ -625,26 +661,28 @@
       newRow.style.textAlign = "center";
       
       newRow.innerHTML = `
-        <td class="no-bg" style="padding: 12px 2px;">
-          <input type="checkbox" class="mort-exclude" style="width:14px; height:14px;">
+        <td class="no-bg" style="padding: 10px 2px;">
+          <input type="checkbox" class="mort-exclude">
         </td>
-        <td class="no-bg" style="padding: 12px 2px;">
-          <input type="checkbox" class="mort-interest-only" style="width:14px; height:14px;">
+        <td class="no-bg" style="padding: 10px 2px;">
+          <input type="checkbox" class="mort-interest-only">
         </td>
-        <td class="no-bg" style="padding: 12px 2px;">
-          <input type="checkbox" class="mort-new-dti" style="width:14px; height:14px;">
+        <td class="no-bg" style="padding: 10px 2px;">
+          <input type="checkbox" class="mort-new-dti">
         </td>
-        <td class="no-bg" style="padding: 4px 2px;">
-          <input type="text" inputmode="numeric" placeholder="원금 입력" class="mort-amt" style="width:92%; margin-bottom:4px;"><br>
-          <div style="display: flex; gap: 4px; justify-content: center; width: 92%; margin: 0 auto;">
-            <input type="text" inputmode="decimal" placeholder="금리" class="mort-rate" style="width:50%;">
-            <input type="text" inputmode="decimal" placeholder="ST금리" class="mort-st-rate" style="width:50%;">
+        <td class="no-bg" style="padding: 6px 4px;">
+          <div class="input-flex-col">
+            <input type="text" inputmode="numeric" placeholder="" class="mort-amt">
+            <div class="input-flex-row">
+              <input type="text" inputmode="decimal" placeholder="금리 %" class="mort-rate">
+              <input type="text" inputmode="decimal" placeholder="ST %" class="mort-st-rate">
+            </div>
           </div>
         </td>
-        <td class="no-bg">
-          <input type="text" inputmode="numeric" placeholder="개월수" class="mort-term" style="width:92%;">
+        <td class="no-bg" style="padding: 6px 2px;">
+          <input type="text" inputmode="numeric" placeholder="개월" class="mort-term">
         </td>
-        <td class="no-bg" style="padding: 12px 3px;">
+        <td class="no-bg" style="padding: 10px 3px;">
           <div class="type-btn-group">
             <button type="button" class="type-btn active" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
             <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
@@ -722,9 +760,9 @@
             baseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
             
             if (isChecked && currentRate !== 1.0 && memoBaseIncome > 0) {
-                baseIncomeInput.style.color = "#025699";
+                baseIncomeInput.style.color = "#1d4ed8";
                 baseIncomeInput.style.fontWeight = "bold";
-                baseIncomeInput.style.backgroundColor = "#e0f2fe";
+                baseIncomeInput.style.backgroundColor = "#eff6ff";
             } else {
                 baseIncomeInput.style.color = "";
                 baseIncomeInput.style.fontWeight = "";
@@ -783,12 +821,10 @@
 
     /* 초기 렌더링 시 주담대 기본 3개 행 로드 처리 */
     window.addEventListener("DOMContentLoaded", () => {
-      // 초기 기본 3개 행 추가
       for(let i=0; i<3; i++) {
          주담대행추가();
       }
       updateMortgagePlaceholders();
-
       자동계산();
       adjustTableFontSize();
     });
