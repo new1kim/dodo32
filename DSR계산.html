@@ -33,7 +33,7 @@
     
     td, th { 
       border: 1px solid #f1f5f9 !important; 
-      padding: 12px 6px; 
+      padding: 6px 6px; 
       font-size: 13px;
       vertical-align: middle;
     }
@@ -52,7 +52,7 @@
       font-weight: 600;
     }
     
-    td:first-child:not(.no-bg) { 
+    td:first-child:not(.no-bg):not(.split-td) { 
       background-color: #f0f9ff !important; 
       font-weight: 600;
       color: #0369a1;
@@ -205,29 +205,39 @@
   </table>
 
   <table>
+    <tr>
+      <td class="split-td" style="width: 50%; padding: 6px 0; background-color: #eff6ff !important; font-weight: bold; font-size: 12px; color: #1e40af !important;">DSR 40% 기준</td>
+      <td class="split-td" style="width: 50%; padding: 6px 0; background-color: #f0fdf4 !important; font-weight: bold; font-size: 12px; color: #166534 !important;">DSR 50% 기준</td>
+    </tr>
+    <tr>
+      <td id="DSR최대금액확인40" class="no-bg" style="padding: 4px 0; font-weight: bold; color: #0284c7; font-size: 15px;">-</td>
+      <td id="DSR최대금액확인50" class="no-bg" style="padding: 4px 0; font-weight: bold; color: #0f766e; font-size: 15px;">-</td>
+    </tr>
+  </table>
+
+  <table>
     <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 20%;">월부담액</td><td>합 계</td><td>월 원금</td><td>월 이자</td></tr>
     <tr><td id="월합계" class="no-bg">-</td><td id="월원금" class="no-bg">-</td><td id="월이자" class="no-bg">-</td></tr>
   </table>
 
   <table style="border: 2px solid #ccc; margin-top: 20px;">
     <tr>
-      <td style="width: 30%; font-weight: bold;">
-        연소득 입력<br>
+      <td style="width: 20%; font-weight: bold; letter-spacing: -0.5px;"> 연소득 입력<br>
         <span style="font-size: 11px; color: #64748b; font-weight: normal;">(장래예상소득)</span>
       </td>
       <td id="연소득입력" class="no-bg" style="padding: 10px 0;">
         <input type="hidden" id="computedIncomeHidden" value="">
         
-        <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 6px;">
-          <input type="text" id="baseIncomeInput" inputmode="numeric" placeholder="대출 금액 입력" style="width: 48%; text-align: center; padding: 6px;">
-          <span style="font-size: 12px; font-weight: 600; color: #475569;">나이/생년:</span>
-          <input type="number" id="ageInput" placeholder="35 또는 1991" style="width: 28%; text-align: center; padding: 6px;">
-        </div>
-        
-        <div style="display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 12px;">
-          <input type="checkbox" id="applyRateCheck" style="width: 14px; height: 14px;">
-          <label for="applyRateCheck" style="cursor: pointer; font-weight: 600; color: #334155;">장래예상 적용</label>
-          <span id="rateDisplay" style="color: #dc2626; font-weight: 700; margin-left: 2px;">(-)</span>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 0 3%;">
+          <input type="text" id="baseIncomeInput" inputmode="numeric" placeholder="대출 금액 입력" style="width: 42%; text-align: center; padding: 6px;">
+          
+          <div style="display: flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap;">
+            <input type="checkbox" id="applyRateCheck" style="width: 14px; height: 14px;">
+            <label for="applyRateCheck" style="cursor: pointer; font-weight: 600; color: #334155;">장래예상</label>
+            <span id="rateDisplay" style="color: #dc2626; font-weight: 700; margin-left: 2px;">(-)</span>
+          </div>
+          
+          <input type="number" id="ageInput" placeholder="나이/생년" style="width: 28%; text-align: center; padding: 6px;">
         </div>
       </td>
     </tr>
@@ -289,12 +299,11 @@
       <td>기타금액</td><td>기타금리</td><td>기타기간</td>
     </tr>
     <tr>
-      <td id="기타td1" class="no-bg">
-        <span style="vertical-align:middle; font-weight: 600; color: #64748b;">[ 1 ]</span>
+      <td class="no-bg">
+        <input type="checkbox" id="제외적용1" style="width:14px; height:14px; vertical-align:middle;" onchange="handleExclusionChange(this)">
       </td>
       <td class="no-bg">
-        <input type="checkbox" id="이자만적용1" style="width:14px; height:14px; vertical-align:middle; margin-right: 4px;" onchange="handleInterestOnlyChange(this)">
-        <input id="기타금액1" type="text" inputmode="numeric" placeholder="기타금액1" style="width:75%; vertical-align:middle;">
+        <input id="기타금액1" type="text" inputmode="numeric" placeholder="기타금액1" style="width:92%; vertical-align:middle;">
       </td>
       <td class="no-bg"><input id="기타금리1" type="text" inputmode="numeric" placeholder="기타금리1"></td>
       <td class="no-bg"><input id="기타기간1" type="text" inputmode="numeric" placeholder="기타기간1"></td>
@@ -336,9 +345,11 @@
       setTimeout(() => b.style.display = "none", 1000);
     }
 
-    function handleInterestOnlyChange(checkbox) {
+    function handleExclusionChange(checkbox) {
       if (checkbox.checked) {
-        showBubble("이자만 적용");
+        showBubble("계산제외");
+      } else {
+        showBubble("계산적용");
       }
       자동계산();
     }
@@ -373,6 +384,19 @@
         return { 대출합계: annualInt + annualP };
       }
       return { 대출합계: 0 };
+    }
+
+    function formatKoreanAmount(amount) {
+      if (amount <= 0 || isNaN(amount) || !isFinite(amount)) return "-";
+      const uk = Math.floor(amount / 100000000);
+      const man = Math.floor((amount % 100000000) / 10000);
+      
+      let result = "";
+      if (uk > 0) result += uk + "억 ";
+      if (man > 0) result += man.toLocaleString() + "만원";
+      else if (uk > 0) result += "원";
+      
+      return result.trim() || "0원";
     }
 
     function 자동계산() {
@@ -430,14 +454,16 @@
 
       const etcRows = Array.from(document.getElementById('기타대출Table').getElementsByTagName('tbody')[0].rows).slice(1);
       let etcInt = 0, etcP = 0;
+      
       etcRows.forEach(row => {
-        const eAmt = parseFloat(row.cells[1].querySelector('input[type="text"]').value.replace(/,/g, '')) || 0;
-        const eRate = parseFloat(row.cells[2].querySelector('input').value) / 100 || 0;
-        const eTerm = parseInt(row.cells[3].querySelector('input').value) || 0;
-        const isInterestOnly = row.cells[1].querySelector('input[type="checkbox"]').checked;
+        const isExcluded = row.cells[0].querySelector('input[type="checkbox"]').checked;
 
-        etcInt += (eAmt * eRate);
-        if (!isInterestOnly) {
+        if (!isExcluded) {
+          const eAmt = parseFloat(row.cells[1].querySelector('input[type="text"]').value.replace(/,/g, '')) || 0;
+          const eRate = parseFloat(row.cells[2].querySelector('input').value) / 100 || 0;
+          const eTerm = parseInt(row.cells[3].querySelector('input').value) || 0;
+
+          etcInt += (eAmt * eRate);
           etcP += (eTerm > 0 ? (eAmt / eTerm) * 12 : 0);
         }
       });
@@ -449,7 +475,6 @@
 
         document.getElementById("DSR확인").innerText = finalDsr.toFixed(2) + "%";
         
-        // DSR 초과 검증 스타일 제약 우회 및 고도화 (옅은 빨간색 배경 적용)
         if (finalDsr >= 40) {
           document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
           document.getElementById("DSR확인").style.color = "#b91c1c";
@@ -460,12 +485,59 @@
         
         document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
         document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
+
+        // [DSR 40% 및 50% 기준 각각 역산 연산부]
+        const pureRate1 = parseFloat(document.getElementById(`대출금리1`).querySelector("input").value) / 100 || 0;
+        const stRateValue1 = parseFloat(document.getElementById(`ST금리1`).querySelector("input").value) || 0;
+        const combinedRate1 = pureRate1 + (stRateValue1 / 100);
+        const term1 = parseInt(document.getElementById(`상환기간1`).querySelector("input").value) || 0;
+        const type1 = document.getElementById(`주담대상환방식1`).value;
+
+        if (combinedRate1 > 0 && term1 > 0) {
+          const existingOtherDebtPayment = etcInt + etcP;
+
+          let annualPaymentPerUnit = 0;
+          if (type1 === "원리금") {
+            const mRate = combinedRate1 / 12;
+            annualPaymentPerUnit = (mRate / (1 - Math.pow(1 + mRate, -term1))) * 12;
+          } else {
+            const mRate = combinedRate1 / 12;
+            annualPaymentPerUnit = (6 * mRate * (1 + 1 / term1)) + (12 / term1);
+          }
+
+          // 1. DSR 40% 한도 연산
+          const maxTotalAnnualPayment40 = income * 0.4;
+          const availableForMortgage40 = maxTotalAnnualPayment40 - existingOtherDebtPayment;
+          if (availableForMortgage40 <= 0) {
+            document.getElementById("DSR최대금액확인40").innerText = "대출 불가 (기타대출 초과)";
+          } else {
+            const maxLoan40 = availableForMortgage40 / annualPaymentPerUnit;
+            document.getElementById("DSR최대금액확인40").innerText = maxLoan40 > 0 ? formatKoreanAmount(Math.floor(maxLoan40)) : "-";
+          }
+
+          // 2. DSR 50% 한도 연산
+          const maxTotalAnnualPayment50 = income * 0.5;
+          const availableForMortgage50 = maxTotalAnnualPayment50 - existingOtherDebtPayment;
+          if (availableForMortgage50 <= 0) {
+            document.getElementById("DSR최대금액확인50").innerText = "대출 불가 (기타대출 초과)";
+          } else {
+            const maxLoan50 = availableForMortgage50 / annualPaymentPerUnit;
+            document.getElementById("DSR최대금액확인50").innerText = maxLoan50 > 0 ? formatKoreanAmount(Math.floor(maxLoan50)) : "-";
+          }
+
+        } else {
+          document.getElementById("DSR최대금액확인40").innerText = "-";
+          document.getElementById("DSR최대금액확인50").innerText = "-";
+        }
+
       } else {
         document.getElementById("DSR확인").innerText = "-";
         document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
         document.getElementById("DSR확인").style.color = "#334155";
         document.getElementById("DIT확인").innerText = "-";
         document.getElementById("신DTI확인").innerText = "-";
+        document.getElementById("DSR최대금액확인40").innerText = "-";
+        document.getElementById("DSR최대금액확인50").innerText = "-";
       }
     }
 
@@ -492,7 +564,7 @@
     document.getElementById("기타기간1").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); 자동계산(); });
 
     // ==========================================
-    // 장래예상소득(연소득) 동적 제어 로직 (나이 / 생년 하이브리드 연산)
+    // 장래예상소득(연소득) 동적 제어 로직
     // ==========================================
     const LOAN_RATE_TABLE = [
         { minAge: 20, maxAge: 24, percent: 150.69 },
@@ -512,7 +584,6 @@
     const rateDisplay = document.getElementById("rateDisplay");
 
     function updateIncomeCalc() {
-        // 초과 입력 방지 (최대 4자리 고정)
         if (ageInput.value.length > 4) {
             ageInput.value = ageInput.value.slice(0, 4);
         }
@@ -524,17 +595,13 @@
         let calculatedAge = -1;
 
         if (rawInputStr !== '') {
-            // [CASE 1] 2자리 입력: 그대로 '나이'로 인식
             if (rawInputStr.length === 2) {
                 calculatedAge = parseInt(rawInputStr);
-            } 
-            // [CASE 2] 4자리 입력: '현재 연도 - 생년' 계산하여 나이 도출
-            else if (rawInputStr.length === 4) {
+            } else if (rawInputStr.length === 4) {
                 const currentYear = new Date().getFullYear();
                 calculatedAge = currentYear - parseInt(rawInputStr);
             }
 
-            // 구한 나이를 기반으로 요율 테이블 매칭
             if (calculatedAge >= 0) {
                 const matched = LOAN_RATE_TABLE.find(item => calculatedAge >= item.minAge && calculatedAge <= item.maxAge);
                 if (matched) {
@@ -622,9 +689,8 @@
     });
 
     // ==========================================
-    // 기타 대출 추가 기능 
+    // 기타 대출 추가 기능
     // ==========================================
-    let rowNo = 2;
     function 기타대출행추가() {
       if (document.querySelectorAll("#기타대출Table tr").length > 10) return alert("최대 10행까지만 가능합니다.");
       const table = document.getElementById('기타대출Table').getElementsByTagName('tbody')[0];
@@ -633,11 +699,10 @@
       newRow.style.textAlign = "center";
       newRow.innerHTML = `
         <td class="no-bg">
-          <span style="vertical-align:middle; font-weight:600; color:#64748b;">[ ${rowNo} ]</span>
+          <input type="checkbox" style="width:14px; height:14px; vertical-align:middle;" onchange="handleExclusionChange(this)">
         </td>
         <td class="no-bg">
-          <input type="checkbox" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;" onchange="handleInterestOnlyChange(this)">
-          <input type="text" inputmode="numeric" style="width:75%; vertical-align:middle;">
+          <input type="text" inputmode="numeric" style="width:92%; vertical-align:middle;">
         </td>
         <td class="no-bg"><input type="text" inputmode="numeric"></td>
         <td class="no-bg"><input type="text" inputmode="numeric"></td>
@@ -646,7 +711,6 @@
       inputs[0].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); if(e.target.value) e.target.value = parseInt(e.target.value).toLocaleString(); 자동계산(); });
       inputs[1].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^0-9.]/g, ''); 자동계산(); });
       inputs[2].addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ''); 자동계산(); });
-      rowNo++;
     }
   </script>
 </body>
