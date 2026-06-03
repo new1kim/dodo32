@@ -74,7 +74,7 @@
     
     .no-bg { background-color: transparent !important; }
     
-    /* 입력창 디자인 고도화 */
+    /* 입력창 디자인 고도화 (글자 폰트 진하게) */
     td input[type="text"], 
     td input[type="number"],
     td select { 
@@ -88,7 +88,7 @@
       background-color: #f8fafc;
       transition: all 0.2s ease;
       color: #0f172a;
-      font-weight: 500;
+      font-weight: 700;
     }
     
     td input:focus {
@@ -220,24 +220,86 @@
     }
     .view-btn:hover { background-color: #334155; }
 
-    /* 팝업(모달) 스타일 */
+    /* 팝업(모달) 전체 배경 스타일 */
     #image-modal {
       display: none; 
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
       background-color: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 2000;
       justify-content: center; align-items: center; cursor: pointer;
     }
+    /* 팝업 이미지 기본 스타일 유지 */
     #image-modal img { 
       max-width: 92%; max-height: 85%; 
       border-radius: 8px; border: 2px solid white; 
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); 
     }
 
+    /* 텍스트 내용 팝업 카드 스타일 (콘텐츠 크기에 맞춰 위아래 높이 자동 조절) */
+    .text-popup-card {
+      background-color: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 90%;
+      width: 460px;
+      box-sizing: border-box;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      text-align: left;
+      cursor: default;
+      height: auto; /* 내용 길이에 맞춰 위아래 자동 조절 */
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .text-popup-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+      text-align: center;
+    }
+    
+    /* [수정] 팝업 텍스트 스타일: 개별 라인 단위 제어를 위해 수정 및 transition 추가 */
+    .text-popup-content {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #334155;
+      font-weight: 500;
+    }
+    .text-popup-line {
+      white-space: nowrap !important; /* 자동 줄바꿈 강제 방지 */
+      transition: font-size 0.1s ease; /* 폰트 크기가 줄어들 때 부드럽게 연출 */
+    }
+
     #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 {
       font-weight: 700;
       font-size: 14px;
     }
-    #DSR확인 { transition: background-color 0.3s; font-size: 16px; }
+    /* DSR, DTI, 신DTI 모두 트랜지션 및 폰트 크기 동기화 */
+    #DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
+
+    /* 장래예상 요율 수정 팝업용 전용 스타일 (추가) */
+    .rate-popup-table {
+      width: 100%;
+      margin: 10px 0;
+      border-collapse: collapse;
+    }
+    .rate-popup-table td {
+      padding: 6px;
+      border: 1px solid #e2e8f0 !important;
+      background-color: #ffffff !important;
+      font-weight: normal !important;
+      color: #334155 !important;
+    }
+    .rate-popup-table input {
+      width: 70px;
+      padding: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
@@ -261,7 +323,7 @@
     </table>
 
     <table>
-      <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 22%;">월 부 담 액</td><td style="color:#475569; font-weight:normal;">합 계</td><td style="color:#475569; font-weight:normal;">월 원금</td><td style="color:#475569; font-weight:normal;">월 이자</td></tr>
+      <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 22%;">월 부담 액</td><td style="color:#475569; font-weight:normal;">합 계</td><td style="color:#475569; font-weight:normal;">월 원금</td><td style="color:#475569; font-weight:normal;">월 이자</td></tr>
       <tr><td id="월합계" class="no-bg" style="color:#2563eb;">-</td><td id="월원금" class="no-bg">-</td><td id="월이자" class="no-bg">-</td></tr>
     </table>
 
@@ -288,19 +350,17 @@
       </tr>
     </table>
 
-    <!-- 대출 정보 입력 테이블 (너비 비율 및 줄바꿈 최적화수정) -->
     <table style="margin-top: 16px;">
       <colgroup>
-          <col style="width: 9%;">   
-          <col style="width: 9%;">  
-          <col style="width: 9%;">  
-          <col style="width: 34%;">  <!-- 대출정보 테이블 폭 축소 (38% -> 34%) -->
-          <col style="width: 13%;">  
-          <col style="width: 26%;">  <!-- 상환방식 테이블 폭 확대 (22% -> 26%) -->
+          <col style="width: 10%;">   
+          <col style="width: 10%;">  
+          <col style="width: 42%;">  
+          <col style="width: 12%;">  
+          <col style="width: 26%;">  
       </colgroup>
       <thead>
         <tr style="background-color: #d9f2ff;">
-          <th colspan="3" style="padding: 6px; text-align: center;">
+          <th colspan="2" style="padding: 6px; text-align: center;">
             <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
           </th>
           <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px;">대출 정보 입력</th>
@@ -308,8 +368,6 @@
         <tr style="background-color: #f2f2f2; font-size: 11px; text-align: center; font-weight: 600;">
           <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">상환<br>제외</td> 
           <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">이자<br>만</td> 
-          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">신<br>DTI</td> 
-          <!-- 두 줄 구조로 가독성 개선 및 공간 축소 유도 -->
           <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
           <td style="white-space: normal !important; padding: 6px 2px;">기간</td>
           <td style="white-space: normal !important; padding: 6px 2px;">상환 방식</td>
@@ -320,12 +378,69 @@
     </table>
 
     <div class="view-btn-wrapper">
-      <button class="view-btn" onclick="openModal('DSR계산방식(부동산위키출처).jpg')">DSR 계산 방식</button>
-      <button class="view-btn" onclick="openModal('장래예상소득증가율.png')">장래예상소득 기준</button>
+      <button class="view-btn" onclick="openTextModal()">계산기 설명</button>
+      <button class="view-btn" onclick="openImageModal('장래예상소득증가율.png')">장래예상소득 기준</button>
     </div>
 
     <div id="image-modal" onclick="closeModal()">
-      <img id="modal-img" src="" alt="안내 이미지 팝업">
+      <img id="modal-img" src="" alt="안내 이미지 팝업" style="display: none;">
+      
+      <div id="modal-text-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">
+        <div class="text-popup-title">대출현황 입력시 참고사항</div>
+        <div class="text-popup-content">
+          <div class="text-popup-line">- 비주택담보대출 8년 ( 96개월 )</div>
+          <div class="text-popup-line">- 전세대출 만기일시 (( 이자만 체크 ))</div>
+          <div class="text-popup-line">- 예적금담보대출 (( 이자만 체크 ))</div>
+          <div class="text-popup-line">- 유가증권담보 8년 96개월 (( 이자만 체크 ))</div>
+          <div class="text-popup-line">- 캐피탈, 카드대출등, 학자금등 12개월</div>
+          <div class="text-popup-line">&nbsp;&nbsp;1년간 실제 총 납입금액 계산</div>
+          <br>
+          <div class="text-popup-line">▣ DSR 계산기 기능 설명 ▣</div>
+          <br>
+          <div class="text-popup-line">※※ 항상 제일 첫번째 입력칸이 본건 대출금액이여야 함 ※※</div>
+          <div class="text-popup-line">※※ 그래야 월별 부담금액이 정상적으로 표시 됩니다.   ※※</div>
+          <br>
+          <div class="text-popup-line">※ 장래예상소 체크박스 3초 이상 클릭 유지시, 예상요율 수정 가능</div>
+          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;(( 은행별 차이나거나 새로운 요율 발표 공지시 직접 수정 가능))</div>
+          <br>
+          <div class="text-popup-line">※ 금리 입력구분을 나눈 이유는 ST금리는 DSR 계산만 하고,</div>
+          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;&nbsp;월 부담액 이자 계산에서 제외하기 위해서입니다.</div>
+          <br>
+          <div class="text-popup-line">※ 상환제외 체크박스를 2초 이상 클릭 유지시 해당 라인 삭제됨.</div>
+          <br>
+          <div class="text-popup-line">※ 상환제외 버튼은 DSR 계산에서 제외 하거나 </div>
+          <div class="text-popup-line">   상환조건으로 상담시 체크하는 용도입니다.</div>
+          <br>
+          <div class="text-popup-line">※ 이자만 적용 또는 상환제외 버튼을 사용하면</div>
+          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;"" 전세 DTI 및 DSR 도 계산 가능 ""</div>
+          <div class="text-popup-line">MP32</div>
+        </div>
+      </div>
+
+      <div id="modal-rate-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">
+        <div class="text-popup-title">장래예상소득증가율 수정</div>
+        <div class="text-popup-content" style="text-align: center;">
+          <table class="rate-popup-table">
+            <thead>
+              <tr style="background-color: #f1f5f9; font-weight: bold; text-align: center;">
+                <td>연령 구간</td>
+                <td>기존 요율</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>20세 ~ 24세</td><td><input type="text" id="edit-rate-0" inputmode="decimal">%</td></tr>
+              <tr><td>25세 ~ 29세</td><td><input type="text" id="edit-rate-1" inputmode="decimal">%</td></tr>
+              <tr><td>30세 ~ 34세</td><td><input type="text" id="edit-rate-2" inputmode="decimal">%</td></tr>
+              <tr><td>35세 ~ 39세</td><td><input type="text" id="edit-rate-3" inputmode="decimal">%</td></tr>
+              <tr><td>40세 ~ 44세</td><td><input type="text" id="edit-rate-4" inputmode="decimal">%</td></tr>
+            </tbody>
+          </table>
+          <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button type="button" style="background-color: #64748b;" onclick="closeModal()">취소</button>
+            <button type="button" style="background-color: #10b981;" onclick="saveCustomRates()">저장하기</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -380,10 +495,73 @@
       });
     }
 
-    function openModal(imageSrc) {
+    /* 이미지 안내 팝업창 활성화 */
+    function openImageModal(imageSrc) {
+      document.getElementById("modal-text-card").style.display = "none";
+      document.getElementById("modal-rate-card").style.display = "none";
       document.getElementById("modal-img").src = imageSrc;
+      document.getElementById("modal-img").style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
     }
+
+    /* [수정] 텍스트 내용 안내 팝업창 활성화 및 글자 자동 크기 조절 기능 추가 */
+    function openTextModal() {
+      document.getElementById("modal-img").style.display = "none";
+      document.getElementById("modal-rate-card").style.display = "none";
+      
+      const textCard = document.getElementById("modal-text-card");
+      textCard.style.display = "block";
+      document.getElementById("image-modal").style.display = "flex";
+      
+      // 팝업 내부의 개별 문장라인과 최대 허용 가능폭 계산
+      const lines = textCard.querySelectorAll(".text-popup-line");
+      const maxWidth = textCard.clientWidth - 48; // 패딩값(좌우 24px씩) 제외 실질 너비
+      
+      lines.forEach(line => {
+        // 호출 시 매번 13px(기본값)로 리셋한 후 연산 시작
+        line.style.fontSize = "13px";
+        let currentSize = 13;
+        
+        // 텍스트 전체 너비가 허용 한도를 넘어가면 한도 내로 들어올 때까지 폰트 크기를 줄임 (최하 제한 7px)
+        while (line.scrollWidth > maxWidth && currentSize > 7) {
+          currentSize -= 0.5;
+          line.style.fontSize = currentSize + "px";
+        }
+      });
+    }
+
+    /* 장래예상 요율 수정 팝업창 활성화 (추가) */
+    function openRateEditModal() {
+      document.getElementById("modal-img").style.display = "none";
+      document.getElementById("modal-text-card").style.display = "none";
+      
+      //현재 설정된 요율 데이터를 인풋 박스에 세팅
+      LOAN_RATE_TABLE.forEach((item, index) => {
+        document.getElementById(`edit-rate-${index}`).value = item.percent;
+      });
+      
+      document.getElementById("modal-rate-card").style.display = "block";
+      document.getElementById("image-modal").style.display = "flex";
+    }
+
+    /* 수정한 요율을 로컬스토리지에 저장하고 즉시 반영하는 함수 (추가) */
+    function saveCustomRates() {
+      for(let i=0; i<LOAN_RATE_TABLE.length; i++) {
+        const val = parseFloat(document.getElementById(`edit-rate-${i}`).value);
+        if(isNaN(val) || val < 0) {
+          alert("올바른 요율(숫자)을 입력해주세요.");
+          return;
+        }
+        LOAN_RATE_TABLE[i].percent = val;
+      }
+      // 로컬스토리지에 상태 영구 저장 (PC, 모바일 브라우저에 유지)
+      localStorage.setItem("CUSTOM_LOAN_RATE_TABLE", JSON.stringify(LOAN_RATE_TABLE));
+      showBubble("예상 요율 저장 완료");
+      closeModal();
+      updateIncomeCalc(); // 즉시 소득 계산 업데이트
+    }
+
+    /* 모든 팝업창 닫기 */
     function closeModal() {
       document.getElementById("image-modal").style.display = "none";
     }
@@ -433,7 +611,7 @@
         const i = Math.round(amt * mRate);
         return { 월상환금액: p + i, 첫달원금: p, 첫달이자: i };
       }
-      return { 월상환금액: 0, 첫달원금: 0, 첫달이자: 0 };
+      return { 월상환금액: 0, firstMonthlyPrincipal: 0, 첫달이자: 0 };
     }
 
     function 원금균등_연간계산(amt, rate, term) {
@@ -481,7 +659,6 @@
         const combinedRate = (pureRate * 100 + stRateValue) / 100;
         const term = parseInt(row.querySelector('.mort-term').value) || 0;
         const type = row.querySelector('.mort-type').value;
-        const isNew = row.querySelector('.mort-new-dti').checked;
         const isInterestOnly = row.querySelector('.mort-interest-only').checked;
 
         let monthlyRes;
@@ -494,7 +671,7 @@
             monthlyRes = 원금균등_월부담액(amt, pureRate, term);
         }
         
-        // [수정항목] 1번째(index 0) 행만 월부담액 계산에 포함하고, 2번째 이상(index > 0) 행들은 누적 합산에서 제외
+        // 1번째(index 0) 행만 월부담액 계산에 포함하고, 2번째 이상(index > 0) 행들은 누적 합산에서 제외
         if (index === 0) {
           sumM += monthlyRes.월상환금액; 
           sumP += monthlyRes.첫달원금; 
@@ -520,10 +697,13 @@
           annualRes = { annual: annualAnnual, fixAnnual: fixAnnual };
         }
 
-        if (!isNew) { 
-          newDti_input += annualRes.annual;
+        // 첫 번째 라인(index 0)을 '본건 대출'로 취급하여 무조건 신DTI(fixAnnual) 및 일반DSR(annual)에 자동 연동
+        if (index === 0) { 
           newDti_fix += annualRes.fixAnnual;
+          dsr_mort += annualRes.annual;
         } else {
+          newDti_input += annualRes.annual;
+          newDti_fix += annualRes.annual;
           dsr_mort += annualRes.annual;
         }
       });
@@ -536,12 +716,12 @@
 
       // 3. 지표 최종 산출 및 규제비율 시각화 조절
       if (income > 0) {
-        const finalDsr = ((dsr_mort + etcInt + etcP + newDti_input) / income) * 100;
-        const finalDti = ((dsr_mort + etcInt + newDti_input) / income) * 100;
-        const finalNewDti = ((dsr_mort + etcInt + newDti_fix) / income) * 100;
+        const finalDsr = ((dsr_mort + etcInt + etcP) / income) * 100;
+        const finalDti = ((dsr_mort + etcInt) / income) * 100;
+        const finalNewDti = ((etcInt + newDti_fix) / income) * 100;
 
+        // --- DSR 스타일 제어 ---
         document.getElementById("DSR확인").innerText = finalDsr.toFixed(2) + "%";
-        
         if (finalDsr >= 40) {
           document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
           document.getElementById("DSR확인").style.color = "#ef4444";
@@ -550,8 +730,25 @@
           document.getElementById("DSR확인").style.color = "#1e293b";
         }
         
+        // --- 일반 DTI 스타일 제어 (요청 사안 반영) ---
         document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
+        if (finalDti >= 40) {
+          document.getElementById("DIT확인").style.setProperty("background-color", "#fee2e2", "important");
+          document.getElementById("DIT확인").style.color = "#ef4444";
+        } else {
+          document.getElementById("DIT확인").style.setProperty("background-color", "transparent", "important");
+          document.getElementById("DIT확인").style.color = "#1e293b";
+        }
+
+        // --- 신 DTI 스타일 제어 ---
         document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
+        if (finalNewDti >= 40) {
+          document.getElementById("신DTI확인").style.setProperty("background-color", "#fee2e2", "important");
+          document.getElementById("신DTI확인").style.color = "#ef4444";
+        } else {
+          document.getElementById("신DTI확인").style.setProperty("background-color", "transparent", "important");
+          document.getElementById("신DTI확인").style.color = "#1e293b";
+        }
 
         const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
         if (firstRow) {
@@ -602,8 +799,15 @@
         document.getElementById("DSR확인").innerText = "-";
         document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
         document.getElementById("DSR확인").style.color = "#1e293b";
+        
         document.getElementById("DIT확인").innerText = "-";
+        document.getElementById("DIT확인").style.setProperty("background-color", "transparent", "important");
+        document.getElementById("DIT확인").style.color = "#1e293b";
+        
         document.getElementById("신DTI확인").innerText = "-";
+        document.getElementById("신DTI확인").style.setProperty("background-color", "transparent", "important");
+        document.getElementById("신DTI확인").style.color = "#1e293b";
+        
         document.getElementById("DSR최대금액확인40").innerText = "-";
         document.getElementById("DSR최대금액확인50").innerText = "-";
       }
@@ -626,17 +830,46 @@
           자동계산();
         });
       });
+
+      // 롱프레스 타이머 관리를 위한 변수
+      let longPressTimer;
+
       row.querySelectorAll('input[type="checkbox"]').forEach(el => {
         el.addEventListener("change", (e) => {
-          if (e.target.classList.contains('mort-new-dti')) showBubble(e.target.checked ?  "신DTI 적용" : "일반 DSR 적용");
           if (e.target.classList.contains('mort-interest-only')) showBubble(e.target.checked ? "이자만 적용" : "원금+이자 적용");
           if (e.target.classList.contains('mort-exclude')) showBubble(e.target.checked ? "계산 제외" : "대출 적용");
           자동계산();
         });
+
+        // 상환제외(.mort-exclude) 체크박스에 롱프레스 기능 추가
+        if (el.classList.contains('mort-exclude')) {
+          const startPress = () => {
+            longPressTimer = setTimeout(() => {
+              row.remove(); // 2초 유지 시 해당 행 완전 삭제
+              showBubble("해당 대출 정보 삭제 완료");
+              updateMortgagePlaceholders(); // 플레이스홀더 순서 재정리
+              자동계산(); // 재계산
+            }, 2000); // 2000ms = 2초
+          };
+
+          const endPress = () => {
+            clearTimeout(longPressTimer);
+          };
+
+          // PC (마우스) 이벤트 등록
+          el.addEventListener("mousedown", startPress);
+          el.addEventListener("mouseup", endPress);
+          el.addEventListener("mouseleave", endPress);
+
+          // 모바일 (터치) 이벤트 등록
+          el.addEventListener("touchstart", startPress);
+          el.addEventListener("touchend", endPress);
+          el.addEventListener("touchcancel", endPress);
+        }
       });
     }
 
-    /* [수정항목] 행 순서에 따라 placeholder 문자열 분기 처리 로직 */
+    /* 행 순서에 따라 placeholder 문자열 분기 처리 로직 */
     function updateMortgagePlaceholders() {
       const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       rows.forEach((row, index) => {
@@ -651,7 +884,7 @@
       });
     }
 
-    /* 주담대 행 동적 생성 함수 (디자인 고도화 구조 반영) */
+    /* 주담대 행 동적 생성 함수 */
     let mortCount = 0;
     function 주담대행추가() {
       mortCount++;
@@ -666,9 +899,6 @@
         </td>
         <td class="no-bg" style="padding: 10px 2px;">
           <input type="checkbox" class="mort-interest-only">
-        </td>
-        <td class="no-bg" style="padding: 10px 2px;">
-          <input type="checkbox" class="mort-new-dti">
         </td>
         <td class="no-bg" style="padding: 6px 4px;">
           <div class="input-flex-col">
@@ -699,8 +929,9 @@
       자동계산();
     }
 
-    /* 장래예상소득(연소득) 동적 제어 로직 */
-    const LOAN_RATE_TABLE = [
+    /* 장래예상소득(연소득) 동적 제어 및 로컬스토리지 연동 로직 */
+    const savedRates = localStorage.getItem("CUSTOM_LOAN_RATE_TABLE");
+    const LOAN_RATE_TABLE = savedRates ? JSON.stringify(JSON.parse(savedRates)) && JSON.parse(savedRates) : [
         { minAge: 20, maxAge: 24, percent: 150.69 },
         { minAge: 25, maxAge: 29, percent: 131.62 },
         { minAge: 30, maxAge: 34, percent: 118.41 },
@@ -765,7 +996,7 @@
                 baseIncomeInput.style.backgroundColor = "#eff6ff";
             } else {
                 baseIncomeInput.style.color = "";
-                baseIncomeInput.style.fontWeight = "";
+                baseIncomeInput.style.fontWeight = "bold"; 
                 baseIncomeInput.style.backgroundColor = "";
             }
         }
@@ -778,13 +1009,29 @@
         updateIncomeCalc();
     });
 
+    let rateLongPressTimer;
+    const startRatePress = (e) => {
+      rateLongPressTimer = setTimeout(() => {
+        openRateEditModal(); 
+      }, 3000); 
+    };
+    const endRatePress = () => {
+      clearTimeout(rateLongPressTimer);
+    };
+
+    applyRateCheck.addEventListener("mousedown", startRatePress);
+    applyRateCheck.addEventListener("mouseup", endRatePress);
+    applyRateCheck.addEventListener("mouseleave", endRatePress);
+    applyRateCheck.addEventListener("touchstart", startRatePress);
+    applyRateCheck.addEventListener("touchend", endRatePress);
+    applyRateCheck.addEventListener("touchcancel", endRatePress);
+
     ageInput.addEventListener("input", updateIncomeCalc);
 
     baseIncomeInput.addEventListener("focus", () => {
         isEditingIncome = true;
         baseIncomeInput.value = memoBaseIncome > 0 ? memoBaseIncome.toLocaleString() : "";
         baseIncomeInput.style.color = "";
-        baseIncomeInput.style.fontWeight = "";
         baseIncomeInput.style.backgroundColor = "";
         adjustTableFontSize();
     });
