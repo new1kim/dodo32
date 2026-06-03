@@ -278,23 +278,24 @@
     /* DSR, DTI, 신DTI 모두 트랜지션 및 폰트 크기 동기화 */
     #DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
 
-    /* 장래예상 요율 수정 팝업용 전용 스타일 (추가) */
+    /* 장래예상 요율 수정 팝업용 전용 스타일 (인풋 폰트 크기 대폭 상향 수정) */
     .rate-popup-table {
       width: 100%;
       margin: 10px 0;
       border-collapse: collapse;
     }
     .rate-popup-table td {
-      padding: 6px;
+      padding: 8px 6px;
       border: 1px solid #e2e8f0 !important;
       background-color: #ffffff !important;
       font-weight: normal !important;
       color: #334155 !important;
+      font-size: 14px;
     }
     .rate-popup-table input {
-      width: 70px;
-      padding: 4px;
-      font-size: 13px;
+      width: 85px;
+      padding: 6px 4px;
+      font-size: 16px; /* 기존 13px -> 16px로 변경하여 시인성 확보 및 모바일 줌인 방지 */
       font-weight: bold;
       text-align: center;
       border: 1px solid #cbd5e1;
@@ -424,15 +425,15 @@
             <thead>
               <tr style="background-color: #f1f5f9; font-weight: bold; text-align: center;">
                 <td>연령 구간</td>
-                <td>기존 요율</td>
+                <td>기존 요율( % )</td>
               </tr>
             </thead>
             <tbody>
-              <tr><td>20세 ~ 24세</td><td><input type="text" id="edit-rate-0" inputmode="decimal">%</td></tr>
-              <tr><td>25세 ~ 29세</td><td><input type="text" id="edit-rate-1" inputmode="decimal">%</td></tr>
-              <tr><td>30세 ~ 34세</td><td><input type="text" id="edit-rate-2" inputmode="decimal">%</td></tr>
-              <tr><td>35세 ~ 39세</td><td><input type="text" id="edit-rate-3" inputmode="decimal">%</td></tr>
-              <tr><td>40세 ~ 44세</td><td><input type="text" id="edit-rate-4" inputmode="decimal">%</td></tr>
+              <tr><td>20세 ~ 24세</td><td><input type="text" id="edit-rate-0" inputmode="decimal"></td></tr>
+              <tr><td>25세 ~ 29세</td><td><input type="text" id="edit-rate-1" inputmode="decimal"></td></tr>
+              <tr><td>30세 ~ 34세</td><td><input type="text" id="edit-rate-2" inputmode="decimal"></td></tr>
+              <tr><td>35세 ~ 39세</td><td><input type="text" id="edit-rate-3" inputmode="decimal"></td></tr>
+              <tr><td>40세 ~ 44세</td><td><input type="text" id="edit-rate-4" inputmode="decimal"></td></tr>
             </tbody>
           </table>
           <div style="display: flex; gap: 8px; margin-top: 14px;">
@@ -449,6 +450,9 @@
     function adjustTableFontSize() {
       const cells = document.querySelectorAll('table th, table td');
       cells.forEach(cell => {
+        // 장래예상 요율 팝업 내부 셀은 글자 축소 자동 맞춤 계산에서 제외 (레이아웃 보호)
+        if (cell.closest('#modal-rate-card')) return;
+
         if (!cell.dataset.origSize) {
           cell.dataset.origSize = window.getComputedStyle(cell).fontSize;
         }
