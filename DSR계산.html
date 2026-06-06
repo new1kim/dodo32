@@ -413,6 +413,11 @@
           <br>
           <div class="text-popup-line">※ 이자만 체크박스를 2초 이상 클릭 유지시 해당 라인 초기화됨.</div>
           <br>
+          <div class="text-popup-line">※ 본건대출입력행의 금리,ST금리,개월을 </div>
+          <div class="text-popup-line">3초간 클릭시, 초기값을 저장해둘 수 있음.</div>
+
+
+          <br>
           <div class="text-popup-line">※ 상환제외 버튼은 DSR 계산에서 제외 하거나 </div>
           <div class="text-popup-line">   상환조건으로 상담시 체크하는 용도입니다.</div>
           <br>
@@ -445,6 +450,24 @@
           </div>
         </div>
       </div>
+
+      <div id="modal-default-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">
+        <div class="text-popup-title">본건 대출 기본값 설정</div>
+        <div class="text-popup-content" style="text-align: center;">
+          <table class="rate-popup-table">
+            <tbody>
+              <tr><td>금리 ( % )</td><td><input type="text" id="default-mort-rate" inputmode="decimal" placeholder="예: 3.5"></td></tr>
+              <tr><td>ST금리 ( % )</td><td><input type="text" id="default-mort-st-rate" inputmode="decimal" placeholder="예: 1.5"></td></tr>
+              <tr><td>기간 ( 개월 )</td><td><input type="text" id="default-mort-term" inputmode="numeric" placeholder="예: 360"></td></tr>
+            </tbody>
+          </table>
+          <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button type="button" style="background-color: #64748b;" onclick="closeModal()">취소</button>
+            <button type="button" style="background-color: #3b82f6;" onclick="saveDefaultFirstRowData()">저장하기</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -453,7 +476,7 @@
     function adjustTableFontSize() {
       const cells = document.querySelectorAll('table th, table td');
       cells.forEach(cell => {
-        if (cell.closest('#modal-rate-card')) return;
+        if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card')) return;
 
         if (!cell.dataset.origSize) {
           cell.dataset.origSize = window.getComputedStyle(cell).fontSize;
@@ -505,6 +528,7 @@
     function openImageModal(imageSrc) {
       document.getElementById("modal-text-card").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
+      document.getElementById("modal-default-card").style.display = "none";
       document.getElementById("modal-img").src = imageSrc;
       document.getElementById("modal-img").style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
@@ -514,6 +538,7 @@
     function openTextModal() {
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
+      document.getElementById("modal-default-card").style.display = "none";
       
       const textCard = document.getElementById("modal-text-card");
       textCard.style.display = "block";
@@ -537,6 +562,7 @@
     function openRateEditModal() {
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-text-card").style.display = "none";
+      document.getElementById("modal-default-card").style.display = "none";
       
       LOAN_RATE_TABLE.forEach((item, index) => {
         document.getElementById(`edit-rate-${index}`).value = item.percent;
@@ -544,6 +570,49 @@
       
       document.getElementById("modal-rate-card").style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
+    }
+
+    /* 본건 대출 기본값 설정 팝업창 활성화 */
+    function openDefaultFirstRowModal() {
+      document.getElementById("modal-img").style.display = "none";
+      document.getElementById("modal-text-card").style.display = "none";
+      document.getElementById("modal-rate-card").style.display = "none";
+
+      const savedData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        document.getElementById("default-mort-rate").value = data.rate || "";
+        document.getElementById("default-mort-st-rate").value = data.stRate || "";
+        document.getElementById("default-mort-term").value = data.term || "";
+      } else {
+        document.getElementById("default-mort-rate").value = "";
+        document.getElementById("default-mort-st-rate").value = "";
+        document.getElementById("default-mort-term").value = "";
+      }
+
+      document.getElementById("modal-default-card").style.display = "block";
+      document.getElementById("image-modal").style.display = "flex";
+    }
+
+    /* 본건 대출 기본값을 로컬스토리지에 저장하고 즉시 반영 */
+    function saveDefaultFirstRowData() {
+      const rate = document.getElementById("default-mort-rate").value.trim();
+      const stRate = document.getElementById("default-mort-st-rate").value.trim();
+      const term = document.getElementById("default-mort-term").value.trim();
+
+      const data = { rate, stRate, term };
+      localStorage.setItem("DEFAULT_FIRST_ROW_DATA", JSON.stringify(data));
+      showBubble("본건 대출 기본값 저장 완료");
+      closeModal();
+
+      // 첫 번째 행에 즉시 반영
+      const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+      if (firstRow) {
+        if (rate) firstRow.querySelector('.mort-rate').value = rate;
+        if (stRate) firstRow.querySelector('.mort-st-rate').value = stRate;
+        if (term) firstRow.querySelector('.mort-term').value = term;
+        자동계산();
+      }
     }
 
     /* 수정한 요율을 로컬스토리지에 저장하고 즉시 반영하는 함수 */
@@ -676,6 +745,7 @@
       
       let sumM = 0, sumP = 0, sumI = 0;
       let dsr_mort = 0, newDti_input = 0, newDti_fix = 0;
+      let existingOtherDebtPayment = 0; // 본건을 제외한 기존 보유 대출의 연간 원리금 상환액 합계
 
       const mortRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       mortRows.forEach((row, index) => {
@@ -732,6 +802,7 @@
           newDti_input += annualRes.annual;
           newDti_fix += annualRes.annual;
           dsr_mort += annualRes.annual;
+          existingOtherDebtPayment += annualRes.annual; // 본건 제외한 보유대출의 연간 원리금 누적
         }
       });
 
@@ -782,7 +853,6 @@
           const type1 = firstRow.querySelector('.mort-type').value;
 
           if (combinedRate1 > 0 && term1 > 0) {
-            const existingOtherDebtPayment = etcInt + etcP;
             let annualPaymentPerUnit = 0;
             
             if (type1 === "원리금") {
@@ -842,8 +912,10 @@
     function bindMortgageRowEvents(row) {
       row.querySelectorAll('.mort-amt, .mort-term').forEach(el => {
         el.addEventListener("input", (e) => {
-          let v = e.target.value.replace(/\D/g, '');
-          e.target.value = v ? parseInt(v).toLocaleString() : '';
+          if (e.target.classList.contains('mort-amt')) {
+            let v = e.target.value.replace(/\D/g, '');
+            e.target.value = v ? parseInt(v).toLocaleString() : '';
+          }
           자동계산();
         });
       });
@@ -855,6 +927,31 @@
       });
 
       let longPressTimer;
+      let inputLongPressTimer;
+
+      // 본건 대출 항목(금리, ST, 개월)에 3초 롱프레스 이벤트 바인딩 (첫 번째 행 여부 체크)
+      row.querySelectorAll('.mort-rate, .mort-st-rate, .mort-term').forEach(el => {
+        const startInputPress = () => {
+          // 행의 인덱스를 계산하여 첫 번째 행일 때만 3초 롱프레스 적용
+          const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
+          if (rows.indexOf(row) === 0) {
+            inputLongPressTimer = setTimeout(() => {
+              openDefaultFirstRowModal();
+            }, 3000);
+          }
+        };
+
+        const endInputPress = () => {
+          clearTimeout(inputLongPressTimer);
+        };
+
+        el.addEventListener("mousedown", startInputPress);
+        el.addEventListener("mouseup", endInputPress);
+        el.addEventListener("mouseleave", endInputPress);
+        el.addEventListener("touchstart", startInputPress);
+        el.addEventListener("touchend", endInputPress);
+        el.addEventListener("touchcancel", endInputPress);
+      });
 
       row.querySelectorAll('input[type="checkbox"]').forEach(el => {
         el.addEventListener("change", (e) => {
@@ -1105,6 +1202,19 @@
          주담대행추가();
       }
       updateMortgagePlaceholders();
+
+      // 로컬 스토리지에 저장된 본건 대출 기본값이 있다면 첫 번째 행에 세팅
+      const savedFirstRowData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
+      if (savedFirstRowData) {
+        const data = JSON.parse(savedFirstRowData);
+        const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+        if (firstRow) {
+          if (data.rate) firstRow.querySelector('.mort-rate').value = data.rate;
+          if (data.stRate) firstRow.querySelector('.mort-st-rate').value = data.stRate;
+          if (data.term) firstRow.querySelector('.mort-term').value = data.term;
+        }
+      }
+
       자동계산();
       adjustTableFontSize();
     });
