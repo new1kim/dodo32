@@ -259,7 +259,7 @@
       text-align: center;
     }
     
-    /* [수정] 팝업 텍스트 스타일: 개별 라인 단위 제어를 위해 수정 및 transition 추가 */
+    /* 팝업 텍스트 스타일 */
     .text-popup-content {
       font-size: 13px;
       line-height: 1.8;
@@ -278,7 +278,7 @@
     /* DSR, DTI, 신DTI 모두 트랜지션 및 폰트 크기 동기화 */
     #DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
 
-    /* 장래예상 요율 수정 팝업용 전용 스타일 (인풋 폰트 크기 대폭 상향 수정) */
+    /* 장래예상 요율 수정 팝업용 전용 스타일 */
     .rate-popup-table {
       width: 100%;
       margin: 10px 0;
@@ -295,7 +295,7 @@
     .rate-popup-table input {
       width: 85px;
       padding: 6px 4px;
-      font-size: 16px; /* 기존 13px -> 16px로 변경하여 시인성 확보 및 모바일 줌인 방지 */
+      font-size: 16px;
       font-weight: bold;
       text-align: center;
       border: 1px solid #cbd5e1;
@@ -318,8 +318,8 @@
         <td class="split-td" style="width: 50%; padding: 8px 0; background-color: #f0fdf4 !important; font-weight: bold; font-size: 12px; color: #166534 !important;">DSR 50% 기준 최대한도</td>
       </tr>
       <tr>
-        <td id="DSR최대금액확인40" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #2563eb; font-size: 14px;">-</td>
-        <td id="DSR최대금액확인50" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #10b981; font-size: 14px;">-</td>
+        <td id="DSR최대금액확인40" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #2563eb; font-size: 14px; cursor: pointer;" onclick="전달DSR한도금액(this)">-</td>
+        <td id="DSR최대금액확인50" class="no-bg" style="padding: 8px 0; font-weight: bold; color: #10b981; font-size: 14px; cursor: pointer;" onclick="전달DSR한도금액(this)">-</td>
       </tr>
     </table>
 
@@ -401,19 +401,22 @@
           <div class="text-popup-line">※※ 항상 제일 첫번째 입력칸이 본건 대출금액이여야 함 ※※</div>
           <div class="text-popup-line">※※ 그래야 월별 부담금액이 정상적으로 표시 됩니다.   ※※</div>
           <br>
+          <div class="text-popup-line">※※ DSR 40%, 50% 최대한도 클릭시 본건에 대출금 적용됨.   ※※</div>
+          <br>
           <div class="text-popup-line">※ 장래예상소 체크박스 3초 이상 클릭 유지시, 예상요율 수정 가능</div>
           <div class="text-popup-line">&nbsp;&nbsp;&nbsp;(( 은행별 차이나거나 새로운 요율 발표 공지시 직접 수정 가능))</div>
           <br>
           <div class="text-popup-line">※ 금리 입력구분을 나눈 이유는 ST금리는 DSR 계산만 하고,</div>
           <div class="text-popup-line">&nbsp;&nbsp;&nbsp;&nbsp;월 부담액 이자 계산에서 제외하기 위해서입니다.</div>
           <br>
-          <div class="text-popup-line">※ 상환제외 체크박스를 2초 이상 클릭 유지시 해당 라인 삭제됨.</div>
+          <div class="text-popup-line">※ 상환제외 2초 이상 클릭 유지시 해당 라인 삭제됨</div>
+          <br>
+          <div class="text-popup-line">※ 이자만 체크박스를 2초 이상 클릭 유지시 해당 라인 초기화됨.</div>
           <br>
           <div class="text-popup-line">※ 상환제외 버튼은 DSR 계산에서 제외 하거나 </div>
           <div class="text-popup-line">   상환조건으로 상담시 체크하는 용도입니다.</div>
           <br>
-          <div class="text-popup-line">※ 이자만 적용 또는 상환제외 버튼을 사용하면</div>
-          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;"" 전세 DTI 및 DSR 도 계산 가능 ""</div>
+          <br>
           <div class="text-popup-line">MP32</div>
         </div>
       </div>
@@ -450,7 +453,6 @@
     function adjustTableFontSize() {
       const cells = document.querySelectorAll('table th, table td');
       cells.forEach(cell => {
-        // 장래예상 요율 팝업 내부 셀은 글자 축소 자동 맞춤 계산에서 제외 (레이아웃 보호)
         if (cell.closest('#modal-rate-card')) return;
 
         if (!cell.dataset.origSize) {
@@ -508,7 +510,7 @@
       document.getElementById("image-modal").style.display = "flex";
     }
 
-    /* [수정] 텍스트 내용 안내 팝업창 활성화 및 글자 자동 크기 조절 기능 추가 */
+    /* 텍스트 내용 안내 팝업창 활성화 및 글자 자동 크기 조절 기능 추가 */
     function openTextModal() {
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
@@ -517,16 +519,13 @@
       textCard.style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
       
-      // 팝업 내부의 개별 문장라인과 최대 허용 가능폭 계산
       const lines = textCard.querySelectorAll(".text-popup-line");
-      const maxWidth = textCard.clientWidth - 48; // 패딩값(좌우 24px씩) 제외 실질 너비
+      const maxWidth = textCard.clientWidth - 48;
       
       lines.forEach(line => {
-        // 호출 시 매번 13px(기본값)로 리셋한 후 연산 시작
         line.style.fontSize = "13px";
         let currentSize = 13;
         
-        // 텍스트 전체 너비가 허용 한도를 넘어가면 한도 내로 들어올 때까지 폰트 크기를 줄임 (최하 제한 7px)
         while (line.scrollWidth > maxWidth && currentSize > 7) {
           currentSize -= 0.5;
           line.style.fontSize = currentSize + "px";
@@ -534,12 +533,11 @@
       });
     }
 
-    /* 장래예상 요율 수정 팝업창 활성화 (추가) */
+    /* 장래예상 요율 수정 팝업창 활성화 */
     function openRateEditModal() {
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-text-card").style.display = "none";
       
-      //현재 설정된 요율 데이터를 인풋 박스에 세팅
       LOAN_RATE_TABLE.forEach((item, index) => {
         document.getElementById(`edit-rate-${index}`).value = item.percent;
       });
@@ -548,7 +546,7 @@
       document.getElementById("image-modal").style.display = "flex";
     }
 
-    /* 수정한 요율을 로컬스토리지에 저장하고 즉시 반영하는 함수 (추가) */
+    /* 수정한 요율을 로컬스토리지에 저장하고 즉시 반영하는 함수 */
     function saveCustomRates() {
       for(let i=0; i<LOAN_RATE_TABLE.length; i++) {
         const val = parseFloat(document.getElementById(`edit-rate-${i}`).value);
@@ -558,11 +556,10 @@
         }
         LOAN_RATE_TABLE[i].percent = val;
       }
-      // 로컬스토리지에 상태 영구 저장 (PC, 모바일 브라우저에 유지)
       localStorage.setItem("CUSTOM_LOAN_RATE_TABLE", JSON.stringify(LOAN_RATE_TABLE));
       showBubble("예상 요율 저장 완료");
       closeModal();
-      updateIncomeCalc(); // 즉시 소득 계산 업데이트
+      updateIncomeCalc();
     }
 
     /* 모든 팝업창 닫기 */
@@ -643,6 +640,35 @@
       return result.trim() || "0원";
     }
 
+    /* DSR 한도금액 클릭 시 본건 대출원금 입력칸에 세팅해주는 함수 */
+    function 전달DSR한도금액(tdElement) {
+      const text = tdElement.innerText.trim();
+      if (!text || text === "-" || text.includes("기존대출 초과")) return;
+
+      let totalAmount = 0;
+      // 순수 금액 텍스트만 추출하여 매칭
+      const cleanText = text.trim();
+      const ukMatch = cleanText.match(/(\d+)억/);
+      const manMatch = cleanText.match(/([\d,]+)만원/);
+
+      if (ukMatch) {
+        totalAmount += parseInt(ukMatch[1]) * 100000000;
+      }
+      if (manMatch) {
+        totalAmount += parseInt(manMatch[1].replace(/,/g, '')) * 10000;
+      }
+
+      const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+      if (firstRow) {
+        const amtInput = firstRow.querySelector('.mort-amt');
+        if (amtInput && totalAmount > 0) {
+          amtInput.value = totalAmount.toLocaleString();
+          showBubble("최대한도가 본건에 입력되었습니다.");
+          자동계산();
+        }
+      }
+    }
+
     /* 동적 테이블 연산 통합 대응 자동계산 엔진 */
     function 자동계산() {
       const incomeInput = document.getElementById("computedIncomeHidden").value || document.getElementById("baseIncomeInput").value;
@@ -651,7 +677,6 @@
       let sumM = 0, sumP = 0, sumI = 0;
       let dsr_mort = 0, newDti_input = 0, newDti_fix = 0;
 
-      // 1. 주담대 동적 리스트 순회 연산
       const mortRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       mortRows.forEach((row, index) => {
         const isExcluded = row.querySelector('.mort-exclude').checked;
@@ -675,7 +700,6 @@
             monthlyRes = 원금균등_월부담액(amt, pureRate, term);
         }
         
-        // 1번째(index 0) 행만 월부담액 계산에 포함하고, 2번째 이상(index > 0) 행들은 누적 합산에서 제외
         if (index === 0) {
           sumM += monthlyRes.월상환금액; 
           sumP += monthlyRes.첫달원금; 
@@ -701,7 +725,6 @@
           annualRes = { annual: annualAnnual, fixAnnual: fixAnnual };
         }
 
-        // 첫 번째 라인(index 0)을 '본건 대출'로 취급하여 무조건 신DTI(fixAnnual) 및 일반DSR(annual)에 자동 연동
         if (index === 0) { 
           newDti_fix += annualRes.fixAnnual;
           dsr_mort += annualRes.annual;
@@ -718,13 +741,11 @@
 
       let etcInt = 0, etcP = 0;
 
-      // 3. 지표 최종 산출 및 규제비율 시각화 조절
       if (income > 0) {
         const finalDsr = ((dsr_mort + etcInt + etcP) / income) * 100;
         const finalDti = ((dsr_mort + etcInt) / income) * 100;
         const finalNewDti = ((etcInt + newDti_fix) / income) * 100;
 
-        // --- DSR 스타일 제어 ---
         document.getElementById("DSR확인").innerText = finalDsr.toFixed(2) + "%";
         if (finalDsr >= 40) {
           document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
@@ -734,7 +755,6 @@
           document.getElementById("DSR확인").style.color = "#1e293b";
         }
         
-        // --- 일반 DTI 스타일 제어 (요청 사안 반영) ---
         document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
         if (finalDti >= 40) {
           document.getElementById("DIT확인").style.setProperty("background-color", "#fee2e2", "important");
@@ -744,7 +764,6 @@
           document.getElementById("DIT확인").style.color = "#1e293b";
         }
 
-        // --- 신 DTI 스타일 제어 ---
         document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
         if (finalNewDti >= 40) {
           document.getElementById("신DTI확인").style.setProperty("background-color", "#fee2e2", "important");
@@ -835,7 +854,6 @@
         });
       });
 
-      // 롱프레스 타이머 관리를 위한 변수
       let longPressTimer;
 
       row.querySelectorAll('input[type="checkbox"]').forEach(el => {
@@ -845,27 +863,38 @@
           자동계산();
         });
 
-        // 상환제외(.mort-exclude) 체크박스에 롱프레스 기능 추가
-        if (el.classList.contains('mort-exclude')) {
+        if (el.classList.contains('mort-exclude') || el.classList.contains('mort-interest-only')) {
           const startPress = () => {
             longPressTimer = setTimeout(() => {
-              row.remove(); // 2초 유지 시 해당 행 완전 삭제
-              showBubble("해당 대출 정보 삭제 완료");
-              updateMortgagePlaceholders(); // 플레이스홀더 순서 재정리
-              자동계산(); // 재계산
-            }, 2000); // 2000ms = 2초
+              row.querySelector('.mort-exclude').checked = false;
+              row.querySelector('.mort-interest-only').checked = false;
+              row.querySelector('.mort-amt').value = '';
+              row.querySelector('.mort-rate').value = '';
+              row.querySelector('.mort-st-rate').value = '';
+              row.querySelector('.mort-term').value = '';
+              
+              const typeBtnGroup = row.querySelector('.type-btn-group');
+              if (typeBtnGroup) {
+                const buttons = typeBtnGroup.querySelectorAll('.type-btn');
+                buttons.forEach(b => b.classList.remove('active'));
+                const defaultBtn = Array.from(buttons).find(b => b.innerText === '원리금');
+                if (defaultBtn) defaultBtn.classList.add('active');
+              }
+              row.querySelector('.mort-type').value = '원리금';
+
+              showBubble("해당 대출 정보 초기화 완료");
+              자동계산();
+            }, 2000);
           };
 
           const endPress = () => {
             clearTimeout(longPressTimer);
           };
 
-          // PC (마우스) 이벤트 등록
           el.addEventListener("mousedown", startPress);
           el.addEventListener("mouseup", endPress);
           el.addEventListener("mouseleave", endPress);
 
-          // 모바일 (터치) 이벤트 등록
           el.addEventListener("touchstart", startPress);
           el.addEventListener("touchend", endPress);
           el.addEventListener("touchcancel", endPress);
