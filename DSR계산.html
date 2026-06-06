@@ -411,8 +411,6 @@
           <br>
           <div class="text-popup-line">※ 상환제외 2초 이상 클릭 유지시 해당 라인 삭제됨</div>
           <br>
-          <div class="text-popup-line">※ 이자만 체크박스를 2초 이상 클릭 유지시 해당 라인 초기화됨.</div>
-          <br>
           <div class="text-popup-line">※ 본건대출입력행의 금리,ST금리,개월을 </div>
           <div class="text-popup-line">3초간 클릭시, 초기값을 저장해둘 수 있음.</div>
 
@@ -960,27 +958,14 @@
           자동계산();
         });
 
-        if (el.classList.contains('mort-exclude') || el.classList.contains('mort-interest-only')) {
+        // 상환제외 체크박스 2초 롱프레스 시 삭제 이벤트 연동
+        if (el.classList.contains('mort-exclude')) {
           const startPress = () => {
             longPressTimer = setTimeout(() => {
-              row.querySelector('.mort-exclude').checked = false;
-              row.querySelector('.mort-interest-only').checked = false;
-              row.querySelector('.mort-amt').value = '';
-              row.querySelector('.mort-rate').value = '';
-              row.querySelector('.mort-st-rate').value = '';
-              row.querySelector('.mort-term').value = '';
-              
-              const typeBtnGroup = row.querySelector('.type-btn-group');
-              if (typeBtnGroup) {
-                const buttons = typeBtnGroup.querySelectorAll('.type-btn');
-                buttons.forEach(b => b.classList.remove('active'));
-                const defaultBtn = Array.from(buttons).find(b => b.innerText === '원리금');
-                if (defaultBtn) defaultBtn.classList.add('active');
-              }
-              row.querySelector('.mort-type').value = '원리금';
-
-              showBubble("해당 대출 정보 초기화 완료");
-              자동계산();
+              row.remove(); // 해당 라인(tr) 삭제
+              showBubble("해당 대출 정보 삭제 완료");
+              updateMortgagePlaceholders(); // 플레이스홀더 순번 재정렬
+              자동계산(); // 재연산
             }, 2000);
           };
 
