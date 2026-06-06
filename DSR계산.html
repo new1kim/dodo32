@@ -234,41 +234,114 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); 
     }
 
-    /* 텍스트 내용 팝업 카드 스타일 (콘텐츠 크기에 맞춰 위아래 높이 자동 조절) */
+    /* 📌 [스타일 고도화된 계산기 설명서 팝업창] */
     .text-popup-card {
       background-color: #ffffff;
-      padding: 24px;
-      border-radius: 16px;
-      max-width: 90%;
-      width: 460px;
+      padding: 20px;
+      border-radius: 20px;
+      max-width: 92%;
+      width: 440px;
       box-sizing: border-box;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
       text-align: left;
       cursor: default;
-      height: auto; /* 내용 길이에 맞춰 위아래 자동 조절 */
+      height: auto; 
       max-height: 85vh;
       overflow-y: auto;
+      scrollbar-width: none; /* 파이어폭스 스크롤바 숨김 */
     }
-    .text-popup-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e2e8f0;
-      text-align: center;
+    .text-popup-card::-webkit-scrollbar {
+      display: none; /* 크롬, 사파리 스크롤바 숨김 */
     }
     
-    /* 팝업 텍스트 스타일 */
+    .text-popup-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+      text-align: center;
+      letter-spacing: -0.5px;
+    }
+    
+    /* 리팩토링된 설명서 내부 스타일 구조 */
     .text-popup-content {
       font-size: 13px;
-      line-height: 1.8;
+      line-height: 1.6;
       color: #334155;
-      font-weight: 500;
     }
-    .text-popup-line {
-      white-space: nowrap !important; /* 자동 줄바꿈 강제 방지 */
-      transition: font-size 0.1s ease; /* 폰트 크기가 줄어들 때 부드럽게 연출 */
+    
+    .info-section {
+      margin-bottom: 22px;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0284c7;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .info-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .info-list li {
+      position: relative;
+      padding-left: 14px;
+      margin-bottom: 6px;
+      color: #475569;
+      font-weight: 500;
+      white-space: normal !important; /* 줄바꿈 자연스럽게 허용 */
+    }
+    
+    .info-list li::before {
+      content: "•";
+      position: absolute;
+      left: 2px;
+      color: #cbd5e1;
+      font-weight: bold;
+    }
+
+    /* 강조 배지 및 경고 문구 스타일 */
+    .alert-box {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      color: #991b1b;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      white-space: normal !important;
+    }
+    
+    .accent-box {
+      background-color: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      color: #166534;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.5;
+      white-space: normal !important;
+    }
+    
+    .footer-version {
+      text-align: right;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 16px;
+      font-weight: 600;
     }
 
     #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 {
@@ -387,40 +460,46 @@
       <img id="modal-img" src="" alt="안내 이미지 팝업" style="display: none;">
       
       <div id="modal-text-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">
-        <div class="text-popup-title">대출현황 입력시 참고사항</div>
+        <div class="text-popup-title">💡 DSR 계산기 이용 안내</div>
         <div class="text-popup-content">
-          <div class="text-popup-line">- 비주택담보대출 8년 ( 96개월 )</div>
-          <div class="text-popup-line">- 전세대출 만기일시 (( 이자만 체크 ))</div>
-          <div class="text-popup-line">- 예적금담보대출 (( 이자만 체크 ))</div>
-          <div class="text-popup-line">- 유가증권담보 8년 96개월 (( 이자만 체크 ))</div>
-          <div class="text-popup-line">- 캐피탈, 카드대출등, 학자금등 12개월</div>
-          <div class="text-popup-line">&nbsp;&nbsp;1년간 실제 총 납입금액 계산</div>
-          <br>
-          <div class="text-popup-line">▣ DSR 계산기 기능 설명 ▣</div>
-          <br>
-          <div class="text-popup-line">※※ 항상 제일 첫번째 입력칸이 본건 대출금액이여야 함 ※※</div>
-          <div class="text-popup-line">※※ 그래야 월별 부담금액이 정상적으로 표시 됩니다.   ※※</div>
-          <br>
-          <div class="text-popup-line">※※ DSR 40%, 50% 최대한도 클릭시 본건에 대출금 적용됨.   ※※</div>
-          <br>
-          <div class="text-popup-line">※ 장래예상소 체크박스 3초 이상 클릭 유지시, 예상요율 수정 가능</div>
-          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;(( 은행별 차이나거나 새로운 요율 발표 공지시 직접 수정 가능))</div>
-          <br>
-          <div class="text-popup-line">※ 금리 입력구분을 나눈 이유는 ST금리는 DSR 계산만 하고,</div>
-          <div class="text-popup-line">&nbsp;&nbsp;&nbsp;&nbsp;월 부담액 이자 계산에서 제외하기 위해서입니다.</div>
-          <br>
-          <div class="text-popup-line">※ 상환제외 2초 이상 클릭 유지시 해당 라인 삭제됨</div>
-          <br>
-          <div class="text-popup-line">※ 본건대출입력행의 금리,ST금리,개월을 </div>
-          <div class="text-popup-line">3초간 클릭시, 초기값을 저장해둘 수 있음.</div>
+          
+          <div class="alert-box">
+            ⚠️ <b>필독 지침</b><br>
+            항상 <b>첫 번째 입력칸</b>이 상담받으실 <b>'본건 대출금액'</b>이어야 합니다. 그래야 월별 부담금액 및 최대한도가 정상적으로 연산되어 표시됩니다.
+          </div>
 
+          <div class="accent-box">
+            ✨ DSR 40%, 50% 최대한도 금액을 터치하시면 해당 한도 금액이 본건 대출원금 칸에 자동으로 입력됩니다.
+          </div>
 
-          <br>
-          <div class="text-popup-line">※ 상환제외 버튼은 DSR 계산에서 제외 하거나 </div>
-          <div class="text-popup-line">   상환조건으로 상담시 체크하는 용도입니다.</div>
-          <br>
-          <br>
-          <div class="text-popup-line">MP32</div>
+          <div class="info-section">
+            <div class="section-title">📊 대출현황 입력 시 참고사항</div>
+            <ul class="info-list">
+              <li><b>비주택담보대출</b>: 8년 (96개월) 입력</li>
+              <li><b>전세대출 / 예적금담보대출</b>: 만기일시 형태이므로 <b style="color:#d97706;">[이자만]</b> 체크</li>
+              <li><b>유가증권담보</b>: 8년(96개월) 입력 후 <b style="color:#d97706;">[이자만]</b> 체크</li>
+              <li><b>캐피탈 / 카드대출 / 학자금 등</b>: 12개월 기준으로 1년간 실제 총 납입금액을 계산하여 입력</li>
+            </ul>
+          </div>
+
+          <div class="info-section">
+            <div class="section-title">⚙️ 숨겨진 편의 기능 (롱프레스)</div>
+            <ul class="info-list">
+              <li><b>장래예상소득 체크박스</b>를 3초간 누르면, 은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
+              <li><b>[상환제외] 체크박스</b>를 2초간 누르면 해당 대출 라인이 즉시 삭제됩니다.</li>
+              <li>본건 대출행의 <b>금리, ST금리, 개월수</b> 칸을 3초간 누르면 기본 시작 세팅값을 저장해둘 수 있습니다.</li>
+            </ul>
+          </div>
+
+          <div class="info-section">
+            <div class="section-title">ℹ️ 기타 안내</div>
+            <ul class="info-list">
+              <li><b>ST금리 구분 이유</b>: 스트레스 금리는 DSR 계산식에만 포함하고, 실제 월 부담액(이자) 계산에서는 제외하기 위함입니다.</li>
+              <li><b>상환제외 버튼</b>: DSR 연산에서 아예 제외하거나 상환 조건부 상담 시 체크하는 용도입니다.</li>
+            </ul>
+          </div>
+
+          <div class="footer-version">MP32</div>
         </div>
       </div>
 
@@ -474,7 +553,7 @@
     function adjustTableFontSize() {
       const cells = document.querySelectorAll('table th, table td');
       cells.forEach(cell => {
-        if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card')) return;
+        if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card') || cell.closest('#modal-text-card')) return;
 
         if (!cell.dataset.origSize) {
           cell.dataset.origSize = window.getComputedStyle(cell).fontSize;
@@ -532,7 +611,7 @@
       document.getElementById("image-modal").style.display = "flex";
     }
 
-    /* 텍스트 내용 안내 팝업창 활성화 및 글자 자동 크기 조절 기능 추가 */
+    /* 텍스트 내용 안내 팝업창 활성화 */
     function openTextModal() {
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
@@ -541,19 +620,6 @@
       const textCard = document.getElementById("modal-text-card");
       textCard.style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
-      
-      const lines = textCard.querySelectorAll(".text-popup-line");
-      const maxWidth = textCard.clientWidth - 48;
-      
-      lines.forEach(line => {
-        line.style.fontSize = "13px";
-        let currentSize = 13;
-        
-        while (line.scrollWidth > maxWidth && currentSize > 7) {
-          currentSize -= 0.5;
-          line.style.fontSize = currentSize + "px";
-        }
-      });
     }
 
     /* 장래예상 요율 수정 팝업창 활성화 */
