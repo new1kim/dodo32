@@ -15,7 +15,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background-color: #f8fafc;
       color: #1e293b;
-      padding: 18px 12px; /* 25% 축소 */
+      padding: 20px 14px; /* 15% 확대 적용 */
       display: flex;
       justify-content: center;
     }
@@ -23,25 +23,26 @@
     /* 메인 컨테이너 디자인 */
     .container {
       width: 100%;
-      max-width: 380px; /* 슬림하게 조정 */
+      max-width: 400px; /* S24+ 뷰포트에 맞춘 최적화 크기 */
       background: #ffffff;
-      padding: 18px; /* 24px -> 18px 축소 */
-      border-radius: 15px; /* 20px -> 15px 축소 */
-      box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.05), 0 6px 8px -6px rgba(0, 0, 0, 0.05);
+      padding: 21px; /* 15% 확대 */
+      border-radius: 16px; 
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 12px -6px rgba(15, 23, 42, 0.08);
     }
 
     /* 상단 헤더/타이틀 영역 */
     .title {
       background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
       color: #0369a1;
-      padding: 13px 12px; /* 18px 16px -> 13px 12px 축소 */
-      font-size: 16px; /* 20px -> 16px 축소 */
-      border-radius: 10px;
+      padding: 15px 14px; /* 15% 확대 */
+      font-size: 18px; /* 15% 확대 */
+      border-radius: 11px;
       font-weight: 800;
       text-align: center;
       position: relative;
       cursor: pointer;
-      margin-bottom: 15px; /* 20px -> 15px 축소 */
+      margin-bottom: 18px; /* 15% 확대 */
+      border: 1px solid #bae6fd;
       transition: transform 0.2s;
     }
     .title:active {
@@ -50,94 +51,100 @@
 
     .subtitle, .subtitle-left, .subtitle-RightUp {
       position: absolute;
-      font-size: 9px; /* 11px -> 9px 축소 */
+      font-size: 10px; /* 15% 확대 */
       font-weight: 500;
       opacity: 0.7;
     }
-    .subtitle { bottom: 4px; right: 10px; }
-    .subtitle-left { bottom: 4px; left: 10px; }
-    .subtitle-RightUp { top: 4px; right: 10px; color: #0284c7; }
+    .subtitle { bottom: 5px; right: 12px; }
+    .subtitle-left { bottom: 5px; left: 12px; }
+    .subtitle-RightUp { top: 5px; right: 12px; color: #0284c7; }
 
-    /* 입력 폼 필드 스타일 */
+    /* 입력 폼 필드 스타일 - 구분을 더 선명하게 보정 */
     .input-box {
       display: flex;
       align-items: center;
-      margin-bottom: 8px; /* 10px -> 8px 축소 */
+      margin-bottom: 10px; /* 15% 확대 */
       border-radius: 8px;
       overflow: hidden;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #94a3b8; /* 흐릿한 선에서 확실하고 선명한 테두리로 변경 */
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .input-box:focus-within {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+      border-color: #2563eb; /* 포커스 시 더 짙고 명확한 블루 */
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
     }
 
     .input-box label {
-      background: #f1f5f9;
-      color: #475569;
-      font-weight: 600;
-      font-size: 11px; /* 14px -> 11px 축소 */
-      width: 72px; /* 90px -> 72px 축소 */
-      padding: 10px 8px; /* 14px 10px -> 10px 8px 축소 */
+      background: #e2e8f0; /* 배경을 좀 더 어둡게 하여 흰색 입력창과 완벽 분리 */
+      color: #334155;
+      font-weight: 700;
+      font-size: 13px; /* 15% 확대 */
+      width: 84px; /* 15% 확대 */
+      padding: 12px 10px; /* 15% 확대 */
       text-align: center;
       cursor: pointer;
       user-select: none;
+      border-right: 1px solid #94a3b8; /* 라벨과 인풋창 사이의 수직 구분선 추가 */
       transition: background 0.2s;
     }
     .input-box label:active {
-      background: #e2e8f0;
+      background: #cbd5e1;
     }
 
     .input-box input {
       flex: 1;
-      padding: 10px 9px; /* 14px 12px -> 10px 9px 축소 */
+      padding: 12px 10px; /* 15% 확대 */
       text-align: right;
       border: none;
       outline: none;
-      font-size: 12px; /* 15px -> 12px 축소 */
+      font-size: 14px; /* 15% 확대 */
       font-weight: 600;
-      color: #1e293b;
+      color: #0f172a;
       background: #ffffff;
     }
+    /* 자동 계산창(Readonly)의 구분감 확실하게 변경 */
     .input-box input[readonly] {
-      background: #f8fafc;
-      color: #64748b;
+      background: #f1f5f9; /* 어두운 톤으로 변경하여 입력 불가함을 명시 */
+      color: #334155;
     }
 
-    /* 하단 연사용액/환산금액 커스텀 디자인 (블루 포인트) */
+    /* 하단 연사용액/환산금액 커스텀 디자인 (블루 영역 테두리 극대화) */
     .input-box.blue {
-      border-color: #cbd5e1;
+      border-color: #0284c7; /* 테두리 자체를 블루로 둘러서 확실히 구분 */
+      border-width: 1.5px;
     }
     .input-box.blue label {
       background: #e0f2fe;
       color: #0369a1;
+      border-right: 1px solid #0284c7;
     }
     .input-box.blue input {
       color: #0284c7;
+      font-weight: 700;
     }
 
     /* 탭/버튼 그룹 스타일 */
     .button-group {
       display: flex;
       justify-content: space-between;
-      gap: 4px;
-      margin: 13px 0; /* 18px -> 13px 축소 */
+      gap: 5px;
+      margin: 15px 0; /* 15% 확대 */
     }
 
     .button-group button {
       flex: 1;
-      padding: 8px 2px; /* 10px -> 8px 축소 */
+      padding: 10px 2px; /* 15% 확대 */
       font-weight: 700;
-      font-size: clamp(9px, 3vw, 11px); /* 크기 축소 */
+      font-size: clamp(10px, 3.2vw, 13px); /* 15% 확대 */
       white-space: nowrap;
-      border: none;
-      border-radius: 6px;
+      border: 1px solid rgba(15, 23, 42, 0.08); /* 버튼 윤곽선 추가 */
+      border-radius: 7px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    /* 각 버튼별 세련된 컬러 바인딩 */
+    /* 각 버튼별 컬러 셋 */
     .카드버튼 { background: #e0e7ff; color: #4338ca; }
     .건보버튼 { background: #f1f5f9; color: #475569; }
     .연금버튼 { background: #d1fae5; color: #065f46; }
@@ -147,38 +154,39 @@
     /* 활성화 / 비활성화 애니메이션 효과 */
     .activeButton {
       transform: translateY(-1px) scale(1.03);
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
       outline: 2px solid currentColor;
       opacity: 1 !important;
       z-index: 2;
     }
 
     .inactiveButton {
-      opacity: 0.4;
-      transform: scale(0.97);
+      opacity: 0.35;
+      transform: scale(0.96);
     }
 
     /* 하단 서브 액션 버튼 스타일 */
     .action-btn-group {
       display: flex;
-      gap: 8px;
-      margin-top: 15px; /* 20px -> 15px 축소 */
+      gap: 10px;
+      margin-top: 18px; /* 15% 확대 */
     }
     .action-btn-group button {
       flex: 1;
-      padding: 9px; /* 12px -> 9px 축소 */
+      padding: 11px; /* 15% 확대 */
       font-weight: 700;
-      font-size: 11px; /* 14px -> 11px 축소 */
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      font-size: 13px; /* 15% 확대 */
+      border: 1px solid #94a3b8; /* 테두리 선명화 */
+      border-radius: 9px;
       background: #ffffff;
-      color: #64748b;
+      color: #475569;
       cursor: pointer;
       transition: all 0.2s;
     }
     .action-btn-group button:hover {
       background: #f8fafc;
-      color: #334155;
+      color: #1e293b;
+      border-color: #64748b;
     }
 
     /* 팝업 모달창 스타일 */
@@ -191,21 +199,21 @@
       width: 100%;
       height: 100%;
       background-color: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(3px);
+      backdrop-filter: blur(4px);
       justify-content: center;
       align-items: center;
-      padding: 12px;
+      padding: 14px;
     }
 
     .popup-content {
       background-color: #ffffff;
-      padding: 12px; /* 16px -> 12px 축소 */
+      padding: 15px; /* 15% 확대 */
       border: none;
       width: 100%;
-      max-width: 380px;
-      border-radius: 12px;
+      max-width: 400px;
+      border-radius: 14px;
       box-sizing: border-box;
-      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
       animation: popIn 0.25s ease-out;
     }
 
@@ -217,11 +225,11 @@
     .popup-content img {
       width: 100%;
       height: auto;
-      border-radius: 8px;
+      border-radius: 10px;
       display: block;
     }
 
-    /* 설정 테이블 스타일 레이아웃 (요청하신 위아래 크기 대폭 축소) */
+    /* 설정 테이블 디자인 선명도 대폭 향상 */
     .popup-content table {
       width: 100%;
       border-collapse: separate;
@@ -230,19 +238,20 @@
       table-layout: fixed;
       border-radius: 8px;
       overflow: hidden;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #94a3b8; /* 외부 마감선 선명화 */
     }
 
     .popup-content td {
-      border-bottom: 1px solid #e2e8f0;
-      border-right: 1px solid #e2e8f0;
-      padding: 6px 4px; /* 위아래 패딩 10px -> 6px로 25% 이상 압축 축소 */
-      font-size: 11px; /* 13px -> 11px 축소 */
+      border-bottom: 1px solid #cbd5e1; /* 그리드 라인 선명화 */
+      border-right: 1px solid #cbd5e1;
+      padding: 8px 5px; /* 크기 15% 가량 복원 */
+      font-size: 13px; /* 15% 확대 */
     }
     .popup-content tr:first-child td {
-      background: #f8fafc;
-      font-weight: 700;
-      color: #64748b;
+      background: #e2e8f0; /* 헤더 대비 확실하게 어둡게 변경 */
+      font-weight: 800;
+      color: #1e293b;
+      border-bottom: 1px solid #94a3b8; /* 헤더 하단 굵은 구분선 */
     }
     .popup-content tr:last-child td {
       border-bottom: none;
@@ -253,16 +262,18 @@
 
     .popup-content input {
       width: 100%;
-      padding: 5px 3px; /* 위아래 패딩 8px -> 5px 축소 */
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
+      padding: 6px 4px; /* 15% 확대 */
+      border: 1px solid #94a3b8; /* 내부 인풋창 테두리 선명화 */
+      border-radius: 5px;
       text-align: center;
-      font-size: 11px; /* 13px -> 11px 축소 */
+      font-size: 13px; /* 15% 확대 */
       font-weight: 600;
       outline: none;
+      background: #ffffff;
     }
     .popup-content input:focus {
-      border-color: #3b82f6;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
     }
   </style>
 
@@ -332,19 +343,22 @@
         dtiField.style.color = "#ef4444";
         dtiField.style.fontWeight = "bold";
         dtiContainer.style.backgroundColor = "#fef2f2";
-        dtiContainer.style.borderColor = "#fca5a5";
+        dtiContainer.style.borderColor = "#ef4444"; /* 테두리 더 붉게 보정 */
+        dtiContainer.style.borderWidth = "1.5px";
       } else {
         dtiField.style.color = "#1e293b";
         dtiField.style.fontWeight = "600";
         dtiContainer.style.backgroundColor = "#ffffff";
-        dtiContainer.style.borderColor = "#e2e8f0";
+        dtiContainer.style.borderColor = "#94a3b8";
+        dtiContainer.style.borderWidth = "1px";
       }
     } else {
       dtiField.value = "";
       dtiField.style.color = "#1e293b";
       dtiField.style.fontWeight = "normal";
       dtiContainer.style.backgroundColor = "#ffffff";
-      dtiContainer.style.borderColor = "#e2e8f0";
+      dtiContainer.style.borderColor = "#94a3b8";
+      dtiContainer.style.borderWidth = "1px";
     }
   }
 
@@ -453,7 +467,8 @@
     
     let dtiContainer = document.getElementById("DTI").parentElement;
     dtiContainer.style.backgroundColor = "#ffffff";
-    dtiContainer.style.borderColor = "#e2e8f0";
+    dtiContainer.style.borderColor = "#94a3b8";
+    dtiContainer.style.borderWidth = "1px";
   }
 
   function clearInputField(inputId) {
@@ -534,7 +549,7 @@
   <div class="container">
     <div class="title" onclick="resetFields()">
       전세 DTI 계산
-      <span class="subtitle-RightUp">260606_1 수정</span>
+      <span class="subtitle-RightUp">260607_1 수정</span>
       <span class="subtitle">MP dodo32</span>
       <span class="subtitle-left">초기화</span>
     </div>
@@ -563,7 +578,7 @@
         type="text"
         id="conversionFormula"
         value="계산할 방법 선택하세요"
-        style="text-align:center;font-weight: bold; width:100%; font-size:min(11px,2.8vw); overflow:auto;"
+        style="text-align:center;font-weight: bold; width:100%; font-size:min(13px,3.2vw); overflow:auto;"
         readonly
       >
     </div>
