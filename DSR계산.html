@@ -374,6 +374,24 @@
       border: 1px solid #cbd5e1;
       border-radius: 6px;
     }
+
+    /* 상환 스케줄 테이블 헤더 고정 및 스타일 */
+    #schedule-table th {
+      position: sticky;
+      top: 0;
+      background-color: #f1f5f9 !important;
+      z-index: 10;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    #schedule-table td {
+      padding: 6px 4px !important;
+      font-size: 12px !important;
+    }
+
+    /* 요청하신 1년 단위 구분선 스타일 */
+    .year-divider td {
+      border-bottom: 2px solid #cbd5e1 !important;
+    }
   </style>
 </head>
 <body>
@@ -397,7 +415,10 @@
     </table>
 
     <table>
-      <tr style="background-color: #d9f2ff;"><td rowspan="2" style="width: 22%;">월 부담 액</td><td style="color:#475569; font-weight:normal;">합 계</td><td style="color:#475569; font-weight:normal;">월 원금</td><td style="color:#475569; font-weight:normal;">월 이자</td></tr>
+      <tr style="background-color: #d9f2ff;">
+      <td rowspan="2" style="width: 22%; cursor: pointer; text-decoration: underline; color: #0284c7; font-weight: bold;" onclick="openScheduleModal()">본건 월별<br>상환 스케줄</td>
+        <td style="color:#475569; font-weight:normal;">합 계</td><td style="color:#475569; font-weight:normal;">월 원금</td><td style="color:#475569; font-weight:normal;">월 이자</td>
+      </tr>
       <tr><td id="월합계" class="no-bg" style="color:#2563eb;">-</td><td id="월원금" class="no-bg">-</td><td id="월이자" class="no-bg">-</td></tr>
     </table>
 
@@ -475,6 +496,7 @@
           <div class="info-section">
             <div class="section-title">📊 대출현황 입력 시 참고사항</div>
             <ul class="info-list">
+              <li><b>신용대출</b>: 5년 (60개월) 입력</li>
               <li><b>비주택담보대출</b>: 8년 (96개월) 입력</li>
               <li><b>전세대출 / 예적금담보대출</b>: 만기일시 형태이므로 <b style="color:#d97706;">[이자만]</b> 체크</li>
               <li><b>유가증권담보</b>: 8년 (96개월) 입력</li>
@@ -545,6 +567,30 @@
         </div>
       </div>
 
+      <div id="modal-schedule-card" class="text-popup-card" style="display: none; width: 95%; max-width: 500px;" onclick="event.stopPropagation()">
+        <div class="text-popup-title">월별 상환 스케줄 (본건 기준)</div>
+        <div class="text-popup-content" style="text-align: center;">
+          <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <table class="rate-popup-table" id="schedule-table" style="margin: 0; border: none;">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">회차</th>
+                  <th style="width: 25%;">상환금액</th>
+                  <th style="width: 20%;">납입원금</th>
+                  <th style="width: 20%;">이자</th>
+                  <th style="width: 20%;">잔금</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-tbody">
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 14px; justify-content: center;">
+            <button type="button" style="background-color: #64748b; width: 100%;" onclick="closeModal()">닫기</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -553,7 +599,7 @@
     function adjustTableFontSize() {
       const cells = document.querySelectorAll('table th, table td');
       cells.forEach(cell => {
-        if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card') || cell.closest('#modal-text-card')) return;
+        if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card') || cell.closest('#modal-text-card') || cell.closest('#modal-schedule-card')) return;
 
         if (!cell.dataset.origSize) {
           cell.dataset.origSize = window.getComputedStyle(cell).fontSize;
@@ -601,11 +647,121 @@
       });
     }
 
+    /* 상환 스케줄 팝업창 활성화 및 데이터 생성 */
+    function openScheduleModal() {
+      document.getElementById("modal-img").style.display = "none";
+      document.getElementById("modal-text-card").style.display = "none";
+      document.getElementById("modal-rate-card").style.display = "none";
+      document.getElementById("modal-default-card").style.display = "none";
+      
+      generateSchedule();
+
+      document.getElementById("modal-schedule-card").style.display = "block";
+      document.getElementById("image-modal").style.display = "flex";
+    }
+
+    function generateSchedule() {
+      const tbody = document.getElementById("schedule-tbody");
+      tbody.innerHTML = "";
+
+      const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+      if (!firstRow) return;
+
+      const isExcluded = firstRow.querySelector('.mort-exclude').checked;
+      if (isExcluded) {
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>계산 제외된 대출입니다.</td></tr>";
+        return;
+      }
+
+      const amt = parseFloat(firstRow.querySelector('.mort-amt').value.replace(/,/g, '')) || 0;
+      const pureRate = parseFloat(firstRow.querySelector('.mort-rate').value) / 100 || 0;
+      const term = parseInt(firstRow.querySelector('.mort-term').value) || 0;
+      const type = firstRow.querySelector('.mort-type').value;
+      const isInterestOnly = firstRow.querySelector('.mort-interest-only').checked;
+
+      if (amt <= 0 || term <= 0 || pureRate <= 0) {
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>본건 대출 정보(금액, 금리, 기간)를 정확히 입력해주세요.</td></tr>";
+        return;
+      }
+
+      let balance = amt;
+      const mRate = pureRate / 12;
+      let html = "";
+      
+      if (isInterestOnly || type === "만기") {
+        const mPay = balance * mRate;
+        for (let i = 1; i <= term; i++) {
+          let principal = 0;
+          let interest = mPay;
+          if (i === term) principal = balance;
+          balance -= principal;
+          
+          // 1년 단위 구분선 적용
+          const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
+          
+          html += `<tr class="${dividerClass}">
+            <td style="text-align:center;">${i}</td>
+            <td style="text-align:right;">${Math.round(principal + interest).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(principal).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(interest).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(balance).toLocaleString()}</td>
+          </tr>`;
+        }
+      } else if (type === "원리금") {
+        let mPay = amt * mRate / (1 - Math.pow(1 + mRate, -term));
+        for (let i = 1; i <= term; i++) {
+          let interest = balance * mRate;
+          let principal = mPay - interest;
+          if (i === term) {
+            principal = balance;
+            mPay = principal + interest;
+          }
+          balance -= principal;
+          if (balance < 0) balance = 0;
+          
+          // 1년 단위 구분선 적용
+          const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
+
+          html += `<tr class="${dividerClass}">
+            <td style="text-align:center;">${i}</td>
+            <td style="text-align:right;">${Math.round(mPay).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(principal).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(interest).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(balance).toLocaleString()}</td>
+          </tr>`;
+        }
+      } else if (type === "원금") {
+        const fixedPrincipal = amt / term;
+        for (let i = 1; i <= term; i++) {
+          let principal = fixedPrincipal;
+          if (i === term) principal = balance;
+          let interest = balance * mRate;
+          let currentPay = principal + interest;
+          balance -= principal;
+          if (balance < 0) balance = 0;
+
+          // 1년 단위 구분선 적용
+          const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
+
+          html += `<tr class="${dividerClass}">
+            <td style="text-align:center;">${i}</td>
+            <td style="text-align:right;">${Math.round(currentPay).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(principal).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(interest).toLocaleString()}</td>
+            <td style="text-align:right;">${Math.round(balance).toLocaleString()}</td>
+          </tr>`;
+        }
+      }
+
+      tbody.innerHTML = html;
+    }
+
     /* 이미지 안내 팝업창 활성화 */
     function openImageModal(imageSrc) {
       document.getElementById("modal-text-card").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
       document.getElementById("modal-default-card").style.display = "none";
+      document.getElementById("modal-schedule-card").style.display = "none";
       document.getElementById("modal-img").src = imageSrc;
       document.getElementById("modal-img").style.display = "block";
       document.getElementById("image-modal").style.display = "flex";
@@ -616,6 +772,7 @@
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
       document.getElementById("modal-default-card").style.display = "none";
+      document.getElementById("modal-schedule-card").style.display = "none";
       
       const textCard = document.getElementById("modal-text-card");
       textCard.style.display = "block";
@@ -627,6 +784,7 @@
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-text-card").style.display = "none";
       document.getElementById("modal-default-card").style.display = "none";
+      document.getElementById("modal-schedule-card").style.display = "none";
       
       LOAN_RATE_TABLE.forEach((item, index) => {
         document.getElementById(`edit-rate-${index}`).value = item.percent;
@@ -641,6 +799,7 @@
       document.getElementById("modal-img").style.display = "none";
       document.getElementById("modal-text-card").style.display = "none";
       document.getElementById("modal-rate-card").style.display = "none";
+      document.getElementById("modal-schedule-card").style.display = "none";
 
       const savedData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
       if (savedData) {
