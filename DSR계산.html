@@ -461,7 +461,7 @@
           <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px;">대출 정보 입력</th>
         </tr>
         <tr style="background-color: #f2f2f2; font-size: 11px; text-align: center; font-weight: 600;">
-          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">상환<br>제외</td> 
+          <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">계산<br>제외</td> 
           <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">이자<br>만</td> 
           <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
           <td style="white-space: normal !important; padding: 6px 2px;">기간</td>
@@ -486,7 +486,7 @@
           
           <div class="alert-box">
             ⚠️ <b>필독 지침</b><br>
-            항상 <b>첫 번째 입력칸</b>이 상담받으실 <b>'본건 대출금액'</b>이어야 합니다. 그래야 월별 부담금액 및 최대한도가 정상적으로 연산되어 표시됩니다.
+            항상 <b>첫 번째 입력칸</b>이 상담받으실 <b>'본건 대출금액'</b>이어야 합니다. 그래야 월별 부담금액 및 최대한도, 신DTI(180개월) 계산이 정상적으로 연산되어 표시됩니다.
           </div>
 
           <div class="accent-box">
@@ -508,7 +508,7 @@
             <div class="section-title">⚙️ 숨겨진 편의 기능 (롱프레스)</div>
             <ul class="info-list">
               <li><b>장래예상소득 체크박스</b>를 3초간 누르면, 은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
-              <li><b>[상환제외] 체크박스</b>를 2초간 누르면 해당 대출 라인이 즉시 삭제됩니다.</li>
+              <li><b>[계산제외] 체크박스</b>를 2초간 누르면 해당 대출 라인이 즉시 삭제됩니다.</li>
               <li>본건 대출행의 <b>금리, ST금리, 개월수</b> 칸을 3초간 누르면 기본 시작 세팅값을 저장해둘 수 있습니다.</li>
             </ul>
           </div>
@@ -517,7 +517,8 @@
             <div class="section-title">ℹ️ 기타 안내</div>
             <ul class="info-list">
               <li><b>ST금리 구분 이유</b>: 스트레스 금리는 DSR 계산식에만 포함하고, 실제 월 부담액(이자) 계산에서는 제외하기 위함입니다.</li>
-              <li><b>상환제외 버튼</b>: DSR 연산에서 아예 제외하거나 상환 조건부 상담 시 체크하는 용도입니다.</li>
+              <li><b>계산제외 버튼</b>: DSR 연산에서 아예 제외하거나 상환 조건부 상담 시 체크하는 용도입니다.</li>
+              <li><b>신DTI 계산값</b>: 신DTI 계산값은 항상 180개월로 계산되어있음, 그 외는 입력값에 따라 다름.</li>
             </ul>
           </div>
 
