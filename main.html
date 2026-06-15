@@ -498,25 +498,6 @@
     });
   }
 
-  function startWorkerRecordAccess() {
-    if (window.Worker) {
-      const workerCode = `
-        self.addEventListener('message', () => {
-          fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec", {
-            mode: 'no-cors',
-          }).catch((error) => {
-            console.error('접속 기록 실패:', error);
-          });
-        });
-      `;
-      const blob = new Blob([workerCode], { type: "application/javascript" });
-      const worker = new Worker(URL.createObjectURL(blob));
-      worker.postMessage("start");
-    } else {
-      console.warn("Web Worker를 지원하지 않는 브라우저입니다.");
-    }
-  }
-
   function saveSetting(key, value) {
     localStorage.setItem(key, value);
   }
@@ -537,7 +518,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     resetFields();
     setupPopupButton();
-    startWorkerRecordAccess();
     setupSettingsPersistence();
     document.querySelector(".카드버튼").click();
   });

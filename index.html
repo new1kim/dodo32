@@ -16,6 +16,7 @@
     .button-container {
       display: flex;
       justify-content: center;
+      align-items: center; /* 추가: 세로 정렬 맞춤 */
       gap: 7px;
       padding: 10px 10px 5px 10px; /* 아래쪽 여백을 미세 조절하여 프레임과의 간격 확보 */
       background-color: #f0f0f0;
@@ -29,6 +30,15 @@
       font-size: 13px;
       cursor: pointer;
     }  
+
+    /* 접속자 기록 카운터 표시 텍스트 스타일 */
+    .visitor-counter {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-right: 3px;
+    }
 
     /* 프레임들을 감싸는 컨테이너 구조 */
     .main-wrapper {
@@ -76,12 +86,49 @@
         const version = '250505_1';
         calcFrame.src = `계산기.html?v=${version}`;
       }
+      
+      // index.html 로드 시 접속 기록 및 데이터 가져오기 실행
+      startWorkerRecordAccess();
+    }
+
+    function startWorkerRecordAccess() {
+      if (window.Worker) {
+        // 앱스 스크립트가 JSON으로 오늘 누적 수(예: { count: 12 })를 반환한다고 가정하고 처리할 수 있도록 구현
+        const workerCode = `
+          self.addEventListener('message', () => {
+            fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec")
+              .then(response => response.json())
+              .then(data => {
+                if(data && data.count !== undefined) {
+                  self.postMessage(data.count);
+                }
+              })
+              .catch((error) => {
+                console.error('접속 기록 및 조회 실패:', error);
+              });
+          });
+        `;
+        const blob = new Blob([workerCode], { type: "application/javascript" });
+        const worker = new Worker(URL.createObjectURL(blob));
+        
+        worker.addEventListener('message', (e) => {
+          const counterEl = document.getElementById('today-count');
+          if (counterEl) {
+            counterEl.textContent = `[오늘: ${e.data}명]`;
+          }
+        });
+
+        worker.postMessage("start");
+      } else {
+        console.warn("Web Worker를 지원하지 않는 브라우저입니다.");
+      }
     }
   </script>
 
 </head>
 <body onload="initPages()">
   <div class="button-container">
+    <span id="today-count" class="visitor-counter">[  ]</span>
     <button onclick="loadPage('main.html')">DTI 계산</button>
     <button onclick="loadPage('DSR계산.html')">DSR 계산</button>
     <button onclick="loadPage('MCG.html')">MCG 계산</button>
