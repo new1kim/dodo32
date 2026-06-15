@@ -10,133 +10,174 @@
       padding: 0;
       height: 100%;
       overscroll-behavior: contain; /* 모바일 브라우저 끌어내림 새로고침 방지 */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
     
-    /* 상단 버튼 컨테이너: 패딩과 높이를 조절하여 버튼이 잘리지 않도록 수정 */
+    /* 상단 버튼 컨테이너: 세련된 화이트 톤과 은은한 그림자 라인 */
     .button-container {
       display: flex;
       justify-content: center;
-      align-items: center; /* 세로 정렬 맞춤 */
-      gap: 7px;
-      padding: 10px 10px 5px 10px; /* 아래쪽 여백을 미세 조절하여 프레임과의 간격 확보 */
-      background-color: #f0f0f0;
-      height: 50px; /* 버튼 높이(35px)와 패딩을 고려하여 50px로 명확히 고정 */
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      background-color: #ffffff;
+      height: 54px;
       box-sizing: border-box;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      position: relative;
+      z-index: 10;
     }
-    button {
-      width: 100px;
-      height: 35px;
-      padding: 1px 12px;
-      font-size: 13px;
-      cursor: pointer;
-    }  
 
-    /* 접속자 기록 카운터 표시 텍스트 스타일 */
+    /* 상단 내비게이션 버튼: 고급스러운 라운드 코너 모던 스타일 */
+    .button-container button {
+      width: 88px;
+      height: 36px;
+      padding: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      background-color: #f1f5f9;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+    }  
+    
+    .button-container button:hover {
+      background-color: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .button-container button:active {
+      transform: scale(0.96);
+    }
+
+    /* 클릭되어 활성화된 버튼 하이라이트 블루 컬러 */
+    .button-container button.active-nav {
+      background-color: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    }
+
+    /* 접속자 기록 카운터: 시인성이 뛰어난 스카이 블루 캡슐 배지 */
     .visitor-counter {
       font-size: 11px;
-      color: #64748b;
-      font-weight: 600;
+      color: #0369a1;
+      background-color: #e0f2fe;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-weight: 700;
       white-space: nowrap;
-      margin-right: 3px;
+      margin-right: 4px;
+      border: 1px solid #bae6fd;
     }
 
     /* 프레임들을 감싸는 컨테이너 구조 */
     .main-wrapper {
       display: flex;
       width: 100%;
-      height: calc(100% - 50px); /* 고정된 버튼 컨테이너 높이(50px)만큼 제외 */
+      height: calc(100% - 54px); /* 상단바 높이 제외 */
     }
 
-    /* 기본 iframe 스타일 (모바일 환경 기준) */
     iframe {
       width: 100%;
       height: 100%;
       border: none;
     }
 
-    /* 오른쪽 계산기 프레임 - 모바일에서는 기본적으로 숨김 */
     #calc-frame {
       display: none;
     }
 
-    /* 태블릿 및 PC 웹 환경 (화면 너비 768px 이상) */
+    /* 태블릿 및 PC 웹 환경 (화면 너비 768px 이상 분할 뷰) */
     @media (min-width: 768px) {
       iframe {
-        width: 50%; /* 좌우 50%씩 분할 */
+        width: 50%;
       }
       #calc-frame {
-        display: block; /* 오른쪽 계산기 프레임 표시 */
-        border-left: 1px solid #ccc; /* 시각적 구분을 위한 경계선 유지 */
+        display: block;
+        border-left: 1px solid #e2e8f0;
       }
     }
   </style>
   <script>
-    function loadPage(page) {
-      const version = '250505_1'; // 버전 정보 유지
+    function loadPage(page, element) {
+      const version = '250505_1';
       document.getElementById('content-frame').src = `${page}?v=${version}`;
+      
+      if (element) {
+        const buttons = document.querySelectorAll('.button-container button');
+        buttons.forEach(btn => btn.classList.remove('active-nav'));
+        element.classList.add('active-nav');
+      }
     }
     
-    // 초기 로드시 오른쪽 프레임에 계산기.html을 연결하기 위한 함수 유지
     function initPages() {
-      loadPage('main.html');
+      const firstBtn = document.querySelector('.button-container button');
+      loadPage('main.html', firstBtn);
       
-      // 오른쪽 계산기 프레임이 존재할 경우 계산기.html 로드
       const calcFrame = document.getElementById('calc-frame');
       if (calcFrame) {
         const version = '250505_1';
         calcFrame.src = `계산기.html?v=${version}`;
       }
       
-      // index.html 로드 시 접속 기록 및 데이터 가져오기 실행
       startWorkerRecordAccess();
     }
 
     function startWorkerRecordAccess() {
       if (window.Worker) {
-        // [수정 및 검토 완료] 텍스트 선 수신 후 안전하게 JSON 객체 변환을 수행하는 워커 로직
+        // 브라우저 로컬 스토리지 기반 기기 고유 식별 코드(UUID) 확인 및 부여
+        let deviceUuid = localStorage.getItem('calc_device_uuid');
+        if (!deviceUuid) {
+          deviceUuid = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+          localStorage.setItem('calc_device_uuid', deviceUuid);
+        }
+
+        // 웹 워커 코드 내부에 수신 규격(total, unique, count) 통합 상호검증 로직 구현
         const workerCode = `
-          self.addEventListener('message', () => {
-            fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec")
-              .then(response => {
-                if (!response.ok) throw new Error("HTTP 요청 실패 (상태코드: " + response.status + ")");
-                return response.text(); // 어떤 형태로 데이터가 넘어오는지 가로채기 위해 text()로 먼저 받음
-              })
-              .then(text => {
-                try {
-                  const data = JSON.parse(text); // 텍스트를 JSON으로 변환 시도
-                  if (data && data.count !== undefined) {
-                    self.postMessage({ success: true, count: data.count });
+          self.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'start') {
+              const uuid = e.data.uuid;
+              fetch("https://script.google.com/macros/s/AKfycbwnwNiiikch_pTcja3P-7HiJN_ijbDFvIWMNbrBdXRamDkupPX6uaj-1W4D4YqoAjk/exec?uuid=" + uuid)
+                .then(response => {
+                  if (!response.ok) throw new Error("HTTP 에러");
+                  return response.json(); 
+                })
+                .then(data => {
+                  if (data) {
+                    // 데이터 항목 매핑 검증 최적화
+                    const totalCount = data.total !== undefined ? data.total : (data.count !== undefined ? data.count : 0);
+                    const uniqueCount = data.unique !== undefined ? data.unique : 1;
+                    self.postMessage({ success: true, total: totalCount, unique: uniqueCount });
                   } else {
-                    console.error("데이터는 수신했으나 count 변수가 없습니다. 응답받은 데이터:", data);
-                    self.postMessage({ success: false, error: "데이터 구조 불일치" });
+                    self.postMessage({ success: false, error: "데이터 없음" });
                   }
-                } catch (e) {
-                  console.error("구글 스크립트가 JSON 형식이 아닌 에러 문서(HTML)를 보냈습니다. 받은 텍스트 내용:", text);
-                  self.postMessage({ success: false, error: "JSON 파싱 실패" });
-                }
-              })
-              .catch((error) => {
-                console.error('구글 스크립트 통신 중 서버/네트워크 오류 발생:', error);
-                self.postMessage({ success: false, error: "네트워크 에러" });
-              });
+                })
+                .catch((error) => {
+                  self.postMessage({ success: false, error: "통신 실패" });
+                });
+            }
           });
         `;
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const worker = new Worker(URL.createObjectURL(blob));
         
-        // 워커로부터 결과 메시지를 수신하여 상단 카운터 업데이트
+        // 워커로부터 받은 접속 현황 데이터를 화면에 실시간 업데이트
         worker.addEventListener('message', (e) => {
           const counterEl = document.getElementById('today-count');
           if (counterEl) {
             if (e.data && e.data.success) {
-              counterEl.textContent = `[오늘: ${e.data.count}회]`;
+              counterEl.textContent = `${e.data.total} | ${e.data.unique}`;
             } else {
-              counterEl.textContent = `[연결안됨]`;
+              counterEl.textContent = `연결안됨`;
             }
           }
         });
 
-        worker.postMessage("start");
+        // 기기 식별정보를 담아 워커 구동 시작
+        worker.postMessage({ type: "start", uuid: deviceUuid });
       } else {
         console.warn("Web Worker를 지원하지 않는 브라우저입니다.");
       }
@@ -146,11 +187,11 @@
 </head>
 <body onload="initPages()">
   <div class="button-container">
-    <span id="today-count" class="visitor-counter">[확인중...]</span>
-    <button onclick="loadPage('main.html')">DTI 계산</button>
-    <button onclick="loadPage('DSR계산.html')">DSR 계산</button>
-    <button onclick="loadPage('MCG.html')">MCG 계산</button>
-    <button onclick="loadPage('상담일지.html')">상담일지</button>
+    <span id="today-count" class="visitor-counter">확인중...</span>
+    <button onclick="loadPage('main.html', this)">DTI 계산</button>
+    <button onclick="loadPage('DSR계산.html', this)">DSR 계산</button>
+    <button onclick="loadPage('MCG.html', this)">MCG 계산</button>
+    <button onclick="loadPage('상담일지.html', this)">상담일지</button>
   </div>
   
   <div class="main-wrapper">
