@@ -9,14 +9,14 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      overscroll-behavior: contain; /* 추가: 모바일 브라우저 끌어내림 새로고침 방지 */
+      overscroll-behavior: contain; /* 모바일 브라우저 끌어내림 새로고침 방지 */
     }
     
     /* 상단 버튼 컨테이너: 패딩과 높이를 조절하여 버튼이 잘리지 않도록 수정 */
     .button-container {
       display: flex;
       justify-content: center;
-      align-items: center; /* 추가: 세로 정렬 맞춤 */
+      align-items: center; /* 세로 정렬 맞춤 */
       gap: 7px;
       padding: 10px 10px 5px 10px; /* 아래쪽 여백을 미세 조절하여 프레임과의 간격 확보 */
       background-color: #f0f0f0;
@@ -93,28 +93,46 @@
 
     function startWorkerRecordAccess() {
       if (window.Worker) {
-        // 앱스 스크립트가 JSON으로 오늘 누적 수(예: { count: 12 })를 반환한다고 가정하고 처리할 수 있도록 구현
+        // [수정 및 검토 완료] 텍스트 선 수신 후 안전하게 JSON 객체 변환을 수행하는 워커 로직
         const workerCode = `
           self.addEventListener('message', () => {
             fetch("https://script.google.com/macros/s/AKfycbxigkf7jF5UlEz2NUn1DpQj6TEh7tX0hV8ryrVtD5VzMYFC0WOz5RDIhCmS1IGZD51n/exec")
-              .then(response => response.json())
-              .then(data => {
-                if(data && data.count !== undefined) {
-                  self.postMessage(data.count);
+              .then(response => {
+                if (!response.ok) throw new Error("HTTP 요청 실패 (상태코드: " + response.status + ")");
+                return response.text(); // 어떤 형태로 데이터가 넘어오는지 가로채기 위해 text()로 먼저 받음
+              })
+              .then(text => {
+                try {
+                  const data = JSON.parse(text); // 텍스트를 JSON으로 변환 시도
+                  if (data && data.count !== undefined) {
+                    self.postMessage({ success: true, count: data.count });
+                  } else {
+                    console.error("데이터는 수신했으나 count 변수가 없습니다. 응답받은 데이터:", data);
+                    self.postMessage({ success: false, error: "데이터 구조 불일치" });
+                  }
+                } catch (e) {
+                  console.error("구글 스크립트가 JSON 형식이 아닌 에러 문서(HTML)를 보냈습니다. 받은 텍스트 내용:", text);
+                  self.postMessage({ success: false, error: "JSON 파싱 실패" });
                 }
               })
               .catch((error) => {
-                console.error('접속 기록 및 조회 실패:', error);
+                console.error('구글 스크립트 통신 중 서버/네트워크 오류 발생:', error);
+                self.postMessage({ success: false, error: "네트워크 에러" });
               });
           });
         `;
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const worker = new Worker(URL.createObjectURL(blob));
         
+        // 워커로부터 결과 메시지를 수신하여 상단 카운터 업데이트
         worker.addEventListener('message', (e) => {
           const counterEl = document.getElementById('today-count');
           if (counterEl) {
-            counterEl.textContent = `[오늘: ${e.data}명]`;
+            if (e.data && e.data.success) {
+              counterEl.textContent = `[오늘: ${e.data.count}회]`;
+            } else {
+              counterEl.textContent = `[연결안됨]`;
+            }
           }
         });
 
@@ -128,8 +146,8 @@
 </head>
 <body onload="initPages()">
   <div class="button-container">
-    <span id="today-count" class="visitor-counter">[  ]</span>
-    <button onclick="loadPage('main.html')">DTI 계산</button>
+    <span id="today-count" class="visitor-counter">[확인중...]</span>
+    <button onclick="loadPage('DTI.tml')">DTI 계산</button>
     <button onclick="loadPage('DSR계산.html')">DSR 계산</button>
     <button onclick="loadPage('MCG.html')">MCG 계산</button>
     <button onclick="loadPage('상담일지.html')">상담일지</button>

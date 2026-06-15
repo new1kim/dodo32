@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* 기본 글로벌 스타일 리셋 및 세련된 폰트 적용 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      padding: 20px 14px; /* 15% 확대 적용 */
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 메인 컨테이너 디자인 */
+    .container {
+      width: 100%;
+      max-width: 400px; /* S24+ 뷰포트에 맞춘 최적화 크기 */
+      background: #ffffff;
+      padding: 21px; /* 15% 확대 */
+      border-radius: 16px; 
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 12px -6px rgba(15, 23, 42, 0.08);
+    }
+
+    /* 상단 헤더/타이틀 영역 */
+    .title {
+      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+      color: #0369a1;
+      padding: 15px 14px; /* 15% 확대 */
+      font-size: 18px; /* 15% 확대 */
+      border-radius: 11px;
+      font-weight: 800;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      margin-bottom: 18px; /* 15% 확대 */
+      border: 1px solid #bae6fd;
+      transition: transform 0.2s;
+    }
+    .title:active {
+      transform: scale(0.98);
+    }
+
+    .subtitle, .subtitle-left, .subtitle-RightUp {
+      position: absolute;
+      font-size: 10px; /* 15% 확대 */
+      font-weight: 500;
+      opacity: 0.7;
+    }
+    .subtitle { bottom: 5px; right: 12px; }
+    .subtitle-left { bottom: 5px; left: 12px; }
+    .subtitle-RightUp { top: 5px; right: 12px; color: #0284c7; }
+
+    /* 입력 폼 필드 스타일 - 구분을 더 선명하게 보정 */
+    .input-box {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px; /* 15% 확대 */
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #94a3b8; /* 흐릿한 선에서 확실하고 선명한 테두리로 변경 */
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-box:focus-within {
+      border-color: #2563eb; /* 포커스 시 더 짙고 명확한 블루 */
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    .input-box label {
+      background: #e2e8f0; /* 배경을 좀 더 어둡게 하여 흰색 입력창과 완벽 분리 */
+      color: #334155;
+      font-weight: 700;
+      font-size: 13px; /* 15% 확대 */
+      width: 84px; /* 15% 확대 */
+      padding: 12px 10px; /* 15% 확대 */
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      border-right: 1px solid #94a3b8; /* 라벨과 인풋창 사이의 수직 구분선 추가 */
+      transition: background 0.2s;
+    }
+    .input-box label:active {
+      background: #cbd5e1;
+    }
+
+    .input-box input {
+      flex: 1;
+      padding: 12px 10px; /* 15% 확대 */
+      text-align: right;
+      border: none;
+      outline: none;
+      font-size: 14px; /* 15% 확대 */
+      font-weight: 600;
+      color: #0f172a;
+      background: #ffffff;
+    }
+    /* 자동 계산창(Readonly)의 구분감 확실하게 변경 */
+    .input-box input[readonly] {
+      background: #f1f5f9; /* 어두운 톤으로 변경하여 입력 불가함을 명시 */
+      color: #334155;
+    }
+
+    /* 하단 연사용액/환산금액 커스텀 디자인 (블루 영역 테두리 극대화) */
+    .input-box.blue {
+      border-color: #0284c7; /* 테두리 자체를 블루로 둘러서 확실히 구분 */
+      border-width: 1.5px;
+    }
+    .input-box.blue label {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-right: 1px solid #0284c7;
+    }
+    .input-box.blue input {
+      color: #0284c7;
+      font-weight: 700;
+    }
+
+    /* 탭/버튼 그룹 스타일 */
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 5px;
+      margin: 15px 0; /* 15% 확대 */
+    }
+
+    .button-group button {
+      flex: 1;
+      padding: 10px 2px; /* 15% 확대 */
+      font-weight: 700;
+      font-size: clamp(10px, 3.2vw, 13px); /* 15% 확대 */
+      white-space: nowrap;
+      border: 1px solid rgba(15, 23, 42, 0.08); /* 버튼 윤곽선 추가 */
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    /* 각 버튼별 컬러 셋 */
+    .카드버튼 { background: #e0e7ff; color: #4338ca; }
+    .건보버튼 { background: #f1f5f9; color: #475569; }
+    .연금버튼 { background: #d1fae5; color: #065f46; }
+    .전월세버튼 { background: #f3e8ff; color: #6b21a8; }
+    .주신보 { background: #fef9c3; color: #854d0e; }
+
+    /* 활성화 / 비활성화 애니메이션 효과 */
+    .activeButton {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      outline: 2px solid currentColor;
+      opacity: 1 !important;
+      z-index: 2;
+    }
+
+    .inactiveButton {
+      opacity: 0.35;
+      transform: scale(0.96);
+    }
+
+    /* 하단 서브 액션 버튼 스타일 */
+    .action-btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px; /* 15% 확대 */
+    }
+    .action-btn-group button {
+      flex: 1;
+      padding: 11px; /* 15% 확대 */
+      font-weight: 700;
+      font-size: 13px; /* 15% 확대 */
+      border: 1px solid #94a3b8; /* 테두리 선명화 */
+      border-radius: 9px;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn-group button:hover {
+      background: #f8fafc;
+      color: #1e293b;
+      border-color: #64748b;
+    }
+
+    /* 팝업 모달창 스타일 */
+    .popup-container {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      justify-content: center;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .popup-content {
+      background-color: #ffffff;
+      padding: 15px; /* 15% 확대 */
+      border: none;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 14px;
+      box-sizing: border-box;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+      animation: popIn 0.25s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .popup-content img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      display: block;
+    }
+
+    /* 설정 테이블 디자인 선명도 대폭 향상 */
+    .popup-content table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      text-align: center;
+      table-layout: fixed;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #94a3b8; /* 외부 마감선 선명화 */
+    }
+
+    .popup-content td {
+      border-bottom: 1px solid #cbd5e1; /* 그리드 라인 선명화 */
+      border-right: 1px solid #cbd5e1;
+      padding: 8px 5px; /* 크기 15% 가량 복원 */
+      font-size: 13px; /* 15% 확대 */
+    }
+    .popup-content tr:first-child td {
+      background: #e2e8f0; /* 헤더 대비 확실하게 어둡게 변경 */
+      font-weight: 800;
+      color: #1e293b;
+      border-bottom: 1px solid #94a3b8; /* 헤더 하단 굵은 구분선 */
+    }
+    .popup-content tr:last-child td {
+      border-bottom: none;
+    }
+    .popup-content td:last-child {
+      border-right: none;
+    }
+
+    .popup-content input {
+      width: 100%;
+      padding: 6px 4px; /* 15% 확대 */
+      border: 1px solid #94a3b8; /* 내부 인풋창 테두리 선명화 */
+      border-radius: 5px;
+      text-align: center;
+      font-size: 13px; /* 15% 확대 */
+      font-weight: 600;
+      outline: none;
+      background: #ffffff;
+    }
+    .popup-content input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+  </style>
+
+<script>
+  let selectedType = "";
+
+  function formatNumber(input) {
+    let value = input.value.replace(/,/g, '');
+    if (!isNaN(value) && value !== '') {
+      input.value = parseInt(value).toLocaleString();
+    }
+  }
+
+  function formatPercentage(input) {
+    let value = input.value.replace('%', '');
+    const regex = /^\d{0,2}(\.\d{0,2})?$/;
+    if (value === '' || regex.test(value)) {
+      input.value = value + '%';
+      input.dataset.previousValidValue = input.value;
+    } else {
+      input.value = input.dataset.previousValidValue || '';
+    }
+    if (input.value === '%') input.value = '';
+  }
+
+  function handlePercentageBackspace(input, event) {
+    if (event.keyCode === 8) {
+      let value = input.value;
+      let caretPosition = input.selectionStart;
+      if (caretPosition > 0 && caretPosition === value.length && value.endsWith('%')) {
+        input.value = value.slice(0, -1);
+        input.selectionStart = caretPosition - 1;
+        input.selectionEnd = caretPosition - 1;
+        event.preventDefault();
+      }
+    }
+  }
+
+  function 월납부액계산() {
+    let 대출금액 = document.getElementById("대출금액").value.replace(/,/g, '');
+    let 대출금리 = document.getElementById("대출금리").value.replace('%', '');
+    if (대출금액 && 대출금리 && !isNaN(대출금액) && !isNaN(대출금리)) {
+      let 월상환액 = (대출금액 * (parseFloat(대출금리) / 100)) / 12;
+      document.getElementById("월상환액").value = parseInt(월상환액).toLocaleString();
+      calculateDTI();
+    } else {
+      document.getElementById("월상환액").value = "";
+      document.getElementById("DTI").value = "";
+    }
+  }
+
+  function calculateDTI() {
+    let 월상환액 = document.getElementById("월상환액").value.replace(/,/g, '') || 0;
+    let 부채금액 = document.getElementById("부채금액").value.replace(/,/g, '') || 0;
+    let 부채금리 = document.getElementById("부채금리").value.replace('%', '') || 0;
+    let 연소득 = document.getElementById("연소득").value.replace(/,/g, '') || 0;
+    let 부채상환액 = (parseFloat(부채금액) * parseFloat(부채금리)) / 1200;
+    let 총월부채상환액 = parseFloat(월상환액) + 부채상환액;
+    let 월소득 = parseFloat(연소득) / 12;
+    let DTI = (총월부채상환액 / 월소득) * 100;
+    let dtiField = document.getElementById("DTI");
+    let dtiContainer = dtiField.parentElement;
+
+    if (!isNaN(DTI)) {
+      dtiField.value = DTI.toFixed(2) + "%";
+      if (DTI >= 40) {
+        dtiField.style.color = "#ef4444";
+        dtiField.style.fontWeight = "bold";
+        dtiContainer.style.backgroundColor = "#fef2f2";
+        dtiContainer.style.borderColor = "#ef4444"; /* 테두리 더 붉게 보정 */
+        dtiContainer.style.borderWidth = "1.5px";
+      } else {
+        dtiField.style.color = "#1e293b";
+        dtiField.style.fontWeight = "600";
+        dtiContainer.style.backgroundColor = "#ffffff";
+        dtiContainer.style.borderColor = "#94a3b8";
+        dtiContainer.style.borderWidth = "1px";
+      }
+    } else {
+      dtiField.value = "";
+      dtiField.style.color = "#1e293b";
+      dtiField.style.fontWeight = "normal";
+      dtiContainer.style.backgroundColor = "#ffffff";
+      dtiContainer.style.borderColor = "#94a3b8";
+      dtiContainer.style.borderWidth = "1px";
+    }
+  }
+
+  function updateFields(type) {
+    selectedType = type;
+    document.getElementById("annualUsage").value = "";
+    document.getElementById("conversionAmount").value = "";
+
+    let formula = document.getElementById("conversionFormula");
+    let annualUsageLabel = document.querySelector(".blue label");
+    let buttons = document.querySelectorAll(".button-group button");
+
+    buttons.forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
+
+    if (type === "카드사용액") {
+      let 카드전환_비율 = document.getElementById("카드전환비율");
+      let 카드비율 = parseFloat(카드전환_비율 && 카드전환_비율.value) || 40.9;
+      formula.value = `연 사용액 ÷ ${카드비율}% × 90%`;
+      annualUsageLabel.textContent = "연 사용액";
+      document.querySelector(".카드버튼").classList.add("activeButton");
+    } else if (type === "건강보험") {
+      let 건보전환_비율 = document.getElementById("건보전환비율");
+      let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.595;
+      formula.value = `3개월 평균 ÷ ${건보비율}% × 12 × 95%`;
+      annualUsageLabel.textContent = "평균 금액";
+      document.querySelector(".건보버튼").classList.add("activeButton");
+    } else if (type === "연금납부") {
+      let 연금전환_비율 = document.getElementById("연금전환비율");
+      let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9.5;
+      formula.value = `3개월 평균 ÷ ${연금비율}% × 12 × 95%`;
+      annualUsageLabel.textContent = "평균 금액";
+      document.querySelector(".연금버튼").classList.add("activeButton");
+    } else if (type === "전월세") {
+      let 전월세전환_비율 = document.getElementById("전월세전환비율");
+      let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 6.4;
+      formula.value = `HF,HUG 전환율 ${전월세비율}% + 보증금`;
+      annualUsageLabel.textContent = "1년 월세";
+      document.querySelector(".전월세버튼").classList.add("activeButton");  
+    } else if (type === "주신보") {
+      formula.value = "연소득 × 3.5 ÷ 90% × 110% / 120%";
+      annualUsageLabel.textContent = "연소득";
+      document.querySelector(".주신보").classList.add("activeButton");
+    }
+
+    buttons.forEach(btn => {
+      if (!btn.classList.contains("activeButton")) {
+        btn.classList.add("inactiveButton");
+      }
+    });
+
+    updateConversionAmount();
+  }
+
+  function updateConversionAmount() {
+    let annualUsage = document.getElementById("annualUsage").value.replace(/,/g, '');
+    let conversionAmount = document.getElementById("conversionAmount");
+    let incomeField = document.getElementById("연소득");
+
+    if (!annualUsage || isNaN(annualUsage)) {
+      conversionAmount.value = "";
+      incomeField.value = "";
+      return;
+    }
+
+    let convertedValue = 0;
+    let 주신보110 = Math.floor(annualUsage * 3.5 / 0.9 * 1.1);
+    let 주신보120 = Math.floor(annualUsage * 3.5 / 0.9 * 1.2);
+
+    if (selectedType === "카드사용액") {
+      let 카드전환_비율 = document.getElementById("카드전환비율");
+      let cardRate = parseFloat(카드전환_비율 && 카드전환_비율.value) || 40.9;
+      convertedValue = (annualUsage / (cardRate / 100)) * 0.9;
+    } else if (selectedType === "건강보험") {
+      let 건보전환_비율 = document.getElementById("건보전환비율");
+      let 건보비율 = parseFloat(건보전환_비율 && 건보전환_비율.value) || 3.595;
+      convertedValue = (annualUsage / (건보비율 / 100)) * 12 * 0.95;
+    } else if (selectedType === "연금납부") {
+      let 연금전환_비율 = document.getElementById("연금전환비율");
+      let 연금비율 = parseFloat(연금전환_비율 && 연금전환_비율.value) || 9.5;
+      convertedValue = (annualUsage / (연금비율 / 100)) * 12 * 0.95;
+    } else if (selectedType === "전월세") {
+      let 전월세전환_비율 = document.getElementById("전월세전환비율");
+      let 전월세비율 = parseFloat(전월세전환_비율 && 전월세전환_비율.value) || 6.4;
+      convertedValue = (annualUsage / (전월세비율 / 100));
+    } else if (selectedType === "주신보") {
+      const strValue = 주신보110.toLocaleString() + " / " + 주신보120.toLocaleString();
+      conversionAmount.value = strValue;
+      return;
+    }
+    conversionAmount.value = parseInt(convertedValue).toLocaleString();
+
+    if (["카드사용액", "건강보험", "연금납부"].includes(selectedType)) {
+      const incomeValue = Math.min(convertedValue, 50000000);
+      incomeField.value = parseInt(incomeValue).toLocaleString();
+      calculateDTI();
+    }
+  }
+
+  function resetFields() {
+    ["conversionAmount", "conversionFormula", "월상환액", "대출금액", "대출금리", "연소득", "부채금액", "부채금리", "DTI", "annualUsage"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("conversionFormula").value = "계산할 방법 선택하세요";
+    selectedType = "";
+    document.querySelectorAll(".button-group button").forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
+    
+    let dtiContainer = document.getElementById("DTI").parentElement;
+    dtiContainer.style.backgroundColor = "#ffffff";
+    dtiContainer.style.borderColor = "#94a3b8";
+    dtiContainer.style.borderWidth = "1px";
+  }
+
+  function clearInputField(inputId) {
+    document.getElementById(inputId).value = "";
+    calculateDTI();
+  }
+
+  function setupPopupButton() {
+    const popupContainer = document.getElementById("imagePopup");
+    const settingsPopupContainer = document.getElementById("settingsPopup");
+
+    document.getElementById("showPopup").addEventListener("click", () => {
+      popupContainer.style.display = "flex";
+    });
+
+    document.getElementById("showSettingsPopup").addEventListener("click", () => {
+      settingsPopupContainer.style.display = "flex";
+    });
+
+    window.addEventListener("click", event => {
+      if (event.target == popupContainer) {
+        popupContainer.style.display = "none";
+      }
+      if (event.target == settingsPopupContainer) {
+        settingsPopupContainer.style.display = "none";
+      }
+    });
+  }
+
+  function saveSetting(key, value) {
+    localStorage.setItem(key, value);
+  }
+  function loadSetting(key) {
+    return localStorage.getItem(key) || "";
+  }
+  function setupSettingsPersistence() {
+    const ids = ["카드전환비율", "건보전환비율", "연금전환비율", "전월세전환비율"];
+    ids.forEach(id => {
+      const input = document.getElementById(id);
+      input.value = loadSetting(id);
+      input.addEventListener("input", () => {
+        saveSetting(id, input.value);
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    resetFields();
+    setupPopupButton();
+    setupSettingsPersistence();
+    document.querySelector(".카드버튼").click();
+  });
+</script>
+
+</head>
+
+<body>
+  <div class="container">
+    <div class="title" onclick="resetFields()">
+      전세 DTI 계산
+      <span class="subtitle-RightUp">260607_1 수정</span>
+      <span class="subtitle">MP dodo32</span>
+      <span class="subtitle-left">초기화</span>
+    </div>
+
+    <div class="input-box"><label onclick="clearInputField('연소득')">연 소득</label><input type="text" id="연소득" inputmode="numeric" oninput="formatNumber(this); calculateDTI();" onblur="calculateDTI();"></div>
+    <div class="input-box"><label onclick="clearInputField('대출금액')">대출 금액</label><input type="text" id="대출금액" inputmode="numeric" oninput="formatNumber(this); 월납부액계산(); calculateDTI();" onblur="calculateDTI();"></div>
+    <div class="input-box"><label onclick="clearInputField('대출금리')">대출 금리</label><input type="text" id="대출금리" inputmode="decimal" oninput="formatPercentage(this); 월납부액계산(); calculateDTI();" onkeydown="handlePercentageBackspace(this, event);" onblur="calculateDTI();"></div>
+    <div class="input-box"><label onclick="clearInputField('부채금액')">부채 금액</label><input type="text" id="부채금액" inputmode="numeric" oninput="formatNumber(this); calculateDTI();" onblur="calculateDTI();"></div>
+    <div class="input-box"><label onclick="clearInputField('부채금리')">부채 금리</label><input type="text" id="부채금리" inputmode="decimal" oninput="formatPercentage(this); calculateDTI();" onkeydown="handlePercentageBackspace(this, event);" onblur="calculateDTI();"></div>
+    <div class="input-box"><label>DTI</label><input type="text" id="DTI" readonly></div>
+    <div class="input-box"><label>월 상환액</label><input type="text" id="월상환액" readonly></div>
+
+    <div class="button-group">
+      <button class="카드버튼" onclick="updateFields('카드사용액')">카드</button>
+      <button class="건보버튼" onclick="updateFields('건강보험')">건보</button>
+      <button class="연금버튼" onclick="updateFields('연금납부')">연금</button>
+      <button class="전월세버튼" onclick="updateFields('전월세')">전.월세</button>
+      <button class="주신보" onclick="updateFields('주신보')">주신보</button>
+    </div>
+
+    <div class="input-box blue"><label>연 사용액</label><input type="text" inputmode="numeric" id="annualUsage" oninput="formatNumber(this); updateConversionAmount();"></div>
+    <div class="input-box blue"><label>환산 금액</label><input type="text" id="conversionAmount" readonly></div>
+    <div class="input-box">
+      <label>환산 수식</label>
+      <input
+        type="text"
+        id="conversionFormula"
+        value="계산할 방법 선택하세요"
+        style="text-align:center;font-weight: bold; width:100%; font-size:min(13px,3.2vw); overflow:auto;"
+        readonly
+      >
+    </div>
+
+    <div class="action-btn-group">
+      <button id="showPopup">신용점수 기준</button>
+      <button id="showSettingsPopup">설정</button>
+    </div>
+
+    <div id="imagePopup" class="popup-container">
+      <div class="popup-content">
+        <img id="popupImg" src="신용점수기준.png" alt="팝업 이미지">
+      </div>
+    </div>
+    
+    <div id="settingsPopup" class="popup-container">
+      <div class="popup-content">
+        <table>
+          <tbody>
+            <tr>
+              <td>카드(%)</td>
+              <td>건보(%)</td>
+              <td>연금(%)</td>
+              <td>전월세(%)</td>
+            </tr>
+            <tr>
+              <td><input id="카드전환비율" type="number" placeholder="비율"></td>
+              <td><input id="건보전환비율" type="number" placeholder="비율"></td>
+              <td><input id="연금전환비율" type="number" placeholder="비율"></td>
+              <td><input id="전월세전환비율" type="number" placeholder="비율"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
