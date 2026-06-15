@@ -11,17 +11,16 @@
       height: 100%;
       overscroll-behavior: contain; /* 추가: 모바일 브라우저 끌어내림 새로고침 방지 */
     }
-    iframe {
-      width: 100%;
-      height: calc(100% - 50px);
-      border: none;
-    }
+    
+    /* 상단 버튼 컨테이너: 패딩과 높이를 조절하여 버튼이 잘리지 않도록 수정 */
     .button-container {
       display: flex;
       justify-content: center;
       gap: 7px;
-      padding: 10px;
+      padding: 10px 10px 5px 10px; /* 아래쪽 여백을 미세 조절하여 프레임과의 간격 확보 */
       background-color: #f0f0f0;
+      height: 50px; /* 버튼 높이(35px)와 패딩을 고려하여 50px로 명확히 고정 */
+      box-sizing: border-box;
     }
     button {
       width: 100px;
@@ -30,23 +29,68 @@
       font-size: 13px;
       cursor: pointer;
     }  
+
+    /* 프레임들을 감싸는 컨테이너 구조 */
+    .main-wrapper {
+      display: flex;
+      width: 100%;
+      height: calc(100% - 50px); /* 고정된 버튼 컨테이너 높이(50px)만큼 제외 */
+    }
+
+    /* 기본 iframe 스타일 (모바일 환경 기준) */
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 오른쪽 계산기 프레임 - 모바일에서는 기본적으로 숨김 */
+    #calc-frame {
+      display: none;
+    }
+
+    /* 태블릿 및 PC 웹 환경 (화면 너비 768px 이상) */
+    @media (min-width: 768px) {
+      iframe {
+        width: 50%; /* 좌우 50%씩 분할 */
+      }
+      #calc-frame {
+        display: block; /* 오른쪽 계산기 프레임 표시 */
+        border-left: 1px solid #ccc; /* 시각적 구분을 위한 경계선 유지 */
+      }
+    }
   </style>
   <script>
     function loadPage(page) {
-      const version = '250505_1'; // 버전 정보
+      const version = '250505_1'; // 버전 정보 유지
       document.getElementById('content-frame').src = `${page}?v=${version}`;
+    }
+    
+    // 초기 로드시 오른쪽 프레임에 계산기.html을 연결하기 위한 함수 유지
+    function initPages() {
+      loadPage('main.html');
+      
+      // 오른쪽 계산기 프레임이 존재할 경우 계산기.html 로드
+      const calcFrame = document.getElementById('calc-frame');
+      if (calcFrame) {
+        const version = '250505_1';
+        calcFrame.src = `계산기.html?v=${version}`;
+      }
     }
   </script>
 
 </head>
-<body onload="loadPage('main.html')">
+<body onload="initPages()">
   <div class="button-container">
     <button onclick="loadPage('main.html')">DTI 계산</button>
     <button onclick="loadPage('DSR계산.html')">DSR 계산</button>
     <button onclick="loadPage('MCG.html')">MCG 계산</button>
     <button onclick="loadPage('상담일지.html')">상담일지</button>
-
   </div>
-  <iframe id="content-frame" src=""></iframe>
+  
+  <div class="main-wrapper">
+    <iframe id="content-frame" src=""></iframe>
+    <iframe id="calc-frame" src=""></iframe>
+  </div>
 </body>
 </html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프리미엄 슬림 라인 계산기</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: #090a0f; 
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* [수정] 중앙 정렬에서 중상단 정렬로 변경 */
+            min-height: 100vh;
+            color: #f1f1f4;
+            padding: 40px 24px 24px 24px; /* [수정] 상단 여백(padding-top)을 주어 자연스러운 중상단 위치 구현 */
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 420px; 
+        }
+
+        .panel {
+            background-color: #16171d; 
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 1. 상단 계산 기록 패널 - 컴팩트한 1줄 구조 유지 */
+        .history-panel {
+            padding: 14px 20px;
+            min-height: auto; 
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .clear-history-btn {
+            background: none;
+            border: none;
+            color: #71717a;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            color: #ff7b00;
+        }
+
+        .history-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: row; 
+            gap: 8px;
+            overflow-x: auto;
+            width: 100%;
+            padding-bottom: 4px;
+            align-items: center;
+        }
+
+        /* 가로 스크롤바 미니멀화 */
+        .history-list::-webkit-scrollbar {
+            height: 2px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background-color: #27272a;
+            border-radius: 10px;
+        }
+
+        .empty-history {
+            color: #42424a;
+            font-style: italic;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+
+        /* 1줄 배지(캡슐) 형태의 기록 아이템 */
+        .history-item {
+            flex: 0 0 auto; 
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            gap: 8px;
+            background-color: #1e2028;
+            padding: 6px 12px;
+            border-radius: 99px; 
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-8px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .history-item-exp {
+            font-size: 12px;
+            color: #71717a;
+            white-space: nowrap;
+        }
+
+        .history-item-res {
+            font-size: 12px;
+            color: #ff7b00; 
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* 1줄 구조에 맞춘 미니 메모창 */
+        .history-item-memo {
+            width: 75px; 
+            background: #111217;
+            border: none;
+            border-radius: 99px;
+            color: #e4e4e7;
+            font-size: 11px;
+            text-align: center;
+            padding: 2px 8px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .history-item-memo:focus {
+            width: 100px; 
+            box-shadow: 0 0 0 1px #ff7b00;
+        }
+
+        .history-item-memo::placeholder {
+            color: #3f3f46;
+        }
+
+        /* 2. 하단 계산기 패널 */
+        .calculator-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .calc-title-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ff7b00;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff7b00;
+        }
+
+        .calc-title {
+            font-size: 11px;
+            font-weight: 500;
+            color: #52525b;
+            letter-spacing: 0.5px;
+        }
+
+        .display-container {
+            text-align: right;
+            padding: 12px 0 20px 0;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .expression-view {
+            font-size: 14px;
+            color: #52525b;
+            min-height: 20px;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .current-view {
+            font-size: 46px;
+            font-weight: 300;
+            color: #ffffff;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .current-view::-webkit-scrollbar { display: none; }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .btn {
+            background-color: #1e2028;
+            border: none;
+            border-radius: 18px;
+            height: 66px;
+            font-size: 20px;
+            font-weight: 500;
+            color: #e4e4e7;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            touch-action: manipulation; 
+        }
+
+        .btn:hover { background-color: #272934; }
+        .btn:active {
+            transform: scale(0.95);
+            background-color: #2f3240;
+        }
+
+        .btn-op {
+            background-color: #16171d;
+            color: #ff7b00;
+            font-weight: 600;
+        }
+        .btn-op:hover { background-color: #1e2028; }
+
+        .btn-equal {
+            background-color: #ff7b00;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(255, 123, 0, 0.25);
+        }
+        .btn-equal:hover {
+            background-color: #ff922b;
+            box-shadow: 0 8px 28px rgba(255, 123, 0, 0.4);
+        }
+        .btn-equal:active {
+            background-color: #e66e00;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="panel history-panel">
+        <div class="history-header">
+            <span class="history-title">History</span>
+            <button class="clear-history-btn" onclick="clearHistory()">전체 삭제</button>
+        </div>
+        <div class="history-wrapper">
+            <div class="history-list" id="historyList"></div>
+            <div class="empty-history" id="emptyMessage">아직 계산 기록이 없습니다</div>
+        </div>
+    </div>
+
+    <div class="panel calculator-panel">
+        <div class="calc-header">
+            <div class="calc-title-group">
+                <span class="status-dot"></span>
+                <span class="calc-title">CALCULATOR</span>
+            </div>
+        </div>
+
+        <div class="display-container">
+            <div class="expression-view" id="expression"></div>
+            <div class="current-view" id="display">0</div>
+        </div>
+
+        <div class="keypad">
+            <button class="btn btn-op" onclick="clearAll()">C</button>
+            <button class="btn btn-op" onclick="backspace()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0 -2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+            </button>
+            <button class="btn btn-op" onclick="handlePercentage()">%</button>
+            <button class="btn btn-op" onclick="appendOperator('÷')">÷</button>
+
+            <button class="btn" onclick="appendNumber('7')">7</button>
+            <button class="btn" onclick="appendNumber('8')">8</button>
+            <button class="btn" onclick="appendNumber('9')">9</button>
+            <button class="btn btn-op" onclick="appendOperator('×')">×</button>
+
+            <button class="btn" onclick="appendNumber('4')">4</button>
+            <button class="btn" onclick="appendNumber('5')">5</button>
+            <button class="btn" onclick="appendNumber('6')">6</button>
+            <button class="btn btn-op" onclick="appendOperator('-')">-</button>
+
+            <button class="btn" onclick="appendNumber('1')">1</button>
+            <button class="btn" onclick="appendNumber('2')">2</button>
+            <button class="btn" onclick="appendNumber('3')">3</button>
+            <button class="btn btn-op" onclick="appendOperator('+')">+</button>
+
+            <button class="btn" onclick="appendNumber('0')">0</button>
+            <button class="btn" onclick="appendNumber('00')">00</button>
+            <button class="btn" onclick="appendDot('.')">.</button>
+            <button class="btn btn-equal" onclick="calculate()">=</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentInput = '0';
+    let prevInput = '';
+    let operator = '';
+    let shouldResetDisplay = false;
+
+    const displayElement = document.getElementById('display');
+    const expressionElement = document.getElementById('expression');
+    const historyListElement = document.getElementById('historyList');
+    const emptyMessageElement = document.getElementById('emptyMessage');
+
+    function updateDisplay() {
+        if (currentInput === 'Error') {
+            displayElement.innerText = 'Error';
+            return;
+        }
+        const parts = currentInput.split('.');
+        parts[0] = Number(parts[0]).toLocaleString('ko-KR');
+        displayElement.innerText = parts.join('.');
+    }
+
+    function appendNumber(num) {
+        if (currentInput === '0' || shouldResetDisplay) {
+            currentInput = (num === '00') ? '0' : num;
+            shouldResetDisplay = false;
+        } else {
+            if (currentInput.length < 15) {
+                currentInput += num;
+            }
+        }
+        updateDisplay();
+    }
+
+    function appendDot() {
+        if (shouldResetDisplay) {
+            currentInput = '0.';
+            shouldResetDisplay = false;
+            updateDisplay();
+            return;
+        }
+        if (!currentInput.includes('.')) {
+            currentInput += '.';
+        }
+        updateDisplay();
+    }
+
+    function appendOperator(op) {
+        if (currentInput === 'Error') return;
+
+        if (operator && !shouldResetDisplay) {
+            calculateInline();
+        }
+
+        prevInput = currentInput;
+        operator = op;
+        expressionElement.innerText = prevInput + ' ' + operator + ' ';
+        shouldResetDisplay = true;
+    }
+
+    function handlePercentage() {
+        if (currentInput === 'Error') return;
+        let current = parseFloat(currentInput);
+        if (isNaN(current)) return;
+
+        let result;
+        let expText = '';
+
+        if (prevInput && (operator === '+' || operator === '-')) {
+            let prev = parseFloat(prevInput);
+            result = prev * (current / 100);
+            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
+            currentInput = String(Math.round(result * 1e12) / 1e12);
+            expressionElement.innerText = expText;
+        } 
+        else if (prevInput && (operator === '×' || operator === '÷')) {
+            result = current / 100;
+            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
+            currentInput = String(Math.round(result * 1e12) / 1e12);
+            expressionElement.innerText = expText;
+        } 
+        else {
+            result = current / 100;
+            expText = currentInput + '%';
+            currentInput = String(Math.round(result * 1e12) / 1e12);
+            expressionElement.innerText = expText + ' =';
+            addHistoryItem(expText, currentInput);
+            shouldResetDisplay = true;
+        }
+        updateDisplay();
+    }
+
+    function calculateInline() {
+        let result = 0;
+        const prev = parseFloat(prevInput);
+        const current = parseFloat(currentInput);
+
+        if (isNaN(prev) || isNaN(current)) return;
+
+        switch (operator) {
+            case '+': result = prev + current; break;
+            case '-': result = prev - current; break;
+            case '×': result = prev * current; break;
+            case '÷': 
+                if (current === 0) {
+                    currentInput = 'Error';
+                    updateDisplay();
+                    return;
+                }
+                result = prev / current; 
+                break;
+            default: return;
+        }
+        currentInput = String(Math.round(result * 1e12) / 1e12);
+        prevInput = currentInput;
+    }
+
+    function calculate() {
+        if (!operator || shouldResetDisplay) return;
+
+        const prev = prevInput;
+        const current = currentInput;
+        const currentOp = operator;
+
+        calculateInline();
+
+        if (currentInput === 'Error') {
+            expressionElement.innerText = '';
+            operator = '';
+            return;
+        }
+
+        let finalExp = expressionElement.innerText.includes('%') 
+            ? expressionElement.innerText + ' =' 
+            : prev + ' ' + currentOp + ' ' + current + ' =';
+
+        expressionElement.innerText = finalExp;
+        addHistoryItem(finalExp.replace(' =', ''), currentInput);
+
+        operator = '';
+        shouldResetDisplay = true;
+        updateDisplay();
+    }
+
+    function clearAll() {
+        currentInput = '0';
+        prevInput = '';
+        operator = '';
+        shouldResetDisplay = false;
+        displayElement.innerText = '0';
+        expressionElement.innerText = '';
+    }
+
+    function backspace() {
+        if (shouldResetDisplay || currentInput === 'Error') {
+            clearAll();
+            return;
+        }
+        if (currentInput.length > 1) {
+            currentInput = currentInput.slice(0, -1);
+        } else {
+            currentInput = '0';
+        }
+        updateDisplay();
+    }
+
+    function addHistoryItem(exp, res) {
+        if (emptyMessageElement) {
+            emptyMessageElement.style.display = 'none';
+        }
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'history-item';
+        const formattedRes = Number(res).toLocaleString('ko-KR');
+
+        itemDiv.innerHTML = `
+            <span class="history-item-exp">${exp} =</span>
+            <span class="history-item-res">${formattedRes}</span>
+            <input type="text" class="history-item-memo" placeholder="메모..." />
+        `;
+        
+        historyListElement.insertBefore(itemDiv, historyListElement.firstChild);
+        historyListElement.scrollLeft = 0;
+    }
+
+    function clearHistory() {
+        historyListElement.innerHTML = '';
+        emptyMessageElement.style.display = 'block';
+    }
+
+    window.addEventListener('keydown', function(event) {
+        if (document.activeElement.tagName === 'INPUT') {
+            return; 
+        }
+
+        const key = event.key;
+        if (key >= '0' && key <= '9') {
+            appendNumber(key);
+        } else if (key === '.') {
+            appendDot();
+        } else if (key === '+' || key === '-') {
+            appendOperator(key);
+        } else if (key === '*') {
+            appendOperator('×');
+        } else if (key === '/') {
+            event.preventDefault(); 
+            appendOperator('÷');
+        } else if (key === '%') {
+            handlePercentage();
+        } else if (key === 'Enter' || key === '=') {
+            event.preventDefault(); 
+            calculate();
+        } else if (key === 'Backspace') {
+            backspace();
+        } else if (key === 'Escape') {
+            clearAll();
+        }
+    });
+</script>
+
+</body>
+</html>
