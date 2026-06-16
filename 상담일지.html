@@ -2,87 +2,128 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>상담일지</title>
+    <title>스마트 상담일지 프리미엄</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; padding: 0; font-family: '맑은 고딕', Arial, sans-serif; }
-        .table-wrap {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 8px;
+        :root {
+            --primary: #2196f3;
+            --primary-hover: #1976d2;
+            --bg-table: #f9fcff;
+            --border-color: #7faac7;
+            --text-main: #333;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-        }
-        th, td {
-            border: 1px solid #7faac7;
-            padding: 6px 4px;
-            font-size: 15px;
-            text-align: center;
-        }
-        th, .label {
-            background: #e3effa;
-            font-weight: bold;
-        }
-        td {
-            background: #f9fcff;
-        }
-        .label {
-            width: 33%;
-        }
-        .content-row {
-            background: #fff;
-            text-align: left;
-            vertical-align: top;
-            padding: 0;
-        }
-        textarea {
-            width: 99%;
-            height: 510px;
-            resize: vertical;
-            border: none;
-            font-size: 15px;
-            font-family: inherit;
-            background: #fff;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-        input[type="text"], input[type="date"], input[type="number"] {
-            width: 95%;
-            box-sizing: border-box;
-            font-size: 15px;
-            padding: 4px 2px;
-            border: 1px solid #b3c6d7;
-            background: #fff;
-        }
+        body { margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: var(--text-main); background: #f5f8fa; }
+        .table-wrap { max-width: 600px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: var(--shadow); }
+        .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+        .top-actions .left-actions { display:flex; align-items:center; gap:10px; }
+        .top-actions .right-actions { display:flex; align-items:center; gap:8px; }
+
+        button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); }
+        #saveBtn { background: var(--primary); color: #fff; border: 1px solid rgba(33,150,243,0.12); }
+        #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(33,150,243,0.12); }
+        #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 8px 12px; border-radius: 12px; }
+        #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(59,130,246,0.12); }
+        #loadBtn { background: #fff; color: #334155; border: 1px solid #e6eef9; padding: 8px 12px; border-radius: 10px; }
+        #loadBtn:hover { background: #f8fbff; transform: translateY(-1px); }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: 15px; text-align: center; }
+        th:last-child, td:last-child { border-right: none; }
+        tr:last-child td { border-bottom: none; }
+        th, .label { background: #e3effa; font-weight: bold; color: #2c5270; }
+        td { background: var(--bg-table); }
+        .label { width: 33%; }
+        .content-row { background: #fff; text-align: left; vertical-align: top; padding: 0; }
+        
+        textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 12px; box-sizing: border-box; outline: none; line-height: 1.5; }
+        input[type="text"] { width: 100%; box-sizing: border-box; font-size: 15px; padding: 6px 8px; border: 1px solid #b3c6d7; border-radius: 4px; background: #fff; transition: border 0.2s; text-align: center; }
+        input[type="text"]:focus { border-color: var(--primary); outline: none; background: #fff; }
+        textarea::placeholder, input::placeholder { color: #a0aec0; }
+
+        .date-picker-field { cursor: pointer; background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%); }
+        .date-picker-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.12); }
+        .date-picker-popup { position: absolute; width: 310px; padding: 16px; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 40px rgba(0,0,0,0.12); border: 1px solid rgba(98, 146, 234, 0.18); z-index: 1010; display: none; }
+        .date-picker-popup.open { display: block; }
+        .date-picker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .date-picker-month { font-weight: 700; color: #1c3a60; }
+        .date-picker-nav { display: inline-flex; gap: 6px; }
+        .date-picker-nav button { width: 36px; height: 36px; border: none; border-radius: 10px; background: #eef5ff; color: #1d4ed8; font-size: 18px; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; }
+        .date-picker-nav button:hover { transform: translateY(-1px); background: #dbeafe; }
+        .date-picker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; color: #64748b; font-size: 12px; text-align: center; }
+        .date-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .calendar-cell { width: 100%; padding: 10px 0; border: none; border-radius: 12px; background: transparent; color: #334155; cursor: pointer; font-weight: 600; transition: background 0.2s ease, color 0.2s ease; }
+        .calendar-cell:hover { background: #e7f0ff; }
+        .calendar-cell.selected { background: #2563eb; color: #fff; }
+        .calendar-cell.empty { cursor: default; background: transparent; }
+        .calendar-cell.today { border: 1px solid #60a5fa; }
+
+        /* 사이드 슬라이드 히스토리 모달 레이아웃 */
+        .history-modal { position: fixed; top: 0; right: -450px; width: 420px; height: 100vh; background: #fff; box-shadow: -5px 0 25px rgba(0,0,0,0.15); z-index: 1000; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
+        .history-modal.open { right: 0; }
+        .modal-header { padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        .modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8; padding: 0; }
+        .close-btn:hover { color: #64748b; }
+        
+        .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; }
+        .search-input { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .search-input:focus { border-color: var(--primary); outline: none; }
+        
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #f8fafc; }
+        
+        /* 히스토리 카드 및 개별 삭제 버튼 디자인 */
+        .history-card { position: relative; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease; }
+        .history-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.1); }
+        .card-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #64748b; padding-right: 30px; }
+        .card-user { font-size: 16px; font-weight: bold; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .card-phone { font-size: 14px; color: var(--primary); font-weight: 500; }
+        .card-details { font-size: 13px; color: #475569; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; }
+        .card-memo { font-size: 13px; color: #64748b; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+        
+        /* 개별 삭제 버튼 */
+        .card-delete-btn { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 6px; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: pointer; border: 1px solid #fee2e2; transition: all 0.2s; }
+        .card-delete-btn:hover { background: #ef4444; color: #fff; border-color: #ef4444; transform: scale(1.05); }
+
+        .loading-view { text-align: center; padding: 40px 0; color: #64748b; font-size: 14px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 999; display: none; }
+        .modal-overlay.open { display: block; }
+
         @media (max-width: 600px) {
-            .table-wrap { padding: 2px; }
+            .table-wrap { margin: 10px; padding: 10px; }
             th, td, input, textarea { font-size: 13px; }
-            textarea { height: 240px; }
+            textarea { height: 320px; }
+            .history-modal { width: 100%; right: -100%; }
         }
     </style>
 </head>
 <body>
+
 <div class="table-wrap">
-    <div style="margin-bottom:12px; text-align:right;">
-        <label style="vertical-align:middle; margin-right:10px;">
-            <input type="checkbox" id="saveModeSwitch" checked style="accent-color:#2196f3; width:18px; height:18px; vertical-align:middle;">
-            <span id="saveModeLabel" style="font-size:14px;vertical-align:middle;">On(로컬저장)</span>
-        </label>
-        <button type="button" id="saveBtn">저장</button>
-        <button type="button" id="loadBtn">불러오기</button>
+    <div class="top-actions">
+        <div class="left-actions">
+            <button type="button" id="copyBtn">복사</button>
+            <label style="vertical-align:middle; display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="saveModeSwitch" checked style="accent-color:var(--primary); width:18px; height:18px; vertical-align:middle;">
+                <span id="saveModeLabel" style="font-size:14px; font-weight:700; color:#1e293b;">On(로컬저장)</span>
+            </label>
+        </div>
+        <div class="right-actions">
+            <button type="button" id="saveBtn">저장</button>
+            <button type="button" id="loadBtn">불러오기</button>
+        </div>
     </div>
     <table>
         <tr>
-            <th>상담일시</th>
+            <th>최초상담일시</th>
             <th>연락처</th>
             <th>이름</th>
         </tr>
         <tr>
-            <td><span id="currentDateTime"></span></td>
-            <td><input type="text" placeholder="연락처 입력" inputmode="numeric" pattern="[0-9]*"></td>
+            <td><span id="currentDateTime" style="font-weight: 500; color: #444;"></span></td>
+            <td><input type="text" placeholder="연락처 입력" inputmode="numeric"></td>
             <td><input type="text" placeholder="이름 입력" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
@@ -91,8 +132,8 @@
             <td class="label">대출구분</td>
         </tr>
         <tr>
-            <td><input type="text" placeholder="예: 25/3/02" inputmode="numeric" pattern="[0-9]*"></td>
-            <td><input type="text" placeholder="예: 250,000,000" inputmode="numeric" pattern="[0-9]*"></td>
+            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 25년/03월/02일" inputmode="numeric"></td>
+            <td><input type="text" placeholder="예: 250,000,000" inputmode="numeric"></td>
             <td><input type="text" placeholder="예: 담보" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
@@ -100,14 +141,42 @@
         </tr>
         <tr>
             <td colspan="3" class="content-row">
-                <textarea placeholder="상담내용 입력"></textarea>
+                <textarea placeholder="상담내용을 입력해 주세요."></textarea>
             </td>
         </tr>
     </table>
 </div>
+
+<div class="date-picker-popup" id="datePickerPopup" aria-hidden="true">
+    <div class="date-picker-header">
+        <div class="date-picker-month">2026년 06월</div>
+        <div class="date-picker-nav">
+            <button type="button" class="nav-btn nav-prev" aria-label="이전 달">‹</button>
+            <button type="button" class="nav-btn nav-next" aria-label="다음 달">›</button>
+        </div>
+    </div>
+    <div class="date-picker-weekdays">
+        <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+    </div>
+    <div class="date-picker-grid"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="history-modal" id="historyModal">
+    <div class="modal-header">
+        <h3 id="modalTitle">상담 히스토리 목록</h3>
+        <button class="close-btn" id="closeModal">&times;</button>
+    </div>
+    <div class="search-box-wrap">
+        <input type="text" class="search-input" id="historySearch" placeholder="연락처로 검색 (예: 010-1234)">
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+</div>
+
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    // 날짜+시간 표시 (yy/MM/dd (요일) HH:mm)
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUUzTY5HGXiQXgxmdC30ELVtMg0ZSAmNH76SwleVQfXvbxwKBaZr6xYMpHeY5fBbzL/exec';
+    
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -115,19 +184,24 @@ window.addEventListener('DOMContentLoaded', function() {
     const hh = String(now.getHours()).padStart(2, '0');
     const min = String(now.getMinutes()).padStart(2, '0');
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    document.getElementById('currentDateTime').textContent =
-        `${yy}/${mm}/${dd} (${dayNames[now.getDay()]}) ${hh}:${min}`;
+    document.getElementById('currentDateTime').textContent = `${yy}/${mm}/${dd} (${dayNames[now.getDay()]}) ${hh}:${min}`;
 
-    // 입력 필드 참조
     const $ = sel => document.querySelector(sel);
     const phoneInput   = $('input[placeholder="연락처 입력"]');
     const nameInput    = $('input[placeholder="이름 입력"]');
-    const dateInput    = $('input[placeholder="예: 25/3/02"]');
+    const dateInput    = document.getElementById('needDateInput');
     const moneyInput   = $('input[placeholder="예: 250,000,000"]');
     const typeInput    = $('input[placeholder="예: 담보"]');
-    const contentInput = $('textarea[placeholder="상담내용 입력"]');
+    const contentInput = $('textarea[placeholder="상담내용을 입력해 주세요."]');
+    const datePickerPopup = $('#datePickerPopup');
+    const datePickerMonth = datePickerPopup.querySelector('.date-picker-month');
+    const datePickerGrid = datePickerPopup.querySelector('.date-picker-grid');
+    const navPrev = datePickerPopup.querySelector('.nav-prev');
+    const navNext = datePickerPopup.querySelector('.nav-next');
+    let currentPickerYear = new Date().getFullYear();
+    let currentPickerMonth = new Date().getMonth();
+    let rawHistoryData = []; 
 
-    // 연락처 자동 포맷팅 (000-0000-0000)
     phoneInput.addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '').slice(0, 11);
         if (v.length > 7)      v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
@@ -135,54 +209,179 @@ window.addEventListener('DOMContentLoaded', function() {
         e.target.value = v.replace(/-+$/, '');
     });
 
-    // 필요일자 자동 포맷팅 및 요일 자동 표시 (yy/MM/dd(월))
-    dateInput.addEventListener('input', function(e) {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 6);
-        if (v.length > 4)      v = v.replace(/(\d{2})(\d{2})(\d{0,2})/, '$1/$2/$3');
-        else if (v.length > 2) v = v.replace(/(\d{2})(\d{0,2})/, '$1/$2');
-        v = v.replace(/\/+$/, '');
-
-        let display = v;
-        if (/^\d{2}\/\d{2}\/\d{2}$/.test(v)) {
-            const y = 2000 + parseInt(v.slice(0,2),10);
-            const m = parseInt(v.slice(3,5),10) - 1;
-            const d = parseInt(v.slice(6,8),10);
-            const dateObj = new Date(y, m, d);
-            if (!isNaN(dateObj)) {
-                display = `${v}(${dayNames[dateObj.getDay()]})`;
-            }
+    // [추가 및 수정] 날짜 변환 및 포맷 보정용 유틸리티 함수
+    function formatToCustomDate(str) {
+        if (!str) return '';
+        let digits = str.replace(/\D/g, '');
+        if (digits.length > 6) digits = digits.slice(0, 6);
+        
+        let formatted = digits;
+        if (digits.length >= 6) {
+            formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1년/$2월/$3일');
+        } else if (digits.length >= 4) {
+            formatted = digits.replace(/(\d{2})(\d{2})/, '$1년/$2월/');
+        } else if (digits.length >= 2) {
+            formatted = digits.replace(/(\d{2})/, '$1년/');
         }
-        e.target.value = display;
+        return formatted;
+    }
+
+    function parseCustomDate(str) {
+        if (!str) return null;
+        const match = str.match(/(\d{2})년\D*(\d{2})월\D*(\d{2})일/);
+        if (!match) {
+            const clean = str.replace(/\D/g, '');
+            if(clean.length === 6) {
+                return new Date(2000 + Number(clean.slice(0,2)), Number(clean.slice(2,4)) - 1, Number(clean.slice(4,6)));
+            }
+            return null;
+        }
+        const year = 2000 + Number(match[1]);
+        const month = Number(match[2]) - 1;
+        const day = Number(match[3]);
+        return new Date(year, month, day);
+    }
+
+    function formatDisplayDate(date) {
+        const yy = String(date.getFullYear()).slice(-2);
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yy}년/${mm}월/${dd}일`;
+    }
+
+    // 날짜를 직접 수동 입력할 때 자동 포맷팅
+    dateInput.addEventListener('input', function(e) {
+        e.target.value = formatToCustomDate(e.target.value);
     });
 
-    // 필요금액 자동 포맷팅 (0,000,000,000)
+    function renderDatePicker(year, month) {
+        currentPickerYear = year;
+        currentPickerMonth = month;
+        datePickerMonth.textContent = `${year}년 ${String(month + 1).padStart(2, '0')}월`;
+        datePickerGrid.innerHTML = '';
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const selectedDate = parseCustomDate(dateInput.value);
+        const today = new Date();
+
+        for (let i = 0; i < firstDay; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'calendar-cell empty';
+            datePickerGrid.appendChild(empty);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'calendar-cell';
+            button.textContent = day;
+            const cellDate = new Date(year, month, day);
+            if (selectedDate && cellDate.toDateString() === selectedDate.toDateString()) {
+                button.classList.add('selected');
+            }
+            if (cellDate.toDateString() === today.toDateString()) {
+                button.classList.add('today');
+            }
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dateInput.value = formatDisplayDate(cellDate);
+                closeDatePicker();
+            });
+            datePickerGrid.appendChild(button);
+        }
+    }
+
+    function openDatePicker() {
+        const parsed = parseCustomDate(dateInput.value) || new Date();
+        const year = parsed.getFullYear();
+        const month = parsed.getMonth();
+        renderDatePicker(year, month);
+        datePickerPopup.classList.add('open');
+        datePickerPopup.setAttribute('aria-hidden', 'false');
+        const rect = dateInput.getBoundingClientRect();
+        datePickerPopup.style.top = `${rect.bottom + window.scrollY + 8}px`;
+        datePickerPopup.style.left = `${Math.max(16, rect.left + window.scrollX - 10)}px`;
+    }
+
+    function closeDatePicker() {
+        datePickerPopup.classList.remove('open');
+        datePickerPopup.setAttribute('aria-hidden', 'true');
+    }
+
+    dateInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openDatePicker();
+    });
+    
+    navPrev.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const newDate = new Date(currentPickerYear, currentPickerMonth - 1, 1);
+        renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+    });
+    navNext.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const newDate = new Date(currentPickerYear, currentPickerMonth + 1, 1);
+        renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+    });
+    document.addEventListener('click', function(e) {
+        if (!datePickerPopup.contains(e.target) && e.target !== dateInput) {
+            closeDatePicker();
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeDatePicker();
+    });
+
     moneyInput.addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '').slice(0, 10);
         e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
     });
 
-    // 엔터키로 다음 input 이동
-    const inputOrder = [phoneInput, nameInput, dateInput, moneyInput, typeInput, contentInput];
-    inputOrder.forEach((el, idx) => {
-        if (!el) return;
-        el.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (el.tagName === 'TEXTAREA') return;
-                const next = inputOrder[idx + 1];
-                if (next) next.focus();
-            }
-        });
-    });
-
-    // On-Off 스위치 동작 및 라벨 변경
     const saveSwitch = document.getElementById('saveModeSwitch');
     const saveLabel  = document.getElementById('saveModeLabel');
     saveSwitch.addEventListener('change', function() {
         saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(외부저장)';
     });
 
-    // 저장 버튼 기능 (On: 로컬 저장, Off: 외부 저장)
+    document.getElementById('copyBtn').addEventListener('click', function() {
+        const dateTime   = document.getElementById('currentDateTime').textContent.trim();
+        const phone      = phoneInput.value.trim();
+        const name       = nameInput.value.trim();
+        const needDate   = dateInput.value.trim();
+        const needAmount = moneyInput.value.trim();
+        const loanType   = typeInput.value.trim();
+        const memo       = contentInput.value.trim();
+
+        const lines = [
+            phone || '',
+            `이름 : ${name || ''}`,
+            `대출구분 : ${loanType || ''}`,
+            `잔금일자 : ${needDate || ''}`,
+            `필요금액 : ${needAmount || ''}`,
+            `상담내용 : ${memo || ''}`
+        ];
+        const textToCopy = lines.join('\n');
+
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('상담 데이터가 클립보드에 복사되었습니다. 다른 메모장에 붙여넣기 하세요.');
+            return;
+        }
+
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => alert('상담 데이터가 클립보드에 복사되었습니다. 다른 메모장에 붙여넣기 하세요.'))
+            .catch(() => alert('복사 중 문제가 발생했습니다. 다시 시도해 주세요.'));
+    });
+
     document.getElementById('saveBtn').addEventListener('click', function() {
         const dateTime   = document.getElementById('currentDateTime').textContent.trim();
         const phone      = phoneInput.value.trim();
@@ -192,121 +391,196 @@ window.addEventListener('DOMContentLoaded', function() {
         const loanType   = typeInput.value.trim();
         const memo       = contentInput.value.trim();
 
-        // 필요일자에 요일 붙이기
-        if (/^\d{2}\/\d{2}\/\d{2}$/.test(needDate)) {
-            const y = 2000 + parseInt(needDate.slice(0,2),10);
-            const m = parseInt(needDate.slice(3,5),10) - 1;
-            const d = parseInt(needDate.slice(6,8),10);
-            const dateObj = new Date(y, m, d);
-            if (!isNaN(dateObj)) {
-                needDate = `${needDate}(${dayNames[dateObj.getDay()]})`;
-            }
-        }
+        if(!name || !phone) { return alert('최소한 이름과 연락처는 기입하셔야 저장 가능합니다.'); }
 
         if (!saveSwitch.checked) {
-            const payload = { dateTime, phone, name, needDate, needAmount, loanType, memo };
-            fetch('https://script.google.com/macros/s/AKfycbzWfK2PyW64MkkxsG2DRtdYmneyMRWjKLZ2PSF3EZjEAgYHKL7V3xMO-njSjlFtCOnK/exec', {
+            const formData = new URLSearchParams();
+            formData.append('dateTime', dateTime);
+            formData.append('phone', phone);
+            formData.append('name', name);
+            formData.append('needDate', needDate);
+            formData.append('needAmount', needAmount);
+            formData.append('loanType', loanType);
+            formData.append('memo', memo);
+
+            fetch(`${WEB_APP_URL}?action=insert`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
             })
-            .then(res => res.text())
-            .then(msg => alert('외부 저장 완료: ' + msg))
-            .catch(err => alert('외부 저장 실패: ' + err));
+            .then(() => {
+                alert('구글 최상단 3번 행에 최신 상담내역 저장을 요청했습니다.');
+                phoneInput.value = ''; nameInput.value = ''; dateInput.value = '';
+                moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
+            })
+            .catch(err => alert('구글시트 저장 오류: ' + err));
             return;
         }
 
         const safe = s => s.replace(/\//g, '／');
-        const data = [
-            safe(dateTime),
-            safe(phone),
-            safe(name),
-            safe(needDate),
-            safe(needAmount),
-            safe(loanType),
-            safe(memo)
-        ].join('/');
-
+        const data = [safe(dateTime), safe(phone), safe(name), safe(needDate), safe(needAmount), safe(loanType), safe(memo)].join('/');
         let db = [];
         const dbStr = localStorage.getItem('상담일지_DB');
-        if (dbStr) {
-            try { db = JSON.parse(dbStr); } catch (e) { db = []; }
-        }
+        if (dbStr) { try { db = JSON.parse(dbStr); } catch (e) { db = []; } }
         db.push(data);
         localStorage.setItem('상담일지_DB', JSON.stringify(db));
-        alert('누적 저장되었습니다.');
+        alert('내 컴퓨터(로컬)에 최신 상담 데이터가 저장되었습니다.');
+        phoneInput.value = ''; nameInput.value = ''; dateInput.value = ''; moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
     });
 
-    // 불러오기 버튼 기능 (팝업으로 누적 데이터 모두 보기, 역순 표시 및 번호도 역순)
-    document.getElementById('loadBtn').addEventListener('click', function() {
-        const dbStr = localStorage.getItem('상담일지_DB');
-        if (!dbStr) return alert('저장된 데이터가 없습니다.');
-        let db = [];
-        try { db = JSON.parse(dbStr); } catch (e) { return alert('저장된 데이터가 올바르지 않습니다.'); }
-        if (db.length === 0) return alert('저장된 데이터가 없습니다.');
+    const openModal = () => { $('#historyModal').classList.add('open'); $('#modalOverlay').classList.add('open'); };
+    const closeModal = () => { $('#historyModal').classList.remove('open'); $('#modalOverlay').classList.remove('open'); $('#historySearch').value = ''; };
+    $('#closeModal').addEventListener('click', closeModal);
+    $('#modalOverlay').addEventListener('click', closeModal);
 
-        let html = `
-            <div style="position:relative;">
-                <button id="resetBtn" style="position:fixed;top:10px;right:10px;z-index:9999;font-size:14px;padding:6px 16px;margin:0;cursor:pointer;background:#e74c3c;color:#fff;border:none;border-radius:4px;">초기화</button>
-                <h3 style="margin-top:50px;">상담일지 목록</h3>
-            </div>
-            <ol style="padding-left:18px;">`;
-        const reversed = db.slice().reverse();
-        const total = reversed.length;
-        reversed.forEach(function(item, idx) {
-            const arr = item.split('/').map(s => s.replace(/／/g, '/'));
-            let 필요일자표시 = arr[3] || '';
-            // 이미 (요일)포함되어 있으면 그대로, 아니면 붙여줌
-            if (/^\d{2}\/\d{2}\/\d{2}$/.test(필요일자표시) && !/\(\S\)$/.test(필요일자표시)) {
-                const y = 2000 + parseInt(필요일자표시.slice(0,2),10);
-                const m = parseInt(필요일자표시.slice(3,5),10) - 1;
-                const d = parseInt(필요일자표시.slice(6,8),10);
-                const dateObj = new Date(y, m, d);
-                if (!isNaN(dateObj)) {
-                    필요일자표시 = `${필요일자표시}(${dayNames[dateObj.getDay()]})`;
+    function loadHistoryData() {
+        if (saveSwitch.checked) {
+            $('#modalTitle').textContent = "로컬 저장소 히스토리";
+            const dbStr = localStorage.getItem('상담일지_DB');
+            if (!dbStr) { $('#modalBody').innerHTML = '<div class="loading-view">저장된 로컬 기록이 없습니다.</div>'; return; }
+            let db = []; try { db = JSON.parse(dbStr); } catch (e) { db = []; }
+            
+            rawHistoryData = db.map((item, originalIndex) => {
+                const arr = item.split('/').map(s => s.replace(/／/g, '/'));
+                return { dateTime: arr[0], phone: arr[1], name: arr[2], needDate: arr[3], needAmount: arr[4], loanType: arr[5], memo: arr[6], origIdx: originalIndex };
+            }).reverse(); 
+            
+            renderHistoryCards(rawHistoryData);
+        } else {
+            $('#modalTitle').textContent = "구글 시트 실시간 히스토리";
+            fetch(`${WEB_APP_URL}?action=read`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.length === 0) {
+                    $('#modalBody').innerHTML = '<div class="loading-view">구글 시트에 등록된 상담 내역이 없습니다.</div>';
+                    return;
                 }
-            }
-            html += `<li value="${total-idx}" style="margin-bottom:12px;">`;
-            html += `<div><b>상담일시:</b> ${arr[0] || ''}</div>`;
-            html += `<div><b>연락처:</b> ${arr[1] || ''}</div>`;
-            html += `<div><b>이름:</b> ${arr[2] || ''}</div>`;
-            html += `<div><b>필요일자:</b> ${필요일자표시}</div>`;
-            html += `<div><b>필요금액:</b> ${arr[4] || ''}</div>`;
-            html += `<div><b>대출구분:</b> ${arr[5] || ''}</div>`;
-            html += `<div><b>상담내용:</b><br><pre style="white-space:pre-wrap;font-family:inherit;background:#f9fcff;border:1px solid #eee;padding:6px;">${(arr[6] || '').replace(/</g,"&lt;")}</pre></div>`;
-            html += '</li>';
-        });
-        html += '</ol>';
-        const popup = window.open('', '상담일지목록', 'width=500,height=700,scrollbars=yes');
-        popup.document.body.innerHTML = html;
-        popup.document.title = '상담일지 목록';
+                rawHistoryData = data; 
+                renderHistoryCards(rawHistoryData);
+            })
+            .catch(err => {
+                $('#modalBody').innerHTML = `<div class="loading-view" style="color:#e74c3c;">데이터 수신 실패.<br>(${err})</div>`;
+            });
+        }
+    }
 
-        // 팝업 내 모달(확인창) 추가
-        const modalHtml = `
-            <div id="confirmModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;">
-                <div style="background:#fff;padding:24px 18px;border-radius:8px;max-width:90vw;box-shadow:0 2px 12px #0002;text-align:center;">
-                    <div style="margin-bottom:18px;font-size:16px;">정말로 모든 저장된 상담일지를 초기화하시겠습니까?</div>
-                    <button id="modalYes" style="margin-right:16px;padding:6px 18px;background:#e74c3c;color:#fff;border:none;border-radius:4px;font-size:15px;">예</button>
-                    <button id="modalNo" style="padding:6px 18px;background:#bbb;color:#fff;border:none;border-radius:4px;font-size:15px;">아니오</button>
+    document.getElementById('loadBtn').addEventListener('click', function() {
+        $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
+        openModal();
+        loadHistoryData();
+    });
+
+    function renderHistoryCards(list) {
+        if(list.length === 0) {
+            $('#modalBody').innerHTML = '<div class="loading-view">검색 조건과 일치하는 내역이 없습니다.</div>';
+            return;
+        }
+        let html = '';
+        list.forEach((item, index) => {
+            let cardDate = item.needDate ? formatToCustomDate(item.needDate) : '-';
+            if (!cardDate.includes('년') && item.needDate) cardDate = item.needDate; 
+
+            let cleanAmount = item.needAmount ? item.needAmount.replace(/\D/g, '') : '';
+            let cardAmount = cleanAmount ? Number(cleanAmount).toLocaleString('ko-KR') : '-';
+
+            html += `
+                <div class="history-card" data-idx="${index}">
+                    <div class="card-delete-btn" data-idx="${index}" title="삭제">&times;</div>
+                    <div class="card-top">
+                        <span>${item.dateTime || '시간 정보 없음'}</span>
+                    </div>
+                    <div class="card-user">
+                        <span>${item.name || '미입력'}</span>
+                        <span class="card-phone">${item.phone || '연락처 없음'}</span>
+                    </div>
+                    <div class="card-details">
+                        일자: ${cardDate} | 금액: ${cardAmount} | 구분: ${item.loanType || '-'}
+                    </div>
+                    <div class="card-memo">${item.memo ? item.memo.replace(/\n/g, ' ') : '상담내용 요약 없음'}</div>
                 </div>
-            </div>
-        `;
-        popup.document.body.insertAdjacentHTML('beforeend', modalHtml);
+            `;
+        });
+        $('#modalBody').innerHTML = html;
 
-        popup.document.getElementById('resetBtn').onclick = function() {
-            const modal = popup.document.getElementById('confirmModal');
-            modal.style.display = 'flex';
-            popup.document.body.style.overflow = 'hidden';
+        document.querySelectorAll('.history-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if(e.target.classList.contains('card-delete-btn')) return;
 
-            popup.document.getElementById('modalYes').onclick = function() {
-                localStorage.removeItem('상담일지_DB');
-                popup.document.body.innerHTML = '<p style="margin:30px;text-align:center;">저장된 데이터가 모두 삭제되었습니다.</p>';
-            };
-            popup.document.getElementById('modalNo').onclick = function() {
-                modal.style.display = 'none';
-                popup.document.body.style.overflow = '';
-            };
-        };
+                const targetIdx = this.getAttribute('data-idx');
+                const selectData = list[targetIdx];
+
+                document.getElementById('currentDateTime').textContent = selectData.dateTime;
+                phoneInput.value = selectData.phone;
+                nameInput.value = selectData.name;
+                
+                // 불러오기 시 날짜 포맷 강제 변환 보정
+                dateInput.value = formatToCustomDate(selectData.needDate);
+                
+                // 불러오기 시 금액 천 단위 콤마 강제 적용
+                let numericAmount = selectData.needAmount ? selectData.needAmount.replace(/\D/g, '') : '';
+                moneyInput.value = numericAmount ? Number(numericAmount).toLocaleString('ko-KR') : '';
+
+                typeInput.value = selectData.loanType;
+                contentInput.value = selectData.memo;
+
+                const wrap = $('.table-wrap');
+                wrap.style.transition = 'background 0.1s';
+                wrap.style.background = '#e3effa';
+                setTimeout(() => { wrap.style.background = '#fff'; }, 250);
+
+                closeModal();
+            });
+        });
+
+        document.querySelectorAll('.card-delete-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation(); 
+                const targetIdx = this.getAttribute('data-idx');
+                const targetData = list[targetIdx];
+
+                if(!confirm(`[${targetData.name || '미입력'}] 님의 상담 내역을 정말 삭제하시겠습니까?`)) return;
+
+                if(saveSwitch.checked) {
+                    let dbStr = localStorage.getItem('상담일지_DB');
+                    if(dbStr) {
+                        let db = JSON.parse(dbStr);
+                        db.splice(targetData.origIdx, 1); 
+                        localStorage.setItem('상담일지_DB', JSON.stringify(db));
+                        alert('로컬 데이터가 삭제되었습니다.');
+                        loadHistoryData(); 
+                    }
+                } 
+                else {
+                    $('#modalBody').innerHTML = '<div class="loading-view">구글 스프레드시트에서 해당 데이터를 영구 삭제 중입니다...</div>';
+                    const deleteUrl = `${WEB_APP_URL}?action=delete&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
+                    
+                    fetch(deleteUrl, { method: 'GET' }) 
+                    .then(res => res.text())
+                    .then(result => {
+                        if(result === "성공") {
+                            alert('구글 시트에서 해당 상담 내역 행이 완벽히 삭제되었습니다.');
+                        } else {
+                            alert('삭제 작업 중 시트 피드백 에러 발생: ' + result);
+                        }
+                        loadHistoryData(); 
+                    })
+                    .catch(err => {
+                        alert('구글 서버 삭제 통신 실패: ' + err);
+                        loadHistoryData();
+                    });
+                }
+            });
+        });
+    }
+
+    $('#historySearch').addEventListener('input', function(e) {
+        const keyword = e.target.value.replace(/\D/g, ''); 
+        const filtered = rawHistoryData.filter(item => {
+            const cleanPhone = item.phone.replace(/\D/g, '');
+            return cleanPhone.includes(keyword);
+        });
+        renderHistoryCards(filtered);
     });
 });
 </script>
