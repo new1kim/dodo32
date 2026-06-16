@@ -71,6 +71,11 @@
       white-space: nowrap;
       margin-right: 4px;
       border: 1px solid #bae6fd;
+      cursor: pointer;
+    }
+
+    .visitor-counter:hover {
+      background-color: #bfdbfe;
     }
 
     /* 프레임들을 감싸는 컨테이너 구조 */
@@ -124,6 +129,34 @@
       }
       
       startWorkerRecordAccess();
+      initLongPressLink();
+    }
+
+    function initLongPressLink() {
+      const longPressTarget = document.getElementById('today-count');
+      const linkUrl = 'https://docs.google.com/spreadsheets/d/1OBrhJa2bi26nQBZgUfMgRbk11RVM_9Xe2IPMP6BU494/edit?usp=sharing';
+      let pressTimer = null;
+
+      const startPress = () => {
+        pressTimer = setTimeout(() => {
+          window.open(linkUrl, '_blank');
+          pressTimer = null;
+        }, 3000);
+      };
+
+      const cancelPress = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+      };
+
+      longPressTarget.addEventListener('mousedown', startPress);
+      longPressTarget.addEventListener('touchstart', startPress, { passive: true });
+      longPressTarget.addEventListener('mouseup', cancelPress);
+      longPressTarget.addEventListener('mouseleave', cancelPress);
+      longPressTarget.addEventListener('touchend', cancelPress);
+      longPressTarget.addEventListener('touchcancel', cancelPress);
     }
 
     function startWorkerRecordAccess() {
