@@ -163,25 +163,30 @@
     .view-btn { width: 48%; background-color: #475569; border: none !important; color: white; padding: 12px; font-size: 13px; font-weight: 600; border-radius: 10px; box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15); }
     .view-btn:hover { background-color: #334155; }
 
+    /* DSR 최대한도 블록 디자인 최적화 수정 */
     .dsr-max-block {
       flex: 1;
       min-width: 0;
-      padding: 10px 8px;
+      padding: 10px 4px;
       border-radius: 12px;
       border: 1px solid #e2e8f0;
       background-color: #f8fafc;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       cursor: pointer;
       transition: all 0.2s ease;
       color: #0f172a;
-      font-weight: 700;
     }
     .dsr-max-block:hover { background-color: #ffffff; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); }
     .dsr-max-block span:first-child { font-size: 11px; color: #64748b; font-weight: 600; }
-    .dsr-max-block span:last-child { font-size: 14px; color: inherit; }
+    .dsr-max-block span:last-child { 
+      font-size: 13px; 
+      color: inherit; 
+      font-weight: 600; 
+      letter-spacing: -0.3px; 
+    }
 
     #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; cursor: pointer; }
     #image-modal img { max-width: 92%; max-height: 85%; border-radius: 8px; border: 2px solid white; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
@@ -862,7 +867,7 @@
 
         ghost.innerText = el.innerText.trim() || '-';
 
-        let fontSize = 14;
+        let fontSize = 13;
         ghost.style.fontSize = fontSize + 'px';
         while (fontSize > 10 && ghost.offsetWidth > maxWidth) {
           fontSize -= 0.5;
