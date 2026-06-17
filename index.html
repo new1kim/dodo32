@@ -173,7 +173,7 @@
           self.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'start') {
               const uuid = e.data.uuid;
-              fetch("https://script.google.com/macros/s/AKfycbwnwNiiikch_pTcja3P-7HiJN_ijbDFvIWMNbrBdXRamDkupPX6uaj-1W4D4YqoAjk/exec?uuid=" + uuid)
+              fetch("https://script.google.com/macros/s/AKfycbxKVRoJkjeDLhXsLw1_aCj0ICoHdy5Iud513PrGXHJAMKXSyKfMd1iQ0QTQPk1NsGcCYA/exec?uuid=" + uuid)
                 .then(response => {
                   if (!response.ok) throw new Error("HTTP 에러");
                   return response.json(); 

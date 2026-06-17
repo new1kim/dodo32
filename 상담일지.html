@@ -132,7 +132,7 @@
             <td class="label">대출구분</td>
         </tr>
         <tr>
-            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 25년/03월/02일" inputmode="numeric"></td>
+            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric"></td>
             <td><input type="text" placeholder="예: 250,000,000" inputmode="numeric"></td>
             <td><input type="text" placeholder="예: 담보" inputmode="text" lang="ko"></td>
         </tr>
@@ -168,14 +168,14 @@
         <button class="close-btn" id="closeModal">&times;</button>
     </div>
     <div class="search-box-wrap">
-        <input type="text" class="search-input" id="historySearch" placeholder="연락처로 검색 (예: 010-1234)">
+        <input type="text" class="search-input" id="historySearch" placeholder="이름, 연락처, 메모 등으로 검색">
     </div>
     <div class="modal-body" id="modalBody"></div>
 </div>
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUUzTY5HGXiQXgxmdC30ELVtMg0ZSAmNH76SwleVQfXvbxwKBaZr6xYMpHeY5fBbzL/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxZt47EMLrfFTvMA_VnD1A6fEQCbRCXLJAKL0ItDSdXxORXJbWl8K-DrDyEX5LJccHY/exec';
     
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
@@ -209,7 +209,7 @@ window.addEventListener('DOMContentLoaded', function() {
         e.target.value = v.replace(/-+$/, '');
     });
 
-    // [추가 및 수정] 날짜 변환 및 포맷 보정용 유틸리티 함수
+    // [수정 완료] 수동 키보드 입력 시 날짜 보정 포맷 필터 최적화
     function formatToCustomDate(str) {
         if (!str) return '';
         let digits = str.replace(/\D/g, '');
@@ -217,18 +217,19 @@ window.addEventListener('DOMContentLoaded', function() {
         
         let formatted = digits;
         if (digits.length >= 6) {
-            formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1년/$2월/$3일');
+            formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1/$2/$3');
         } else if (digits.length >= 4) {
-            formatted = digits.replace(/(\d{2})(\d{2})/, '$1년/$2월/');
+            formatted = digits.replace(/(\d{2})(\d{2})/, '$1/$2/');
         } else if (digits.length >= 2) {
-            formatted = digits.replace(/(\d{2})/, '$1년/');
+            formatted = digits.replace(/(\d{2})/, '$1/');
         }
         return formatted;
     }
 
+    // 불러온 문자열 데이터 파싱 보정
     function parseCustomDate(str) {
         if (!str) return null;
-        const match = str.match(/(\d{2})년\D*(\d{2})월\D*(\d{2})일/);
+        const match = str.match(/(\d{2})\D*(\d{2})\D*(\d{2})/);
         if (!match) {
             const clean = str.replace(/\D/g, '');
             if(clean.length === 6) {
@@ -246,10 +247,9 @@ window.addEventListener('DOMContentLoaded', function() {
         const yy = String(date.getFullYear()).slice(-2);
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
-        return `${yy}년/${mm}월/${dd}일`;
+        return `${yy}/${mm}/${dd}`;
     }
 
-    // 날짜를 직접 수동 입력할 때 자동 포맷팅
     dateInput.addEventListener('input', function(e) {
         e.target.value = formatToCustomDate(e.target.value);
     });
@@ -341,7 +341,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const saveSwitch = document.getElementById('saveModeSwitch');
     const saveLabel  = document.getElementById('saveModeLabel');
     saveSwitch.addEventListener('change', function() {
-        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(외부저장)';
+        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(구글서버저장)';
     });
 
     document.getElementById('copyBtn').addEventListener('click', function() {
@@ -418,12 +418,11 @@ window.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const safe = s => s.replace(/\//g, '／');
-        const data = [safe(dateTime), safe(phone), safe(name), safe(needDate), safe(needAmount), safe(loanType), safe(memo)].join('/');
         let db = [];
         const dbStr = localStorage.getItem('상담일지_DB');
         if (dbStr) { try { db = JSON.parse(dbStr); } catch (e) { db = []; } }
-        db.push(data);
+        const recordObj = { dateTime, phone, name, needDate, needAmount, loanType, memo };
+        db.push(recordObj);
         localStorage.setItem('상담일지_DB', JSON.stringify(db));
         alert('내 컴퓨터(로컬)에 최신 상담 데이터가 저장되었습니다.');
         phoneInput.value = ''; nameInput.value = ''; dateInput.value = ''; moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
@@ -442,8 +441,12 @@ window.addEventListener('DOMContentLoaded', function() {
             let db = []; try { db = JSON.parse(dbStr); } catch (e) { db = []; }
             
             rawHistoryData = db.map((item, originalIndex) => {
-                const arr = item.split('/').map(s => s.replace(/／/g, '/'));
-                return { dateTime: arr[0], phone: arr[1], name: arr[2], needDate: arr[3], needAmount: arr[4], loanType: arr[5], memo: arr[6], origIdx: originalIndex };
+                if (typeof item === 'string') {
+                    const arr = item.split('/').map(s => s.replace(/／/g, '/'));
+                    return { dateTime: arr[0], phone: arr[1], name: arr[2], needDate: arr[3], needAmount: arr[4], loanType: arr[5], memo: arr[6], origIdx: originalIndex };
+                } else {
+                    return { ...item, origIdx: originalIndex };
+                }
             }).reverse(); 
             
             renderHistoryCards(rawHistoryData);
@@ -478,8 +481,8 @@ window.addEventListener('DOMContentLoaded', function() {
         }
         let html = '';
         list.forEach((item, index) => {
-            let cardDate = item.needDate ? formatToCustomDate(item.needDate) : '-';
-            if (!cardDate.includes('년') && item.needDate) cardDate = item.needDate; 
+            // [수정 완료] 수동/자동 저장 데이터 중 날짜 형식의 온전한 노출 매핑 처리
+            let cardDate = item.needDate ? item.needDate.trim() : '-';
 
             let cleanAmount = item.needAmount ? item.needAmount.replace(/\D/g, '') : '';
             let cardAmount = cleanAmount ? Number(cleanAmount).toLocaleString('ko-KR') : '-';
@@ -514,10 +517,9 @@ window.addEventListener('DOMContentLoaded', function() {
                 phoneInput.value = selectData.phone;
                 nameInput.value = selectData.name;
                 
-                // 불러오기 시 날짜 포맷 강제 변환 보정
-                dateInput.value = formatToCustomDate(selectData.needDate);
+                // [수정 완료] 포맷 변환 필터를 우회하고 시트 내 보존 텍스트 문자열 그대로 적용되도록 강제 변경
+                dateInput.value = selectData.needDate ? selectData.needDate.trim() : '';
                 
-                // 불러오기 시 금액 천 단위 콤마 강제 적용
                 let numericAmount = selectData.needAmount ? selectData.needAmount.replace(/\D/g, '') : '';
                 moneyInput.value = numericAmount ? Number(numericAmount).toLocaleString('ko-KR') : '';
 
@@ -575,10 +577,21 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     $('#historySearch').addEventListener('input', function(e) {
-        const keyword = e.target.value.replace(/\D/g, ''); 
+        const keyword = e.target.value.toLowerCase().trim();
         const filtered = rawHistoryData.filter(item => {
-            const cleanPhone = item.phone.replace(/\D/g, '');
-            return cleanPhone.includes(keyword);
+            const name = (item.name || '').toLowerCase();
+            const phone = (item.phone || '').toLowerCase();
+            const memo = (item.memo || '').toLowerCase();
+            const loanType = (item.loanType || '').toLowerCase();
+            const needAmount = (item.needAmount || '').toLowerCase();
+            const needDate = (item.needDate || '').toLowerCase();
+            
+            return name.includes(keyword) || 
+                   phone.includes(keyword) || 
+                   memo.includes(keyword) || 
+                   loanType.includes(keyword) || 
+                   needAmount.includes(keyword) || 
+                   needDate.includes(keyword);
         });
         renderHistoryCards(filtered);
     });
