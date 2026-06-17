@@ -18,14 +18,18 @@
         body { margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: var(--text-main); background: #f5f8fa; }
         .table-wrap { max-width: 600px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: var(--shadow); }
         .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
-        .top-actions .left-actions { display:flex; align-items:center; gap:10px; }
+        .top-actions .left-actions { display:flex; align-items:center; gap:8px; }
         .top-actions .right-actions { display:flex; align-items:center; gap:8px; }
 
-        button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); }
-        #saveBtn { background: var(--primary); color: #fff; border: 1px solid rgba(33,150,243,0.12); }
-        #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(33,150,243,0.12); }
+        /* 사용자 이름 입력창 스타일 */
+        .user-code-input { width: 100px; padding: 8px 10px; font-size: 13px; font-weight: bold; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; text-align: center; color: #1e293b; background: #f8fafc; transition: all 0.2s; }
+        .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15); }
+
+        button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); white-space: nowrap; }
         #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 8px 12px; border-radius: 12px; }
         #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(59,130,246,0.12); }
+        #saveBtn { background: var(--primary); color: #fff; border: 1px solid rgba(33,150,243,0.12); }
+        #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(33,150,243,0.12); }
         #loadBtn { background: #fff; color: #334155; border: 1px solid #e6eef9; padding: 8px 12px; border-radius: 10px; }
         #loadBtn:hover { background: #f8fbff; transform: translateY(-1px); }
         
@@ -93,6 +97,9 @@
 
         @media (max-width: 600px) {
             .table-wrap { margin: 10px; padding: 10px; }
+            .top-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+            .top-actions .left-actions { width: 100%; justify-content: space-between; }
+            .user-code-input { flex: 1; max-width: none; }
             th, td, input, textarea { font-size: 13px; }
             textarea { height: 320px; }
             .history-modal { width: 100%; right: -100%; }
@@ -105,12 +112,13 @@
     <div class="top-actions">
         <div class="left-actions">
             <button type="button" id="copyBtn">복사</button>
+        </div>
+        <div class="right-actions">
+            <input type="text" id="userCodeInput" class="user-code-input" placeholder="👤 사용자 이름" title="사용자 이름을 입력하세요" style="width: 125px !important;">
             <label style="vertical-align:middle; display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="saveModeSwitch" checked style="accent-color:var(--primary); width:18px; height:18px; vertical-align:middle;">
                 <span id="saveModeLabel" style="font-size:14px; font-weight:700; color:#1e293b;">On(로컬저장)</span>
             </label>
-        </div>
-        <div class="right-actions">
             <button type="button" id="saveBtn">저장</button>
             <button type="button" id="loadBtn">불러오기</button>
         </div>
@@ -175,7 +183,7 @@
 
 <script>
 window.addEventListener('DOMContentLoaded', function() {
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxZt47EMLrfFTvMA_VnD1A6fEQCbRCXLJAKL0ItDSdXxORXJbWl8K-DrDyEX5LJccHY/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzrkjB1-EyFwic01SSNGg3ccn7XZZM36RtXh0CfihGLVLGhzeUhYyFkPa30NVnGzFFc/exec';
     
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
@@ -187,6 +195,7 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('currentDateTime').textContent = `${yy}/${mm}/${dd} (${dayNames[now.getDay()]}) ${hh}:${min}`;
 
     const $ = sel => document.querySelector(sel);
+    const userCodeInput = document.getElementById('userCodeInput');
     const phoneInput   = $('input[placeholder="연락처 입력"]');
     const nameInput    = $('input[placeholder="이름 입력"]');
     const dateInput    = document.getElementById('needDateInput');
@@ -202,6 +211,18 @@ window.addEventListener('DOMContentLoaded', function() {
     let currentPickerMonth = new Date().getMonth();
     let rawHistoryData = []; 
 
+    // 기존에 저장된 사용자 이름 있다면 자동으로 불러와 매핑
+    const savedUserCode = localStorage.getItem('상담일지_최근사용자코드');
+    if (savedUserCode) {
+        userCodeInput.value = savedUserCode;
+    }
+
+    // 사용자 이름 입력 시 대문자로 자동 변환 및 공백 제거 처리 후 기억
+    userCodeInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase().replace(/\s/g, '');
+        localStorage.setItem('상담일지_최근사용자코드', e.target.value);
+    });
+
     phoneInput.addEventListener('input', function(e) {
         let v = e.target.value.replace(/\D/g, '').slice(0, 11);
         if (v.length > 7)      v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
@@ -209,7 +230,6 @@ window.addEventListener('DOMContentLoaded', function() {
         e.target.value = v.replace(/-+$/, '');
     });
 
-    // [수정 완료] 수동 키보드 입력 시 날짜 보정 포맷 필터 최적화
     function formatToCustomDate(str) {
         if (!str) return '';
         let digits = str.replace(/\D/g, '');
@@ -226,7 +246,6 @@ window.addEventListener('DOMContentLoaded', function() {
         return formatted;
     }
 
-    // 불러온 문자열 데이터 파싱 보정
     function parseCustomDate(str) {
         if (!str) return null;
         const match = str.match(/(\d{2})\D*(\d{2})\D*(\d{2})/);
@@ -340,11 +359,21 @@ window.addEventListener('DOMContentLoaded', function() {
 
     const saveSwitch = document.getElementById('saveModeSwitch');
     const saveLabel  = document.getElementById('saveModeLabel');
+    
+    // 기존에 저장된 저장 모드 여부가 있다면 자동으로 복원
+    const savedSaveMode = localStorage.getItem('상담일지_저장모드');
+    if (savedSaveMode !== null) {
+        saveSwitch.checked = savedSaveMode === 'true';
+        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(구글서버저장)';
+    }
+    
     saveSwitch.addEventListener('change', function() {
         saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(구글서버저장)';
+        localStorage.setItem('상담일지_저장모드', saveSwitch.checked);
     });
 
     document.getElementById('copyBtn').addEventListener('click', function() {
+        const userCode   = userCodeInput.value.trim();
         const dateTime   = document.getElementById('currentDateTime').textContent.trim();
         const phone      = phoneInput.value.trim();
         const name       = nameInput.value.trim();
@@ -354,6 +383,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const memo       = contentInput.value.trim();
 
         const lines = [
+            `상담원 : ${userCode || '미지정'}`,
             phone || '',
             `이름 : ${name || ''}`,
             `대출구분 : ${loanType || ''}`,
@@ -383,6 +413,7 @@ window.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('saveBtn').addEventListener('click', function() {
+        const userCode   = userCodeInput.value.trim();
         const dateTime   = document.getElementById('currentDateTime').textContent.trim();
         const phone      = phoneInput.value.trim();
         const name       = nameInput.value.trim();
@@ -391,10 +422,12 @@ window.addEventListener('DOMContentLoaded', function() {
         const loanType   = typeInput.value.trim();
         const memo       = contentInput.value.trim();
 
+        if(!userCode) { return alert('상담을 식별할 [사용자 이름]를 입력해 주세요.'); }
         if(!name || !phone) { return alert('최소한 이름과 연락처는 기입하셔야 저장 가능합니다.'); }
 
         if (!saveSwitch.checked) {
             const formData = new URLSearchParams();
+            formData.append('userCode', userCode); // 서버로 사용자코드 전송
             formData.append('dateTime', dateTime);
             formData.append('phone', phone);
             formData.append('name', name);
@@ -410,7 +443,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 body: formData.toString()
             })
             .then(() => {
-                alert('구글 최상단 3번 행에 최신 상담내역 저장을 요청했습니다.');
+                alert(`[${userCode}] 구글 시트에 최신 상담내역 저장을 요청했습니다.`);
                 phoneInput.value = ''; nameInput.value = ''; dateInput.value = '';
                 moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
             })
@@ -418,13 +451,15 @@ window.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // 로컬 저장소를 사용자 이름별로 고유하게 관리하도록 고도화
         let db = [];
-        const dbStr = localStorage.getItem('상담일지_DB');
+        const dbKey = `상담일지_DB_${userCode}`;
+        const dbStr = localStorage.getItem(dbKey);
         if (dbStr) { try { db = JSON.parse(dbStr); } catch (e) { db = []; } }
-        const recordObj = { dateTime, phone, name, needDate, needAmount, loanType, memo };
+        const recordObj = { userCode, dateTime, phone, name, needDate, needAmount, loanType, memo };
         db.push(recordObj);
-        localStorage.setItem('상담일지_DB', JSON.stringify(db));
-        alert('내 컴퓨터(로컬)에 최신 상담 데이터가 저장되었습니다.');
+        localStorage.setItem(dbKey, JSON.stringify(db));
+        alert(`내 컴퓨터(로컬)의 [${userCode}] 전용 공간에 데이터가 안전하게 저장되었습니다.`);
         phoneInput.value = ''; nameInput.value = ''; dateInput.value = ''; moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
     });
 
@@ -434,29 +469,33 @@ window.addEventListener('DOMContentLoaded', function() {
     $('#modalOverlay').addEventListener('click', closeModal);
 
     function loadHistoryData() {
+        const userCode = userCodeInput.value.trim();
+        if(!userCode) {
+            closeModal();
+            return alert('히스토리를 조회할 [사용자 이름]를 먼저 입력해 주세요.');
+        }
+
         if (saveSwitch.checked) {
-            $('#modalTitle').textContent = "로컬 저장소 히스토리";
-            const dbStr = localStorage.getItem('상담일지_DB');
-            if (!dbStr) { $('#modalBody').innerHTML = '<div class="loading-view">저장된 로컬 기록이 없습니다.</div>'; return; }
+            $('#modalTitle').textContent = `[${userCode}] 로컬 저장소 히스토리`;
+            const dbKey = `상담일지_DB_${userCode}`;
+            const dbStr = localStorage.getItem(dbKey);
+            if (!dbStr) { $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 코드로 저장된 로컬 기록이 없습니다.</div>`; return; }
             let db = []; try { db = JSON.parse(dbStr); } catch (e) { db = []; }
             
+            // 가져온 고유 데이터를 최신순(날짜 역순)으로 매핑
             rawHistoryData = db.map((item, originalIndex) => {
-                if (typeof item === 'string') {
-                    const arr = item.split('/').map(s => s.replace(/／/g, '/'));
-                    return { dateTime: arr[0], phone: arr[1], name: arr[2], needDate: arr[3], needAmount: arr[4], loanType: arr[5], memo: arr[6], origIdx: originalIndex };
-                } else {
-                    return { ...item, origIdx: originalIndex };
-                }
+                return { ...item, origIdx: originalIndex };
             }).reverse(); 
             
             renderHistoryCards(rawHistoryData);
         } else {
-            $('#modalTitle').textContent = "구글 시트 실시간 히스토리";
-            fetch(`${WEB_APP_URL}?action=read`)
+            $('#modalTitle').textContent = `[${userCode}] 구글 실시간 히스토리`;
+            // 사용자 이름를 쿼리스트링에 매핑하여 분기 조회 유도
+            fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`)
             .then(res => res.json())
             .then(data => {
                 if(data.length === 0) {
-                    $('#modalBody').innerHTML = '<div class="loading-view">구글 시트에 등록된 상담 내역이 없습니다.</div>';
+                    $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 시트에 등록된 상담 내역이 없습니다.</div>`;
                     return;
                 }
                 rawHistoryData = data; 
@@ -469,6 +508,8 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('loadBtn').addEventListener('click', function() {
+        const userCode = userCodeInput.value.trim();
+        if(!userCode) { return alert('상담원 식별을 위해 [사용자 이름]를 먼저 입력해 주세요.'); }
         $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
         openModal();
         loadHistoryData();
@@ -481,9 +522,7 @@ window.addEventListener('DOMContentLoaded', function() {
         }
         let html = '';
         list.forEach((item, index) => {
-            // [수정 완료] 수동/자동 저장 데이터 중 날짜 형식의 온전한 노출 매핑 처리
             let cardDate = item.needDate ? item.needDate.trim() : '-';
-
             let cleanAmount = item.needAmount ? item.needAmount.replace(/\D/g, '') : '';
             let cardAmount = cleanAmount ? Number(cleanAmount).toLocaleString('ko-KR') : '-';
 
@@ -492,6 +531,7 @@ window.addEventListener('DOMContentLoaded', function() {
                     <div class="card-delete-btn" data-idx="${index}" title="삭제">&times;</div>
                     <div class="card-top">
                         <span>${item.dateTime || '시간 정보 없음'}</span>
+                        <span style="font-weight:bold; color:#475569;">[${item.userCode || '공통'}]</span>
                     </div>
                     <div class="card-user">
                         <span>${item.name || '미입력'}</span>
@@ -516,8 +556,6 @@ window.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('currentDateTime').textContent = selectData.dateTime;
                 phoneInput.value = selectData.phone;
                 nameInput.value = selectData.name;
-                
-                // [수정 완료] 포맷 변환 필터를 우회하고 시트 내 보존 텍스트 문자열 그대로 적용되도록 강제 변경
                 dateInput.value = selectData.needDate ? selectData.needDate.trim() : '';
                 
                 let numericAmount = selectData.needAmount ? selectData.needAmount.replace(/\D/g, '') : '';
@@ -540,22 +578,24 @@ window.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation(); 
                 const targetIdx = this.getAttribute('data-idx');
                 const targetData = list[targetIdx];
+                const currentUserCode = userCodeInput.value.trim();
 
                 if(!confirm(`[${targetData.name || '미입력'}] 님의 상담 내역을 정말 삭제하시겠습니까?`)) return;
 
                 if(saveSwitch.checked) {
-                    let dbStr = localStorage.getItem('상담일지_DB');
+                    const dbKey = `상담일지_DB_${currentUserCode}`;
+                    let dbStr = localStorage.getItem(dbKey);
                     if(dbStr) {
                         let db = JSON.parse(dbStr);
                         db.splice(targetData.origIdx, 1); 
-                        localStorage.setItem('상담일지_DB', JSON.stringify(db));
-                        alert('로컬 데이터가 삭제되었습니다.');
+                        localStorage.setItem(dbKey, JSON.stringify(db));
+                        alert('로컬 데이터가 완벽하게 삭제되었습니다.');
                         loadHistoryData(); 
                     }
                 } 
                 else {
                     $('#modalBody').innerHTML = '<div class="loading-view">구글 스프레드시트에서 해당 데이터를 영구 삭제 중입니다...</div>';
-                    const deleteUrl = `${WEB_APP_URL}?action=delete&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
+                    const deleteUrl = `${WEB_APP_URL}?action=delete&userCode=${encodeURIComponent(currentUserCode)}&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
                     
                     fetch(deleteUrl, { method: 'GET' }) 
                     .then(res => res.text())
