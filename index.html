@@ -120,32 +120,41 @@
       display: flex;
       width: 100%;
       height: calc(100% - 54px); /* 상단바 높이 제외 */
+      gap: 0;
     }
 
+    /* 기본 iframe 스타일 */
     iframe {
-      width: 100%;
+      flex: 1;
       height: 100%;
       border: none;
+      border-right: 1px solid #e2e8f0;
     }
 
-    #calc-frame {
+    iframe:last-child {
+      border-right: none;
+    }
+
+    /* 모바일 환경 (기본): calc-frame과 consulting-frame 숨김 */
+    #calc-frame,
+    #consulting-frame {
       display: none;
     }
 
-    /* 태블릿 및 PC 웹 환경 (화면 너비 768px 이상 분할 뷰) */
+    /* PC 및 태블릿 환경 (화면 너비 768px 이상): 3프레임 분할 뷰 */
     @media (min-width: 768px) {
-      iframe {
-        width: 50%;
-      }
-      #calc-frame {
+      #calc-frame,
+      #consulting-frame {
         display: block;
-        border-left: 1px solid #e2e8f0;
       }
     }
   </style>
   <script>
     function loadPage(page, element) {
-      const version = '250505_1';
+      const version = '250605_1';
+      const isWideScreen = window.innerWidth >= 768;
+      
+      // PC/태블릿 환경에서는 content-frame(DSR 프레임)에만 로드, 모바일 환경에서도 content-frame에 로드
       document.getElementById('content-frame').src = `${page}?v=${version}`;
       
       if (element) {
@@ -179,14 +188,18 @@
       const lockedElements = document.querySelectorAll('.locked-content');
       lockedElements.forEach(el => el.classList.remove('locked-content'));
 
-      // 3. iframe 페이지 소스 할당 및 초기화
-      const firstBtn = document.querySelector('.button-container button.nav-btn');
-      loadPage('main.html', firstBtn);
+      // 3. 화면 너비에 따라 프레임 초기화
+      const version = '250605_1';
+      const isWideScreen = window.innerWidth >= 768;
       
-      const calcFrame = document.getElementById('calc-frame');
-      if (calcFrame) {
-        const version = '250505_1';
-        calcFrame.src = `계산기.html?v=${version}`;
+      if (isWideScreen) {
+        // PC/태블릿: 3개 프레임 모두 로드
+        document.getElementById('content-frame').src = `DSR계산.html?v=${version}`;
+        document.getElementById('calc-frame').src = `계산기.html?v=${version}`;
+        document.getElementById('consulting-frame').src = `상담일지.html?v=${version}`;
+      } else {
+        // 모바일: content-frame에만 로드
+        document.getElementById('content-frame').src = `main.html?v=${version}`;
       }
 
       // 4. 이름 정보를 기록하기 위해 웹 워커 가동 및 API 호출
@@ -304,6 +317,7 @@
   <div class="main-wrapper locked-content">
     <iframe id="content-frame" src=""></iframe>
     <iframe id="calc-frame" src=""></iframe>
+    <iframe id="consulting-frame" src=""></iframe>
   </div>
 </body>
 </html>
