@@ -26,20 +26,38 @@
         .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15); }
 
         button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); white-space: nowrap; }
-        #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 8px 12px; border-radius: 12px; }
-        #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(59,130,246,0.12); }
+        #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 5px 12px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 6px rgba(53, 123, 234, 0.2); }
+        #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(53, 123, 234, 0.3); }
         #saveBtn { background: var(--primary); color: #fff; border: 1px solid rgba(33,150,243,0.12); }
         #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(33,150,243,0.12); }
         #loadBtn { background: #fff; color: #334155; border: 1px solid #e6eef9; padding: 8px 12px; border-radius: 10px; }
         #loadBtn:hover { background: #f8fbff; transform: translateY(-1px); }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: 15px; text-align: center; }
+        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: 15px; text-align: center; box-sizing: border-box; }
         th:last-child, td:last-child { border-right: none; }
         tr:last-child td { border-bottom: none; }
         th, .label { background: #e3effa; font-weight: bold; color: #2c5270; }
         td { background: var(--bg-table); }
         .label { width: 33%; }
+        
+        /* 상담내용 행 정렬 수정: 가운데 정렬 및 버튼 우측 배치 */
+        .content-label-cell { 
+            background: #e3effa; 
+            font-weight: bold; 
+            color: #2c5270;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 8px 14px; 
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        /* 복사 버튼을 텍스트 오른쪽에 자연스럽게 띄워 배치 */
+        .content-label-cell #copyBtn {
+            margin-left: 10px;
+        }
         .content-row { background: #fff; text-align: left; vertical-align: top; padding: 0; }
         
         textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 12px; box-sizing: border-box; outline: none; line-height: 1.5; }
@@ -98,7 +116,6 @@
         @media (max-width: 600px) {
             .table-wrap { margin: 10px; padding: 10px; }
             .top-actions { flex-direction: column; align-items: stretch; gap: 8px; }
-            .top-actions .left-actions { width: 100%; justify-content: space-between; }
             .user-code-input { flex: 1; max-width: none; }
             th, td, input, textarea { font-size: 13px; }
             textarea { height: 320px; }
@@ -111,8 +128,7 @@
 <div class="table-wrap">
     <div class="top-actions">
         <div class="left-actions">
-            <button type="button" id="copyBtn">복사</button>
-        </div>
+            </div>
         <div class="right-actions">
             <input type="text" id="userCodeInput" class="user-code-input" placeholder="👤 사용자 이름" title="사용자 이름을 입력하세요" style="width: 125px !important;">
             <label style="vertical-align:middle; display:flex; align-items:center; gap:8px;">
@@ -145,7 +161,12 @@
             <td><input type="text" placeholder="예: 담보" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
-            <td colspan="3" class="label" style="text-align:center;">상담내용</td>
+            <td colspan="3" style="padding: 0;">
+                <div class="content-label-cell">
+                    <span>상담내용</span>
+                    <button type="button" id="copyBtn">복사</button>
+                </div>
+            </td>
         </tr>
         <tr>
             <td colspan="3" class="content-row">
@@ -211,13 +232,11 @@ window.addEventListener('DOMContentLoaded', function() {
     let currentPickerMonth = new Date().getMonth();
     let rawHistoryData = []; 
 
-    // 기존에 저장된 사용자 이름 있다면 자동으로 불러와 매핑
     const savedUserCode = localStorage.getItem('상담일지_최근사용자코드');
     if (savedUserCode) {
         userCodeInput.value = savedUserCode;
     }
 
-    // 사용자 이름 입력 시 대문자로 자동 변환 및 공백 제거 처리 후 기억
     userCodeInput.addEventListener('input', function(e) {
         e.target.value = e.target.value.toUpperCase().replace(/\s/g, '');
         localStorage.setItem('상담일지_최근사용자코드', e.target.value);
@@ -360,21 +379,19 @@ window.addEventListener('DOMContentLoaded', function() {
     const saveSwitch = document.getElementById('saveModeSwitch');
     const saveLabel  = document.getElementById('saveModeLabel');
     
-    // 기존에 저장된 저장 모드 여부가 있다면 자동으로 복원
     const savedSaveMode = localStorage.getItem('상담일지_저장모드');
     if (savedSaveMode !== null) {
         saveSwitch.checked = savedSaveMode === 'true';
-        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(구글서버저장)';
+        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(서버저장)';
     }
     
     saveSwitch.addEventListener('change', function() {
-        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(구글서버저장)';
+        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(서버저장)';
         localStorage.setItem('상담일지_저장모드', saveSwitch.checked);
     });
 
     document.getElementById('copyBtn').addEventListener('click', function() {
         const userCode   = userCodeInput.value.trim();
-        const dateTime   = document.getElementById('currentDateTime').textContent.trim();
         const phone      = phoneInput.value.trim();
         const name       = nameInput.value.trim();
         const needDate   = dateInput.value.trim();
@@ -403,12 +420,12 @@ window.addEventListener('DOMContentLoaded', function() {
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            alert('상담 데이터가 클립보드에 복사되었습니다. 다른 메모장에 붙여넣기 하세요.');
+            alert('상담 데이터가 클립보드에 복사되었습니다.');
             return;
         }
 
         navigator.clipboard.writeText(textToCopy)
-            .then(() => alert('상담 데이터가 클립보드에 복사되었습니다. 다른 메모장에 붙여넣기 하세요.'))
+            .then(() => alert('상담 데이터가 클립보드에 복사되었습니다.'))
             .catch(() => alert('복사 중 문제가 발생했습니다. 다시 시도해 주세요.'));
     });
 
@@ -427,7 +444,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
         if (!saveSwitch.checked) {
             const formData = new URLSearchParams();
-            formData.append('userCode', userCode); // 서버로 사용자코드 전송
+            formData.append('userCode', userCode);
             formData.append('dateTime', dateTime);
             formData.append('phone', phone);
             formData.append('name', name);
@@ -443,15 +460,14 @@ window.addEventListener('DOMContentLoaded', function() {
                 body: formData.toString()
             })
             .then(() => {
-                alert(`[${userCode}] 구글 시트에 최신 상담내역 저장을 요청했습니다.`);
+                alert(`[${userCode}] 서버 최신 상담내역 저장을 요청했습니다.`);
                 phoneInput.value = ''; nameInput.value = ''; dateInput.value = '';
                 moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
             })
-            .catch(err => alert('구글시트 저장 오류: ' + err));
+            .catch(err => alert('서버 저장 오류: ' + err));
             return;
         }
 
-        // 로컬 저장소를 사용자 이름별로 고유하게 관리하도록 고도화
         let db = [];
         const dbKey = `상담일지_DB_${userCode}`;
         const dbStr = localStorage.getItem(dbKey);
@@ -459,7 +475,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const recordObj = { userCode, dateTime, phone, name, needDate, needAmount, loanType, memo };
         db.push(recordObj);
         localStorage.setItem(dbKey, JSON.stringify(db));
-        alert(`내 컴퓨터(로컬)의 [${userCode}] 전용 공간에 데이터가 안전하게 저장되었습니다.`);
+        alert(`내 컴퓨터(로컬)의 [${userCode}] 전용 공간에 데이터가 저장되었습니다.`);
         phoneInput.value = ''; nameInput.value = ''; dateInput.value = ''; moneyInput.value = ''; typeInput.value = ''; contentInput.value = '';
     });
 
@@ -482,15 +498,13 @@ window.addEventListener('DOMContentLoaded', function() {
             if (!dbStr) { $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 코드로 저장된 로컬 기록이 없습니다.</div>`; return; }
             let db = []; try { db = JSON.parse(dbStr); } catch (e) { db = []; }
             
-            // 가져온 고유 데이터를 최신순(날짜 역순)으로 매핑
             rawHistoryData = db.map((item, originalIndex) => {
                 return { ...item, origIdx: originalIndex };
             }).reverse(); 
             
             renderHistoryCards(rawHistoryData);
         } else {
-            $('#modalTitle').textContent = `[${userCode}] 구글 실시간 히스토리`;
-            // 사용자 이름를 쿼리스트링에 매핑하여 분기 조회 유도
+            $('#modalTitle').textContent = `[${userCode}] 서버 실시간 히스토리`;
             fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`)
             .then(res => res.json())
             .then(data => {
@@ -589,26 +603,26 @@ window.addEventListener('DOMContentLoaded', function() {
                         let db = JSON.parse(dbStr);
                         db.splice(targetData.origIdx, 1); 
                         localStorage.setItem(dbKey, JSON.stringify(db));
-                        alert('로컬 데이터가 완벽하게 삭제되었습니다.');
+                        alert('로컬 데이터가 삭제되었습니다.');
                         loadHistoryData(); 
                     }
                 } 
                 else {
-                    $('#modalBody').innerHTML = '<div class="loading-view">구글 스프레드시트에서 해당 데이터를 영구 삭제 중입니다...</div>';
+                    $('#modalBody').innerHTML = '<div class="loading-view">서버에서 데이터를 삭제 중입니다...</div>';
                     const deleteUrl = `${WEB_APP_URL}?action=delete&userCode=${encodeURIComponent(currentUserCode)}&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
                     
                     fetch(deleteUrl, { method: 'GET' }) 
                     .then(res => res.text())
                     .then(result => {
                         if(result === "성공") {
-                            alert('구글 시트에서 해당 상담 내역 행이 완벽히 삭제되었습니다.');
+                            alert('서버에서 해당 상담 내역이 삭제되었습니다.');
                         } else {
-                            alert('삭제 작업 중 시트 피드백 에러 발생: ' + result);
+                            alert('삭제 실패: ' + result);
                         }
                         loadHistoryData(); 
                     })
                     .catch(err => {
-                        alert('구글 서버 삭제 통신 실패: ' + err);
+                        alert('통신 실패: ' + err);
                         loadHistoryData();
                     });
                 }
