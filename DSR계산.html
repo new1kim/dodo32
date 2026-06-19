@@ -370,7 +370,7 @@
             <ul class="info-list">
               <li><b>ST금리 구분 이유</b>: 스트레스 금리는 DSR 계산식에만 포함하고, 실제 월 부담액(이자) 계산에서는 제외하기 위함입니다.</li>
               <li><b>계산제외 버튼</b>: DSR 연산에서 아예 제외하거나 상환 조건부 상담 시 체크하는 용도입니다.</li>
-              <li><b>신DTI 계산값</b>: 신DTI 계산값은 항상 180개월로 계산되어있음, 그 외는 입력값에 따라 다름.</li>
+              <li><b>신DTI 계산값</b>: 신DTI 계산값은 항상 180개월로 계산되어있음, 그 외는 입력값에 따라 다름. 거치 적용시 180개월 내에서도 해당 기간만큼 거치기간이 반영됩니다.</li>
             </ul>
           </div>
           <div class="footer-version">MP32</div>
@@ -537,6 +537,13 @@
       const type = firstRow.querySelector('.mort-type').value;
       const isInterestOnly = firstRow.querySelector('.mort-interest-only').checked;
 
+      const graceCheck = firstRow.querySelector('.mort-grace-check') ? firstRow.querySelector('.mort-grace-check').checked : false;
+      let graceTerm = parseInt(firstRow.querySelector('.mort-grace-term') ? firstRow.querySelector('.mort-grace-term').value : 0) || 0;
+      if (!graceCheck) graceTerm = 0;
+      if (graceTerm >= term) graceTerm = term > 0 ? term - 1 : 0;
+      let postTerm = term - graceTerm;
+      if (postTerm <= 0) postTerm = 1;
+
       if (amt <= 0 || term <= 0 || pureRate <= 0) {
         tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>본건 대출 정보(금액, 금리, 기간)를 정확히 입력해주세요.</td></tr>";
         return;
@@ -565,14 +572,20 @@
           </tr>`;
         }
       } else if (type === "원리금") {
-        let mPay = amt * mRate / (1 - Math.pow(1 + mRate, -term));
+        let mPayPost = amt * mRate / (1 - Math.pow(1 + mRate, -postTerm));
         for (let i = 1; i <= term; i++) {
           let interest = balance * mRate;
-          let principal = mPay - interest;
-          if (i === term) {
-            principal = balance;
+          let principal = 0;
+          let mPay = interest;
+
+          if (i > graceTerm) {
+            principal = mPayPost - interest;
+            if (i === term) {
+              principal = balance;
+            }
             mPay = principal + interest;
           }
+
           balance -= principal;
           if (balance < 0) balance = 0;
           
@@ -587,12 +600,17 @@
           </tr>`;
         }
       } else if (type === "원금") {
-        const fixedPrincipal = amt / term;
+        const fixedPrincipal = amt / postTerm;
         for (let i = 1; i <= term; i++) {
-          let principal = fixedPrincipal;
-          if (i === term) principal = balance;
           let interest = balance * mRate;
+          let principal = 0;
+
+          if (i > graceTerm) {
+            principal = fixedPrincipal;
+            if (i === term) principal = balance;
+          }
           let currentPay = principal + interest;
+
           balance -= principal;
           if (balance < 0) balance = 0;
 
@@ -899,14 +917,37 @@
         const type = row.querySelector('.mort-type').value;
         const isInterestOnly = row.querySelector('.mort-interest-only').checked;
 
+        const graceCheck = row.querySelector('.mort-grace-check') ? row.querySelector('.mort-grace-check').checked : false;
+        let graceTerm = parseInt(row.querySelector('.mort-grace-term') ? row.querySelector('.mort-grace-term').value : 0) || 0;
+        if (!graceCheck) graceTerm = 0;
+        if (graceTerm >= term) graceTerm = term > 0 ? term - 1 : 0;
+        
+        let postTerm = term - graceTerm;
+        if (postTerm <= 0) postTerm = 1;
+
+        // 신DTI 180개월 기준에도 거치기간 축소분을 동일하게 반영 (최대 179개월 제한)
+        let fixGrace = graceTerm >= 180 ? 179 : graceTerm;
+        let fixPostTerm = 180 - fixGrace;
+        if (fixPostTerm <= 0) fixPostTerm = 1;
+
         let monthlyRes;
         if (isInterestOnly || type === "만기") {
             const mInt = amt * pureRate / 12;
             monthlyRes = { 월상환금액: mInt, 첫달원금: 0, 첫달이자: mInt };
         } else if (type === "원리금") {
-            monthlyRes = 원리금균등_계산대출(amt, pureRate, term);
+            if (graceTerm > 0) {
+                const mInt = amt * pureRate / 12;
+                monthlyRes = { 월상환금액: mInt, 첫달원금: 0, 첫달이자: mInt };
+            } else {
+                monthlyRes = 원리금균등_계산대출(amt, pureRate, term);
+            }
         } else {
-            monthlyRes = 원금균등_월부담액(amt, pureRate, term);
+            if (graceTerm > 0) {
+                const mInt = amt * pureRate / 12;
+                monthlyRes = { 월상환금액: mInt, 첫달원금: 0, 첫달이자: mInt };
+            } else {
+                monthlyRes = 원금균등_월부담액(amt, pureRate, term);
+            }
         }
         
         if (index === 0) {
@@ -920,17 +961,18 @@
           const annualInt = amt * combinedRate;
           annualRes = { annual: annualInt, fixAnnual: annualInt };
         } else if (type === "원리금") {
-          const calc = 원리금균등_계산대출(amt, combinedRate, term);
-          const fix = 원리금균등_계산대출(amt, combinedRate, 180);
+          const calc = 원리금균등_계산대출(amt, combinedRate, postTerm);
+          const fix = 원리금균등_계산대출(amt, combinedRate, fixPostTerm); // 신DTI에도 거치 차감기간 적용
           annualRes = { annual: calc.월상환금액 * 12, fixAnnual: fix.월상환금액 * 12 };
         } else if (type === "원금") {
-          const calcA = 원금균등_연간계산(amt, combinedRate, term);
-          const fixA = 원금균등_연간계산(amt, combinedRate, 180);
+          const calcA = 원금균등_연간계산(amt, combinedRate, postTerm);
+          const fixA = 원금균등_연간계산(amt, combinedRate, fixPostTerm); // 신DTI에도 거치 차감기간 적용
           annualRes = { annual: calcA.대출합계, fixAnnual: fixA.대출합계 };
         } else { 
-          const years = term / 12 || 1;
+          const years = postTerm / 12 || 1;
+          const fixYears = fixPostTerm / 12 || 1; // 신DTI에도 거치 차감기간 적용
           const annualAnnual = (amt * combinedRate) + (amt / years);
-          const fixAnnual = (amt * combinedRate) + (amt / 15);
+          const fixAnnual = (amt * combinedRate) + (amt / fixYears);
           annualRes = { annual: annualAnnual, fixAnnual: fixAnnual };
         }
 
@@ -989,11 +1031,18 @@
           const stRateValue1 = parseFloat(firstRow.querySelector('.mort-st-rate').value) || 0;
           const combinedRate1 = pureRate1 + (stRateValue1 / 100);
           const term1 = parseInt(firstRow.querySelector('.mort-term').value) || 0;
+          
+          const graceCheck1 = firstRow.querySelector('.mort-grace-check') ? firstRow.querySelector('.mort-grace-check').checked : false;
+          let graceTerm1 = parseInt(firstRow.querySelector('.mort-grace-term') ? firstRow.querySelector('.mort-grace-term').value : 0) || 0;
+          if (!graceCheck1) graceTerm1 = 0;
+          if (graceTerm1 >= term1) graceTerm1 = term1 > 0 ? term1 - 1 : 0;
+          let postTerm1 = term1 - graceTerm1;
+          if (postTerm1 <= 0) postTerm1 = 1;
 
           if (combinedRate1 > 0 && term1 > 0) {
             const mRate = combinedRate1 / 12;
-            const annualPaymentPerUnit원리금 = (mRate / (1 - Math.pow(1 + mRate, -term1))) * 12;
-            const annualPaymentPerUnit원금 = (6 * mRate * (1 + 1 / term1)) + (12 / term1);
+            const annualPaymentPerUnit원리금 = (mRate / (1 - Math.pow(1 + mRate, -postTerm1))) * 12;
+            const annualPaymentPerUnit원금 = (6 * mRate * (1 + 1 / postTerm1)) + (12 / postTerm1);
 
             const maxTotalAnnualPayment40 = income * 0.4;
             const availableForMortgage40 = maxTotalAnnualPayment40 - existingOtherDebtPayment;
@@ -1065,6 +1114,13 @@
         });
       });
 
+      row.querySelectorAll('.mort-grace-term').forEach(el => {
+        el.addEventListener("input", (e) => {
+          e.target.value = e.target.value.replace(/\D/g, '');
+          자동계산();
+        });
+      });
+
       let longPressTimer;
       let inputLongPressTimer;
 
@@ -1121,6 +1177,7 @@
           }
           if (e.target.classList.contains('mort-interest-only')) showBubble(e.target.checked ? "이자만 적용" : "원금+이자 적용");
           if (e.target.classList.contains('mort-exclude')) showBubble(e.target.checked ? "계산 제외" : "대출 적용");
+          if (e.target.classList.contains('mort-grace-check')) showBubble(e.target.checked ? "거치 적용" : "거치 해제");
           자동계산();
         });
 
@@ -1175,10 +1232,10 @@
         <td class="no-bg" style="padding: 6px 4px; vertical-align: middle;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(38px, auto); gap: 6px; width:100%;">
             <div style="display:flex; justify-content:center; align-items:center; padding:6px; background:#fbfdff; border-radius:8px;">
-              <input type="checkbox" class="mort-exclude">
+              <input type="checkbox" class="mort-exclude" title="계산제외">
             </div>
             <div style="display:flex; justify-content:center; align-items:center; padding:6px; background:#fbfdff; border-radius:8px;">
-              <input type="checkbox" class="mort-interest-only">
+              <input type="checkbox" class="mort-interest-only" title="이자만적용">
             </div>
             <div style="grid-column: 1 / -1;">
               <select class="dropdown-select">
@@ -1213,6 +1270,10 @@
             <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
           </div>
           <input type="hidden" class="mort-type" value="원리금">
+          <div style="display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 6px;">
+            <input type="checkbox" class="mort-grace-check" title="거치 적용">
+            <input type="text" inputmode="numeric" placeholder="거치(개월)" class="mort-grace-term" style="width: 70%; padding: 4px; font-size: 11px;">
+          </div>
         </td>
       `;
       
