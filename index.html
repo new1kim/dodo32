@@ -198,7 +198,6 @@
       const version = '250605_1';
       const contentFrame = document.getElementById('content-frame');
       if (contentFrame) {
-        // 메뉴 버튼을 직접 눌러 이동할 때도 history가 비정상적으로 쌓이는 것을 방지하기 위해 location.replace 적용
         if (contentFrame.contentWindow) {
           contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
         } else {
@@ -233,7 +232,6 @@
       });
     }
 
-    // iframe 속성 오류 수정본: 히스토리가 쌓이지 않도록 location.replace 사용
     function updateFramesSrc() {
       const version = '250605_1';
       const isWideScreen = window.innerWidth >= 768;
@@ -247,7 +245,6 @@
       const consultingSrc = consultingFrame.getAttribute('src') || '';
 
       if (isWideScreen) {
-        // PC 모드: 3개 화면 출력
         if (contentSrc === '' || contentSrc.includes('main.html')) {
           if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산.html?v=${version}`);
           else contentFrame.setAttribute('src', `DSR계산.html?v=${version}`);
@@ -261,7 +258,6 @@
           else consultingFrame.setAttribute('src', `상담일지.html?v=${version}`);
         }
       } else {
-        // 모바일 모드: 1개 화면 출력
         if (contentSrc === '' || !contentSrc.includes('main.html')) {
           if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`main.html?v=${version}`);
           else contentFrame.setAttribute('src', `main.html?v=${version}`);
@@ -363,34 +359,28 @@
       }
     }
 
-    // iframe 새로고침 없이 CSS order만 바꾸는 완벽한 Drag & Drop
     function initDragAndDrop() {
       const containers = document.querySelectorAll('.frame-container');
       let draggedItem = null;
 
-      // 초기 순서(order)값 부여
       containers.forEach((container, index) => {
         container.style.order = index + 1;
 
         container.addEventListener('dragstart', (e) => {
           draggedItem = container;
           setTimeout(() => container.classList.add('dragging'), 0);
-          
-          // [핵심 해결책] 드래그 중에는 iframe이 이벤트를 훔치지 못하도록 클릭/마우스 감지 무효화
           document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'none');
         });
 
         container.addEventListener('dragend', () => {
           container.classList.remove('dragging');
           draggedItem = null;
-          
-          // 마우스 감지 원상복구
           document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'auto');
           containers.forEach(c => c.classList.remove('drag-over'));
         });
 
         container.addEventListener('dragover', (e) => {
-          e.preventDefault(); // Drop을 허용하려면 필수
+          e.preventDefault();
         });
 
         container.addEventListener('dragenter', (e) => {
@@ -409,7 +399,6 @@
           container.classList.remove('drag-over');
           
           if (draggedItem && draggedItem !== container) {
-            // [핵심 해결책] DOM 구조를 건드려 새로고침하지 않고, CSS 'order' 속성만 스왑하여 시각적 위치만 변경
             const tempOrder = container.style.order;
             container.style.order = draggedItem.style.order;
             draggedItem.style.order = tempOrder;

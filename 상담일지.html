@@ -21,8 +21,14 @@
         .top-actions .left-actions { display:flex; align-items:center; gap:8px; }
         .top-actions .right-actions { display:flex; align-items:center; gap:8px; }
 
+        /* 사용자 이름 인증 콘테이너 및 요소 스타일 */
+        .user-auth-container { display: flex; align-items: center; gap: 4px; }
         .user-code-input { width: 100px; padding: 8px 10px; font-size: 13px; font-weight: bold; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; text-align: center; color: #1e293b; background: #f8fafc; transition: all 0.2s; }
         .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15); }
+        
+        .user-submit-btn { height: 35px; padding: 0 10px; font-size: 12px; font-weight: 600; color: #ffffff; background-color: #0f172a; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; font-family: inherit; }
+        .user-submit-btn:hover { background-color: #334155; }
+        .user-display-name { font-size: 14px; font-weight: 700; color: #334155; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
 
         button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); white-space: nowrap; }
         #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 5px 12px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 6px rgba(53, 123, 234, 0.2); }
@@ -117,6 +123,8 @@
             th, td, input, textarea { font-size: 13px; }
             textarea { height: 320px; }
             .history-modal { width: 100%; right: -100%; }
+            .user-auth-container { width: 100%; }
+            .user-code-input { width: 100% !important; }
         }
     </style>
 </head>
@@ -126,7 +134,12 @@
     <div class="top-actions">
         <div class="left-actions"></div>
         <div class="right-actions">
-            <input type="text" id="userCodeInput" class="user-code-input" placeholder="👤 사용자 이름" title="사용자 이름을 입력하세요" style="width: 125px !important;">
+            <div id="authSection" class="user-auth-container">
+                <input type="text" id="userCodeInput" class="user-code-input" placeholder="👤 사용자 이름" title="사용자 이름을 입력하세요" style="width: 125px !important;" onkeydown="if(event.key === 'Enter') submitUserCode()">
+                <button type="button" id="authSubmitBtn" class="user-submit-btn" onclick="submitUserCode()">확인</button>
+            </div>
+            <span id="userDisplay" class="user-display-name" style="display: none;"></span>
+            
             <label style="vertical-align:middle; display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="saveModeSwitch" checked style="accent-color:var(--primary); width:18px; height:18px; vertical-align:middle;">
                 <span id="saveModeLabel" style="font-size:14px; font-weight:700; color:#1e293b;">On(로컬저장)</span>
@@ -219,6 +232,29 @@
 </div>
 
 <script>
+function proceedToApp(userName) {
+    document.getElementById('authSection').style.display = 'none';
+    const displayEl = document.getElementById('userDisplay');
+    displayEl.textContent = `👤 ${userName}`;
+    displayEl.style.display = 'inline-block';
+    
+    const inputEl = document.getElementById('userCodeInput');
+    if(inputEl) inputEl.value = userName;
+}
+
+function submitUserCode() {
+    const inputEl = document.getElementById('userCodeInput');
+    const name = inputEl.value.trim().toUpperCase().replace(/\s/g, '');
+    
+    if (!name) {
+        alert("사용자 이름을 입력해주세요.");
+        return;
+    }
+
+    localStorage.setItem('calc_user_name', name);
+    proceedToApp(name);
+}
+
 window.addEventListener('DOMContentLoaded', function() {
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynY6KNzjtmWcEHxFdpV7S77uD-oRj_sX_dMhpjopftsWj_ceDB2P2lFJHjsdiSGPDf/exec';
     
@@ -237,7 +273,10 @@ window.addEventListener('DOMContentLoaded', function() {
     const nameInput    = $('input[placeholder="이름 입력"]');
     const dateInput    = document.getElementById('needDateInput');
     const moneyInput   = $('input[placeholder="예: 250,000,000"]');
-    const typeInput    = $('input[placeholder="예: 담보"]');
+    
+    // 이 부분의 셀렉터를 HTML placeholder 규격과 완전히 일치하도록 수정하였습니다.
+    const typeInput    = $('input[placeholder="단지명,평,층"]');
+    
     const contentInput = $('textarea[placeholder="상담내용을 입력해 주세요."]');
     
     const brokerInput     = $('input[placeholder="중개업소 입력"]');
@@ -255,14 +294,13 @@ window.addEventListener('DOMContentLoaded', function() {
     let currentPickerMonth = new Date().getMonth();
     let rawHistoryData = []; 
 
-    const savedUserCode = localStorage.getItem('상담일지_최근사용자코드');
+    const savedUserCode = localStorage.getItem('calc_user_name');
     if (savedUserCode) {
-        userCodeInput.value = savedUserCode;
+        proceedToApp(savedUserCode);
     }
 
     userCodeInput.addEventListener('input', function(e) {
         e.target.value = e.target.value.toUpperCase().replace(/\s/g, '');
-        localStorage.setItem('상담일지_최근사용자코드', e.target.value);
     });
 
     phoneInput.addEventListener('input', function(e) {
@@ -500,7 +538,6 @@ window.addEventListener('DOMContentLoaded', function() {
         const saleStatus = document.querySelectorAll('.label-toggle')[1].querySelector('.toggle-btn.active').textContent;
         const salePrice  = salePriceInput.value.trim();
 
-        // 필요금액 복사 포맷 가공 (요청사항 반영)
         let formattedAmount = needAmount || '';
         if (needAmount) {
             const matchPct = needAmountLabel.textContent.match(/\(([^)]+)\)/);
