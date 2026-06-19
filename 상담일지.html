@@ -148,12 +148,12 @@
         </tr>
         <tr>
             <td class="label">필요일자</td>
-            <td class="label">대출구분</td>
+            <td class="label">물건정보</td>
             <td class="label">중개업소</td>
         </tr>
         <tr>
             <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric"></td>
-            <td><input type="text" placeholder="예: 담보" inputmode="text" lang="ko"></td>
+            <td><input type="text" placeholder="단지명,평,층" inputmode="text" lang="ko"></td>
             <td><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
@@ -513,7 +513,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const lines = [
             phone || '',
             `고객명 : ${name || ''}`,
-            `대출구분 : ${loanType || ''}`,
+            `물건지정보 : ${loanType || ''}`,
             `잔금일자 : ${needDate || ''}`,
             `중개업소 : ${broker || ''}`,
             `${kbStatus} : ${kbPrice || ''}`,
