@@ -40,10 +40,15 @@
       white-space: nowrap;
       border: 1px solid #bae6fd;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .visitor-counter:hover {
       background-color: #bfdbfe;
+    }
+    
+    .visitor-counter:active {
+      transform: scale(0.97);
     }
 
     /* 이름 입력 영역 스타일 */
@@ -73,10 +78,22 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .user-submit-btn:hover {
       background-color: #334155;
+    }
+
+    .user-submit-btn:active {
+      transform: scale(0.95);
+      background-color: #1e293b;
+    }
+
+    .user-submit-btn.touch-active {
+      transform: scale(0.95);
+      background-color: #1e293b;
     }
 
     /* 이름 인증 완료 전까지 숨겨질 메뉴 버튼과 본문 영역 */
@@ -97,6 +114,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+      -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
     }  
     
     .button-container button.nav-btn:hover {
@@ -104,14 +122,29 @@
       color: #1e293b;
     }
 
+    /* 모바일 환경 터치 피드백 효과 강화 */
     .button-container button.nav-btn:active {
-      transform: scale(0.96);
+      transform: scale(0.95) !important;
+      background-color: #cbd5e1;
+    }
+
+    .button-container button.nav-btn.touch-active {
+      transform: scale(0.95) !important;
+      background-color: #cbd5e1;
     }
 
     .button-container button.active-nav {
       background-color: #2563eb;
       color: #ffffff;
       box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    }
+
+    .button-container button.active-nav:active {
+      background-color: #1d4ed8;
+    }
+
+    .button-container button.active-nav.touch-active {
+      background-color: #1d4ed8;
     }
 
     /* 프레임들을 감싸는 메인 래퍼 */
@@ -194,6 +227,10 @@
     }
   </style>
   <script>
+    // 가상 키보드 팝업 등으로 인해 프레임이 강제 새로고침되는 현상을 막기 위한 모드 저장용 변수
+    let lastLayoutMode = window.innerWidth >= 768 ? 'wide' : 'mobile';
+    let isResizing = false;
+
     function loadPage(page, element) {
       const version = '250605_1';
       const contentFrame = document.getElementById('content-frame');
@@ -223,13 +260,21 @@
 
       initLongPressLink();
       initDragAndDrop();
+      initTouchFeedback();
       
       window.addEventListener('resize', () => {
         const savedName = localStorage.getItem('calc_user_name');
         if (savedName) {
-          updateFramesSrc();
+          // 모바일 입력 패드 동작 시 불필요한 새로고침 현상을 완전 원천 차단하기 위한 뷰포트 가로폭 조건 확인 검증
+          const currentMode = window.innerWidth >= 768 ? 'wide' : 'mobile';
+          if (currentMode !== lastLayoutMode) {
+            lastLayoutMode = currentMode;
+            isResizing = true;
+            updateFramesSrc();
+            isResizing = false;
+          }
         }
-      });
+      }, false);
     }
 
     function updateFramesSrc() {
@@ -313,6 +358,38 @@
       longPressTarget.addEventListener('mouseleave', cancelPress);
       longPressTarget.addEventListener('touchend', cancelPress);
       longPressTarget.addEventListener('touchcancel', cancelPress);
+    }
+
+    function initTouchFeedback() {
+      const buttons = document.querySelectorAll('.button-container button');
+      
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+          this.classList.add('touch-active');
+        }, { passive: true });
+
+        button.addEventListener('touchend', function(e) {
+          this.classList.remove('touch-active');
+        }, { passive: true });
+
+        button.addEventListener('touchcancel', function(e) {
+          this.classList.remove('touch-active');
+        }, { passive: true });
+
+        button.addEventListener('mousedown', function(e) {
+          if (e.pointerType !== 'touch') {
+            this.classList.add('touch-active');
+          }
+        });
+
+        button.addEventListener('mouseup', function(e) {
+          this.classList.remove('touch-active');
+        });
+
+        button.addEventListener('mouseleave', function(e) {
+          this.classList.remove('touch-active');
+        });
+      });
     }
 
     function startWorkerRecordAccess(userName) {
@@ -418,10 +495,10 @@
       <button type="button" class="user-submit-btn" onclick="submitUserName()">확인</button>
     </div>
 
-    <button class="nav-btn locked-content" onclick="loadPage('main.html', this)">DTI 계산</button>
-    <button class="nav-btn locked-content" onclick="loadPage('DSR계산.html', this)">DSR 계산</button>
-    <button class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
-    <button class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('main.html', this)">DTI 계산</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('DSR계산.html', this)">DSR 계산</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
   </div>
   
   <div class="main-wrapper locked-content">
