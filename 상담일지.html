@@ -258,14 +258,15 @@ function submitUserCode() {
 window.addEventListener('DOMContentLoaded', function() {
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynY6KNzjtmWcEHxFdpV7S77uD-oRj_sX_dMhpjopftsWj_ceDB2P2lFJHjsdiSGPDf/exec';
     
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
+    // 페이지 로드 시점 시간 표시용 (기존 유지)
+    const nowInit = new Date();
+    const yyInit = String(nowInit.getFullYear()).slice(-2);
+    const mmInit = String(nowInit.getMonth() + 1).padStart(2, '0');
+    const ddInit = String(nowInit.getDate()).padStart(2, '0');
+    const hhInit = String(nowInit.getHours()).padStart(2, '0');
+    const minInit = String(nowInit.getMinutes()).padStart(2, '0');
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    document.getElementById('currentDateTime').textContent = `${yy}/${mm}/${dd} (${dayNames[now.getDay()]}) ${hh}:${min}`;
+    document.getElementById('currentDateTime').textContent = `${yyInit}/${mmInit}/${ddInit} (${dayNames[nowInit.getDay()]}) ${hhInit}:${minInit}`;
 
     const $ = sel => document.querySelector(sel);
     const userCodeInput = document.getElementById('userCodeInput');
@@ -274,7 +275,6 @@ window.addEventListener('DOMContentLoaded', function() {
     const dateInput    = document.getElementById('needDateInput');
     const moneyInput   = $('input[placeholder="예: 250,000,000"]');
     
-    // 이 부분의 셀렉터를 HTML placeholder 규격과 완전히 일치하도록 수정하였습니다.
     const typeInput    = $('input[placeholder="단지명,평,층"]');
     
     const contentInput = $('textarea[placeholder="상담내용을 입력해 주세요."]');
@@ -515,11 +515,11 @@ window.addEventListener('DOMContentLoaded', function() {
     const savedSaveMode = localStorage.getItem('상담일지_저장모드');
     if (savedSaveMode !== null) {
         saveSwitch.checked = savedSaveMode === 'true';
-        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(서버저장)';
+        saveLabel.textContent = saveSwitch.checked ? '[로컬저장]' : '[서버저장]';
     }
     
     saveSwitch.addEventListener('change', function() {
-        saveLabel.textContent = saveSwitch.checked ? 'On(로컬저장)' : 'Off(서버저장)';
+        saveLabel.textContent = saveSwitch.checked ? '[로컬저장]' : '[서버저장]';
         localStorage.setItem('상담일지_저장모드', saveSwitch.checked);
     });
 
@@ -581,7 +581,17 @@ window.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('saveBtn').addEventListener('click', function() {
         const userCode   = userCodeInput.value.trim();
-        const dateTime   = document.getElementById('currentDateTime').textContent.trim();
+        
+        // [수정사항] 저장 버튼을 누르는 현재 시점으로 시간을 생성
+        const nowClick = new Date();
+        const yyClick = String(nowClick.getFullYear()).slice(-2);
+        const mmClick = String(nowClick.getMonth() + 1).padStart(2, '0');
+        const ddClick = String(nowClick.getDate()).padStart(2, '0');
+        const hhClick = String(nowClick.getHours()).padStart(2, '0');
+        const minClick = String(nowClick.getMinutes()).padStart(2, '0');
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const dateTime = `${yyClick}/${mmClick}/${ddClick} (${dayNames[nowClick.getDay()]}) ${hhClick}:${minClick}`;
+        
         const phone      = phoneInput.value.trim();
         const name       = nameInput.value.trim();
         let needDate     = dateInput.value.trim();
@@ -809,6 +819,60 @@ window.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // 상담일지 LocalStorage 저장 함수
+    function saveConsultingInputs() {
+        const inputData = {
+            userCode: userCodeInput.value,
+            phone: phoneInput.value,
+            name: nameInput.value,
+            needDate: dateInput.value,
+            needAmount: moneyInput.value,
+            loanType: typeInput.value,
+            content: contentInput.value,
+            broker: brokerInput.value,
+            kbPrice: kbPriceInput.value,
+            salePrice: salePriceInput.value
+        };
+        localStorage.setItem('consulting_inputs', JSON.stringify(inputData));
+    }
+
+    // 상담일지 LocalStorage 로드 함수
+    function loadConsultingInputs() {
+        const savedData = localStorage.getItem('consulting_inputs');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                if (data.userCode) userCodeInput.value = data.userCode;
+                if (data.phone) phoneInput.value = data.phone;
+                if (data.name) nameInput.value = data.name;
+                if (data.needDate) dateInput.value = data.needDate;
+                if (data.needAmount) moneyInput.value = data.needAmount;
+                if (data.loanType) typeInput.value = data.loanType;
+                if (data.content) contentInput.value = data.content;
+                if (data.broker) brokerInput.value = data.broker;
+                if (data.kbPrice) kbPriceInput.value = data.kbPrice;
+                if (data.salePrice) salePriceInput.value = data.salePrice;
+            } catch (e) {
+                console.warn('Failed to load consulting data:', e);
+            }
+        }
+    }
+
+    // 자동 저장 설정
+    function setupConsultingAutoSave() {
+        [userCodeInput, phoneInput, nameInput, dateInput, moneyInput, typeInput, 
+         contentInput, brokerInput, kbPriceInput, salePriceInput].forEach(input => {
+            if (input) {
+                input.addEventListener('change', saveConsultingInputs);
+                input.addEventListener('input', saveConsultingInputs);
+            }
+        });
+    }
+
+    // 페이지 로드 시 저장된 데이터 복원
+    loadConsultingInputs();
+    setupConsultingAutoSave();
 
     $('#historySearch').addEventListener('input', function(e) {
         const keyword = e.target.value.toLowerCase().trim();

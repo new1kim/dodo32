@@ -408,12 +408,65 @@
       }
     });
 
+    // MCG 페이지 LocalStorage 관련 함수들
+    function saveMCGInputs() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select');
+      inputs.forEach(input => {
+        if (input.id) {
+          localStorage.setItem(`MCG_${input.id}`, input.value);
+        }
+      });
+      
+      // 체크박스 저장
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.id) {
+          localStorage.setItem(`MCG_${checkbox.id}`, checkbox.checked);
+        }
+      });
+    }
+
+    function loadMCGInputs() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select');
+      inputs.forEach(input => {
+        if (input.id) {
+          const savedValue = localStorage.getItem(`MCG_${input.id}`);
+          if (savedValue !== null && savedValue !== '') {
+            input.value = savedValue;
+          }
+        }
+      });
+      
+      // 체크박스 복원
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.id) {
+          const savedValue = localStorage.getItem(`MCG_${checkbox.id}`);
+          if (savedValue !== null) {
+            checkbox.checked = savedValue === 'true';
+          }
+        }
+      });
+    }
+
+    function setupMCGAutoSave() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select, input[type="checkbox"]');
+      inputs.forEach(input => {
+        input.addEventListener('change', saveMCGInputs);
+        if (input.type !== 'checkbox') {
+          input.addEventListener('input', saveMCGInputs);
+        }
+      });
+    }
+
     window.onload = () => {
       loadRatios();
+      loadMCGInputs(); // 저장된 입력값 로드
       formatWithCommas('주택가격');
       formatWithCommas('필요금액');
       formatWithCommas('소액임차금액'); // 소액임차금액에 콤마 자동 추가
       loadSmallLeaseAmount(); // 소액임차금액 로드
+      setupMCGAutoSave(); // 자동 저장 설정
     };
   </script>
 </body>

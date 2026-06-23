@@ -515,11 +515,97 @@
     });
   }
 
+  // LocalStorage 관련 함수들 (연소득 공용 동기화 포함)
+  function saveAllInputs() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+    inputs.forEach(input => {
+      if (input.id && !input.hasAttribute('readonly')) {
+        localStorage.setItem(`main_${input.id}`, input.value);
+      }
+    });
+    localStorage.setItem('main_selectedType', selectedType || '');
+    
+    // 추가: 연소득 필드 입력 시 DSR계산기와 연동되도록 공용 저장소 사용
+    const incomeInput = document.getElementById("연소득");
+    if (incomeInput) {
+      localStorage.setItem("SHARED_ANNUAL_INCOME", incomeInput.value);
+    }
+  }
+
+  function loadAllInputs() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+    inputs.forEach(input => {
+      if (input.id) {
+        const savedValue = localStorage.getItem(`main_${input.id}`);
+        if (savedValue !== null) {
+          input.value = savedValue;
+        }
+      }
+    });
+    
+    // 추가: 공용 저장소의 소득 정보가 있으면 최우선적으로 불러오기 적용
+    const sharedIncome = localStorage.getItem("SHARED_ANNUAL_INCOME");
+    const incomeInput = document.getElementById("연소득");
+    if (sharedIncome !== null && incomeInput) {
+      incomeInput.value = sharedIncome;
+    }
+    
+    const savedType = localStorage.getItem('main_selectedType');
+    if (savedType) {
+      selectedType = savedType;
+      const buttonMap = {
+        '카드사용액': '.카드버튼',
+        '건강보험': '.건보버튼',
+        '연금납부': '.연금버튼',
+        '전월세': '.전월세버튼',
+        '주신보': '.주신보'
+      };
+      const button = document.querySelector(buttonMap[savedType]);
+      if (button) {
+        updateFields(savedType);
+      }
+    }
+  }
+
+  function clearAllStorageData() {
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('main_')) {
+        localStorage.removeItem(key);
+      }
+    });
+  }
+
+  // 모든 입력 필드에 자동 저장 기능 추가
+  function setupAutoSave() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], textarea');
+    inputs.forEach(input => {
+      input.addEventListener('change', saveAllInputs);
+      input.addEventListener('input', saveAllInputs);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
-    resetFields();
+    setupAutoSave();
+    loadAllInputs();
     setupPopupButton();
     setupSettingsPersistence();
-    document.querySelector(".카드버튼").click();
+    
+    if (!selectedType) {
+      resetFields();
+      document.querySelector(".카드버튼").click();
+    } else {
+      // 저장된 타입으로 필드 업데이트
+      const buttonMap = {
+        '카드사용액': '.카드버튼',
+        '건강보험': '.건보버튼',
+        '연금납부': '.연금버튼',
+        '전월세': '.전월세버튼',
+        '주신보': '.주신보'
+      };
+      const button = document.querySelector(buttonMap[selectedType]);
+      if (button) button.click();
+    }
   });
 </script>
 

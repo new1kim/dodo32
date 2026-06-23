@@ -1427,12 +1427,66 @@
         자동계산();
     });
 
+    // DSR 페이지 LocalStorage 관련 함수들
+    function saveDSRInputs() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+      inputs.forEach(input => {
+        if (input.id) {
+          localStorage.setItem(`DSR_${input.id}`, input.value);
+        }
+      });
+      
+      // 체크박스도 저장
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.id) {
+          localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
+        }
+      });
+    }
+
+    function loadDSRInputs() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+      inputs.forEach(input => {
+        if (input.id) {
+          const savedValue = localStorage.getItem(`DSR_${input.id}`);
+          if (savedValue !== null) {
+            input.value = savedValue;
+          }
+        }
+      });
+      
+      // 체크박스 복원
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.id) {
+          const savedValue = localStorage.getItem(`DSR_${checkbox.id}`);
+          if (savedValue !== null) {
+            checkbox.checked = savedValue === 'true';
+          }
+        }
+      });
+    }
+
+    function setupDSRAutoSave() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]');
+      inputs.forEach(input => {
+        input.addEventListener('change', saveDSRInputs);
+        if (input.type !== 'checkbox') {
+          input.addEventListener('input', saveDSRInputs);
+        }
+      });
+    }
+
     /* 초기 기본 세팅 로드 및 DOM 바인딩 */
     window.addEventListener("DOMContentLoaded", () => {
       for(let i=0; i<3; i++) {
          주담대행추가();
       }
       updateMortgagePlaceholders();
+
+      // 저장된 데이터 로드
+      loadDSRInputs();
 
       const savedFirstRowData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
       if (savedFirstRowData) {
@@ -1444,6 +1498,9 @@
           if (data.term) firstRow.querySelector('.mort-term').value = data.term;
         }
       }
+
+      // 자동 저장 설정
+      setupDSRAutoSave();
 
       자동계산();
       adjustDsrMaxFontSize();
