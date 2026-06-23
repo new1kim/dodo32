@@ -1429,6 +1429,7 @@
 
     // DSR 페이지 LocalStorage 관련 함수들
     function saveDSRInputs() {
+      // 1. 기본 입력 필드 저장 (ID가 있는 것들)
       const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
       inputs.forEach(input => {
         if (input.id) {
@@ -1436,16 +1437,44 @@
         }
       });
       
-      // 체크박스도 저장
+      // 2. 체크박스 저장
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
         if (checkbox.id) {
           localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
         }
       });
+
+      // 3. 대출정보 입력 테이블(mortgage-row) 전체 저장
+      saveMortgageRows();
+    }
+
+    // 대출정보 행들을 JSON으로 저장
+    function saveMortgageRows() {
+      const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
+      const mortgageData = [];
+      
+      rows.forEach((row, index) => {
+        const rowData = {
+          exclude: row.querySelector('.mort-exclude')?.checked || false,
+          interestOnly: row.querySelector('.mort-interest-only')?.checked || false,
+          loanType: row.querySelector('select.dropdown-select')?.value || '직접입력',
+          amount: row.querySelector('.mort-amt')?.value || '',
+          rate: row.querySelector('.mort-rate')?.value || '',
+          stRate: row.querySelector('.mort-st-rate')?.value || '',
+          term: row.querySelector('.mort-term')?.value || '',
+          repaymentType: row.querySelector('.mort-type')?.value || '원리금',
+          graceCheck: row.querySelector('.mort-grace-check')?.checked || false,
+          graceTerm: row.querySelector('.mort-grace-term')?.value || ''
+        };
+        mortgageData.push(rowData);
+      });
+      
+      localStorage.setItem('DSR_mortgageData', JSON.stringify(mortgageData));
     }
 
     function loadDSRInputs() {
+      // 1. 기본 입력 필드 복원
       const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
       inputs.forEach(input => {
         if (input.id) {
@@ -1456,7 +1485,7 @@
         }
       });
       
-      // 체크박스 복원
+      // 2. 체크박스 복원
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
         if (checkbox.id) {
@@ -1466,6 +1495,75 @@
           }
         }
       });
+
+      // 3. 대출정보 행들 복원 (약간의 지연 필요 - DOM 생성 후)
+      setTimeout(() => {
+        loadMortgageRows();
+      }, 100);
+    }
+
+    // 대출정보 행들을 JSON에서 복원
+    function loadMortgageRows() {
+      const savedData = localStorage.getItem('DSR_mortgageData');
+      if (!savedData) return;
+      
+      try {
+        const mortgageData = JSON.parse(savedData);
+        const tbody = document.getElementById('mortgage-inputs');
+        
+        if (!tbody) return;
+        
+        // 기존 행들 모두 제거 (처음 3개 행 제외)
+        const existingRows = tbody.querySelectorAll('.mortgage-row');
+        for (let i = 0; i < existingRows.length; i++) {
+          existingRows[i].remove();
+        }
+        
+        mortCount = 0;
+        
+        // 저장된 데이터로 행 재구성
+        mortgageData.forEach((rowData, index) => {
+          주담대행추가();
+          
+          // 지금 추가된 행 참조
+          const rows = tbody.querySelectorAll('.mortgage-row');
+          const currentRow = rows[rows.length - 1];
+          
+          // 데이터 복원
+          if (currentRow) {
+            const exclude = currentRow.querySelector('.mort-exclude');
+            const interestOnly = currentRow.querySelector('.mort-interest-only');
+            const loanTypeSelect = currentRow.querySelector('select.dropdown-select');
+            const amount = currentRow.querySelector('.mort-amt');
+            const rate = currentRow.querySelector('.mort-rate');
+            const stRate = currentRow.querySelector('.mort-st-rate');
+            const term = currentRow.querySelector('.mort-term');
+            const repaymentType = currentRow.querySelector('.mort-type');
+            const graceCheck = currentRow.querySelector('.mort-grace-check');
+            const graceTerm = currentRow.querySelector('.mort-grace-term');
+            
+            if (exclude) exclude.checked = rowData.exclude;
+            if (interestOnly) interestOnly.checked = rowData.interestOnly;
+            if (loanTypeSelect) loanTypeSelect.value = rowData.loanType;
+            if (amount) amount.value = rowData.amount;
+            if (rate) rate.value = rowData.rate;
+            if (stRate) stRate.value = rowData.stRate;
+            if (term) term.value = rowData.term;
+            if (repaymentType) repaymentType.value = rowData.repaymentType;
+            if (graceCheck) graceCheck.checked = rowData.graceCheck;
+            if (graceTerm) graceTerm.value = rowData.graceTerm;
+            
+            // 버튼 상태 업데이트
+            const typeButtons = currentRow.querySelectorAll('.type-btn');
+            typeButtons.forEach(btn => btn.classList.remove('active'));
+            if (rowData.repaymentType === '원리금') typeButtons[0]?.classList.add('active');
+            else if (rowData.repaymentType === '원금') typeButtons[1]?.classList.add('active');
+            else if (rowData.repaymentType === '만기') typeButtons[2]?.classList.add('active');
+          }
+        });
+      } catch (e) {
+        console.warn('Failed to load mortgage data:', e);
+      }
     }
 
     function setupDSRAutoSave() {
@@ -1476,10 +1574,24 @@
           input.addEventListener('input', saveDSRInputs);
         }
       });
+      
+      // Mortgage row의 변경도 감지하기 위해 delegation 사용
+      document.addEventListener('change', (e) => {
+        if (e.target.closest('#mortgage-inputs')) {
+          saveDSRInputs();
+        }
+      });
+      
+      document.addEventListener('input', (e) => {
+        if (e.target.closest('#mortgage-inputs')) {
+          saveDSRInputs();
+        }
+      });
     }
 
     /* 초기 기본 세팅 로드 및 DOM 바인딩 */
     window.addEventListener("DOMContentLoaded", () => {
+      // 초기 3개 행 생성
       for(let i=0; i<3; i++) {
          주담대행추가();
       }
