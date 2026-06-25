@@ -1623,6 +1623,46 @@
       adjustDsrMaxFontSize();
       adjustTableFontSize();
     });
+
+    // 부모(index.html)에서 호출할 전체 필드 초기화 함수
+    function resetAllFields() {
+      // 모든 입력 필드 초기화
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="decimal"], select');
+      inputs.forEach(input => {
+        input.value = '';
+      });
+
+      // 특정 주요 필드들
+      const mainFields = ['baseIncomeInput', 'default-mort-rate', 'default-mort-st-rate', 'default-mort-term'];
+      mainFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.value = '';
+        }
+      });
+
+      // 모든 개별 금리 입력 필드
+      for (let i = 0; i < 5; i++) {
+        const rateField = document.getElementById(`edit-rate-${i}`);
+        if (rateField) {
+          rateField.value = '';
+        }
+      }
+
+      // 동적 행(mortgage-row)의 모든 입력 필드
+      const rows = document.querySelectorAll('.mortgage-row');
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(input => {
+          input.value = '';
+        });
+      });
+
+      // 계산 재실행
+      if (typeof updateDsrValues === 'function') {
+        updateDsrValues();
+      }
+    }
   </script>
 </body>
 </html>

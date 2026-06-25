@@ -666,5 +666,34 @@
       </div>
     </div>
   </div>
-</body>
-</html>
+  <script>
+    // 부모(index.html)에서 호출할 전체 필드 초기화 함수
+    function resetAllFields() {
+      // 주요 입력 필드들 초기화
+      const fieldsToReset = ['연소득', '대출금액', '대출금리', '부채금액', '부채금리', 'annualUsage', 'conversionAmount', 'DTI', '월상환액', 'conversionFormula'];
+      
+      fieldsToReset.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.value = '';
+        }
+      });
+
+      // 설정값 초기화
+      const settingFields = ['카드전환비율', '건보전환비율', '연금전환비율', '전월세전환비율'];
+      settingFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.value = '';
+        }
+      });
+
+      // 계산 재실행 (함수가 있으면)
+      if (typeof calculateDTI === 'function') {
+        calculateDTI();
+      }
+      if (typeof updateConversionAmount === 'function') {
+        updateConversionAmount();
+      }
+    }
+  </script>

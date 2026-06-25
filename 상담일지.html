@@ -901,6 +901,65 @@ window.addEventListener('DOMContentLoaded', function() {
         renderHistoryCards(filtered);
     });
 });
-</script>
-</body>
-</html>
+  </script>
+
+  <script>
+    // 부모(index.html)에서 호출할 전체 필드 초기화 함수
+    function resetAllFields() {
+      // 모든 입력 필드 초기화
+      const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], select, textarea');
+      inputs.forEach(input => {
+        input.value = '';
+      });
+
+      // 체크박스 초기화
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+
+      // 주요 필드들 초기화
+      const mainFields = [
+        'userCodeInput', 'phoneInput', 'nameInput', 'dateInput', 
+        'needDateInput', 'moneyInput', 'typeInput', 'contentInput', 
+        'brokerInput', 'kbPriceInput', 'salePriceInput', 'saveModeSwitch'
+      ];
+      
+      mainFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          if (field.type === 'checkbox') {
+            field.checked = false;
+          } else {
+            field.value = '';
+          }
+        }
+      });
+
+      // 현재 시간 업데이트
+      const currentDateTime = document.getElementById('currentDateTime');
+      if (currentDateTime) {
+        const now = new Date();
+        const year = String(now.getFullYear()).slice(-2);
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        currentDateTime.textContent = `${year}/${month}/${day} ${hours}:${minutes}`;
+      }
+
+      // localStorage에서 상담 관련 데이터 삭제
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.includes('상담') || key.includes('consulting')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // 모달 창 닫기
+      const modalOverlay = document.getElementById('modalOverlay');
+      if (modalOverlay) {
+        modalOverlay.style.display = 'none';
+      }
+    }
+  </script>

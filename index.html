@@ -11,6 +11,9 @@
       height: 100%;
       overscroll-behavior: contain;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
     
     /* 상단 버튼 컨테이너 */
@@ -71,6 +74,8 @@
       border: 1px solid #cbd5e1;
       border-radius: 6px;
       box-sizing: border-box;
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     .user-submit-btn {
@@ -120,6 +125,10 @@
       cursor: pointer;
       transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
       -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
     }  
     
     .button-container button.nav-btn:hover {
@@ -341,14 +350,16 @@
 
     function initLongPressLink() {
       const longPressTarget = document.getElementById('today-count');
-      const linkUrl = 'https://docs.google.com/spreadsheets/d/1OBrhJa2bi26nQBZgUfMgRbk11RVM_9Xe2IPMP6BU494/edit?usp=sharing';
       let pressTimer = null;
 
       const startPress = () => {
         pressTimer = setTimeout(() => {
-          window.open(linkUrl, '_blank');
+          const savedName = localStorage.getItem('calc_user_name');
+          if (savedName) {
+            startWorkerRecordAccess(savedName);
+          }
           pressTimer = null;
-        }, 3000);
+        }, 5000);
       };
 
       const cancelPress = () => {
@@ -504,12 +515,27 @@
         });
       }
 
-      // 프레임 새로고침
-      const version = '250605_1';
-      const src = frame.getAttribute('src');
-      if (src) {
-        const baseUrl = src.split('?')[0];
-        frame.setAttribute('src', `${baseUrl}?v=${version}&t=${Date.now()}`);
+      // iframe 내부의 reset 함수 호출 시도
+      try {
+        if (frame.contentWindow && frame.contentWindow.resetAllFields) {
+          frame.contentWindow.resetAllFields();
+        } else {
+          // 함수가 없으면 프레임 새로고침
+          const version = '250605_1';
+          const src = frame.getAttribute('src');
+          if (src) {
+            const baseUrl = src.split('?')[0];
+            frame.setAttribute('src', `${baseUrl}?v=${version}&t=${Date.now()}`);
+          }
+        }
+      } catch (e) {
+        // 크로스 오리진 에러 등으로 접근 불가할 경우 프레임 새로고침
+        const version = '250605_1';
+        const src = frame.getAttribute('src');
+        if (src) {
+          const baseUrl = src.split('?')[0];
+          frame.setAttribute('src', `${baseUrl}?v=${version}&t=${Date.now()}`);
+        }
       }
     }
 
