@@ -247,12 +247,39 @@
 
     function loadPage(page, element) {
       const version = '250605_1';
-      const contentFrame = document.getElementById('content-frame');
-      if (contentFrame) {
-        if (contentFrame.contentWindow) {
-          contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
+      
+      // 상담일지는 별도 처리 (모바일/PC 모드에 따라 다른 프레임 사용)
+      if (page === '상담일지.html') {
+        if (window.innerWidth < 768) {
+          // 모바일: content-frame 사용
+          const contentFrame = document.getElementById('content-frame');
+          if (contentFrame) {
+            if (contentFrame.contentWindow) {
+              contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
+            } else {
+              contentFrame.setAttribute('src', `${page}?v=${version}`);
+            }
+          }
         } else {
-          contentFrame.setAttribute('src', `${page}?v=${version}`);
+          // PC/태블릿: consulting-frame 사용
+          const consultingFrame = document.getElementById('consulting-frame');
+          if (consultingFrame) {
+            if (consultingFrame.contentWindow) {
+              consultingFrame.contentWindow.location.replace(`${page}?v=${version}`);
+            } else {
+              consultingFrame.setAttribute('src', `${page}?v=${version}`);
+            }
+          }
+        }
+      } else {
+        // 다른 페이지들: content-frame 사용
+        const contentFrame = document.getElementById('content-frame');
+        if (contentFrame) {
+          if (contentFrame.contentWindow) {
+            contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
+          } else {
+            contentFrame.setAttribute('src', `${page}?v=${version}`);
+          }
         }
       }
       
@@ -541,11 +568,20 @@
 
     function getFrameIdFromButton(buttonElement) {
       const btnText = buttonElement.textContent.trim();
+      
+      // 상담일지: 화면 크기에 따라 다른 프레임 반환
+      if (btnText === '상담일지') {
+        if (window.innerWidth < 768) {
+          return 'content-frame';  // 모바일: content-frame
+        } else {
+          return 'consulting-frame';  // PC/태블릿: consulting-frame
+        }
+      }
+      
       const buttonMap = {
         'DTI 계산': 'content-frame',
         'DSR 계산': 'content-frame',
         'MCG 계산': 'content-frame',
-        '상담일지': 'consulting-frame'
       };
       return buttonMap[btnText] || null;
     }
