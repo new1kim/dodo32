@@ -56,7 +56,7 @@
             font-weight: bold; 
             color: #2c5270;
             display: flex; 
-            justify-content: center; 
+            justify-content: space-between; 
             align-items: center; 
             padding: 8px 14px; 
             position: relative;
@@ -192,6 +192,7 @@
         <tr>
             <td colspan="3" style="padding: 0;">
                 <div class="content-label-cell">
+                    <button type="button" id="resetBtn" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);" onclick="resetAllFields()">초기화</button>
                     <span>상담내용</span>
                     <button type="button" id="copyBtn">복사</button>
                 </div>
@@ -906,23 +907,25 @@ window.addEventListener('DOMContentLoaded', function() {
   <script>
     // 부모(index.html)에서 호출할 전체 필드 초기화 함수
     function resetAllFields() {
-      // 모든 입력 필드 초기화
+      // 모든 입력 필드 초기화 (서버저장 체크박스 제외)
       const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], select, textarea');
       inputs.forEach(input => {
         input.value = '';
       });
 
-      // 체크박스 초기화
+      // 체크박스 초기화 (서버저장 체크박스는 제외)
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
+        if (checkbox.id !== 'saveModeSwitch') {
+          checkbox.checked = false;
+        }
       });
 
-      // 주요 필드들 초기화
+      // 주요 필드들 초기화 (서버저장은 제외)
       const mainFields = [
         'userCodeInput', 'phoneInput', 'nameInput', 'dateInput', 
         'needDateInput', 'moneyInput', 'typeInput', 'contentInput', 
-        'brokerInput', 'kbPriceInput', 'salePriceInput', 'saveModeSwitch'
+        'brokerInput', 'kbPriceInput', 'salePriceInput'
       ];
       
       mainFields.forEach(fieldId => {
