@@ -150,6 +150,13 @@
     }
     .add-btn:hover { background-color: #059669; }
 
+    /* 초기화 버튼 스타일 추가 */
+    .reset-btn {
+      background-color: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 8px; 
+      font-weight: 600; font-size: 11px; cursor: pointer; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); width: auto; box-sizing: border-box; display: inline-block; white-space: nowrap;
+    }
+    .reset-btn:hover { background-color: #dc2626; }
+
     .input-flex-col { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
     .input-flex-row { display: flex; gap: 4px; width: 100%; }
 
@@ -311,7 +318,10 @@
           <th colspan="1" style="padding: 6px; text-align: center;">
             <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
           </th>
-          <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px;">대출 정보 입력</th>
+          <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px; position: relative;">
+            대출 정보 입력
+            <button type="button" class="reset-btn" onclick="선택초기화()" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%);">초기화</button>
+          </th>
         </tr>
         <tr style="background-color: #f2f2f2; font-size: 11px; text-align: center; font-weight: 600;">
           <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">
@@ -1427,6 +1437,93 @@
         자동계산();
     });
 
+    // 지정 항목 초기화 함수 추가 (요청 사항)
+    function 선택초기화() {
+      // 1. 연소득 삭제
+      const baseIncomeInput = document.getElementById("baseIncomeInput");
+      baseIncomeInput.value = "";
+      memoBaseIncome = 0;
+      document.getElementById("computedIncomeHidden").value = "";
+
+      // 2. 장래예상 체크 삭제
+      const applyRateCheck = document.getElementById("applyRateCheck");
+      applyRateCheck.checked = false;
+
+      // 3. 체크박스 옆 나이 삭제
+      const ageInput = document.getElementById("ageInput");
+      ageInput.value = "";
+
+      // 4. 첫 번째 행(본건 대출금액 및 보유대출 필드) 처리
+      const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+      if (firstRow) {
+        // 본건 대출금액 초기화
+        const mortAmt = firstRow.querySelector('.mort-amt');
+        if (mortAmt) {
+          mortAmt.value = '';
+        }
+        
+        // 보유대출선택 (loanType select) 초기화
+        const loanTypeSelect = firstRow.querySelector('select.dropdown-select');
+        if (loanTypeSelect) {
+          loanTypeSelect.value = '직접입력';
+        }
+        
+        // 보유대출금리 (rate) 초기화
+        const rateInput = firstRow.querySelector('.mort-rate');
+        if (rateInput) {
+          rateInput.value = '';
+        }
+        
+        // 보유대출ST금리 (stRate) 초기화
+        const stRateInput = firstRow.querySelector('.mort-st-rate');
+        if (stRateInput) {
+          stRateInput.value = '';
+        }
+        
+        // 보유대출개월 (term) 초기화
+        const termInput = firstRow.querySelector('.mort-term');
+        if (termInput) {
+          termInput.value = '';
+        }
+      }
+
+      // 5. 2번째 행부터는 모든 필드 초기화
+      const allRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
+      for (let i = 1; i < allRows.length; i++) {
+        const inputs = allRows[i].querySelectorAll('input, select');
+        inputs.forEach(input => {
+          input.value = '';
+        });
+      }
+
+      // 데이터 삭제 후 UI 갱신 및 DSR 재계산 반영
+      
+      // localStorage의 모든 DSR 관련 데이터 삭제
+      const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+      inputs.forEach(input => {
+        if (input.id) {
+          localStorage.removeItem(`DSR_${input.id}`);
+        }
+      });
+      
+      // 체크박스 저장값 삭제
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.id) {
+          localStorage.removeItem(`DSR_${checkbox.id}`);
+        }
+      });
+      
+      // 대출 정보 행 저장값 삭제
+      localStorage.removeItem('DSR_mortgageData');
+      
+      // 기본값 설정 저장값 삭제
+      localStorage.removeItem('DEFAULT_FIRST_ROW_DATA');
+      
+      updateIncomeCalc();
+      showBubble("입력 내용이 초기화되었습니다.");
+    }
+
     // DSR 페이지 LocalStorage 관련 함수들
     function saveDSRInputs() {
       // 1. 기본 입력 필드 저장 (ID가 있는 것들)
@@ -1591,8 +1688,8 @@
 
     /* 초기 기본 세팅 로드 및 DOM 바인딩 */
     window.addEventListener("DOMContentLoaded", () => {
-      // 초기 3개 행 생성
-      for(let i=0; i<3; i++) {
+      // 초기 2개 행 생성 (본건 대출금액 + 보유대출금액1)
+      for(let i=0; i<2; i++) {
          주담대행추가();
       }
       updateMortgagePlaceholders();
