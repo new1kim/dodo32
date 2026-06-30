@@ -57,6 +57,56 @@
     }
     .subtitle { bottom: 5px; right: 12px; }
     .subtitle-left { bottom: 5px; left: 12px; }
+    
+    /* 초기화 버튼 스타일 (빨간색 테마로 변경) */
+    .reset-btn-left {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      background: rgba(254, 226, 226, 0.8);
+      color: #dc2626;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .reset-btn-left:active {
+      transform: scale(0.95);
+      background: rgba(254, 226, 226, 1);
+    }
+    .reset-btn-left:hover {
+      background: rgba(254, 226, 226, 1);
+      border-color: #dc2626;
+    }
+    
+    /* 신용점수 버튼 스타일 (오른쪽 아래) */
+    .credit-score-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(3, 105, 161, 0.5);
+      background: rgba(224, 242, 254, 0.8);
+      color: #0369a1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .credit-score-btn:active {
+      transform: scale(0.95);
+      background: rgba(224, 242, 254, 1);
+    }
+    .credit-score-btn:hover {
+      background: rgba(224, 242, 254, 1);
+      border-color: #0369a1;
+    }
     .subtitle-RightUp { top: 5px; right: 12px; color: #0284c7; }
 
     /* 입력 폼 필드 스타일 - 구분을 더 선명하게 보정 */
@@ -163,30 +213,6 @@
     .inactiveButton {
       opacity: 0.35;
       transform: scale(0.96);
-    }
-
-    /* 하단 서브 액션 버튼 스타일 */
-    .action-btn-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 18px; /* 15% 확대 */
-    }
-    .action-btn-group button {
-      flex: 1;
-      padding: 11px; /* 15% 확대 */
-      font-weight: 700;
-      font-size: 13px; /* 15% 확대 */
-      border: 1px solid #94a3b8; /* 테두리 선명화 */
-      border-radius: 9px;
-      background: #ffffff;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .action-btn-group button:hover {
-      background: #f8fafc;
-      color: #1e293b;
-      border-color: #64748b;
     }
 
     /* 팝업 모달창 스타일 */
@@ -480,11 +506,12 @@
     const popupContainer = document.getElementById("imagePopup");
     const settingsPopupContainer = document.getElementById("settingsPopup");
 
-    document.getElementById("showPopup").addEventListener("click", () => {
+    // 버튼 삭제에 따른 null 참조 오류 방지를 위해 ?. (옵셔널 체이닝) 적용
+    document.getElementById("showPopup")?.addEventListener("click", () => {
       popupContainer.style.display = "flex";
     });
 
-    document.getElementById("showSettingsPopup").addEventListener("click", () => {
+    document.getElementById("showSettingsPopup")?.addEventListener("click", () => {
       settingsPopupContainer.style.display = "flex";
     });
 
@@ -598,11 +625,10 @@
 
 <body>
   <div class="container">
-    <div class="title" onclick="resetFields()">
+    <div class="title">
       전세 DTI 계산
-      <span class="subtitle-RightUp">260607_1 수정</span>
-      <span class="subtitle">MP dodo32</span>
-      <span class="subtitle-left">초기화</span>
+      <button class="reset-btn-left" onclick="resetFields()">초기화</button>
+      <button class="credit-score-btn" onclick="document.getElementById('imagePopup').style.display = 'flex';">신용점수</button>
     </div>
 
     <div class="input-box"><label onclick="clearInputField('연소득')">연 소득</label><input type="text" id="연소득" inputmode="numeric" oninput="formatNumber(this); calculateDTI();" onblur="calculateDTI();"></div>
@@ -632,11 +658,6 @@
         style="text-align:center;font-weight: bold; width:100%; font-size:min(13px,3.2vw); overflow:auto;"
         readonly
       >
-    </div>
-
-    <div class="action-btn-group">
-      <button id="showPopup">신용점수 기준</button>
-      <button id="showSettingsPopup">설정</button>
     </div>
 
     <div id="imagePopup" class="popup-container">
@@ -697,3 +718,5 @@
       }
     }
   </script>
+</body>
+</html>
