@@ -1439,6 +1439,14 @@
 
     // 지정 항목 초기화 함수 추가 (요청 사항)
     function 선택초기화() {
+      let savedDefaultFirstRowData = null;
+      try {
+        const savedData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
+        savedDefaultFirstRowData = savedData ? JSON.parse(savedData) : null;
+      } catch (e) {
+        console.warn("기본값 복원 데이터 파싱 실패:", e);
+      }
+
       // 1. 연소득 삭제
       const baseIncomeInput = document.getElementById("baseIncomeInput");
       baseIncomeInput.value = "";
@@ -1471,19 +1479,19 @@
         // 보유대출금리 (rate) 초기화
         const rateInput = firstRow.querySelector('.mort-rate');
         if (rateInput) {
-          rateInput.value = '';
+          rateInput.value = savedDefaultFirstRowData?.rate || '';
         }
         
         // 보유대출ST금리 (stRate) 초기화
         const stRateInput = firstRow.querySelector('.mort-st-rate');
         if (stRateInput) {
-          stRateInput.value = '';
+          stRateInput.value = savedDefaultFirstRowData?.stRate || '';
         }
         
         // 보유대출개월 (term) 초기화
         const termInput = firstRow.querySelector('.mort-term');
         if (termInput) {
-          termInput.value = '';
+          termInput.value = savedDefaultFirstRowData?.term || '';
         }
       }
 
@@ -1517,9 +1525,7 @@
       // 대출 정보 행 저장값 삭제
       localStorage.removeItem('DSR_mortgageData');
       
-      // 기본값 설정 저장값 삭제
-      localStorage.removeItem('DEFAULT_FIRST_ROW_DATA');
-      
+      // 기본값 설정 저장값은 유지해서, 초기화 후에도 금리/ST금리/개월을 다시 불러오도록 함
       updateIncomeCalc();
       showBubble("입력 내용이 초기화되었습니다.");
     }
