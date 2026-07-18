@@ -1493,6 +1493,12 @@
         if (termInput) {
           termInput.value = savedDefaultFirstRowData?.term || '';
         }
+
+        // 체크박스 상태 초기화: 계산제외 / 이자적용 / 거치 적용
+        const firstRowCheckboxes = firstRow.querySelectorAll('input[type="checkbox"]');
+        firstRowCheckboxes.forEach(checkbox => {
+          checkbox.checked = false;
+        });
       }
 
       // 5. 2번째 행부터는 모든 필드 초기화
@@ -1500,8 +1506,35 @@
       for (let i = 1; i < allRows.length; i++) {
         const inputs = allRows[i].querySelectorAll('input, select');
         inputs.forEach(input => {
-          input.value = '';
+          if (input.type === 'checkbox') {
+            input.checked = false;
+          } else {
+            input.value = '';
+          }
         });
+
+        const typeInput = allRows[i].querySelector('.mort-type');
+        const typeButtons = allRows[i].querySelectorAll('.type-btn');
+        if (typeInput) {
+          typeInput.value = '원리금';
+        }
+        typeButtons.forEach(btn => btn.classList.remove('active'));
+        const defaultTypeBtn = allRows[i].querySelector('.type-btn:nth-child(1)');
+        if (defaultTypeBtn) {
+          defaultTypeBtn.classList.add('active');
+        }
+      }
+
+      // 첫 번째 행도 상환방식 기본값을 원리금으로 다시 맞춤
+      const firstRowTypeInput = firstRow.querySelector('.mort-type');
+      const firstRowTypeButtons = firstRow.querySelectorAll('.type-btn');
+      if (firstRowTypeInput) {
+        firstRowTypeInput.value = '원리금';
+      }
+      firstRowTypeButtons.forEach(btn => btn.classList.remove('active'));
+      const firstDefaultTypeBtn = firstRow.querySelector('.type-btn:nth-child(1)');
+      if (firstDefaultTypeBtn) {
+        firstDefaultTypeBtn.classList.add('active');
       }
 
       // 데이터 삭제 후 UI 갱신 및 DSR 재계산 반영
