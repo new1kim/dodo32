@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대출 업무용 영업일 날짜 계산기</title>
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e1e8ed;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #f4f7ff 0%, #f8fafc 45%, #eef4ff 100%);
+            color: var(--text-color);
+            margin: 0;
+            padding: 24px 16px 32px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .calculator-container {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+            width: 100%;
+            max-width: 500px;
+            padding: 28px;
+            box-sizing: border-box;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .calculator-header {
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .header-subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: #fafbfc;
+            transition: border-color 0.2s, background-color 0.2s;
+            cursor: pointer;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: #fff;
+        }
+
+        .result-box {
+            margin-top: 30px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            font-size: 15px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .result-value.total {
+            color: #0056b3;
+        }
+
+        .notice {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* --- 달력 스타일 커스텀 --- */
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            visibility: hidden !important;
+        }
+
+        .flatpickr-day.today,
+        .flatpickr-day.today:hover {
+            background: transparent !important;
+            border: none !important;
+            color: inherit !important;
+        }
+
+        .flatpickr-day:not(.selected):not(.startRange):not(.endRange):hover {
+            background: #e9ecef !important;
+            border-color: #e9ecef !important;
+        }
+
+        .flatpickr-day.selected,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange,
+        .flatpickr-day.selected:hover,
+        .flatpickr-day.startRange:hover,
+        .flatpickr-day.endRange:hover {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+
+        .flatpickr-day.sat {
+            color: #0066cc !important;
+        }
+        .flatpickr-day.sun,
+        .flatpickr-day.holiday {
+            color: #e53935 !important;
+        }
+
+        .flatpickr-day.sat.selected,
+        .flatpickr-day.sun.selected,
+        .flatpickr-day.holiday.selected {
+            color: #ffffff !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-container">
+        <div class="calculator-header">
+            <h2>대출 영업일 날짜 계산기</h2>
+            <p class="header-subtitle">접수일과 실행일을 선택하면 영업일 차이를 바로 확인할 수 있습니다.</p>
+        </div>
+        
+        <div class="input-group">
+            <label for="startDate">접수일</label>
+            <input type="text" id="startDate" readonly placeholder="날짜를 선택하세요">
+        </div>
+
+        <div class="input-group">
+            <label for="endDate">실행일</label>
+            <input type="text" id="endDate" readonly placeholder="날짜를 선택하세요">
+        </div>
+
+        <div class="result-box">
+            <div class="result-item">
+                <span class="result-label">단순 날짜 차이</span>
+                <span class="result-value total" id="totalDays">- 일</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">영업일 기준 차이 (휴일 제외)</span>
+                <span class="result-value" id="businessDays">- 일</span>
+            </div>
+        </div>
+
+        <div class="notice">
+            * 네이버 캘린터 기준의 법정공휴일이 표시됩니다<div class=""><br>
+            * 접수일을 제외 한 날짜 카운트 입니다.<br>
+        </div>
+    </div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script>
+        function getKoreanHolidays(year) {
+            let holidays = [
+                `${year}-01-01`, `${year}-03-01`, `${year}-05-05`, `${year}-06-06`, 
+                `${year}-08-15`, `${year}-10-03`, `${year}-10-09`, `${year}-12-25`
+            ];
+            const specificHolidays = {
+                2024: ['2024-02-09', '2024-02-10', '2024-02-11', '2024-02-12', '2024-05-15', '2024-09-16', '2024-09-17', '2024-09-18'],
+                2025: ['2025-01-27', '2025-01-28', '2025-01-29', '2025-01-30', '2025-05-05', '2025-05-06', '2025-10-05', '2025-10-06', '2025-10-07', '2025-10-08'],
+                2026: ['2026-02-15', '2026-02-16', '2026-02-17', '2026-05-24', '2026-09-24', '2026-09-25', '2026-09-26']
+            };
+            if (specificHolidays[year]) holidays = holidays.concat(specificHolidays[year]);
+            return holidays;
+        }
+
+        function isHoliday(dateStr) {
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            return getKoreanHolidays(year).includes(dateStr);
+        }
+
+        function calculateBusinessDays(startDate, endDate) {
+            let start = new Date(startDate);
+            let end = new Date(endDate);
+            if (start > end) return { total: 0, business: 0 };
+            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            let businessDays = 0;
+            let curDate = new Date(start.getTime());
+            curDate.setDate(curDate.getDate() + 1);
+            while (curDate <= end) {
+                const dayOfWeek = curDate.getDay();
+                const year = curDate.getFullYear();
+                const month = String(curDate.getMonth() + 1).padStart(2, '0');
+                const day = String(curDate.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${day}`;
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(dateString)) {
+                    businessDays++;
+                }
+                curDate.setDate(curDate.getDate() + 1);
+            }
+            return { total: totalDays, business: businessDays };
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pickerConfig = {
+                locale: "ko",
+                dateFormat: "Y-m-d",
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    const date = dayElem.dateObj;
+                    const dateString = fp.formatDate(date, "Y-m-d");
+                    const dayOfWeek = date.getDay();
+
+                    if (dayOfWeek === 6) dayElem.classList.add('sat');
+                    else if (dayOfWeek === 0) dayElem.classList.add('sun');
+
+                    if (isHoliday(dateString)) dayElem.classList.add('holiday');
+                },
+                onChange: function() {
+                    triggerCalculation();
+                }
+            };
+
+            // 접수일 기본값을 오늘 날짜(current date)로 설정
+            const startPicker = flatpickr("#startDate", {
+                ...pickerConfig,
+                defaultDate: "today" 
+            });
+
+            const endPicker = flatpickr("#endDate", pickerConfig);
+
+            function triggerCalculation() {
+                const startVal = document.getElementById('startDate').value;
+                const endVal = document.getElementById('endDate').value;
+                if (startVal && endVal) {
+                    const result = calculateBusinessDays(startVal, endVal);
+                    document.getElementById('totalDays').innerText = result.total + " 일";
+                    document.getElementById('businessDays').innerText = result.business + " 일";
+                }
+            }
+        });
+    </script>
+</body>
+</html>
