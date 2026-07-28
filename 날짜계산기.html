@@ -214,6 +214,39 @@
             border-radius: 999px;
             font-weight: 600;
         }
+
+        .flatpickr-calendar {
+            max-width: min(100vw - 24px, 360px);
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 12px 24px;
+            }
+
+            .calculator-container {
+                padding: 20px 16px;
+                border-radius: 16px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .result-value {
+                font-size: 16px;
+            }
+
+            .flatpickr-day .holiday-label {
+                font-size: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -318,6 +351,7 @@
             const pickerConfig = {
                 locale: "ko",
                 dateFormat: "Y-m-d",
+                disableMobile: true,
                 onDayCreate: function(dObj, dStr, fp, dayElem) {
                     const date = dayElem.dateObj;
                     const dateString = fp.formatDate(date, "Y-m-d");
