@@ -217,48 +217,47 @@
     .view-btn { width: 48%; background-color: #475569; border: none !important; color: white; padding: 12px; font-size: 13px; font-weight: 600; border-radius: 10px; box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15); }
     .view-btn:hover { background-color: #334155; }
 
-    /* DSR 최대한도 블록 디자인 최적화 수정 */
-    .dsr-max-block {
-      flex: 1;
-      min-width: 0;
-      padding: 0px 0px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      background-color: #f8fafc;
+    /* DSR 최대한도 표 디자인 (라벨셀 + 값셀 그리드) */
+    .dsr-limit-table { margin-top: 8px; }
+    .dsr-label-cell {
+      background-color: #eff6ff !important;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 1px;
+      line-height: 1.5;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .dsr-value-cell {
+      cursor: pointer;
+      text-align: center;
+      vertical-align: middle;
+      padding: 8px 4px !important;
+      transition: background-color 0.2s ease;
+    }
+    .dsr-value-cell:hover { background-color: #f8fafc; }
+    .dsr-max-value-number {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: #0f172a;
-      min-height: 60px;
-    }
-    .dsr-max-block:hover { background-color: #ffffff; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); }
-    .dsr-max-block span:first-child { 
-      font-size: 16px; 
-      color: #64748b; 
-      font-weight: 700; 
-      padding: 1px 0;
-      border-bottom: 1px solid #e2e8f0;
-      width: 100%;
-      text-align: center;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-    .dsr-max-block span:last-child { 
-      font-size: 38px; 
-      color: #1e3a8a; 
-      font-weight: 800; 
-      letter-spacing: -0.8px; 
-      padding: 2px 0;
-      line-height: 1;
-      flex: 1;
-      display: flex;
-      align-items: center;
       justify-content: center;
+      gap: 2px;
+      white-space: normal !important;
+    }
+    .dsr-max-value-number .dsr-main-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1e3a8a;
+      letter-spacing: -0.4px;
+      line-height: 1.2;
       word-break: break-word;
-      flex-direction: column; /* 두 줄 표시를 위해 변경 */
+    }
+    .dsr-max-value-number .dsr-sub-val {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      line-height: 1.2;
     }
 
     #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; cursor: pointer; }
@@ -384,47 +383,59 @@
       </tr>
     </table>
 
-    <table>
-      <tr>
-        <td class="split-td" style="width: 50%; padding: 8px 0; background-color: #eff6ff !important; font-weight: bold; font-size: 12px; color: #1e40af !important;">DSR 40% 기준 최대한도</td>
-        <td class="split-td" style="width: 50%; padding: 8px 0; background-color: #f0fdf4 !important; font-weight: bold; font-size: 12px; color: #166534 !important;">DSR 50% 기준 최대한도</td>
-      </tr>
-      <tr>
-        <td class="no-bg" style="padding: 8px 0;">
-          <div style="display:flex; gap: 6px; justify-content: space-between;">
-            <div class="dsr-max-block" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-              <span>원리금</span>
-              <span id="DSR최대금액확인40-원리금" class="dsr-max-value-number">
-                <span class="dsr-main-val">-</span>
-                <span class="dsr-sub-val" style="font-size: 12px; color: #64748b; font-weight: 600;">-</span>
-              </span>
+    <table class="dsr-limit-table">
+      <colgroup>
+        <col style="width: 15%;">
+        <col style="width: 35%;">
+        <col style="width: 15%;">
+        <col style="width: 35%;">
+      </colgroup>
+      <tr> <!-- 소득대비 DSR 최대치 표시 -->
+        <td colspan="4" class="no-bg" style="padding: 0;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 8px 10px; background-color: #eff6ff;">
+            <span style="font-weight:800; font-size:13px; color:#1e40af; letter-spacing:-0.3px; flex-shrink:0;"></span> <!-- 테이블의 첫줄 좌측 -->
+            <div style="display: inline-flex; background-color: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 999px; padding: 4px; gap: 0px;" id="dsrLimitToggleGroup">
+              <label style="cursor: pointer; padding: 5px 14px; border-radius: 999px; background-color: #2563eb; color: #ffffff; font-size: 13px; font-weight: bold;">
+                <input type="radio" name="dsr_limit_rate" value="40" checked style="display: none;"> DSR 40%
+              </label>
+              <label style="cursor: pointer; padding: 5px 14px; border-radius: 999px; background-color: transparent; color: #3a0808; font-size: 13px; font-weight: bold;">
+                <input type="radio" name="dsr_limit_rate" value="50" style="display: none;"> DSR 50%
+              </label>
             </div>
-            <div class="dsr-max-block" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-              <span>원금</span>
-              <span id="DSR최대금액확인40-원금" class="dsr-max-value-number">
-                <span class="dsr-main-val">-</span>
-                <span class="dsr-sub-val" style="font-size: 12px; color: #64748b; font-weight: 600;">-</span>
-              </span>
-            </div>
+            <span style="font-weight:800; font-size:13px; color:#0f172a; letter-spacing:-0.3px; flex-shrink:0;"></span> <!-- 테이블의 첫줄 우측 -->
           </div>
         </td>
-        <td class="no-bg" style="padding: 8px 0;">
-          <div style="display:flex; gap: 6px; justify-content: space-between;">
-            <div class="dsr-max-block" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-              <span>원리금</span>
-              <span id="DSR최대금액확인50-원리금" class="dsr-max-value-number">
-                <span class="dsr-main-val">-</span>
-                <span class="dsr-sub-val" style="font-size: 12px; color: #64748b; font-weight: 600;">-</span>
-              </span>
-            </div>
-            <div class="dsr-max-block" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-              <span>원금</span>
-              <span id="DSR최대금액확인50-원금" class="dsr-max-value-number">
-                <span class="dsr-main-val">-</span>
-                <span class="dsr-sub-val" style="font-size: 12px; color: #64748b; font-weight: 600;">-</span>
-              </span>
-            </div>
-          </div>
+      </tr>
+      <tr id="dsrLimitRow40">
+        <td class="dsr-label-cell">원리금</td>
+        <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
+          <span id="DSR최대금액확인40-원리금" class="dsr-max-value-number">
+            <span class="dsr-main-val">-</span>
+            <span class="dsr-sub-val">-</span>
+          </span>
+        </td>
+        <td class="dsr-label-cell">원금</td>
+        <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
+          <span id="DSR최대금액확인40-원금" class="dsr-max-value-number">
+            <span class="dsr-main-val">-</span>
+            <span class="dsr-sub-val">-</span>
+          </span>
+        </td>
+      </tr>
+      <tr id="dsrLimitRow50" style="display:none;">
+        <td class="dsr-label-cell">원리금</td>
+        <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
+          <span id="DSR최대금액확인50-원리금" class="dsr-max-value-number">
+            <span class="dsr-main-val">-</span>
+            <span class="dsr-sub-val">-</span>
+          </span>
+        </td>
+        <td class="dsr-label-cell">원금</td>
+        <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
+          <span id="DSR최대금액확인50-원금" class="dsr-max-value-number">
+            <span class="dsr-main-val">-</span>
+            <span class="dsr-sub-val">-</span>
+          </span>
         </td>
       </tr>
     </table>
@@ -436,7 +447,7 @@
       <tr>
         <!-- 항목 1: 시세 입력 -->
         <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0;">
-          <input type="text" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;">
+          <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;">
         </td>
         
         <!-- 항목 2: 토글 버튼 선택 (글자 크기 13px 및 패딩 조정) -->
@@ -561,13 +572,7 @@
             </ul>
           </div>
           <div class="info-section">
-            <div class="section-title">⚙️ 숨겨진 편의 기능 (롱프레스)</div>
-            <ul class="info-list">
-              <li><b>장래예상소득 체크박스</b>를 3초간 누르면, 은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
-              <li><b>[계산제외] 체크박스</b>를 2초간 누르면 해당 대출 라인이 즉시 삭제됩니다.</li>
-              <li>본건 대출행의 <b>금리, ST금리, 개월수</b> 칸을 3초간 누르면 기본 시작 세팅값을 저장해둘 수 있습니다.</li>
-            </ul>
-          </div>
+            
           <div class="info-section">
             <div class="section-title">ℹ️ 기타 안내</div>
             <ul class="info-list">
@@ -576,20 +581,14 @@
               <li><b>신DTI 계산값</b>: 신DTI 계산값은 항상 180개월로 계산되어있음, 그 외는 입력값에 따라 다름. 거치 적용시 180개월 내에서도 해당 기간만큼 거치기간이 반영됩니다.</li>
             </ul>
           </div>
-          <div class="info-section">
-            <div class="section-title">📝 본건 대출 기본값 설정</div>
-            <ul class="info-list">
-              <li>본건 대출 기본값은 <b>금리, ST금리, 기간</b>을 저장할 수 있습니다.</li>
-              <li>이 값들은 첫 번째 대출 행의 <b>금리, ST금리, 개월수</b> 칸을 3초간 누르면 저장됩니다.</li>
-              <li>저장된 기본값은 <b>[6M/5Y 전환]</b> 버튼을 통해 선택하여 적용할 수 있습니다.</li>
-            </ul>
+
           </div>
           <div class="info-section">
             <div class="section-title">📈 장래예상소득증가율</div>
             <ul class="info-list">
-              <li>장래예상 소득 체크박스를 3초간 누르면, 은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
+              <li>은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
               <li>수정된 요율은 <b>연소득 입력</b> 시 적용됩니다.</li>
-              <li>예상 요율은 연령별로 설정되며, 연령을 입력하면 자동으로 요율이 적용됩니다.</li>
+              <li>예상 요율은 연령별로 설정되며, 생년(1986), 또는 만나이(32) 입력하면 자동으로 요율이 적용됩니다.</li>
             </ul>
           </div>
           <div class="footer-version">MP32</div>
@@ -616,6 +615,14 @@
               <button type="button" style="background-color: #10b981;" onclick="saveCustomRates()">저장하기</button>
             </div>
           </div>
+
+          <div class="info-section">
+            <div class="section-title">📝 본건 대출 기본값 설정</div>
+            <ul class="info-list">
+              <li>본건 대출 기본값은 <b>금리, ST금리, 기간</b>을 저장할 수 있습니다.</li>
+              <li>저장된 기본값은 <b>[6M/5Y 전환]</b> 버튼을 통해 선택하여 적용할 수 있습니다.</li>
+            </ul>
+
 
           <div class="info-section" id="modal-default-card" style="text-align:center;">
             <div class="section-title" style="justify-content:center;">✏️ 본건 대출 기본값 설정</div>

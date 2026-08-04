@@ -333,7 +333,7 @@
 
       if (isWideScreen) {
         if (contentSrc === '' || contentSrc.includes('main.html')) {
-          if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산.html?v=${version}`);
+          if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산기Main.html?v=${version}`);
           else contentFrame.setAttribute('src', `DSR계산기Main.html?v=${version}`);
         }
         if (calcSrc === '') {

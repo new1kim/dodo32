@@ -39,7 +39,7 @@ function formatKoreanAmount(amount) {
       
       let result = "";
       if (uk > 0) result += uk + "억 ";
-      if (man > 0) result += man.toLocaleString() + "만원";
+      if (man > 0) result += man.toLocaleString() + "만";    
       else if (uk > 0) result += "원";
       
       return result.trim() || "0원";
