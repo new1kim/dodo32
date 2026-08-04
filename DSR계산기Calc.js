@@ -48,8 +48,8 @@ function formatKoreanAmount(amount) {
 function parseKoreanAmountText(text) {
       if (!text) return 0;
       let totalAmount = 0;
-      const ukMatch = text.match(/(\d+)억/);
-      const manMatch = text.match(/([\d,]+)만원/);
+      const ukMatch = text.match(/([\d,]+)억/);
+      const manMatch = text.match(/([\d,]+)만/);
 
       if (ukMatch) {
         totalAmount += parseInt(ukMatch[1].replace(/,/g, ''), 10) * 100000000;
@@ -99,6 +99,7 @@ function updateLtvMaxAmount() {
 
 function generateSchedule() {
       const tbody = document.getElementById("schedule-tbody");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
       const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
@@ -210,12 +211,13 @@ function generateSchedule() {
 
 
 function 자동계산() {
-      const incomeInput = document.getElementById("computedIncomeHidden").value || document.getElementById("baseIncomeInput").value;
+      const computedHidden = document.getElementById("computedIncomeHidden");
+      const baseIncomeEl = document.getElementById("baseIncomeInput");
+      const incomeInput = (computedHidden ? computedHidden.value : "") || (baseIncomeEl ? baseIncomeEl.value : "");
       const income = parseFloat(incomeInput.replace(/,/g, '')) || 0;
       
       let sumM = 0, sumP = 0, sumI = 0;
       
-      // 분리된 누적 변수 선언 (DSR, DTI, 신DTI)
       let totalDsrDebt = 0;
       let totalDtiDebt = 0;
       let totalNewDtiDebt = 0;
@@ -223,16 +225,24 @@ function 자동계산() {
 
       const mortRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
       mortRows.forEach((row, index) => {
-        const isExcluded = row.querySelector('.mort-exclude').checked;
+        const excludeEl = row.querySelector('.mort-exclude');
+        const isExcluded = excludeEl ? excludeEl.checked : false;
         if (isExcluded) return; 
 
-        const amt = parseFloat(row.querySelector('.mort-amt').value.replace(/,/g, '')) || 0;
-        const pureRate = parseFloat(row.querySelector('.mort-rate').value) / 100 || 0;
-        const stRateValue = parseFloat(row.querySelector('.mort-st-rate').value) || 0;
+        const amtEl = row.querySelector('.mort-amt');
+        const rateEl = row.querySelector('.mort-rate');
+        const stRateEl = row.querySelector('.mort-st-rate');
+        const termEl = row.querySelector('.mort-term');
+        const typeEl = row.querySelector('.mort-type');
+        const interestOnlyEl = row.querySelector('.mort-interest-only');
+
+        const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
+        const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
+        const stRateValue = stRateEl ? (parseFloat(stRateEl.value) || 0) : 0;
         const combinedRate = (pureRate * 100 + stRateValue) / 100;
-        const term = parseInt(row.querySelector('.mort-term').value) || 0;
-        const type = row.querySelector('.mort-type').value;
-        const isInterestOnly = row.querySelector('.mort-interest-only').checked;
+        const term = termEl ? (parseInt(termEl.value) || 0) : 0;
+        const type = typeEl ? typeEl.value : "원리금";
+        const isInterestOnly = interestOnlyEl ? interestOnlyEl.checked : false;
 
         const graceCheck = row.querySelector('.mort-grace-check') ? row.querySelector('.mort-grace-check').checked : false;
         let graceTerm = parseInt(row.querySelector('.mort-grace-term') ? row.querySelector('.mort-grace-term').value : 0) || 0;
@@ -246,7 +256,6 @@ function 자동계산() {
         let fixPostTerm = 180 - fixGrace;
         if (fixPostTerm <= 0) fixPostTerm = 1;
 
-        // 월 상환액 계산
         let monthlyRes;
         if (isInterestOnly || type === "만기") {
             const mInt = amt * pureRate / 12;
@@ -267,7 +276,6 @@ function 자동계산() {
             }
         }
         
-        // 연간 상환액(DSR용) 및 연간 이자액(DTI용) 분리 계산 로직
         let annualTotal = 0, fixAnnualTotal = 0;
         let annualInterest = 0, fixAnnualInterest = 0;
         
@@ -275,7 +283,6 @@ function 자동계산() {
         const fixYears = fixPostTerm / 12 || 1;
 
         if (isInterestOnly || type === "만기") {
-          // 만기일시: 납입액이 곧 이자
           annualInterest = amt * combinedRate;
           fixAnnualInterest = amt * combinedRate;
           annualTotal = annualInterest + (amt / years);
@@ -286,8 +293,6 @@ function 자동계산() {
           annualTotal = calc.월상환금액 * 12;
           fixAnnualTotal = fix.월상환금액 * 12;
           
-          // ★ 수정된 부분: 원리금균등 방식의 정확한 연평균 이자 산출
-          // 총 부담한 이자(월납입액 * 개월수 - 원금)를 대출년수로 나눔
           const totalInterest = (calc.월상환금액 * postTerm) - amt;
           annualInterest = totalInterest > 0 ? (totalInterest / years) : 0;
           
@@ -299,14 +304,11 @@ function 자동계산() {
           annualTotal = calcA.대출합계;
           fixAnnualTotal = fixA.대출합계;
           
-          // 원금균등 방식의 연평균 이자 산출 (원금 * 이율 * (개월수+1) / (개월수*2))
           annualInterest = amt * combinedRate * (postTerm + 1) / (postTerm * 2);
           fixAnnualInterest = amt * combinedRate * (fixPostTerm + 1) / (fixPostTerm * 2);
         }
 
-        // 값 누적 처리 로직
         if (index === 0) {
-          // 1. 본건 대출(첫 행): DSR, DTI, 신DTI 모두 '연간 원리금 총액' 합산
           totalDsrDebt += annualTotal;
           totalDtiDebt += annualTotal;
           totalNewDtiDebt += fixAnnualTotal;
@@ -315,7 +317,6 @@ function 자동계산() {
           sumP += monthlyRes.첫달원금; 
           sumI += monthlyRes.첫달이자;
         } else {
-          // 2. 기타 대출(추가 행): DSR은 '원리금 총액', DTI/신DTI는 '연간 이자'만 합산
           totalDsrDebt += annualTotal;
           totalDtiDebt += annualInterest; 
           totalNewDtiDebt += fixAnnualInterest;
@@ -324,42 +325,53 @@ function 자동계산() {
         }
       });
 
-      // 월별 금액 표기
-      document.getElementById("월합계").innerText = Math.round(sumM).toLocaleString() + " 원";
-      document.getElementById("월원금").innerText = Math.round(sumP).toLocaleString() + " 원";
-      document.getElementById("월이자").innerText = Math.round(sumI).toLocaleString() + " 원";
+      const 월합계El = document.getElementById("월합계");
+      const 월원금El = document.getElementById("월원금");
+      const 월이자El = document.getElementById("월이자");
+      if (월합계El) 월합계El.innerText = Math.round(sumM).toLocaleString() + " 원";
+      if (월원금El) 월원금El.innerText = Math.round(sumP).toLocaleString() + " 원";
+      if (월이자El) 월이자El.innerText = Math.round(sumI).toLocaleString() + " 원";
+
+      const dsrCheckEl = document.getElementById("DSR확인");
+      const dtiCheckEl = document.getElementById("DIT확인");
+      const newDtiCheckEl = document.getElementById("신DTI확인");
 
       if (income > 0) {
-        // 수정된 변수로 최종 퍼센트 계산
         const finalDsr = (totalDsrDebt / income) * 100;
         const finalDti = (totalDtiDebt / income) * 100;
         const finalNewDti = (totalNewDtiDebt / income) * 100;
 
-        document.getElementById("DSR확인").innerText = finalDsr.toFixed(2) + "%";
-        if (finalDsr >= 40) {
-          document.getElementById("DSR확인").style.setProperty("background-color", "#fee2e2", "important");
-          document.getElementById("DSR확인").style.color = "#ef4444";
-        } else {
-          document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
-          document.getElementById("DSR확인").style.color = "#1e293b";
+        if (dsrCheckEl) {
+          dsrCheckEl.innerText = finalDsr.toFixed(2) + "%";
+          if (finalDsr >= 40) {
+            dsrCheckEl.style.setProperty("background-color", "#fee2e2", "important");
+            dsrCheckEl.style.color = "#ef4444";
+          } else {
+            dsrCheckEl.style.setProperty("background-color", "transparent", "important");
+            dsrCheckEl.style.color = "#1e293b";
+          }
         }
         
-        document.getElementById("DIT확인").innerText = finalDti.toFixed(2) + "%";
-        if (finalDti >= 40) {
-          document.getElementById("DIT확인").style.setProperty("background-color", "#fee2e2", "important");
-          document.getElementById("DIT확인").style.color = "#ef4444";
-        } else {
-          document.getElementById("DIT확인").style.setProperty("background-color", "transparent", "important");
-          document.getElementById("DIT확인").style.color = "#1e293b";
+        if (dtiCheckEl) {
+          dtiCheckEl.innerText = finalDti.toFixed(2) + "%";
+          if (finalDti >= 40) {
+            dtiCheckEl.style.setProperty("background-color", "#fee2e2", "important");
+            dtiCheckEl.style.color = "#ef4444";
+          } else {
+            dtiCheckEl.style.setProperty("background-color", "transparent", "important");
+            dtiCheckEl.style.color = "#1e293b";
+          }
         }
 
-        document.getElementById("신DTI확인").innerText = finalNewDti.toFixed(2) + "%";
-        if (finalNewDti >= 40) {
-          document.getElementById("신DTI확인").style.setProperty("background-color", "#fee2e2", "important");
-          document.getElementById("신DTI확인").style.color = "#ef4444";
-        } else {
-          document.getElementById("신DTI확인").style.setProperty("background-color", "transparent", "important");
-          document.getElementById("신DTI확인").style.color = "#1e293b";
+        if (newDtiCheckEl) {
+          newDtiCheckEl.innerText = finalNewDti.toFixed(2) + "%";
+          if (finalNewDti >= 40) {
+            newDtiCheckEl.style.setProperty("background-color", "#fee2e2", "important");
+            newDtiCheckEl.style.color = "#ef4444";
+          } else {
+            newDtiCheckEl.style.setProperty("background-color", "transparent", "important");
+            newDtiCheckEl.style.color = "#1e293b";
+          }
         }
 
         const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
@@ -376,7 +388,6 @@ function 자동계산() {
           let postTerm1 = term1 - graceTerm1;
           if (postTerm1 <= 0) postTerm1 = 1;
 
-          // LTV 기준 계산값 가져오기 (시세별 최대 한도 금액 제한 적용)
           let ltvCapAmount = Infinity;
           const marketPriceInput = document.getElementById("ltvMarketPriceInput");
           if (marketPriceInput) {
@@ -424,11 +435,11 @@ function 자동계산() {
               }
             };
 
+            const r40w = document.getElementById("DSR최대금액확인40-원리금");
+            const r40g = document.getElementById("DSR최대금액확인40-원금");
             if (availableForMortgage40 <= 0) {
-              document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-main-val').innerText = "기존대출 초과";
-              document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-              document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-main-val').innerText = "기존대출 초과";
-              document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-sub-val').innerText = "(-)";
+              if (r40w) { r40w.querySelector('.dsr-main-val').innerText = "대출 불가"; r40w.querySelector('.dsr-sub-val').innerText = "(-)"; }
+              if (r40g) { r40g.querySelector('.dsr-main-val').innerText = "대출 불가"; r40g.querySelector('.dsr-sub-val').innerText = "(-)"; }
             } else {
               const maxLoan40원리금 = availableForMortgage40 / annualPaymentPerUnit원리금;
               const maxLoan40원금 = availableForMortgage40 / annualPaymentPerUnit원금;
@@ -438,11 +449,11 @@ function 자동계산() {
 
             const maxTotalAnnualPayment50 = income * 0.5;
             const availableForMortgage50 = maxTotalAnnualPayment50 - existingOtherDebtPayment;
+            const r50w = document.getElementById("DSR최대금액확인50-원리금");
+            const r50g = document.getElementById("DSR최대금액확인50-원금");
             if (availableForMortgage50 <= 0) {
-              document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-main-val').innerText = "기존대출 초과";
-              document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-              document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-main-val').innerText = "기존대출 초과";
-              document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-sub-val').innerText = "(-)";
+              if (r50w) { r50w.querySelector('.dsr-main-val').innerText = "대출 불가"; r50w.querySelector('.dsr-sub-val').innerText = "(-)"; }
+              if (r50g) { r50g.querySelector('.dsr-main-val').innerText = "대출 불가"; r50g.querySelector('.dsr-sub-val').innerText = "(-)"; }
             } else {
               const maxLoan50원리금 = availableForMortgage50 / annualPaymentPerUnit원리금;
               const maxLoan50원금 = availableForMortgage50 / annualPaymentPerUnit원금;
@@ -450,50 +461,33 @@ function 자동계산() {
               setDsrBlockValues("DSR최대금액확인50-원금", maxLoan50원금);
             }
           } else {
-            document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-main-val').innerText = "-";
-            document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-            document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-main-val').innerText = "-";
-            document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-sub-val').innerText = "(-)";
-            document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-main-val').innerText = "-";
-            document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-            document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-main-val').innerText = "-";
-            document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-sub-val').innerText = "(-)";
+            ['DSR최대금액확인40-원리금', 'DSR최대금액확인40-원금', 'DSR최대금액확인50-원리금', 'DSR최대금액확인50-원금'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) {
+                el.querySelector('.dsr-main-val').innerText = "-";
+                el.querySelector('.dsr-sub-val').innerText = "(-)";
+              }
+            });
           }
         }
       } else {
-        document.getElementById("DSR확인").innerText = "-";
-        document.getElementById("DSR확인").style.setProperty("background-color", "transparent", "important");
-        document.getElementById("DSR확인").style.color = "#1e293b";
+        if (dsrCheckEl) { dsrCheckEl.innerText = "-"; dsrCheckEl.style.setProperty("background-color", "transparent", "important"); dsrCheckEl.style.color = "#1e293b"; }
+        if (dtiCheckEl) { dtiCheckEl.innerText = "-"; dtiCheckEl.style.setProperty("background-color", "transparent", "important"); dtiCheckEl.style.color = "#1e293b"; }
+        if (newDtiCheckEl) { newDtiCheckEl.innerText = "-"; newDtiCheckEl.style.setProperty("background-color", "transparent", "important"); newDtiCheckEl.style.color = "#1e293b"; }
         
-        document.getElementById("DIT확인").innerText = "-";
-        document.getElementById("DIT확인").style.setProperty("background-color", "transparent", "important");
-        document.getElementById("DIT확인").style.color = "#1e293b";
-        
-        document.getElementById("신DTI확인").innerText = "-";
-        document.getElementById("신DTI확인").style.setProperty("background-color", "transparent", "important");
-        document.getElementById("신DTI확인").style.color = "#1e293b";
-        
-        document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-main-val').innerText = "-";
-        document.getElementById("DSR최대금액확인40-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-        document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-main-val').innerText = "-";
-        document.getElementById("DSR최대금액확인40-원금").querySelector('.dsr-sub-val').innerText = "(-)";
-        document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-main-val').innerText = "-";
-        document.getElementById("DSR최대금액확인50-원리금").querySelector('.dsr-sub-val').innerText = "(-)";
-        document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-main-val').innerText = "-";
-        document.getElementById("DSR최대금액확인50-원금").querySelector('.dsr-sub-val').innerText = "(-)";
+        ['DSR최대금액확인40-원리금', 'DSR최대금액확인40-원금', 'DSR최대금액확인50-원리금', 'DSR최대금액확인50-원금'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.querySelector('.dsr-main-val').innerText = "-";
+            el.querySelector('.dsr-sub-val').innerText = "(-)";
+          }
+        });
       }
 
       updateLtvMaxAmount();
       
-      // 브라우저가 변경된 데이터로 레이아웃을 다시 그린 직후(Reflow 완료 후)에 실행되도록 딜레이 부여
       setTimeout(() => {
-        adjustDsrMaxFontSize();
-        adjustTableFontSize();
+        if (typeof adjustDsrMaxFontSize === 'function') adjustDsrMaxFontSize();
+        if (typeof adjustTableFontSize === 'function') adjustTableFontSize();
       }, 0);
-
-      setTimeout(() => {
-        adjustTableFontSize();
-        adjustDsrMaxFontSize();
-        }, 0);
-
     }

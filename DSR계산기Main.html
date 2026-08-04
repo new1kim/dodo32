@@ -440,42 +440,60 @@
       </tr>
     </table>
 
-  <!-- LTV비율 테이블 (항목 3 추가 버전) -->
-    <table class="summary-table" style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
-      <tr style="background: linear-gradient(135deg, #e0f2fe, #bae6fd);">
-      </tr>
-      <tr>
-        <!-- 항목 1: 시세 입력 -->
-        <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0;">
-          <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;">
-        </td>
+
+
+
+
+
+<table border="1" class="summary-table" style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
+  <tr style="background: linear-gradient(135deg, #e0f2fe, #bae6fd);">
+    
+    <!-- 1번 칸: 시세 입력 -->
+    <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0; vertical-align: middle;">
+      <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;">
+    </td>
+
+    <!-- 2번 & 4번 칸을 하나로 묶어 세로 간격 최소화 -->
+    <td style="width: 33.3%; padding: 8px 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0; text-align: center; vertical-align: middle;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%;">
         
-        <!-- 항목 2: 토글 버튼 선택 (글자 크기 13px 및 패딩 조정) -->
-        <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0; text-align: center;">
-          <div style="display: inline-flex; background-color: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 999px; padding: 5px; gap: 0px;" id="ltvRateToggleGroup">
-            <label style="cursor: pointer; padding: 5px 3px; border-radius: 999px; background-color: #2563eb; color: #ffffff; font-size: 13px; font-weight: bold;">
-              <input type="radio" name="ltv_rate" value="70" checked style="display: none;"> 70%
-            </label>
-            <label style="cursor: pointer; padding: 5px 3px; border-radius: 999px; background-color: transparent; color: #64748b; font-size: 13px; font-weight: bold;">
-              <input type="radio" name="ltv_rate" value="60" style="display: none;"> 60%
-            </label>
-            <label style="cursor: pointer; padding: 5px 3px; border-radius: 999px; background-color: transparent; color: #64748b; font-size: 13px; font-weight: bold;">
-              <input type="radio" name="ltv_rate" value="40" style="display: none;"> 40%
-            </label>
-          </div>
-        </td>
+        <!-- 토글 버튼 영역 -->
+        <div style="display: inline-flex; background-color: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 999px; padding: 3px;" id="ltvRateToggleGroup">
+          <label style="cursor: pointer; padding: 4px 8px; border-radius: 999px; background-color: #2563eb; color: #ffffff; font-size: 13px; font-weight: bold;">
+            <input type="radio" name="ltv_rate" value="70" checked style="display: none;"> 70%
+          </label>
+          <label style="cursor: pointer; padding: 4px 8px; border-radius: 999px; background-color: transparent; color: #64748b; font-size: 13px; font-weight: bold;">
+            <input type="radio" name="ltv_rate" value="60" style="display: none;"> 60%
+          </label>
+          <label style="cursor: pointer; padding: 4px 8px; border-radius: 999px; background-color: transparent; color: #64748b; font-size: 13px; font-weight: bold;">
+            <input type="radio" name="ltv_rate" value="40" style="display: none;"> 40%
+          </label>
+        </div>
 
-        <!-- 항목 3: 소액임차 입력 -->
-        <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; border-right: 1px solid #e2e8f0;">
-          <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액 입력">
-        </td>
+        <!-- 소액임차금액 입력 영역 -->
+        <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액 입력" style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; outline: none;">
+        
+      </div>
+    </td>
 
-        <!-- 항목 4: LTV 최대한도 출력 -->
-        <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; text-align: center;">
-          <input type="text" id="ltvMaxAmountOutput" placeholder="LTV 최대한도" readonly style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-weight: 700; color: #1e3a8a; background-color: #f1f5f9; outline: none; text-align: center;">
-        </td>
-      </tr>
-    </table>
+    <!-- 3번 칸: LTV 최대한도 -->
+    <td style="width: 33.3%; padding: 10px; background-color: #f8fafc; text-align: center; vertical-align: middle;">
+      <input type="text" id="ltvMaxAmountOutput" placeholder="LTV 최대한도" readonly style="width: 100%; box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; font-weight: 700; color: #1e3a8a; background-color: #f1f5f9; outline: none; text-align: center;">
+    </td>
+
+  </tr>
+</table>
+
+
+
+
+
+
+
+
+
+
+
 
     <table class="summary-table">
       <tr style="background-color: #d9f2ff;">
@@ -622,7 +640,7 @@
               <li>본건 대출 기본값은 <b>금리, ST금리, 기간</b>을 저장할 수 있습니다.</li>
               <li>저장된 기본값은 <b>[6M/5Y 전환]</b> 버튼을 통해 선택하여 적용할 수 있습니다.</li>
             </ul>
-
+          </div>
 
           <div class="info-section" id="modal-default-card" style="text-align:center;">
             <div class="section-title" style="justify-content:center;">✏️ 본건 대출 기본값 설정</div>
@@ -707,6 +725,7 @@
     </div>
   </div>
 
+  
   <script src="DSR계산기Calc.js"></script>
   <script src="DSR계산기ETC.js"></script>
 </body>
