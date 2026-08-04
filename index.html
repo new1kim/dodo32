@@ -334,7 +334,7 @@
       if (isWideScreen) {
         if (contentSrc === '' || contentSrc.includes('main.html')) {
           if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산.html?v=${version}`);
-          else contentFrame.setAttribute('src', `DSR계산.html?v=${version}`);
+          else contentFrame.setAttribute('src', `DSR계산기Main.html?v=${version}`);
         }
         if (calcSrc === '') {
           if (calcFrame.contentWindow) calcFrame.contentWindow.location.replace(`계산기.html?v=${version}`);
@@ -690,7 +690,7 @@
     </div>
 
     <button type="button" class="nav-btn locked-content" onclick="loadPage('main.html', this)">DTI 계산</button>
-    <button type="button" class="nav-btn locked-content" onclick="loadPage('DSR계산.html', this)">DSR 계산</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('DSR계산기Main.html', this)">DSR 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('날짜계산기.html', this)">날짜계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
