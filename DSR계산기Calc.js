@@ -282,7 +282,14 @@ function 자동계산() {
         const years = postTerm / 12 || 1;
         const fixYears = fixPostTerm / 12 || 1;
 
-        if (isInterestOnly || type === "만기") {
+        if (isInterestOnly) {
+          // 이자만 적용 체크 (전세대출/예적금담보대출 등): DSR에도 이자만 반영, 원금 분할상환분은 더하지 않음
+          annualInterest = amt * combinedRate;
+          fixAnnualInterest = amt * combinedRate;
+          annualTotal = annualInterest;
+          fixAnnualTotal = fixAnnualInterest;
+        } else if (type === "만기") {
+          // 만기일시상환 (이자만 체크 안 된 경우): 원금을 실제 만기(연)로 나눠 DSR에 반영
           annualInterest = amt * combinedRate;
           fixAnnualInterest = amt * combinedRate;
           annualTotal = annualInterest + (amt / years);
