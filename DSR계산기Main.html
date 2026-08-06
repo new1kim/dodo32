@@ -213,12 +213,12 @@
       color: white; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-size: 14px; display: none; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
     }
 
-    .view-btn-wrapper { display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
+    .view-btn-wrapper { display: flex; justify-content: center; gap: 12px; margin-top: 4px; }
     .view-btn { width: 48%; background-color: #475569; border: none !important; color: white; padding: 12px; font-size: 13px; font-weight: 600; border-radius: 10px; box-shadow: 0 2px 4px rgba(71, 85, 105, 0.15); }
     .view-btn:hover { background-color: #334155; }
 
     /* DSR 최대한도 표 디자인 (라벨셀 + 값셀 그리드) */
-    .dsr-limit-table { margin-top: 8px; }
+    .dsr-limit-table { margin-top: 4px; font-size: 1px }
     .dsr-label-cell {
       background-color: #eff6ff !important;
       color: #1e40af;
@@ -273,7 +273,7 @@
     .info-list li::before { content: "•"; position: absolute; left: 2px; color: #cbd5e1; font-weight: bold; }
     .alert-box { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; color: #991b1b; font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: normal !important; }
     .accent-box { background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; color: #166534; font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: normal !important; }
-    .footer-version { text-align: right; font-size: 11px; color: #94a3b8; margin-top: 16px; font-weight: 600; }
+    .footer-version { text-align: right; font-size: 11px; color: #94a3b8; margin-top: 1px; font-weight: 600; }
 
     #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }
     #DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
@@ -286,7 +286,7 @@
     .default-field { flex: 1; min-width: 0; border: 1px solid #e2e8f0; border-radius: 12px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); padding: 8px; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03); }
     .default-field-label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; letter-spacing: -0.2px; }
     .default-field .rate-popup-table { margin: 0; border-spacing: 0; }
-    .default-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .default-modal-actions { display: flex; gap: 8px; margin-top: 1px; }
     .default-modal-actions button { flex: 1; border: none; border-radius: 10px; padding: 10px 12px; color: white; font-weight: 700; cursor: pointer; }
 
     #schedule-table th { position: sticky; top: 0; background-color: #f1f5f9 !important; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -369,7 +369,7 @@
   <div class="container">
     <div id="bubble-box">신DTI 적용</div>
 
-    <table class="summary-table">
+    <table class="summary-table" style="margin-top: -5px;">
       <tr style="background-color: #d9f2ff;">
         <td rowspan="2" style="width: 22%; cursor: pointer; text-decoration: underline; color: #0284c7; font-weight: bold;" onclick="openScheduleModal()">본건 월별<br>상환 스케줄</td>
         <td style="color:#475569; font-weight:normal;">합 계</td>
@@ -385,54 +385,33 @@
 
     <table class="dsr-limit-table">
       <colgroup>
-        <col style="width: 15%;">
-        <col style="width: 35%;">
-        <col style="width: 15%;">
-        <col style="width: 35%;">
+        <col style="width: 10%;">
+        <col style="width: 5%;">
+        <col style="width: 25%;">
+        <col style="width: 5%;">
+        <col style="width: 25%;">
       </colgroup>
-      <tr> <!-- 소득대비 DSR 최대치 표시 -->
-        <td colspan="4" class="no-bg" style="padding: 0;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding: 8px 10px; background-color: #eff6ff;">
-            <span style="font-weight:800; font-size:13px; color:#1e40af; letter-spacing:-0.3px; flex-shrink:0;"></span> <!-- 테이블의 첫줄 좌측 -->
-            <div style="display: inline-flex; background-color: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 999px; padding: 4px; gap: 0px;" id="dsrLimitToggleGroup">
-              <label style="cursor: pointer; padding: 5px 14px; border-radius: 999px; background-color: #2563eb; color: #ffffff; font-size: 13px; font-weight: bold;">
-                <input type="radio" name="dsr_limit_rate" value="40" checked style="display: none;"> DSR 40%
-              </label>
-              <label style="cursor: pointer; padding: 5px 14px; border-radius: 999px; background-color: transparent; color: #3a0808; font-size: 13px; font-weight: bold;">
-                <input type="radio" name="dsr_limit_rate" value="50" style="display: none;"> DSR 50%
-              </label>
-            </div>
-            <span style="font-weight:800; font-size:13px; color:#0f172a; letter-spacing:-0.3px; flex-shrink:0;"></span> <!-- 테이블의 첫줄 우측 -->
+      <tr id="dsrLimitRow">
+        <td class="dsr-label-cell" style="padding: 6px 4px;" ; >
+          <div id="dsrLimitToggleGroup" style="display: inline-flex; flex-direction: column; background-color: #ffffff; border: 0px solid #bfdbfe; border-radius: 1px; padding: 0px; gap: 0px; width: 100%; ">
+            <label style="cursor: pointer; padding: 3px 3px; border-radius: 10px; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden;">
+              <input type="radio" name="dsr_limit_rate" value="40" checked style="display: none;">DSR40%
+            </label>
+            <label style="cursor: pointer; padding: 3px 3px; border-radius: 10px; background-color: transparent; color: #64748b; font-weight: bold; font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden;">
+              <input type="radio" name="dsr_limit_rate" value="50" style="display: none;">DSR50%
+            </label>
           </div>
         </td>
-      </tr>
-      <tr id="dsrLimitRow40">
-        <td class="dsr-label-cell">원리금</td>
+        <td class="dsr-label-cell" style="line-height: 1.1;">원<br>리<br>금</td>
         <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인40-원리금" class="dsr-max-value-number">
+          <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
             <span class="dsr-main-val">-</span>
             <span class="dsr-sub-val">-</span>
           </span>
         </td>
-        <td class="dsr-label-cell">원금</td>
+        <td class="dsr-label-cell" style="line-height: 1.1;">원<br>금</td>
         <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인40-원금" class="dsr-max-value-number">
-            <span class="dsr-main-val">-</span>
-            <span class="dsr-sub-val">-</span>
-          </span>
-        </td>
-      </tr>
-      <tr id="dsrLimitRow50" style="display:none;">
-        <td class="dsr-label-cell">원리금</td>
-        <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인50-원리금" class="dsr-max-value-number">
-            <span class="dsr-main-val">-</span>
-            <span class="dsr-sub-val">-</span>
-          </span>
-        </td>
-        <td class="dsr-label-cell">원금</td>
-        <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인50-원금" class="dsr-max-value-number">
+          <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
             <span class="dsr-main-val">-</span>
             <span class="dsr-sub-val">-</span>
           </span>
@@ -493,8 +472,6 @@
 
 
 
-
-
     <table class="summary-table">
       <tr style="background-color: #d9f2ff;">
         <td style="width: 33.33%;">D S R</td>
@@ -508,7 +485,7 @@
       </tr>
     </table>
 
-    <table style="margin-top: 8px;">
+    <table style="margin-top: 1px;">
       <tr>
         <td style="width: 25%; font-weight: bold; letter-spacing: -0.5px;"> 연소득 입력<br>
           <span style="font-size: 10px; color: #64748b; font-weight: normal;">(장래예상소득)</span>
@@ -528,28 +505,34 @@
       </tr>
     </table>
 
-    <table style="margin-top: 8px;">
+
+
+
+<table style="margin-top: 1px;">
       <colgroup>
-          <col style="width: 22%;">   
+          <col style="width: 10%;">   
           <col style="width: 42%;">  
           <col style="width: 12%;">  
           <col style="width: 24%;">  
       </colgroup>
       <thead>
         <tr style="background-color: #d9f2ff;">
-          <th colspan="1" style="padding: 6px; text-align: center;">
-            <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
-          </th>
-          <th colspan="3" style="text-align: center; color:#1e293b; font-size:13px; position: relative;">
-            대출 정보 입력
+          <!-- 기존 colspan="1", colspan="3"으로 나뉜 칸을 colspan="4" 하나로 합침 -->
+          <th colspan="4" style="padding: 6px; text-align: center; color:#1e293b; font-size:13px; position: relative;">
+            
+            <!-- 왼쪽 끝으로 고정한 '행 추가' 버튼 -->
+            <button type="button" class="add-btn" onclick="주담대행추가()" style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%);">행 추가</button>
+            
+            대출 정보 입력 
+            
+            <!-- 오른쪽 끝으로 고정한 '초기화' 버튼 -->
             <button type="button" class="reset-btn" onclick="선택초기화()" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%);">초기화</button>
           </th>
         </tr>
         <tr style="background-color: #f2f2f2; font-size: 11px; text-align: center; font-weight: 600;">
           <td style="padding: 6px 2px; white-space: normal !important; color:#64748b;">
             <div style="display:flex; gap:6px; width:100%;">
-              <div style="flex:1; font-weight:700; font-size:13px; line-height:1.1; text-align:center;">계산<br>제외</div>
-              <div style="flex:1; font-weight:700; font-size:13px; line-height:1.1; text-align:center;">이자<br>적용</div>
+              <div style="flex:1; font-weight:700; font-size:12px; line-height:1.1; text-align:center;">계산<br>제외</div>
             </div>
           </td>
           <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
@@ -560,6 +543,20 @@
       <tbody id="mortgage-inputs">
       </tbody>
     </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <div class="view-btn-wrapper">
       <button class="view-btn" onclick="openTextModal()">계산기 설명</button>
@@ -584,7 +581,7 @@
             <ul class="info-list">
               <li><b>신용대출</b>: 5년 (60개월) 입력</li>
               <li><b>비주택담보대출</b>: 8년 (96개월) 입력</li>
-              <li><b>전세대출 / 예적금담보대출</b>: 만기일시 형태이므로 <b style="color:#d97706;">[이자만]</b> 체크</li>
+              <li><b>전세대출 / 예적금담보대출</b>: 만기일시 형태이므로 상환방식에서 <br>개월수  상관없이<b style="color:#d97706;">  [만기] </b> 선택</li>
               <li><b>유가증권담보</b>: 8년 (96개월) 입력</li>
               <li><b>캐피탈 / 카드대출 / 학자금 등</b>: 12개월 기준으로 1년간 실제 총 납입금액을 계산하여 입력</li>
             </ul>
@@ -609,8 +606,7 @@
               <li>예상 요율은 연령별로 설정되며, 생년(1986), 또는 만나이(32) 입력하면 자동으로 요율이 적용됩니다.</li>
             </ul>
           </div>
-          <div class="footer-version">MP32</div>
-
+          
           <div class="info-section" id="modal-rate-card" style="text-align:center;">
             <div class="section-title" style="justify-content:center;">✏️ 장래예상소득증가율 수정</div>
             <table class="rate-popup-table">
@@ -628,7 +624,7 @@
                 <tr><td>40세 ~ 44세</td><td><input type="text" id="edit-rate-4" inputmode="decimal"></td></tr>
               </tbody>
             </table>
-            <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <div style="display: flex; gap: 8px; margin-top: 5px;">
               <button type="button" style="background-color: #64748b;" onclick="closeModal()">취소</button>
               <button type="button" style="background-color: #10b981;" onclick="saveCustomRates()">저장하기</button>
             </div>
@@ -698,7 +694,7 @@
         </div>
       </div>
 
-      <div id="modal-schedule-card" class="text-popup-card" style="display: none; width: 95%; max-width: 500px;" onclick="event.stopPropagation()">
+      <div id="modal-schedule-card"  class="text-popup-card" style="display: none; width: 95%; max-width: 500px;" onclick="event.stopPropagation()">
         <div class="text-popup-title">월별 상환 스케줄 (본건 기준)</div>
         <div class="text-popup-content" style="text-align: center;">
           <div style="max-height: 60vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">

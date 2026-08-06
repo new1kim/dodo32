@@ -334,6 +334,40 @@
       });
     }
 
+    function adjustDsrToggleFontSize() {
+      let ghost = document.getElementById('dsr-toggle-font-ghost');
+      if (!ghost) {
+        ghost = document.createElement('span');
+        ghost.id = 'dsr-toggle-font-ghost';
+        ghost.style.position = 'absolute';
+        ghost.style.visibility = 'hidden';
+        ghost.style.whiteSpace = 'nowrap';
+        ghost.style.left = '-9999px';
+        ghost.style.top = '-9999px';
+        document.body.appendChild(ghost);
+      }
+
+      document.querySelectorAll('#dsrLimitToggleGroup label').forEach(label => {
+        const maxWidth = label.clientWidth - 8;
+        if (maxWidth <= 0) return;
+
+        const style = window.getComputedStyle(label);
+        ghost.style.fontFamily = style.fontFamily;
+        ghost.style.fontWeight = style.fontWeight;
+
+        ghost.innerText = label.innerText.trim();
+
+        let fontSize = 13;
+        ghost.style.fontSize = fontSize + 'px';
+
+        while (fontSize > 7 && ghost.offsetWidth > maxWidth) {
+          fontSize -= 0.5;
+          ghost.style.fontSize = fontSize + 'px';
+        }
+        label.style.fontSize = fontSize + 'px';
+      });
+    }
+
     function getDefaultProfileValues(profile, savedData) {
       if (!savedData) return { rate: '', stRate: '', term: '' };
       if (profile === '5Y') {
@@ -435,39 +469,8 @@
         el.addEventListener("touchend", endInputPress, {passive: true});
       });
 
-      row.querySelectorAll('input[type="checkbox"], select').forEach(el => {
+      row.querySelectorAll('input[type="checkbox"]').forEach(el => {
         el.addEventListener("change", (e) => {
-          if (e.target.tagName === 'SELECT') {
-            const termInput = row.querySelector('.mort-term');
-            const interestInput = row.querySelector('.mort-interest-only');
-            const value = e.target.value;
-            if (value === '직접입력') {
-              if (termInput) termInput.value = '';
-              if (interestInput) interestInput.checked = false;
-            } else if (value === '신용대출') {
-              if (termInput) termInput.value = '60';
-              if (interestInput) interestInput.checked = false;
-            } else if (value === '전세자금') {
-              if (termInput) termInput.value = '24';
-              if (interestInput) interestInput.checked = true;
-            } else if (value === '비주택담보') {
-              if (termInput) termInput.value = '60';
-              if (interestInput) interestInput.checked = false;
-            } else if (value === '예적금') {
-              if (termInput) termInput.value = '';
-              if (interestInput) interestInput.checked = true;
-            } else if (value === '기타') {
-              if (termInput) termInput.value = '12';
-              if (interestInput) interestInput.checked = false;
-            } else if (value === '중도/이주') {
-              if (termInput) termInput.value = '300';
-              if (interestInput) interestInput.checked = false;
-            } else if (value === '주택담보') {
-              if (termInput) termInput.value = '360';
-              if (interestInput) interestInput.checked = false;
-            }
-          }
-          if (e.target.classList.contains('mort-interest-only')) showBubble(e.target.checked ? "이자만 적용" : "원금+이자 적용");
           if (e.target.classList.contains('mort-exclude')) showBubble(e.target.checked ? "계산 제외" : "대출 적용");
           if (e.target.classList.contains('mort-grace-check')) showBubble(e.target.checked ? "거치 적용" : "거치 해제");
           if (typeof 자동계산 === 'function') 자동계산();
@@ -524,25 +527,8 @@
       
       newRow.innerHTML = `
         <td class="no-bg" style="padding: 6px 4px; vertical-align: middle;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(38px, auto); gap: 6px; width:100%;">
-            <div style="display:flex; justify-content:center; align-items:center; padding:6px; background:#fbfdff; border-radius:8px;">
-              <input type="checkbox" class="mort-exclude" title="계산제외">
-            </div>
-            <div style="display:flex; justify-content:center; align-items:center; padding:6px; background:#fbfdff; border-radius:8px;">
-              <input type="checkbox" class="mort-interest-only" title="이자만적용">
-            </div>
-            <div style="grid-column: 1 / -1;">
-              <select class="dropdown-select">
-                <option value="직접입력">직접입력</option>
-                <option value="신용대출">신용대출</option>
-                <option value="주택담보">주택담보</option>
-                <option value="전세자금">전세자금</option>
-                <option value="비주택담보">비주택담보</option>
-                <option value="예적금">예적금</option>
-                <option value="중도/이주">중도/이주</option>
-                <option value="기타">기타</option>
-              </select>
-            </div>
+          <div style="display:flex; justify-content:center; align-items:center; padding:6px; background:#fbfdff; border-radius:8px; width:100%;">
+            <input type="checkbox" class="mort-exclude" title="계산제외">
           </div>
         </td>
         <td class="no-bg" style="padding: 6px 4px;">
@@ -568,7 +554,7 @@
             <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
           </div>
           <input type="hidden" class="mort-type" value="원리금">
-          <div style="display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 6px;">
+          <div style="display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 1px;">
             <input type="checkbox" class="mort-grace-check" title="거치 적용">
             <input type="text" inputmode="numeric" placeholder="거치(개월)" class="mort-grace-term" style="width: 70%; padding: 4px; font-size: 11px;">
           </div>
@@ -576,11 +562,6 @@
       `;
       
       tbody.appendChild(newRow);
-      
-      if (isFirstRow) {
-        const select = newRow.querySelector('select');
-        if (select) select.value = '주택담보';
-      }
       
       bindMortgageRowEvents(newRow);
       if (isFirstRow) {
@@ -771,16 +752,7 @@
           }
         });
 
-        const selectedVal = e.target.value;
-        const row40 = document.getElementById("dsrLimitRow40");
-        const row50 = document.getElementById("dsrLimitRow50");
-        if (row40) row40.style.display = selectedVal === "40" ? "table-row" : "none";
-        if (row50) row50.style.display = selectedVal === "50" ? "table-row" : "none";
-
-        setTimeout(() => {
-          adjustDsrMaxFontSize();
-          adjustTableFontSize();
-        }, 0);
+        if (typeof 자동계산 === 'function') 자동계산();
       });
     });
 
@@ -810,9 +782,6 @@
       if (firstRow) {
         const mortAmt = firstRow.querySelector('.mort-amt');
         if (mortAmt) mortAmt.value = '';
-        
-        const loanTypeSelect = firstRow.querySelector('select.dropdown-select');
-        if (loanTypeSelect) loanTypeSelect.value = '직접입력';
         
         const rateInput = firstRow.querySelector('.mort-rate');
         if (rateInput) rateInput.value = savedDefaultFirstRowData?.rate || '';
@@ -881,8 +850,6 @@
       rows.forEach(row => {
         const rowData = {
           exclude: row.querySelector('.mort-exclude')?.checked || false,
-          interestOnly: row.querySelector('.mort-interest-only')?.checked || false,
-          loanType: row.querySelector('select.dropdown-select')?.value || '직접입력',
           amount: row.querySelector('.mort-amt')?.value || '',
           rate: row.querySelector('.mort-rate')?.value || '',
           stRate: row.querySelector('.mort-st-rate')?.value || '',
@@ -943,8 +910,6 @@
           
           if (currentRow) {
             const exclude = currentRow.querySelector('.mort-exclude');
-            const interestOnly = currentRow.querySelector('.mort-interest-only');
-            const loanTypeSelect = currentRow.querySelector('select.dropdown-select');
             const amount = currentRow.querySelector('.mort-amt');
             const rate = currentRow.querySelector('.mort-rate');
             const stRate = currentRow.querySelector('.mort-st-rate');
@@ -954,8 +919,6 @@
             const graceTerm = currentRow.querySelector('.mort-grace-term');
             
             if (exclude) exclude.checked = rowData.exclude;
-            if (interestOnly) interestOnly.checked = rowData.interestOnly;
-            if (loanTypeSelect) loanTypeSelect.value = rowData.loanType;
             if (amount) amount.value = rowData.amount;
             if (rate) rate.value = rowData.rate;
             if (stRate) stRate.value = rowData.stRate;
@@ -1009,10 +972,12 @@
       window.addEventListener('resize', () => {
         adjustTableFontSize();
         adjustDsrMaxFontSize();
+        adjustDsrToggleFontSize();
       });
       setTimeout(() => {
         adjustTableFontSize();
         adjustDsrMaxFontSize();
+        adjustDsrToggleFontSize();
       }, 100);
     }
 

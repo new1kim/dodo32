@@ -115,7 +115,6 @@ function generateSchedule() {
       const pureRate = parseFloat(firstRow.querySelector('.mort-rate').value) / 100 || 0;
       const term = parseInt(firstRow.querySelector('.mort-term').value) || 0;
       const type = firstRow.querySelector('.mort-type').value;
-      const isInterestOnly = firstRow.querySelector('.mort-interest-only').checked;
 
       const graceCheck = firstRow.querySelector('.mort-grace-check') ? firstRow.querySelector('.mort-grace-check').checked : false;
       let graceTerm = parseInt(firstRow.querySelector('.mort-grace-term') ? firstRow.querySelector('.mort-grace-term').value : 0) || 0;
@@ -133,7 +132,7 @@ function generateSchedule() {
       const mRate = pureRate / 12;
       let html = "";
       
-      if (isInterestOnly || type === "만기") {
+      if (type === "만기") {
         const mPay = balance * mRate;
         for (let i = 1; i <= term; i++) {
           let principal = 0;
@@ -234,7 +233,6 @@ function 자동계산() {
         const stRateEl = row.querySelector('.mort-st-rate');
         const termEl = row.querySelector('.mort-term');
         const typeEl = row.querySelector('.mort-type');
-        const interestOnlyEl = row.querySelector('.mort-interest-only');
 
         const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
         const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
@@ -242,7 +240,6 @@ function 자동계산() {
         const combinedRate = (pureRate * 100 + stRateValue) / 100;
         const term = termEl ? (parseInt(termEl.value) || 0) : 0;
         const type = typeEl ? typeEl.value : "원리금";
-        const isInterestOnly = interestOnlyEl ? interestOnlyEl.checked : false;
 
         const graceCheck = row.querySelector('.mort-grace-check') ? row.querySelector('.mort-grace-check').checked : false;
         let graceTerm = parseInt(row.querySelector('.mort-grace-term') ? row.querySelector('.mort-grace-term').value : 0) || 0;
@@ -257,7 +254,7 @@ function 자동계산() {
         if (fixPostTerm <= 0) fixPostTerm = 1;
 
         let monthlyRes;
-        if (isInterestOnly || type === "만기") {
+        if (type === "만기") {
             const mInt = amt * pureRate / 12;
             monthlyRes = { 월상환금액: mInt, 첫달원금: 0, 첫달이자: mInt };
         } else if (type === "원리금") {
@@ -282,18 +279,12 @@ function 자동계산() {
         const years = postTerm / 12 || 1;
         const fixYears = fixPostTerm / 12 || 1;
 
-        if (isInterestOnly) {
-          // 이자만 적용 체크 (전세대출/예적금담보대출 등): DSR에도 이자만 반영, 원금 분할상환분은 더하지 않음
+        if (type === "만기") {
+          // 만기일시상환(=이자만 적용과 동일 방식): DSR에도 이자만 반영, 원금 분할상환분은 더하지 않음
           annualInterest = amt * combinedRate;
           fixAnnualInterest = amt * combinedRate;
           annualTotal = annualInterest;
           fixAnnualTotal = fixAnnualInterest;
-        } else if (type === "만기") {
-          // 만기일시상환 (이자만 체크 안 된 경우): 원금을 실제 만기(연)로 나눠 DSR에 반영
-          annualInterest = amt * combinedRate;
-          fixAnnualInterest = amt * combinedRate;
-          annualTotal = annualInterest + (amt / years);
-          fixAnnualTotal = fixAnnualInterest + (amt / fixYears);
         } else if (type === "원리금") {
           const calc = 원리금균등_계산대출(amt, combinedRate, postTerm);
           const fix = 원리금균등_계산대출(amt, combinedRate, fixPostTerm);
@@ -416,9 +407,11 @@ function 자동계산() {
             const annualPaymentPerUnit원리금 = (mRate / (1 - Math.pow(1 + mRate, -postTerm1))) * 12;
             const annualPaymentPerUnit원금 = (6 * mRate * (1 + 1 / postTerm1)) + (12 / postTerm1);
 
-            const maxTotalAnnualPayment40 = income * 0.4;
-            const availableForMortgage40 = maxTotalAnnualPayment40 - existingOtherDebtPayment;
-            
+            const selectedLimitRadio = document.querySelector('input[name="dsr_limit_rate"]:checked');
+            const selectedLimitRate = selectedLimitRadio ? (parseFloat(selectedLimitRadio.value) || 40) : 40;
+            const maxTotalAnnualPayment = income * (selectedLimitRate / 100);
+            const availableForMortgage = maxTotalAnnualPayment - existingOtherDebtPayment;
+
             const setDsrBlockValues = (elId, rawLoanVal) => {
               const containerEl = document.getElementById(elId);
               if (!containerEl) return;
@@ -442,33 +435,19 @@ function 자동계산() {
               }
             };
 
-            const r40w = document.getElementById("DSR최대금액확인40-원리금");
-            const r40g = document.getElementById("DSR최대금액확인40-원금");
-            if (availableForMortgage40 <= 0) {
-              if (r40w) { r40w.querySelector('.dsr-main-val').innerText = "대출 불가"; r40w.querySelector('.dsr-sub-val').innerText = "(-)"; }
-              if (r40g) { r40g.querySelector('.dsr-main-val').innerText = "대출 불가"; r40g.querySelector('.dsr-sub-val').innerText = "(-)"; }
+            const rw = document.getElementById("DSR최대금액확인-원리금");
+            const rg = document.getElementById("DSR최대금액확인-원금");
+            if (availableForMortgage <= 0) {
+              if (rw) { rw.querySelector('.dsr-main-val').innerText = "대출 불가"; rw.querySelector('.dsr-sub-val').innerText = "(-)"; }
+              if (rg) { rg.querySelector('.dsr-main-val').innerText = "대출 불가"; rg.querySelector('.dsr-sub-val').innerText = "(-)"; }
             } else {
-              const maxLoan40원리금 = availableForMortgage40 / annualPaymentPerUnit원리금;
-              const maxLoan40원금 = availableForMortgage40 / annualPaymentPerUnit원금;
-              setDsrBlockValues("DSR최대금액확인40-원리금", maxLoan40원리금);
-              setDsrBlockValues("DSR최대금액확인40-원금", maxLoan40원금);
-            }
-
-            const maxTotalAnnualPayment50 = income * 0.5;
-            const availableForMortgage50 = maxTotalAnnualPayment50 - existingOtherDebtPayment;
-            const r50w = document.getElementById("DSR최대금액확인50-원리금");
-            const r50g = document.getElementById("DSR최대금액확인50-원금");
-            if (availableForMortgage50 <= 0) {
-              if (r50w) { r50w.querySelector('.dsr-main-val').innerText = "대출 불가"; r50w.querySelector('.dsr-sub-val').innerText = "(-)"; }
-              if (r50g) { r50g.querySelector('.dsr-main-val').innerText = "대출 불가"; r50g.querySelector('.dsr-sub-val').innerText = "(-)"; }
-            } else {
-              const maxLoan50원리금 = availableForMortgage50 / annualPaymentPerUnit원리금;
-              const maxLoan50원금 = availableForMortgage50 / annualPaymentPerUnit원금;
-              setDsrBlockValues("DSR최대금액확인50-원리금", maxLoan50원리금);
-              setDsrBlockValues("DSR최대금액확인50-원금", maxLoan50원금);
+              const maxLoan원리금 = availableForMortgage / annualPaymentPerUnit원리금;
+              const maxLoan원금 = availableForMortgage / annualPaymentPerUnit원금;
+              setDsrBlockValues("DSR최대금액확인-원리금", maxLoan원리금);
+              setDsrBlockValues("DSR최대금액확인-원금", maxLoan원금);
             }
           } else {
-            ['DSR최대금액확인40-원리금', 'DSR최대금액확인40-원금', 'DSR최대금액확인50-원리금', 'DSR최대금액확인50-원금'].forEach(id => {
+            ['DSR최대금액확인-원리금', 'DSR최대금액확인-원금'].forEach(id => {
               const el = document.getElementById(id);
               if (el) {
                 el.querySelector('.dsr-main-val').innerText = "-";
@@ -482,7 +461,7 @@ function 자동계산() {
         if (dtiCheckEl) { dtiCheckEl.innerText = "-"; dtiCheckEl.style.setProperty("background-color", "transparent", "important"); dtiCheckEl.style.color = "#1e293b"; }
         if (newDtiCheckEl) { newDtiCheckEl.innerText = "-"; newDtiCheckEl.style.setProperty("background-color", "transparent", "important"); newDtiCheckEl.style.color = "#1e293b"; }
         
-        ['DSR최대금액확인40-원리금', 'DSR최대금액확인40-원금', 'DSR최대금액확인50-원리금', 'DSR최대금액확인50-원금'].forEach(id => {
+        ['DSR최대금액확인-원리금', 'DSR최대금액확인-원금'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
             el.querySelector('.dsr-main-val').innerText = "-";
@@ -496,5 +475,6 @@ function 자동계산() {
       setTimeout(() => {
         if (typeof adjustDsrMaxFontSize === 'function') adjustDsrMaxFontSize();
         if (typeof adjustTableFontSize === 'function') adjustTableFontSize();
+        if (typeof adjustDsrToggleFontSize === 'function') adjustDsrToggleFontSize();
       }, 0);
     }
