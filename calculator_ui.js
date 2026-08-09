@@ -1,5 +1,16 @@
 /* DSR계산기ETC - 그 외 코드 (UI, 이벤트, 모달, 로컬스토리지 등) */
 
+function getStoredJson(key, fallback = null) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    console.warn(`저장 데이터가 손상되어 초기화했습니다: ${key}`, e);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 function adjustTableFontSize() {
   const cells = document.querySelectorAll('table th, table td');
   cells.forEach(cell => {
@@ -136,9 +147,8 @@ function openDefaultFirstRowModal() {
   if (imgModal) imgModal.style.display = "none";
   if (scheduleCard) scheduleCard.style.display = "none";
 
-  const savedData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
-  if (savedData) {
-    const data = JSON.parse(savedData);
+  const data = getStoredJson("DEFAULT_FIRST_ROW_DATA");
+  if (data) {
     if (document.getElementById("default-mort-rate")) document.getElementById("default-mort-rate").value = data.sixMonthRate || data.rate || "";
     if (document.getElementById("default-five-year-rate")) document.getElementById("default-five-year-rate").value = data.fiveYearRate || "";
     if (document.getElementById("default-mort-st-rate")) document.getElementById("default-mort-st-rate").value = data.sixMonthStRate || data.stRate || "";
@@ -187,6 +197,7 @@ function saveDefaultFirstRowData() {
     if (sixMonthStRate && firstRow.querySelector('.mort-st-rate')) firstRow.querySelector('.mort-st-rate').value = sixMonthStRate;
     if (sixMonthTerm && firstRow.querySelector('.mort-term')) firstRow.querySelector('.mort-term').value = sixMonthTerm;
     if (typeof 자동계산 === 'function') 자동계산();
+    if (typeof saveDSRInputs === 'function') saveDSRInputs();
   }
 }
 
@@ -222,6 +233,7 @@ function setMortgageRepaymentType(btn, type) {
   buttons.forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (typeof 자동계산 === 'function') 자동계산();
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
 function showBubble(text = "신DTI 적용") {
@@ -262,6 +274,7 @@ function handleDsrMaxBlockClick(block) {
     }
     showBubble(`${type || '최대값'} 방식 선택 및 본건 입력`);
     if (typeof 자동계산 === 'function') 자동계산();
+    if (typeof saveDSRInputs === 'function') saveDSRInputs();
   }
 }
 
@@ -288,6 +301,7 @@ function 전달DSR한도금액(tdElement) {
       amtInput.value = totalAmount.toLocaleString();
       showBubble(`${type || '최대한도'} 및 최대한도가 본건에 입력되었습니다.`);
       if (typeof 자동계산 === 'function') 자동계산();
+      if (typeof saveDSRInputs === 'function') saveDSRInputs();
     }
   }
 }
@@ -382,8 +396,7 @@ function getDefaultProfileValues(profile, savedData) {
 }
 
 function applyDefaultProfileToRow(row, profile) {
-  const savedDataText = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
-  const savedData = savedDataText ? JSON.parse(savedDataText) : null;
+  const savedData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
   const values = getDefaultProfileValues(profile, savedData);
 
   const rateInput = row.querySelector('.mort-rate');
@@ -443,6 +456,7 @@ function bindMortgageRowEvents(row) {
       profileSelect.dataset.profile = nextProfile;
       profileSelect.classList.toggle('active', nextProfile === '5Y');
       applyDefaultProfileToRow(row, nextProfile);
+      if (typeof saveDSRInputs === 'function') saveDSRInputs();
     });
   }
 
@@ -482,6 +496,7 @@ function bindMortgageRowEvents(row) {
             showBubble("해당 대출 정보 삭제 완료");
             updateMortgagePlaceholders(); 
             if (typeof 자동계산 === 'function') 자동계산(); 
+            if (typeof saveDSRInputs === 'function') saveDSRInputs();
           }
         }, 2000);
       };
@@ -522,6 +537,7 @@ function increaseAmount(btn) {
   input.value = currentVal.toLocaleString();
   
   if (typeof 자동계산 === 'function') 자동계산();
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
 // 금액 1,000,000원 감소 기능
@@ -540,6 +556,7 @@ function decreaseAmount(btn) {
   }
   
   if (typeof 자동계산 === 'function') 자동계산();
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
 let mortCount = 0;
@@ -621,14 +638,15 @@ function 주담대행추가() {
   if (typeof 자동계산 === 'function') 자동계산();
 }
 
-const savedRates = localStorage.getItem("CUSTOM_LOAN_RATE_TABLE");
-const LOAN_RATE_TABLE = savedRates ? JSON.parse(savedRates) : [
+const DEFAULT_LOAN_RATE_TABLE = [
     { minAge: 20, maxAge: 24, percent: 150.69 },
     { minAge: 25, maxAge: 29, percent: 131.62 },
     { minAge: 30, maxAge: 34, percent: 118.41 },
     { minAge: 35, maxAge: 39, percent: 106.54 },
     { minAge: 40, maxAge: 44, percent: 101.62 }
 ];
+const savedRates = getStoredJson("CUSTOM_LOAN_RATE_TABLE");
+const LOAN_RATE_TABLE = Array.isArray(savedRates) ? savedRates : DEFAULT_LOAN_RATE_TABLE;
 
 let memoBaseIncome = 0;
 let isEditingIncome = false;
@@ -806,13 +824,7 @@ dsrLimitRateRadios.forEach(radio => {
 });
 
 function 선택초기화() {
-  let savedDefaultFirstRowData = null;
-  try {
-    const savedData = localStorage.getItem("DEFAULT_FIRST_ROW_DATA");
-    savedDefaultFirstRowData = savedData ? JSON.parse(savedData) : null;
-  } catch (e) {
-    console.warn("기본값 복원 데이터 파싱 실패:", e);
-  }
+  const savedDefaultFirstRowData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
 
   if (baseIncomeInput) baseIncomeInput.value = "";
   memoBaseIncome = 0;
@@ -939,11 +951,10 @@ function loadDSRInputs() {
 }
 
 function loadMortgageRows() {
-  const savedData = localStorage.getItem('DSR_mortgageData');
-  if (!savedData) return;
+  const mortgageData = getStoredJson('DSR_mortgageData');
+  if (!Array.isArray(mortgageData)) return;
   
   try {
-    const mortgageData = JSON.parse(savedData);
     const tbody = document.getElementById('mortgage-inputs');
     if (!tbody) return;
     

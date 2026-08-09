@@ -26,13 +26,13 @@
   --c-text-body: #334155;
   --c-text-muted: #64748b;
   --c-text-faint: #94a3b8;
-  --c-border: #e2e8f0;
+  --c-border: #dbe5f0;
   --c-border-soft: #f1f5f9;
   --c-surface: #ffffff;
   --c-surface-muted: #f8fafc;
-  --c-header-bg: #eff6ff;
-  --c-header-text: #1e40af;
-  --c-subheader-bg: #f8fafc;
+  --c-header-bg: #eef5ff;
+  --c-header-text: #1e3a6d;
+  --c-subheader-bg: #f5f8fc;
   --c-subheader-text: #64748b;
 
   /* Radius */
@@ -81,12 +81,12 @@ table {
   background-color: var(--c-surface);
   border-radius: var(--r-lg) !important;
   box-shadow: var(--sh-card);
-  border: 0.5px solid #94a3b8 !important;
+  border: 1px solid var(--c-border) !important;
   overflow: hidden;
 }
 
 td, th {
-  border: 0.5px solid #cbd5e1 !important;
+  border: 1px solid #e2e8f0 !important;
   padding: 10px 6px;
   font-size: 13px;
   vertical-align: middle;
@@ -581,6 +581,58 @@ button:active { background-color: var(--c-primary-dark); transform: scale(0.99);
 #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }
 #DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
 #월합계 { color: var(--c-primary); }
+
+/* -------------------- Table color tuning (structure/function unchanged) -------------------- */
+/* 본건 월 상환 요약: 차분한 블루 */
+.summary-table:has(#월합계) {
+  border-color: #cdddf3 !important;
+  background: #fbfdff;
+}
+.summary-table:has(#월합계) .table-header-row td {
+  background: #edf5ff !important;
+  color: #31547f !important;
+}
+.summary-table:has(#월합계) tr:last-child td { background: #fbfdff !important; }
+
+/* DSR 한도: 계산 가능 금액을 구분하는 부드러운 인디고 톤 */
+.dsr-limit-table {
+  border-color: #d7d9f5 !important;
+  background: #fdfdff;
+}
+.dsr-limit-table .dsr-label-cell { background: #f1f2ff !important; color: #4c4e91; }
+.dsr-limit-table .dsr-value-cell { background: #fcfcff; }
+.dsr-limit-table .dsr-value-cell:hover { background: #f4f5ff; }
+.dsr-limit-table .dsr-main-val { color: #4f46a5; }
+
+/* LTV: 담보 관련 입력을 따뜻한 중립색으로 분리 */
+.ltv-table {
+  border-color: #eadfc9 !important;
+  background: #fffefa;
+}
+.ltv-table .ltv-cell { background: #fffdf8 !important; }
+.ltv-table .ltv-cell:first-child { background: #fff8ec !important; color: #8a5b20; }
+.ltv-table .ltv-cell + .ltv-cell { border-left-color: #eadfc9 !important; }
+.ltv-table .ltv-output { background: #fff5dd !important; color: #9a5a00; border-color: #ebc986 !important; }
+
+/* DSR · DTI · 신DTI 결과표: 읽기 쉬운 라벤더 포인트 */
+.summary-table:has(#DSR확인) {
+  border-color: #dcd8f4 !important;
+  background: #fefeff;
+}
+.summary-table:has(#DSR확인) .table-header-row td { background: #f3f1ff !important; color: #5b4b9a !important; }
+.summary-table:has(#DSR확인) tr:last-child td { background: #fcfbff !important; }
+
+/* 연소득: 입력 영역임을 알리는 옅은 민트 */
+table:has(#baseIncomeInput) { border-color: #cfe7df !important; background: #fcfffe; }
+table:has(#baseIncomeInput) .income-label { background: #effaf6 !important; color: #28705e; }
+table:has(#baseIncomeInput) #연소득입력 { background: #fcfffe !important; }
+table:has(#baseIncomeInput) #baseIncomeInput { border-color: #b9ddd1; background: #fafffd; }
+
+/* 대출 정보: 표의 밀도를 낮추기 위해 헤더와 본문을 단계적으로 구분 */
+table:has(#mortgage-inputs) { border-color: #d5e0ed !important; }
+table:has(#mortgage-inputs) .section-title-bar { background: #eaf2fc !important; color: #294d79 !important; }
+table:has(#mortgage-inputs) .table-subheader-row td { background: #f6f9fd !important; color: #60738d !important; }
+table:has(#mortgage-inputs) .mortgage-row td { background: #fcfdff; }
 
 /* -------------------- Modals / popups -------------------- */
 #image-modal {

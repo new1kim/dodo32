@@ -93,8 +93,9 @@ function updateLtvMaxAmount() {
   if (maxLtvAmount > limitAmount) {
     maxLtvAmount = limitAmount;
   }
+  maxLtvAmount = Math.max(0, maxLtvAmount);
 
-  ltvOutput.value = formatKoreanAmount(Math.round(maxLtvAmount));
+  ltvOutput.value = maxLtvAmount > 0 ? formatKoreanAmount(Math.round(maxLtvAmount)) : "0원";
 }
 
 
@@ -420,6 +421,7 @@ function 자동계산() {
           let calcLtv = priceVal * (ltvRate / 100) - minorLeaseVal;
           const limitAmt = getLtvMaxLimitByMarketPrice(priceVal);
           if (calcLtv > limitAmt) calcLtv = limitAmt;
+          calcLtv = Math.max(0, calcLtv);
           ltvCapAmount = calcLtv;
         }
       }
@@ -447,7 +449,10 @@ function 자동계산() {
           }
 
           const formattedIncomeMax = formatKoreanAmount(Math.round(rawLoanVal));
-          if (ltvCapAmount !== Infinity && rawLoanVal > ltvCapAmount) {
+          if (ltvCapAmount !== Infinity && ltvCapAmount <= 0) {
+            if (mainEl) mainEl.innerText = "대출 불가";
+            if (subEl) subEl.innerText = `(${formattedIncomeMax})`;
+          } else if (ltvCapAmount !== Infinity && rawLoanVal > ltvCapAmount) {
             const formattedLtv = formatKoreanAmount(Math.round(ltvCapAmount));
             if (mainEl) mainEl.innerText = formattedLtv;
             if (subEl) subEl.innerText = `(${formattedIncomeMax})`;
