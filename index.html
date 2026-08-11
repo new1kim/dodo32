@@ -375,18 +375,31 @@
       proceedToApp(name);
     }
 
+    // 저장된 이름을 지우고 이름 입력 폼을 다시 노출 (기기ID/localStorage는 유지, 이름만 재입력)
+    function resetUserNameInput() {
+      localStorage.removeItem('calc_user_name');
+
+      const authSection = document.getElementById('auth-section');
+      const nameInput = document.getElementById('user-name-input');
+      const counterEl = document.getElementById('today-count');
+
+      if (authSection) authSection.style.display = 'flex';
+      if (nameInput) {
+        nameInput.value = '';
+        nameInput.focus();
+      }
+      if (counterEl) counterEl.textContent = "이름 입력 필요";
+    }
+
     function initLongPressLink() {
       const longPressTarget = document.getElementById('today-count');
       let pressTimer = null;
 
       const startPress = () => {
         pressTimer = setTimeout(() => {
-          const savedName = localStorage.getItem('calc_user_name');
-          if (savedName) {
-            startWorkerRecordAccess(savedName);
-          }
+          resetUserNameInput();
           pressTimer = null;
-        }, 5000);
+        }, 1500);
       };
 
       const cancelPress = () => {
