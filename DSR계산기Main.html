@@ -74,7 +74,10 @@
             <!-- 토글 버튼 영역 -->
             <div class="pill-toggle-group" id="ltvRateToggleGroup">
               <label style="background-color: #2563eb; color: #ffffff;">
-                <input type="radio" name="ltv_rate" value="70" checked> 70%
+                <input type="radio" name="ltv_rate" value="80" checked> 80%
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="ltv_rate" value="70"> 70%
               </label>
               <label style="background-color: transparent; color: #64748b;">
                 <input type="radio" name="ltv_rate" value="60"> 60%
@@ -85,7 +88,11 @@
             </div>
 
             <!-- 소액임차금액 입력 영역 -->
-            <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액 입력">
+            <div class="minor-lease-input-row">
+              <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액 입력">
+              <!-- 나중에 참고 이미지를 연결할 버튼 -->
+              <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+            </div>
           </div>
         </td>
 
@@ -172,7 +179,7 @@
             <span id="rateDisplay" class="rate-display">(-)</span>
           </div>
         </td>
-        <td class="income-result-label">합산<br>연소득</td>
+        <td class="income-result-label">합산 소득</td>
       </tr>
       <tr>
         <td class="income-label">
@@ -243,6 +250,7 @@
 
     <!-- 모달 등 기타 UI 마크업 생략 없이 모두 포함 -->
     <div id="image-modal" onclick="closeModal()">
+      <div id="modal-image-credit" onclick="event.stopPropagation()">777, Park.Hw 제공</div>
       <img id="modal-img" src="" alt="안내 이미지 팝업" style="display: none;">
       
       <div id="modal-text-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">

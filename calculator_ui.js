@@ -88,6 +88,7 @@ function openScheduleModal() {
 
 function openImageModal(imageSrc) {
   const imgModal = document.getElementById("modal-img");
+  const imageCredit = document.getElementById("modal-image-credit");
   const textCard = document.getElementById("modal-text-card");
   const scheduleCard = document.getElementById("modal-schedule-card");
   const imageModal = document.getElementById("image-modal");
@@ -98,6 +99,7 @@ function openImageModal(imageSrc) {
     imgModal.src = imageSrc;
     imgModal.style.display = "block";
   }
+  if (imageCredit) imageCredit.style.display = imageSrc === "소액임차보증금.png" ? "block" : "none";
   if (imageModal) imageModal.style.display = "flex";
 }
 
