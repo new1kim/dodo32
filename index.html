@@ -326,13 +326,17 @@
       localStorage.setItem('frame_order', JSON.stringify(order));
     }
 
-    // 프레임 너비 저장 함수
+    // 프레임 너비 저장 함수 (창 너비 대비 "비율"로 저장 → 창 크기가 달라져도 항상 전체 너비를 채움)
     function updateFrameWidths() {
       const containers = document.querySelectorAll('.frame-container');
+      const wrapper = document.querySelector('.main-wrapper');
+      const totalWidth = wrapper ? wrapper.clientWidth : 0;
+      if (!totalWidth) return;
+
       const widths = Array.from(containers).map(container => {
         return {
           id: container.id,
-          width: container.offsetWidth
+          ratio: container.offsetWidth / totalWidth
         };
       });
       localStorage.setItem('frame_widths', JSON.stringify(widths));
@@ -364,16 +368,26 @@
         }
       }
 
-      // 너비 복원
+      // 너비 복원 (비율 기반 flex-grow 방식 → 항상 창 전체 너비를 채움)
       const savedWidths = localStorage.getItem('frame_widths');
       if (savedWidths) {
         try {
           const widths = JSON.parse(savedWidths);
+
+          // 구버전 데이터 호환: {width: px} 형식으로 저장된 경우 비율로 환산
+          const totalLegacyWidth = widths.reduce((sum, item) => sum + (item.width || 0), 0);
+
           widths.forEach(item => {
             const container = document.getElementById(item.id);
-            if (container) {
-              container.style.flex = `0 0 ${item.width}px`;
+            if (!container) return;
+
+            let ratio = item.ratio;
+            if (ratio == null && item.width != null && totalLegacyWidth > 0) {
+              ratio = item.width / totalLegacyWidth;
             }
+            if (ratio == null || !isFinite(ratio) || ratio <= 0) return;
+
+            container.style.flex = `${ratio} ${ratio} 0%`;
           });
         } catch (e) {
           console.error('프레임 너비 복원 실패:', e);
@@ -844,6 +858,7 @@
     }
 
     // 마우스/터치로 3개 프레임 간격 조절 (리사이저)
+    // ※ 비율(%) 기반 flex-grow 방식 사용: 창 너비가 달라져도 프레임들이 항상 전체 너비를 채움
     function initFrameResizers() {
       let activeResizer = null;
       let leftContainer = null;
@@ -851,6 +866,7 @@
       let startX = 0;
       let startLeftWidth = 0;
       let startRightWidth = 0;
+      let wrapperWidth = 0;
 
       document.querySelectorAll('.frame-resizer').forEach(resizer => {
         resizer.addEventListener('pointerdown', (e) => {
@@ -865,6 +881,10 @@
 
           if (!leftContainer || !rightContainer) return;
 
+          const wrapper = document.querySelector('.main-wrapper');
+          wrapperWidth = wrapper ? wrapper.clientWidth : 0;
+          if (!wrapperWidth) return;
+
           activeResizer = resizer;
           startX = e.clientX;
           startLeftWidth = leftContainer.getBoundingClientRect().width;
@@ -876,8 +896,11 @@
           document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'none');
           document.body.style.cursor = 'col-resize';
 
+          // 드래그 시작 시점의 현재 폭을 "비율"로 고정 (px 고정 대신 flex-basis 0% + 비율 grow)
           document.querySelectorAll('.frame-container').forEach(fc => {
-            fc.style.flex = `0 0 ${fc.getBoundingClientRect().width}px`;
+            const w = fc.getBoundingClientRect().width;
+            const ratio = w / wrapperWidth;
+            fc.style.flex = `${ratio} ${ratio} 0%`;
           });
 
           e.preventDefault();
@@ -885,7 +908,7 @@
         });
 
         resizer.addEventListener('pointermove', (e) => {
-          if (!activeResizer || activeResizer !== resizer || !leftContainer || !rightContainer) return;
+          if (!activeResizer || activeResizer !== resizer || !leftContainer || !rightContainer || !wrapperWidth) return;
 
           const deltaX = e.clientX - startX;
           const minWidth = 80;
@@ -901,8 +924,11 @@
             newLeftWidth = startLeftWidth + startRightWidth - minWidth;
           }
 
-          leftContainer.style.flex = `0 0 ${newLeftWidth}px`;
-          rightContainer.style.flex = `0 0 ${newRightWidth}px`;
+          const newLeftRatio = newLeftWidth / wrapperWidth;
+          const newRightRatio = newRightWidth / wrapperWidth;
+
+          leftContainer.style.flex = `${newLeftRatio} ${newLeftRatio} 0%`;
+          rightContainer.style.flex = `${newRightRatio} ${newRightRatio} 0%`;
         });
 
         const handleResizerEnd = (e) => {
