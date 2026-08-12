@@ -770,6 +770,58 @@ if (baseIncomeInput) {
   });
 }
 
+// 배우자 연소득 입력 및 상환능력 보정
+let memoSpouseIncome = 0;
+let isEditingSpouseIncome = false;
+const spouseIncomeInput = document.getElementById("spouseIncomeInput");
+const spouseHiddenIncomeInput = document.getElementById("spouseComputedIncomeHidden");
+const spouseAgeInput = document.getElementById("spouseAgeInput");
+const spouseApplyRateCheck = document.getElementById("spouseApplyRateCheck");
+const spouseRateDisplay = document.getElementById("spouseRateDisplay");
+
+function updateSpouseIncomeCalc() {
+  if (!spouseIncomeInput || !spouseHiddenIncomeInput || !spouseAgeInput || !spouseApplyRateCheck || !spouseRateDisplay) return;
+  if (spouseAgeInput.value.length > 4) spouseAgeInput.value = spouseAgeInput.value.slice(0, 4);
+  let age = -1;
+  if (spouseAgeInput.value.length === 2) age = parseInt(spouseAgeInput.value);
+  else if (spouseAgeInput.value.length === 4) age = new Date().getFullYear() - parseInt(spouseAgeInput.value);
+  const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
+  const rate = matched ? matched.percent / 100 : 1;
+  spouseRateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
+  const finalVal = spouseApplyRateCheck.checked ? memoSpouseIncome * rate : memoSpouseIncome;
+  spouseHiddenIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
+  if (!isEditingSpouseIncome) spouseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
+  if (spouseApplyRateCheck.checked && matched && memoSpouseIncome > 0) {
+    spouseIncomeInput.style.color = "#1d4ed8";
+    spouseIncomeInput.style.backgroundColor = "#eff6ff";
+  } else {
+    spouseIncomeInput.style.color = "";
+    spouseIncomeInput.style.backgroundColor = "";
+  }
+  if (typeof 자동계산 === 'function') 자동계산();
+}
+
+if (spouseApplyRateCheck) spouseApplyRateCheck.addEventListener("change", updateSpouseIncomeCalc);
+if (spouseAgeInput) spouseAgeInput.addEventListener("input", updateSpouseIncomeCalc);
+if (spouseIncomeInput) {
+  spouseIncomeInput.addEventListener("focus", () => {
+    isEditingSpouseIncome = true;
+    const value = spouseIncomeInput.value.replace(/\D/g, '');
+    if (value && memoSpouseIncome === 0) memoSpouseIncome = parseFloat(value);
+    spouseIncomeInput.value = memoSpouseIncome > 0 ? memoSpouseIncome.toLocaleString() : "";
+  });
+  spouseIncomeInput.addEventListener("blur", () => {
+    isEditingSpouseIncome = false;
+    updateSpouseIncomeCalc();
+  });
+  spouseIncomeInput.addEventListener("input", (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    memoSpouseIncome = value ? parseFloat(value) : 0;
+    e.target.value = value ? memoSpouseIncome.toLocaleString() : "";
+    updateSpouseIncomeCalc();
+  });
+}
+
 const ltvMarketPriceInput = document.getElementById("ltvMarketPriceInput");
 if (ltvMarketPriceInput) {
   ltvMarketPriceInput.addEventListener("input", (e) => {
@@ -830,9 +882,14 @@ function 선택초기화() {
   memoBaseIncome = 0;
   const computedHidden = document.getElementById("computedIncomeHidden");
   if (computedHidden) computedHidden.value = "";
+  if (spouseIncomeInput) spouseIncomeInput.value = "";
+  memoSpouseIncome = 0;
+  if (spouseHiddenIncomeInput) spouseHiddenIncomeInput.value = "";
 
   if (applyRateCheck) applyRateCheck.checked = false;
   if (ageInput) ageInput.value = "";
+  if (spouseApplyRateCheck) spouseApplyRateCheck.checked = false;
+  if (spouseAgeInput) spouseAgeInput.value = "";
 
   if (ltvMarketPriceInput) ltvMarketPriceInput.value = "";
   const ltvMaxAmountOutput = document.getElementById("ltvMaxAmountOutput");
@@ -934,6 +991,9 @@ function loadDSRInputs() {
         if (input.id === 'baseIncomeInput') {
           memoBaseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
         }
+        if (input.id === 'spouseIncomeInput') {
+          memoSpouseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
+        }
       }
     }
   });
@@ -1019,13 +1079,39 @@ function setupDSRAutoSave() {
   });
 }
 
+function splitIncomeSettingsIntoCells() {
+  const table = document.querySelector('.income-table');
+  if (!table || table.dataset.splitCells === 'true') return;
+  table.dataset.splitCells = 'true';
+  table.querySelectorAll('.income-settings-cell').forEach(cell => {
+    const age = cell.querySelector('.age-input');
+    const toggle = cell.querySelector('.rate-toggle-row');
+    const rate = cell.querySelector('.rate-display');
+    if (!age || !toggle || !rate) return;
+    const makeCell = (cls, node) => {
+      const td = document.createElement('td');
+      td.className = `income-settings-cell ${cls}`;
+      td.appendChild(node);
+      return td;
+    };
+    const row = cell.parentElement;
+    const toggleCell = makeCell('toggle-cell', toggle);
+    toggleCell.appendChild(rate);
+    row.insertBefore(makeCell('age-cell', age), cell);
+    row.insertBefore(toggleCell, cell);
+    cell.remove();
+  });
+}
+
 function init() {
+  splitIncomeSettingsIntoCells();
   if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === "[]") {
     주담대행추가();
   }
   loadDSRInputs();
   setupDSRAutoSave();
   updateIncomeCalc();
+  updateSpouseIncomeCalc();
   if (typeof 자동계산 === 'function') 자동계산();
   
   window.addEventListener('resize', () => {

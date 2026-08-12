@@ -234,10 +234,12 @@ function generateSchedule() {
 }
 
 function 자동계산() {
-  const computedHidden = document.getElementById("computedIncomeHidden");
-  const baseIncomeEl = document.getElementById("baseIncomeInput");
-  const incomeInput = (computedHidden ? computedHidden.value : "") || (baseIncomeEl ? baseIncomeEl.value : "");
-  const income = parseFloat(incomeInput.replace(/,/g, '')) || 0;
+  const income = ["computedIncomeHidden", "spouseComputedIncomeHidden"].reduce((total, id) => {
+    const el = document.getElementById(id);
+    return total + (parseFloat((el?.value || "").replace(/,/g, '')) || 0);
+  }, 0);
+  const totalIncomeOutput = document.getElementById("totalIncomeOutput");
+  if (totalIncomeOutput) totalIncomeOutput.value = income > 0 ? Math.floor(income).toLocaleString() : "";
   
   let sumM = 0, sumP = 0, sumI = 0;
   

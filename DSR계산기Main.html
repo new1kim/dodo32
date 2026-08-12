@@ -109,31 +109,104 @@
       </tr>
     </table>
 
-    <table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    <table class="income-table">
+      <colgroup>
+        <col style="width: 10%;">
+        <col style="width: 24%;">
+        <col style="width: 15%;">
+        <col style="width: 15%;">
+        <col style="width: 24%;">
+      </colgroup>
       <tr>
-        <td class="income-label"> 연소득 입력<br>
-          <span class="sub-label">(장래예상소득)</span>
+        <td class="income-label">
+          <div class="income-title">차주<br>소득</div>
         </td>
-        <td id="연소득입력" class="no-bg" style="padding: 10px 6px;">
+        <td class="income-input-cell">
           <input type="hidden" id="computedIncomeHidden" value="">
-          <div class="income-row-inner">
-            <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
-
-
-            <div class="income-toggle">
+          <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
+        </td>
+        <td class="income-settings-cell">
+          <div class="income-settings">
+            <div class="income-settings-top">
+              <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992">
               <span class="rate-toggle-row">
                 <input type="checkbox" id="applyRateCheck">
                 <label for="applyRateCheck">장래예상</label>
               </span>
-              <span id="rateDisplay">(-)</span>
             </div>
-
-
-            <input type="number" id="ageInput" class="age-input" placeholder="나이or생년">
+            <span id="rateDisplay" class="rate-display">(-)</span>
           </div>
         </td>
+        <td class="income-result-label">합산 소득</td>
+      </tr>
+      <tr>
+        <td class="income-label">
+          <div class="income-title">배우자<br>소득</div>
+        </td>
+        <td class="income-input-cell">
+          <input type="hidden" id="spouseComputedIncomeHidden" value="">
+          <input type="text" id="spouseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
+        </td>
+        <td class="income-settings-cell">
+          <div class="income-settings">
+            <div class="income-settings-top">
+              <input type="number" id="spouseAgeInput" class="age-input" placeholder="32 or 1992">
+              <span class="rate-toggle-row">
+                <input type="checkbox" id="spouseApplyRateCheck">
+                <label for="spouseApplyRateCheck">장래예상</label>
+              </span>
+            </div>
+            <span id="spouseRateDisplay" class="rate-display">(-)</span>
+          </div>
+        </td>
+        <td class="income-result-cell"><input type="text" id="totalIncomeOutput" readonly placeholder="합계"></td>
       </tr>
     </table>
+
+
+
+
+
+
+
+
+
+
 
     <table>
       <colgroup>

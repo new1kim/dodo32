@@ -30,26 +30,26 @@
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
       position: relative;
       z-index: 10;
+      overflow-x: auto;
     }
 
     /* 접속자 기록 카운터 */
-  .visitor-counter {
-  font-size: 11px;
-  color: #0369a1;
-  background-color: #e0f2fe;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-weight: 700;
-  white-space: nowrap;
-  border: 1px solid #bae6fd;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: manipulation;
-}
+    .visitor-counter {
+      font-size: 11px;
+      color: #0369a1;
+      background-color: #e0f2fe;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid #bae6fd;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
 
     .visitor-counter:hover {
       background-color: #bfdbfe;
@@ -124,11 +124,12 @@
       border-radius: 8px;
       cursor: pointer;
       transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
-      -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
+      -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
       touch-action: manipulation;
+      flex-shrink: 0;
     }  
     
     .button-container button.nav-btn:hover {
@@ -167,11 +168,14 @@
       width: 100%;
       height: calc(100% - 54px);
       gap: 0;
+      overflow: hidden;
+      position: relative;
     }
 
     /* 개별 프레임 컨테이너 */
     .frame-container {
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 80px;
       height: 100%;
       display: flex;
       flex-direction: column;
@@ -186,16 +190,18 @@
       border-right: none;
     }
 
-    /* 드래그용 핸들바 */
+    /* 드래그용 헤더 핸들바 */
     .drag-handle {
-      display: none;
-      height: 18px;
+      display: flex;
+      height: 20px;
       background-color: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
       cursor: grab;
       align-items: center;
       justify-content: center;
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
     .drag-handle:active {
       cursor: grabbing;
@@ -208,12 +214,34 @@
       letter-spacing: 2px;
     }
 
+    /* 프레임 간격 조절 리사이저 바 */
+    .frame-resizer {
+      position: absolute;
+      top: 0;
+      right: -5px;
+      width: 10px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 20;
+      touch-action: none;
+      background-color: transparent;
+      transition: background-color 0.15s ease;
+    }
+    .frame-resizer:hover,
+    .frame-resizer.is-resizing {
+      background-color: rgba(37, 99, 235, 0.4);
+    }
+    .frame-container:last-child .frame-resizer {
+      display: none;
+    }
+
     /* 드래그 및 드랍 관련 상태 스타일 */
     .frame-container.dragging {
       opacity: 0.4;
     }
     .frame-container.drag-over {
-      border: 2px dashed #2563eb;
+      outline: 2px dashed #2563eb;
+      outline-offset: -2px;
       background-color: rgba(37, 99, 235, 0.05);
     }
 
@@ -221,23 +249,6 @@
       flex: 1;
       width: 100%;
       border: none;
-    }
-
-    /* 모바일 환경 기본 세팅 */
-    #calc-container,
-    #consulting-container {
-      display: none;
-    }
-
-    /* PC 및 태블릿 (768px 이상) */
-    @media (min-width: 768px) {
-      #calc-container,
-      #consulting-container {
-        display: flex;
-      }
-      .drag-handle {
-        display: flex; 
-      }
     }
   </style>
   <script>
@@ -290,6 +301,68 @@
       }
     }
     
+    // 프레임 순서 저장 함수
+    function updateFrameOrder() {
+      const containers = document.querySelectorAll('.frame-container');
+      const order = Array.from(containers).map(container => container.id);
+      localStorage.setItem('frame_order', JSON.stringify(order));
+    }
+
+    // 프레임 너비 저장 함수
+    function updateFrameWidths() {
+      const containers = document.querySelectorAll('.frame-container');
+      const widths = Array.from(containers).map(container => {
+        return {
+          id: container.id,
+          width: container.offsetWidth
+        };
+      });
+      localStorage.setItem('frame_widths', JSON.stringify(widths));
+    }
+
+    // 프레임 설정 불러오기 함수
+    function loadFrameSettings() {
+      // 순서 복원
+      const savedOrder = localStorage.getItem('frame_order');
+      if (savedOrder) {
+        try {
+          const order = JSON.parse(savedOrder);
+          const mainWrapper = document.querySelector('.main-wrapper');
+          const containerMap = {};
+          
+          // 기존 컨테이너들을 맵에 저장
+          document.querySelectorAll('.frame-container').forEach(container => {
+            containerMap[container.id] = container;
+          });
+          
+          // 순서대로 재배치
+          order.forEach(id => {
+            if (containerMap[id]) {
+              mainWrapper.appendChild(containerMap[id]);
+            }
+          });
+        } catch (e) {
+          console.error('프레임 순서 복원 실패:', e);
+        }
+      }
+
+      // 너비 복원
+      const savedWidths = localStorage.getItem('frame_widths');
+      if (savedWidths) {
+        try {
+          const widths = JSON.parse(savedWidths);
+          widths.forEach(item => {
+            const container = document.getElementById(item.id);
+            if (container) {
+              container.style.flex = `0 0 ${item.width}px`;
+            }
+          });
+        } catch (e) {
+          console.error('프레임 너비 복원 실패:', e);
+        }
+      }
+    }
+
     function initPages() {
       const savedName = localStorage.getItem('calc_user_name');
       
@@ -301,13 +374,16 @@
 
       initLongPressLink();
       initDragAndDrop();
+      initFrameResizers();
       initTouchFeedback();
       initLongPressButtons();
+      
+      // 프레임 설정 불러오기
+      loadFrameSettings();
       
       window.addEventListener('resize', () => {
         const savedName = localStorage.getItem('calc_user_name');
         if (savedName) {
-          // 모바일 입력 패드 동작 시 불필요한 새로고침 현상을 완전 원천 차단하기 위한 뷰포트 가로폭 조건 확인 검증
           const currentMode = window.innerWidth >= 768 ? 'wide' : 'mobile';
           if (currentMode !== lastLayoutMode) {
             lastLayoutMode = currentMode;
@@ -321,7 +397,6 @@
 
     function updateFramesSrc() {
       const version = '250605_1';
-      const isWideScreen = window.innerWidth >= 768;
       
       const contentFrame = document.getElementById('content-frame');
       const calcFrame = document.getElementById('calc-frame');
@@ -331,24 +406,17 @@
       const calcSrc = calcFrame.getAttribute('src') || '';
       const consultingSrc = consultingFrame.getAttribute('src') || '';
 
-      if (isWideScreen) {
-        if (contentSrc === '' || contentSrc.includes('main.html')) {
-          if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산기Main.html?v=${version}`);
-          else contentFrame.setAttribute('src', `DSR계산기Main.html?v=${version}`);
-        }
-        if (calcSrc === '') {
-          if (calcFrame.contentWindow) calcFrame.contentWindow.location.replace(`계산기.html?v=${version}`);
-          else calcFrame.setAttribute('src', `계산기.html?v=${version}`);
-        }
-        if (consultingSrc === '') {
-          if (consultingFrame.contentWindow) consultingFrame.contentWindow.location.replace(`상담일지.html?v=${version}`);
-          else consultingFrame.setAttribute('src', `상담일지.html?v=${version}`);
-        }
-      } else {
-        if (contentSrc === '' || !contentSrc.includes('main.html')) {
-          if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`main.html?v=${version}`);
-          else contentFrame.setAttribute('src', `main.html?v=${version}`);
-        }
+      if (contentSrc === '' || contentSrc.includes('main.html')) {
+        if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR계산기Main.html?v=${version}`);
+        else contentFrame.setAttribute('src', `DSR계산기Main.html?v=${version}`);
+      }
+      if (calcSrc === '') {
+        if (calcFrame.contentWindow) calcFrame.contentWindow.location.replace(`계산기.html?v=${version}`);
+        else calcFrame.setAttribute('src', `계산기.html?v=${version}`);
+      }
+      if (consultingSrc === '') {
+        if (consultingFrame.contentWindow) consultingFrame.contentWindow.location.replace(`상담일지.html?v=${version}`);
+        else consultingFrame.setAttribute('src', `상담일지.html?v=${version}`);
       }
     }
 
@@ -375,7 +443,6 @@
       proceedToApp(name);
     }
 
-    // 저장된 이름을 지우고 이름 입력 폼을 다시 노출 (기기ID/localStorage는 유지, 이름만 재입력)
     function resetUserNameInput() {
       localStorage.removeItem('calc_user_name');
 
@@ -457,26 +524,22 @@
         let showPopupTimer = null;
 
         const handlePressStart = () => {
-          // 1초 후 팝업 표시
           showPopupTimer = setTimeout(() => {
             showResetGuidePopup();
           }, 1000);
           
-          // 2초 후 자동 초기화 (손을 떼든 말든 실행)
           pressTimer = setTimeout(() => {
             clearTimeout(showPopupTimer);
             resetFrame(button);
-            pressTimer = null;  // 이미 실행됨을 표시
+            pressTimer = null;
           }, 2000);
         };
 
         const handlePressEnd = () => {
-          // 2초가 안 됐으면 타이머 취소
           if (pressTimer) {
             clearTimeout(pressTimer);
             pressTimer = null;
           }
-          // 팝업도 아직 표시 중이면 취소
           if (showPopupTimer) {
             clearTimeout(showPopupTimer);
             showPopupTimer = null;
@@ -488,8 +551,8 @@
         
         button.addEventListener('mouseup', handlePressEnd);
         button.addEventListener('mouseleave', handlePressEnd);
-        button.addEventListener('touchend', handlePressEnd, { passive: true });
-        button.addEventListener('touchcancel', handlePressEnd, { passive: true });
+        button.addEventListener('touchend', handlePressEnd);
+        button.addEventListener('touchcancel', handlePressEnd);
       });
     }
 
@@ -539,7 +602,6 @@
       const frame = document.getElementById(frameId);
       if (!frame) return;
 
-      // 해당 페이지의 LocalStorage 데이터 삭제
       const pageNames = {
         'content-frame': ['DSR', 'main', 'MCG', '상담'],
         'calc-frame': ['calculator'],
@@ -555,12 +617,10 @@
         });
       }
 
-      // iframe 내부의 reset 함수 호출 시도
       try {
         if (frame.contentWindow && frame.contentWindow.resetAllFields) {
           frame.contentWindow.resetAllFields();
         } else {
-          // 함수가 없으면 프레임 새로고침
           const version = '250605_1';
           const src = frame.getAttribute('src');
           if (src) {
@@ -569,7 +629,6 @@
           }
         }
       } catch (e) {
-        // 크로스 오리진 에러 등으로 접근 불가할 경우 프레임 새로고침
         const version = '250605_1';
         const src = frame.getAttribute('src');
         if (src) {
@@ -582,12 +641,11 @@
     function getFrameIdFromButton(buttonElement) {
       const btnText = buttonElement.textContent.trim();
       
-      // 상담일지: 화면 크기에 따라 다른 프레임 반환
       if (btnText === '상담일지') {
         if (window.innerWidth < 768) {
-          return 'content-frame';  // 모바일: content-frame
+          return 'content-frame';
         } else {
-          return 'consulting-frame';  // PC/태블릿: consulting-frame
+          return 'consulting-frame';
         }
       }
       
@@ -599,7 +657,6 @@
       return buttonMap[btnText] || null;
     }
 
-    // 기기 식별용 UUID를 localStorage에 1회 생성 후 재사용 (브라우저/기기별 고유값)
     function getDeviceId() {
       let id = localStorage.getItem('calc_device_id');
       if (!id) {
@@ -615,7 +672,6 @@
       return id;
     }
 
-    // User-Agent를 파싱해 "OS·브라우저·PC또는Mobile" 형태로 요약
     function getEnvSummary() {
       const ua = navigator.userAgent;
 
@@ -687,55 +743,174 @@
       }
     }
 
+    // 모바일 터치 및 PC 마우스 공용 프레임 순서 드래그 앤 드롭
     function initDragAndDrop() {
-      const containers = document.querySelectorAll('.frame-container');
-      let draggedItem = null;
+      const handles = document.querySelectorAll('.drag-handle');
+      let activeHandle = null;
+      let draggedContainer = null;
+      let targetContainer = null;
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
 
-      containers.forEach((container, index) => {
-        container.style.order = index + 1;
+      handles.forEach(handle => {
+        handle.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-        container.addEventListener('dragstart', (e) => {
-          draggedItem = container;
-          setTimeout(() => container.classList.add('dragging'), 0);
+          activeHandle = handle;
+          draggedContainer = handle.closest('.frame-container');
+          startX = e.clientX;
+          startY = e.clientY;
+          isDragging = false;
+          targetContainer = null;
+
+          handle.setPointerCapture(e.pointerId);
           document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'none');
         });
 
-        container.addEventListener('dragend', () => {
-          container.classList.remove('dragging');
-          draggedItem = null;
-          document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'auto');
-          containers.forEach(c => c.classList.remove('drag-over'));
-        });
+        handle.addEventListener('pointermove', (e) => {
+          if (!draggedContainer || activeHandle !== handle) return;
 
-        container.addEventListener('dragover', (e) => {
-          e.preventDefault();
-        });
+          if (!isDragging) {
+            if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+              isDragging = true;
+              draggedContainer.classList.add('dragging');
+            }
+          }
 
-        container.addEventListener('dragenter', (e) => {
-          e.preventDefault();
-          if (draggedItem && draggedItem !== container) {
-            container.classList.add('drag-over');
+          if (isDragging) {
+            const elements = document.elementsFromPoint(e.clientX, e.clientY);
+            const overContainer = elements.find(el => el.classList && el.classList.contains('frame-container'));
+
+            document.querySelectorAll('.frame-container').forEach(c => c.classList.remove('drag-over'));
+
+            if (overContainer && overContainer !== draggedContainer) {
+              targetContainer = overContainer;
+              targetContainer.classList.add('drag-over');
+            } else {
+              targetContainer = null;
+            }
           }
         });
 
-        container.addEventListener('dragleave', (e) => {
-          container.classList.remove('drag-over');
+        const handlePointerEnd = (e) => {
+          if (activeHandle === handle) {
+            if (isDragging && draggedContainer && targetContainer && draggedContainer !== targetContainer) {
+              const parent = draggedContainer.parentNode;
+              const nextSibling = draggedContainer.nextSibling === targetContainer ? draggedContainer : draggedContainer.nextSibling;
+              parent.insertBefore(draggedContainer, targetContainer);
+              parent.insertBefore(targetContainer, nextSibling);
+              
+              // 드래그 후 프레임 순서가 변경되었으므로 iframe 내용을 다시 로드
+              updateFramesSrc();
+            }
+
+            if (draggedContainer) draggedContainer.classList.remove('dragging');
+            document.querySelectorAll('.frame-container').forEach(c => c.classList.remove('drag-over'));
+            document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'auto');
+
+            try {
+              handle.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+
+            activeHandle = null;
+            draggedContainer = null;
+            targetContainer = null;
+            isDragging = false;
+          }
+        };
+
+        handle.addEventListener('pointerup', handlePointerEnd);
+        handle.addEventListener('pointercancel', handlePointerEnd);
+      });
+    }
+
+    // 마우스/터치로 3개 프레임 간격 조절 (리사이저)
+    function initFrameResizers() {
+      let activeResizer = null;
+      let leftContainer = null;
+      let rightContainer = null;
+      let startX = 0;
+      let startLeftWidth = 0;
+      let startRightWidth = 0;
+
+      document.querySelectorAll('.frame-resizer').forEach(resizer => {
+        resizer.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+          leftContainer = resizer.closest('.frame-container');
+          let next = leftContainer ? leftContainer.nextElementSibling : null;
+          while (next && !next.classList.contains('frame-container')) {
+            next = next.nextElementSibling;
+          }
+          rightContainer = next;
+
+          if (!leftContainer || !rightContainer) return;
+
+          activeResizer = resizer;
+          startX = e.clientX;
+          startLeftWidth = leftContainer.getBoundingClientRect().width;
+          startRightWidth = rightContainer.getBoundingClientRect().width;
+
+          resizer.classList.add('is-resizing');
+          resizer.setPointerCapture(e.pointerId);
+
+          document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'none');
+          document.body.style.cursor = 'col-resize';
+
+          document.querySelectorAll('.frame-container').forEach(fc => {
+            fc.style.flex = `0 0 ${fc.getBoundingClientRect().width}px`;
+          });
+
+          e.preventDefault();
+          e.stopPropagation();
         });
 
-        container.addEventListener('drop', (e) => {
-          e.preventDefault();
-          container.classList.remove('drag-over');
-          
-          if (draggedItem && draggedItem !== container) {
-            const tempOrder = container.style.order;
-            container.style.order = draggedItem.style.order;
-            draggedItem.style.order = tempOrder;
+        resizer.addEventListener('pointermove', (e) => {
+          if (!activeResizer || activeResizer !== resizer || !leftContainer || !rightContainer) return;
+
+          const deltaX = e.clientX - startX;
+          const minWidth = 80;
+
+          let newLeftWidth = startLeftWidth + deltaX;
+          let newRightWidth = startRightWidth - deltaX;
+
+          if (newLeftWidth < minWidth) {
+            newLeftWidth = minWidth;
+            newRightWidth = startLeftWidth + startRightWidth - minWidth;
+          } else if (newRightWidth < minWidth) {
+            newRightWidth = minWidth;
+            newLeftWidth = startLeftWidth + startRightWidth - minWidth;
           }
+
+          leftContainer.style.flex = `0 0 ${newLeftWidth}px`;
+          rightContainer.style.flex = `0 0 ${newRightWidth}px`;
         });
+
+        const handleResizerEnd = (e) => {
+          if (activeResizer === resizer) {
+            resizer.classList.remove('is-resizing');
+            document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'auto');
+            document.body.style.cursor = '';
+
+            try {
+              resizer.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+
+            activeResizer = null;
+            leftContainer = null;
+            rightContainer = null;
+            
+            // 리사이즈 후 프레임 너비 저장
+            updateFrameWidths();
+          }
+        };
+
+        resizer.addEventListener('pointerup', handleResizerEnd);
+        resizer.addEventListener('pointercancel', handleResizerEnd);
       });
     }
   </script>
-
 </head>
 <body onload="initPages()">
   <div class="button-container">
@@ -751,23 +926,25 @@
     <button type="button" class="nav-btn locked-content" onclick="loadPage('날짜계산기.html', this)">날짜계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
-
   </div>
   
   <div class="main-wrapper locked-content">
-    <div id="content-container" class="frame-container" draggable="true">
-      <div class="drag-handle"></div>
+    <div id="content-container" class="frame-container">
+      <div class="drag-handle" title="드래그하여 순서 변경"></div>
       <iframe id="content-frame" src=""></iframe>
+      <div class="frame-resizer" title="드래그하여 간격 조절"></div>
     </div>
     
-    <div id="calc-container" class="frame-container" draggable="true">
-      <div class="drag-handle"></div>
+    <div id="calc-container" class="frame-container">
+      <div class="drag-handle" title="드래그하여 순서 변경"></div>
       <iframe id="calc-frame" src=""></iframe>
+      <div class="frame-resizer" title="드래그하여 간격 조절"></div>
     </div>
     
-    <div id="consulting-container" class="frame-container" draggable="true">
-      <div class="drag-handle"></div>
+    <div id="consulting-container" class="frame-container">
+      <div class="drag-handle" title="드래그하여 순서 변경"></div>
       <iframe id="consulting-frame" src=""></iframe>
+      <div class="frame-resizer" title="드래그하여 간격 조절"></div>
     </div>
   </div>
 </body>
