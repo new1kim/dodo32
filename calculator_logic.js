@@ -308,7 +308,9 @@ function 자동계산() {
     if (type === "만기") {
       annualInterest = amt * combinedRate;
       fixAnnualInterest = amt * combinedRate;
-      annualTotal = annualInterest;
+      // 본건 만기일시는 실제 이자 납입액만 반영한다. 추가행의 만기일시
+      // 대출만 DSR에 기간환산 원금을 더하며, DTI/신DTI는 이자만 반영한다..
+      annualTotal = annualInterest + (index > 0 ? (amt * 12 / postTerm) : 0);
       fixAnnualTotal = fixAnnualInterest;
     } else if (type === "원리금") {
       const calc = 원리금균등_계산대출(amt, combinedRate, postTerm);
