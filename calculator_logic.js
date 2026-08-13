@@ -17,7 +17,7 @@ function 원금균등_월부담액(amt, rate, term) {
     const i = Math.round(amt * mRate);
     return { 월상환금액: p + i, 첫달원금: p, 첫달이자: i };
   }
-  return { 월상환금액: 0, firstMonthlyPrincipal: 0, 첫달이자: 0 };
+  return { 월상환금액: 0, 첫달원금: 0, 첫달이자: 0 };
 }
 
 function 원금균등_연간계산(amt, rate, term) {
@@ -60,6 +60,26 @@ function parseKoreanAmountText(text) {
   return totalAmount;
 }
 
+/* -------------------- 거치기간 반영 공통 유틸 --------------------
+   대출행(row)의 거치 체크/거치개월 입력값을 읽어, 실제 거치개월(graceTerm)과
+   원금 상환이 시작되는 이후 개월수(postTerm)를 계산한다.
+   기존에는 본건 스케줄(generateSchedule), 자동계산 메인 루프, DSR 최대한도 계산부
+   3곳에 동일한 로직이 그대로 반복되어 있었음. */
+function getGraceAdjustedTerm(row, term) {
+  const graceCheckEl = row.querySelector('.mort-grace-check');
+  const graceCheck = graceCheckEl ? graceCheckEl.checked : false;
+
+  const graceTermEl = row.querySelector('.mort-grace-term');
+  let graceTerm = parseInt(graceTermEl ? graceTermEl.value : 0) || 0;
+  if (!graceCheck) graceTerm = 0;
+  if (graceTerm >= term) graceTerm = term > 0 ? term - 1 : 0;
+
+  let postTerm = term - graceTerm;
+  if (postTerm <= 0) postTerm = 1;
+
+  return { graceTerm, postTerm };
+}
+
 function getLtvMaxLimitByMarketPrice(marketPrice) {
   if (marketPrice <= 1500000000) {
     return 600000000; 
@@ -70,20 +90,16 @@ function getLtvMaxLimitByMarketPrice(marketPrice) {
   }
 }
 
-function updateLtvMaxAmount() {
+/* LTV 최대한도 금액(원 단위 숫자)을 계산한다. 시세가 입력되지 않았으면 null 반환.
+   기존에는 updateLtvMaxAmount()와 자동계산() 내부(DSR 최대한도 산정용)에
+   동일한 산식이 두 번 중복 작성되어 있었음. */
+function calculateLtvMaxAmount() {
   const marketPriceInput = document.getElementById("ltvMarketPriceInput");
-  const ltvOutput = document.getElementById("ltvMaxAmountOutput");
-  if (!marketPriceInput || !ltvOutput) return;
+  const priceVal = marketPriceInput ? (parseFloat(marketPriceInput.value.replace(/,/g, '')) || 0) : 0;
+  if (priceVal <= 0) return null;
 
-  const priceVal = parseFloat(marketPriceInput.value.replace(/,/g, '')) || 0;
-  
   const selectedRadio = document.querySelector('input[name="ltv_rate"]:checked');
   const ltvRate = selectedRadio ? parseFloat(selectedRadio.value) || 0 : 70;
-
-  if (priceVal <= 0) {
-    ltvOutput.value = "-";
-    return;
-  }
 
   const minorLeaseInput = document.getElementById("ltvMinorLeaseInput");
   const minorLeaseVal = minorLeaseInput ? (parseFloat(minorLeaseInput.value.replace(/,/g, '')) || 0) : 0;
@@ -93,7 +109,18 @@ function updateLtvMaxAmount() {
   if (maxLtvAmount > limitAmount) {
     maxLtvAmount = limitAmount;
   }
-  maxLtvAmount = Math.max(0, maxLtvAmount);
+  return Math.max(0, maxLtvAmount);
+}
+
+function updateLtvMaxAmount() {
+  const ltvOutput = document.getElementById("ltvMaxAmountOutput");
+  if (!ltvOutput) return;
+
+  const maxLtvAmount = calculateLtvMaxAmount();
+  if (maxLtvAmount === null) {
+    ltvOutput.value = "-";
+    return;
+  }
 
   ltvOutput.value = maxLtvAmount > 0 ? formatKoreanAmount(Math.round(maxLtvAmount)) : "0원";
 }
@@ -110,6 +137,20 @@ function updateScheduleLoanInfo(amtText, rateText, termText, typeText) {
   infoEl.textContent = `${amtText} / ${rateText} / ${termText} / ${typeText}`;
 }
 
+/* 상환 스케줄 표 한 행(<tr>)을 생성한다. 만기/원리금/원금 세 가지 방식 모두
+   "월상환금액 = 원금 + 이자" 이므로 payAmount는 내부에서 계산한다.
+   기존에는 세 방식의 반복문마다 동일한 <tr> 마크업이 그대로 복사되어 있었음. */
+function buildScheduleRow(i, principal, interest, balance, term) {
+  const payAmount = principal + interest;
+  const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
+  return `<tr class="${dividerClass}">
+        <td style="text-align:center;">${i}</td>
+        <td style="text-align:center;">${Math.round(payAmount).toLocaleString()}</td>
+        <td style="text-align:center;">${Math.round(principal).toLocaleString()}</td>
+        <td style="text-align:center;">${Math.round(interest).toLocaleString()}</td>
+        <td style="text-align:center;">${Math.round(balance).toLocaleString()}</td>
+      </tr>`;
+}
 
 function generateSchedule() {
   const tbody = document.getElementById("schedule-tbody");
@@ -133,12 +174,7 @@ function generateSchedule() {
   const type = firstRow.querySelector('.mort-type').value;
   const typeLabelMap = { "만기": "만기일시", "원리금": "원리금균등", "원금": "원금균등" };
 
-  const graceCheck = firstRow.querySelector('.mort-grace-check') ? firstRow.querySelector('.mort-grace-check').checked : false;
-  let graceTerm = parseInt(firstRow.querySelector('.mort-grace-term') ? firstRow.querySelector('.mort-grace-term').value : 0) || 0;
-  if (!graceCheck) graceTerm = 0;
-  if (graceTerm >= term) graceTerm = term > 0 ? term - 1 : 0;
-  let postTerm = term - graceTerm;
-  if (postTerm <= 0) postTerm = 1;
+  const { graceTerm, postTerm } = getGraceAdjustedTerm(firstRow, term);
 
   if (amt <= 0 || term <= 0 || pureRate <= 0) {
     tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>본건 대출 정보(금액, 금리, 기간)를 정확히 입력해주세요.</td></tr>";
@@ -161,76 +197,85 @@ function generateSchedule() {
     const mPay = balance * mRate;
     for (let i = 1; i <= term; i++) {
       let principal = 0;
-      let interest = mPay;
+      const interest = mPay;
       if (i === term) principal = balance;
       balance -= principal;
-      
-      const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
-      
-      html += `<tr class="${dividerClass}">
-        <td style="text-align:center;">${i}</td>
-        <td style="text-align:center;">${Math.round(principal + interest).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(principal).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(interest).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(balance).toLocaleString()}</td>
-      </tr>`;
+
+      html += buildScheduleRow(i, principal, interest, balance, term);
     }
   } else if (type === "원리금") {
     let mPayPost = amt * mRate / (1 - Math.pow(1 + mRate, -postTerm));
     for (let i = 1; i <= term; i++) {
-      let interest = balance * mRate;
+      const interest = balance * mRate;
       let principal = 0;
-      let mPay = interest;
 
       if (i > graceTerm) {
         principal = mPayPost - interest;
         if (i === term) {
           principal = balance;
         }
-        mPay = principal + interest;
       }
 
       balance -= principal;
       if (balance < 0) balance = 0;
-      
-      const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
 
-      html += `<tr class="${dividerClass}">
-        <td style="text-align:center;">${i}</td>
-        <td style="text-align:center;">${Math.round(mPay).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(principal).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(interest).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(balance).toLocaleString()}</td>
-      </tr>`;
+      html += buildScheduleRow(i, principal, interest, balance, term);
     }
   } else if (type === "원금") {
     const fixedPrincipal = amt / postTerm;
     for (let i = 1; i <= term; i++) {
-      let interest = balance * mRate;
+      const interest = balance * mRate;
       let principal = 0;
 
       if (i > graceTerm) {
         principal = fixedPrincipal;
         if (i === term) principal = balance;
       }
-      let currentPay = principal + interest;
 
       balance -= principal;
       if (balance < 0) balance = 0;
 
-      const dividerClass = (i % 12 === 0 && i !== term) ? "year-divider" : "";
-
-      html += `<tr class="${dividerClass}">
-        <td style="text-align:center;">${i}</td>
-        <td style="text-align:center;">${Math.round(currentPay).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(principal).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(interest).toLocaleString()}</td>
-        <td style="text-align:center;">${Math.round(balance).toLocaleString()}</td>
-      </tr>`;
+      html += buildScheduleRow(i, principal, interest, balance, term);
     }
   }
 
   tbody.innerHTML = html;
+}
+
+/* DSR/DTI/신DTI 결과칸에 값과 40% 초과 여부에 따른 경고 스타일을 함께 적용한다.
+   기존에는 DSR/DTI/신DTI 3개 칸에 대해 동일한 if(>=40){...}else{...} 블록이
+   그대로 3번 반복 작성되어 있었음. */
+function applyRatioResultStyle(el, ratioPercent) {
+  if (!el) return;
+  el.innerText = ratioPercent.toFixed(2) + "%";
+  if (ratioPercent >= 40) {
+    el.style.setProperty("background-color", "#fee2e2", "important");
+    el.style.color = "#ef4444";
+  } else {
+    el.style.setProperty("background-color", "transparent", "important");
+    el.style.color = "#1e293b";
+  }
+}
+
+/* DSR/DTI/신DTI 결과칸을 "-"(미입력) 상태로 되돌린다. */
+function resetRatioResultDisplay(el) {
+  if (!el) return;
+  el.innerText = "-";
+  el.style.setProperty("background-color", "transparent", "important");
+  el.style.color = "#1e293b";
+}
+
+/* DSR 최대한도(원리금/원금) 블록을 "-" 상태로 되돌린다.
+   기존에는 소득이 없을 때, DSR 계산이 불가능할 때 2곳에서
+   동일한 forEach 블록이 그대로 중복 작성되어 있었음. */
+function resetDsrMaxBlocks() {
+  ['DSR최대금액확인-원리금', 'DSR최대금액확인-원금'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.querySelector('.dsr-main-val').innerText = "-";
+      el.querySelector('.dsr-sub-val').innerText = "(-)";
+    }
+  });
 }
 
 function 자동계산() {
@@ -267,13 +312,7 @@ function 자동계산() {
     const term = termEl ? (parseInt(termEl.value) || 0) : 0;
     const type = typeEl ? typeEl.value : "원리금";
 
-    const graceCheck = row.querySelector('.mort-grace-check') ? row.querySelector('.mort-grace-check').checked : false;
-    let graceTerm = parseInt(row.querySelector('.mort-grace-term') ? row.querySelector('.mort-grace-term').value : 0) || 0;
-    if (!graceCheck) graceTerm = 0;
-    if (graceTerm >= term) graceTerm = term > 0 ? term - 1 : 0;
-    
-    let postTerm = term - graceTerm;
-    if (postTerm <= 0) postTerm = 1;
+    const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
     let fixGrace = graceTerm >= 180 ? 179 : graceTerm;
     let fixPostTerm = 180 - fixGrace;
@@ -366,38 +405,9 @@ function 자동계산() {
     const finalDti = (totalDtiDebt / income) * 100;
     const finalNewDti = (totalNewDtiDebt / income) * 100;
 
-    if (dsrCheckEl) {
-      dsrCheckEl.innerText = finalDsr.toFixed(2) + "%";
-      if (finalDsr >= 40) {
-        dsrCheckEl.style.setProperty("background-color", "#fee2e2", "important");
-        dsrCheckEl.style.color = "#ef4444";
-      } else {
-        dsrCheckEl.style.setProperty("background-color", "transparent", "important");
-        dsrCheckEl.style.color = "#1e293b";
-      }
-    }
-    
-    if (dtiCheckEl) {
-      dtiCheckEl.innerText = finalDti.toFixed(2) + "%";
-      if (finalDti >= 40) {
-        dtiCheckEl.style.setProperty("background-color", "#fee2e2", "important");
-        dtiCheckEl.style.color = "#ef4444";
-      } else {
-        dtiCheckEl.style.setProperty("background-color", "transparent", "important");
-        dtiCheckEl.style.color = "#1e293b";
-      }
-    }
-
-    if (newDtiCheckEl) {
-      newDtiCheckEl.innerText = finalNewDti.toFixed(2) + "%";
-      if (finalNewDti >= 40) {
-        newDtiCheckEl.style.setProperty("background-color", "#fee2e2", "important");
-        newDtiCheckEl.style.color = "#ef4444";
-      } else {
-        newDtiCheckEl.style.setProperty("background-color", "transparent", "important");
-        newDtiCheckEl.style.color = "#1e293b";
-      }
-    }
+    applyRatioResultStyle(dsrCheckEl, finalDsr);
+    applyRatioResultStyle(dtiCheckEl, finalDti);
+    applyRatioResultStyle(newDtiCheckEl, finalNewDti);
 
     const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
     if (firstRow) {
@@ -405,30 +415,12 @@ function 자동계산() {
       const stRateValue1 = parseFloat(firstRow.querySelector('.mort-st-rate').value) || 0;
       const combinedRate1 = pureRate1 + (stRateValue1 / 100);
       const term1 = parseInt(firstRow.querySelector('.mort-term').value) || 0;
-      
-      const graceCheck1 = firstRow.querySelector('.mort-grace-check') ? firstRow.querySelector('.mort-grace-check').checked : false;
-      let graceTerm1 = parseInt(firstRow.querySelector('.mort-grace-term') ? firstRow.querySelector('.mort-grace-term').value : 0) || 0;
-      if (!graceCheck1) graceTerm1 = 0;
-      if (graceTerm1 >= term1) graceTerm1 = term1 > 0 ? term1 - 1 : 0;
-      let postTerm1 = term1 - graceTerm1;
-      if (postTerm1 <= 0) postTerm1 = 1;
+
+      const { postTerm: postTerm1 } = getGraceAdjustedTerm(firstRow, term1);
 
       let ltvCapAmount = Infinity;
-      const marketPriceInput = document.getElementById("ltvMarketPriceInput");
-      if (marketPriceInput) {
-        const priceVal = parseFloat(marketPriceInput.value.replace(/,/g, '')) || 0;
-        if (priceVal > 0) {
-          const selectedRadio = document.querySelector('input[name="ltv_rate"]:checked');
-          const ltvRate = selectedRadio ? parseFloat(selectedRadio.value) || 0 : 70;
-          const minorLeaseInput = document.getElementById("ltvMinorLeaseInput");
-          const minorLeaseVal = minorLeaseInput ? (parseFloat(minorLeaseInput.value.replace(/,/g, '')) || 0) : 0;
-          let calcLtv = priceVal * (ltvRate / 100) - minorLeaseVal;
-          const limitAmt = getLtvMaxLimitByMarketPrice(priceVal);
-          if (calcLtv > limitAmt) calcLtv = limitAmt;
-          calcLtv = Math.max(0, calcLtv);
-          ltvCapAmount = calcLtv;
-        }
-      }
+      const ltvMax = calculateLtvMaxAmount();
+      if (ltvMax !== null) ltvCapAmount = ltvMax;
 
       if (combinedRate1 > 0 && term1 > 0) {
         const mRate = combinedRate1 / 12;
@@ -478,27 +470,14 @@ function 자동계산() {
           setDsrBlockValues("DSR최대금액확인-원금", maxLoan원금);
         }
       } else {
-        ['DSR최대금액확인-원리금', 'DSR최대금액확인-원금'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.querySelector('.dsr-main-val').innerText = "-";
-            el.querySelector('.dsr-sub-val').innerText = "(-)";
-          }
-        });
+        resetDsrMaxBlocks();
       }
     }
   } else {
-    if (dsrCheckEl) { dsrCheckEl.innerText = "-"; dsrCheckEl.style.setProperty("background-color", "transparent", "important"); dsrCheckEl.style.color = "#1e293b"; }
-    if (dtiCheckEl) { dtiCheckEl.innerText = "-"; dtiCheckEl.style.setProperty("background-color", "transparent", "important"); dtiCheckEl.style.color = "#1e293b"; }
-    if (newDtiCheckEl) { newDtiCheckEl.innerText = "-"; newDtiCheckEl.style.setProperty("background-color", "transparent", "important"); newDtiCheckEl.style.color = "#1e293b"; }
-    
-    ['DSR최대금액확인-원리금', 'DSR최대금액확인-원금'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.querySelector('.dsr-main-val').innerText = "-";
-        el.querySelector('.dsr-sub-val').innerText = "(-)";
-      }
-    });
+    resetRatioResultDisplay(dsrCheckEl);
+    resetRatioResultDisplay(dtiCheckEl);
+    resetRatioResultDisplay(newDtiCheckEl);
+    resetDsrMaxBlocks();
   }
 
   updateLtvMaxAmount();
@@ -507,5 +486,6 @@ function 자동계산() {
     if (typeof adjustDsrMaxFontSize === 'function') adjustDsrMaxFontSize();
     if (typeof adjustTableFontSize === 'function') adjustTableFontSize();
     if (typeof adjustDsrToggleFontSize === 'function') adjustDsrToggleFontSize();
+    if (typeof fitAllNumericInputFontSizes === 'function') fitAllNumericInputFontSizes();
   }, 0);
 }

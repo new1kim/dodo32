@@ -1,5 +1,9 @@
 /* DSR계산기ETC - 그 외 코드 (UI, 이벤트, 모달, 로컬스토리지 등) */
 
+/* localStorage 저장/불러오기 대상 입력창 셀렉터 (여러 함수에서 공용으로 사용) */
+const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"]';
+const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
+
 function getStoredJson(key, fallback = null) {
   try {
     const raw = localStorage.getItem(key);
@@ -9,6 +13,36 @@ function getStoredJson(key, fallback = null) {
     localStorage.removeItem(key);
     return fallback;
   }
+}
+
+/* -------------------- 공통 유틸: 글자크기 자동 축소(fit-to-width) -------------------- */
+/* 여러 곳(테이블 셀/입력창, DSR 최대금액, DSR 한도 토글 라벨 등)에서
+   "보이지 않는 ghost 엘리먼트로 텍스트 폭을 재서 넘치면 글자를 줄인다"는
+   동일한 패턴이 4곳에 개별 구현되어 있던 것을 공통 유틸 2개로 통합함. */
+function getMeasureGhost(id) {
+  let ghost = document.getElementById(id);
+  if (!ghost) {
+    ghost = document.createElement("span");
+    ghost.id = id;
+    ghost.style.position = "absolute";
+    ghost.style.visibility = "hidden";
+    ghost.style.whiteSpace = "pre";
+    ghost.style.left = "-9999px";
+    ghost.style.top = "-9999px";
+    document.body.appendChild(ghost);
+  }
+  return ghost;
+}
+
+function shrinkFontSizeToFit(ghost, text, maxWidth, startSize, minSize = 4, step = 0.5) {
+  let size = startSize;
+  ghost.style.fontSize = size + "px";
+  ghost.innerText = text;
+  while (size > minSize && ghost.offsetWidth > maxWidth) {
+    size -= step;
+    ghost.style.fontSize = size + "px";
+  }
+  return size;
 }
 
 function adjustTableFontSize() {
@@ -28,155 +62,182 @@ function adjustTableFontSize() {
       cell.style.fontSize = currentCellSize + 'px';
     }
 
-    const input = cell.querySelector('input[type="text"], input[type="number"], select');
+    const input = cell.querySelector(`${TEXT_NUMBER_INPUT_SELECTOR}, select`);
     if (input) {
       if (!input.dataset.origSize) {
         input.dataset.origSize = window.getComputedStyle(input).fontSize;
       }
-      input.style.fontSize = input.dataset.origSize;
-      let currentInputSize = parseFloat(input.dataset.origSize);
-      
-      let ghost = document.getElementById("input-ghost");
-      if (!ghost) {
-        ghost = document.createElement("span");
-        ghost.id = "input-ghost";
-        ghost.style.position = "absolute";
-        ghost.style.visibility = "hidden";
-        ghost.style.whiteSpace = "pre";
-        document.body.appendChild(ghost);
-      }
-      ghost.style.fontFamily = window.getComputedStyle(input).fontFamily;
-      ghost.style.fontWeight = window.getComputedStyle(input).fontWeight;
-      
-      const maxWidth = input.clientWidth - 6; 
-      if (maxWidth <= 0) return;
-      
+      const origSize = parseFloat(input.dataset.origSize);
+      const maxWidth = input.clientWidth - 6;
+      if (maxWidth <= 0) { input.style.fontSize = input.dataset.origSize; return; }
+
+      const ghost = getMeasureGhost("input-ghost");
+      const cs = window.getComputedStyle(input);
+      ghost.style.fontFamily = cs.fontFamily;
+      ghost.style.fontWeight = cs.fontWeight;
+
+      let text;
       if (input.tagName === 'SELECT') {
-        const sel = input;
-        const opt = sel.options[sel.selectedIndex];
-        ghost.innerText = opt ? opt.text : (sel.value || '');
+        const opt = input.options[input.selectedIndex];
+        text = opt ? opt.text : (input.value || '');
       } else {
-        ghost.innerText = input.value || input.placeholder || "";
+        text = input.value || input.placeholder || "";
       }
-      
-      while (currentInputSize > 4) {
-        ghost.style.fontSize = currentInputSize + 'px';
-        if (ghost.offsetWidth <= maxWidth) {
-          break;
-        }
-        currentInputSize -= 0.5;
-      }
-      input.style.fontSize = currentInputSize + 'px';
+
+      const fontSize = shrinkFontSizeToFit(ghost, text, maxWidth, origSize);
+      input.style.fontSize = fontSize + 'px';
     }
   });
 }
 
-function openScheduleModal() {
-  const imgModal = document.getElementById("modal-img");
-  const textCard = document.getElementById("modal-text-card");
-  const scheduleCard = document.getElementById("modal-schedule-card");
-  const imageModal = document.getElementById("image-modal");
+/* -------------------- 숫자 입력창 전용 자동 글자크기 조정 -------------------- */
+/* 대상: inputmode="numeric" / inputmode="decimal" / type="number" 인 모든 입력창
+   (테이블 내부, 모달 내부 등 위치·파일 상관없이 전부 적용됨) */
+const NUMERIC_INPUT_SELECTOR = 'input[inputmode="numeric"], input[inputmode="decimal"], input[type="number"]';
 
-  if (imgModal) imgModal.style.display = "none";
-  if (textCard) textCard.style.display = "none";
-  
+function fitNumericInputFontSize(input) {
+  if (!input) return;
+  if (!input.dataset.origSize) {
+    input.dataset.origSize = window.getComputedStyle(input).fontSize;
+  }
+  const origSize = parseFloat(input.dataset.origSize);
+  const maxWidth = input.clientWidth - 2; // 커서 표시를 위한 최소 여유
+  if (maxWidth <= 0) { input.style.fontSize = input.dataset.origSize; return; }
+
+  const ghost = getMeasureGhost("numeric-input-ghost");
+  const cs = window.getComputedStyle(input);
+  ghost.style.fontFamily = cs.fontFamily;
+  ghost.style.fontWeight = cs.fontWeight;
+
+  const fontSize = shrinkFontSizeToFit(ghost, input.value || input.placeholder || "", maxWidth, origSize);
+  input.style.fontSize = fontSize + "px";
+}
+
+function fitAllNumericInputFontSizes() {
+  document.querySelectorAll(NUMERIC_INPUT_SELECTOR).forEach(fitNumericInputFontSize);
+}
+
+// 입력창 위치와 상관없이(테이블/모달 등) 타이핑 즉시 글자크기를 맞춤
+document.addEventListener("input", (e) => {
+  const target = e.target;
+  if (target && target.matches && target.matches(NUMERIC_INPUT_SELECTOR)) {
+    fitNumericInputFontSize(target);
+  }
+});
+
+/* -------------------- 공통 유틸: 이미지/설명/스케줄 모달 -------------------- */
+/* 5개의 open*Modal 함수가 모달 패널(modal-img/modal-text-card/modal-schedule-card/
+   image-modal)을 각자 조회하고, 자신을 제외한 패널을 숨기는 동일한 코드를
+   반복하고 있던 것을 공통 유틸 2개로 통합함. */
+function getModalPanels() {
+  return {
+    imgModal: document.getElementById("modal-img"),
+    textCard: document.getElementById("modal-text-card"),
+    scheduleCard: document.getElementById("modal-schedule-card"),
+    imageModal: document.getElementById("image-modal"),
+  };
+}
+
+function hideOtherModalPanels(panels, panelToKeep) {
+  ['imgModal', 'textCard', 'scheduleCard'].forEach(key => {
+    if (key !== panelToKeep && panels[key]) panels[key].style.display = "none";
+  });
+}
+
+function openScheduleModal() {
+  const panels = getModalPanels();
+  hideOtherModalPanels(panels, 'scheduleCard');
+
   if (typeof generateSchedule === 'function') generateSchedule();
 
-  if (scheduleCard) scheduleCard.style.display = "block";
-  if (imageModal) imageModal.style.display = "flex";
+  if (panels.scheduleCard) panels.scheduleCard.style.display = "block";
+  if (panels.imageModal) panels.imageModal.style.display = "flex";
 }
 
 function openImageModal(imageSrc) {
-  const imgModal = document.getElementById("modal-img");
+  const panels = getModalPanels();
   const imageCredit = document.getElementById("modal-image-credit");
-  const textCard = document.getElementById("modal-text-card");
-  const scheduleCard = document.getElementById("modal-schedule-card");
-  const imageModal = document.getElementById("image-modal");
+  hideOtherModalPanels(panels, 'imgModal');
 
-  if (textCard) textCard.style.display = "none";
-  if (scheduleCard) scheduleCard.style.display = "none";
-  if (imgModal) {
-    imgModal.src = imageSrc;
-    imgModal.style.display = "block";
+  if (panels.imgModal) {
+    panels.imgModal.src = imageSrc;
+    panels.imgModal.style.display = "block";
   }
   if (imageCredit) imageCredit.style.display = imageSrc === "소액임차보증금.png" ? "block" : "none";
-  if (imageModal) imageModal.style.display = "flex";
+  if (panels.imageModal) panels.imageModal.style.display = "flex";
 }
 
 function openTextModal() {
-  const imgModal = document.getElementById("modal-img");
-  const scheduleCard = document.getElementById("modal-schedule-card");
-  const textCard = document.getElementById("modal-text-card");
-  const imageModal = document.getElementById("image-modal");
+  const panels = getModalPanels();
+  hideOtherModalPanels(panels, 'textCard');
 
-  if (imgModal) imgModal.style.display = "none";
-  if (scheduleCard) scheduleCard.style.display = "none";
-  
-  if (textCard) {
-    textCard.style.display = "block";
-    textCard.scrollTop = 0;
+  if (panels.textCard) {
+    panels.textCard.style.display = "block";
+    panels.textCard.scrollTop = 0;
   }
-  if (imageModal) imageModal.style.display = "flex";
+  if (panels.imageModal) panels.imageModal.style.display = "flex";
 }
 
 function openRateEditModal() {
-  const imgModal = document.getElementById("modal-img");
-  const scheduleCard = document.getElementById("modal-schedule-card");
-  const textCard = document.getElementById("modal-text-card");
-  const imageModal = document.getElementById("image-modal");
+  const panels = getModalPanels();
+  hideOtherModalPanels(panels, 'textCard');
 
-  if (imgModal) imgModal.style.display = "none";
-  if (scheduleCard) scheduleCard.style.display = "none";
-  
   LOAN_RATE_TABLE.forEach((item, index) => {
     const editEl = document.getElementById(`edit-rate-${index}`);
     if (editEl) editEl.value = item.percent;
   });
-  
-  if (textCard) textCard.style.display = "block";
-  if (imageModal) imageModal.style.display = "flex";
+
+  if (panels.textCard) panels.textCard.style.display = "block";
+  if (panels.imageModal) panels.imageModal.style.display = "flex";
 
   const targetSection = document.getElementById("modal-rate-card");
   if (targetSection) targetSection.scrollIntoView({ block: "start" });
+
+  fitAllNumericInputFontSizes();
 }
 
-function openDefaultFirstRowModal() {
-  const imgModal = document.getElementById("modal-img");
-  const scheduleCard = document.getElementById("modal-schedule-card");
-  const textCard = document.getElementById("modal-text-card");
-  const imageModal = document.getElementById("image-modal");
+/* 본건 대출 기본값(6M/5Y 금리·ST금리·개월) 입력창 id 목록 - 모달 열기/저장 양쪽에서 공용 */
+const DEFAULT_FIRST_ROW_FIELD_IDS = ['default-mort-rate', 'default-five-year-rate', 'default-mort-st-rate', 'default-five-year-st-rate', 'default-mort-term', 'default-five-year-term'];
 
-  if (imgModal) imgModal.style.display = "none";
-  if (scheduleCard) scheduleCard.style.display = "none";
+function openDefaultFirstRowModal() {
+  const panels = getModalPanels();
+  hideOtherModalPanels(panels, 'textCard');
 
   const data = getStoredJson("DEFAULT_FIRST_ROW_DATA");
-  if (data) {
-    if (document.getElementById("default-mort-rate")) document.getElementById("default-mort-rate").value = data.sixMonthRate || data.rate || "";
-    if (document.getElementById("default-five-year-rate")) document.getElementById("default-five-year-rate").value = data.fiveYearRate || "";
-    if (document.getElementById("default-mort-st-rate")) document.getElementById("default-mort-st-rate").value = data.sixMonthStRate || data.stRate || "";
-    if (document.getElementById("default-five-year-st-rate")) document.getElementById("default-five-year-st-rate").value = data.fiveYearStRate || "";
-    if (document.getElementById("default-mort-term")) document.getElementById("default-mort-term").value = data.sixMonthTerm || data.term || "";
-    if (document.getElementById("default-five-year-term")) document.getElementById("default-five-year-term").value = data.fiveYearTerm || "";
-  } else {
-    ['default-mort-rate', 'default-five-year-rate', 'default-mort-st-rate', 'default-five-year-st-rate', 'default-mort-term', 'default-five-year-term'].forEach(id => {
-      if (document.getElementById(id)) document.getElementById(id).value = "";
-    });
-  }
+  const valuesById = data ? {
+    'default-mort-rate': data.sixMonthRate || data.rate || "",
+    'default-five-year-rate': data.fiveYearRate || "",
+    'default-mort-st-rate': data.sixMonthStRate || data.stRate || "",
+    'default-five-year-st-rate': data.fiveYearStRate || "",
+    'default-mort-term': data.sixMonthTerm || data.term || "",
+    'default-five-year-term': data.fiveYearTerm || "",
+  } : null;
 
-  if (textCard) textCard.style.display = "block";
-  if (imageModal) imageModal.style.display = "flex";
+  DEFAULT_FIRST_ROW_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = valuesById ? valuesById[id] : "";
+  });
+
+  if (panels.textCard) panels.textCard.style.display = "block";
+  if (panels.imageModal) panels.imageModal.style.display = "flex";
 
   const targetSection = document.getElementById("modal-default-card");
   if (targetSection) targetSection.scrollIntoView({ block: "start" });
+
+  fitAllNumericInputFontSizes();
 }
 
 function saveDefaultFirstRowData() {
-  const rate = document.getElementById("default-mort-rate") ? document.getElementById("default-mort-rate").value.trim() : "";
-  const fiveYearRate = document.getElementById("default-five-year-rate") ? document.getElementById("default-five-year-rate").value.trim() : "";
-  const sixMonthStRate = document.getElementById("default-mort-st-rate") ? document.getElementById("default-mort-st-rate").value.trim() : "";
-  const fiveYearStRate = document.getElementById("default-five-year-st-rate") ? document.getElementById("default-five-year-st-rate").value.trim() : "";
-  const sixMonthTerm = document.getElementById("default-mort-term") ? document.getElementById("default-mort-term").value.trim() : "";
-  const fiveYearTerm = document.getElementById("default-five-year-term") ? document.getElementById("default-five-year-term").value.trim() : "";
+  const getTrimmedValue = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  };
+  const rate = getTrimmedValue("default-mort-rate");
+  const fiveYearRate = getTrimmedValue("default-five-year-rate");
+  const sixMonthStRate = getTrimmedValue("default-mort-st-rate");
+  const fiveYearStRate = getTrimmedValue("default-five-year-st-rate");
+  const sixMonthTerm = getTrimmedValue("default-mort-term");
+  const fiveYearTerm = getTrimmedValue("default-five-year-term");
 
   const data = {
     rate,
@@ -309,22 +370,12 @@ function 전달DSR한도금액(tdElement) {
 }
 
 function adjustDsrMaxFontSize() {
-  let ghost = document.getElementById('dsr-max-font-ghost');
-  if (!ghost) {
-    ghost = document.createElement('span');
-    ghost.id = 'dsr-max-font-ghost';
-    ghost.style.position = 'absolute';
-    ghost.style.visibility = 'hidden';
-    ghost.style.whiteSpace = 'nowrap';
-    ghost.style.left = '-9999px';
-    ghost.style.top = '-9999px';
-    document.body.appendChild(ghost);
-  }
+  const ghost = getMeasureGhost('dsr-max-font-ghost');
 
   document.querySelectorAll('.dsr-max-value-number').forEach(el => {
     const mainEl = el.querySelector('.dsr-main-val');
     if (!mainEl) return;
-    
+
     const maxWidth = el.clientWidth - 10; 
     if (maxWidth <= 0) return;
 
@@ -334,31 +385,13 @@ function adjustDsrMaxFontSize() {
     ghost.style.fontStyle = style.fontStyle;
     ghost.style.letterSpacing = style.letterSpacing;
 
-    ghost.innerText = mainEl.innerText.trim() || '-';
-
-    let fontSize = 28;
-    ghost.style.fontSize = fontSize + 'px';
-    
-    while (fontSize > 8 && ghost.offsetWidth > maxWidth) {
-      fontSize -= 0.5;
-      ghost.style.fontSize = fontSize + 'px';
-    }
+    const fontSize = shrinkFontSizeToFit(ghost, mainEl.innerText.trim() || '-', maxWidth, 28, 8);
     mainEl.style.fontSize = fontSize + 'px';
   });
 }
 
 function adjustDsrToggleFontSize() {
-  let ghost = document.getElementById('dsr-toggle-font-ghost');
-  if (!ghost) {
-    ghost = document.createElement('span');
-    ghost.id = 'dsr-toggle-font-ghost';
-    ghost.style.position = 'absolute';
-    ghost.style.visibility = 'hidden';
-    ghost.style.whiteSpace = 'nowrap';
-    ghost.style.left = '-9999px';
-    ghost.style.top = '-9999px';
-    document.body.appendChild(ghost);
-  }
+  const ghost = getMeasureGhost('dsr-toggle-font-ghost');
 
   document.querySelectorAll('#dsrLimitToggleGroup label').forEach(label => {
     const maxWidth = label.clientWidth - 8;
@@ -368,15 +401,7 @@ function adjustDsrToggleFontSize() {
     ghost.style.fontFamily = style.fontFamily;
     ghost.style.fontWeight = style.fontWeight;
 
-    ghost.innerText = label.innerText.trim();
-
-    let fontSize = 13;
-    ghost.style.fontSize = fontSize + 'px';
-
-    while (fontSize > 7 && ghost.offsetWidth > maxWidth) {
-      fontSize -= 0.5;
-      ghost.style.fontSize = fontSize + 'px';
-    }
+    const fontSize = shrinkFontSizeToFit(ghost, label.innerText.trim(), maxWidth, 13, 7);
     label.style.fontSize = fontSize + 'px';
   });
 }
@@ -428,6 +453,20 @@ function applyDefaultProfileToRow(row, profile) {
   }
 }
 
+/* 길게 누르기(long-press) 공통 유틸: mousedown/touchstart 시 타이머 시작,
+   mouseup/mouseleave/touchend 시 취소. 기존에는 "본건 기본값 모달 열기"(3초)와
+   "보유대출 행 삭제"(2초) 두 곳에 동일한 타이머 바인딩 코드가 반복되어 있었음. */
+function bindLongPress(el, duration, onLongPress) {
+  let timer;
+  const start = () => { timer = setTimeout(onLongPress, duration); };
+  const end = () => clearTimeout(timer);
+  el.addEventListener("mousedown", start);
+  el.addEventListener("mouseup", end);
+  el.addEventListener("mouseleave", end);
+  el.addEventListener("touchstart", start, { passive: true });
+  el.addEventListener("touchend", end, { passive: true });
+}
+
 function bindMortgageRowEvents(row) {
   row.querySelectorAll('.mort-amt, .mort-term').forEach(el => {
     el.addEventListener("input", (e) => {
@@ -462,27 +501,14 @@ function bindMortgageRowEvents(row) {
     });
   }
 
-  let inputLongPressTimer;
-
   row.querySelectorAll('.mort-rate, .mort-st-rate, .mort-term').forEach(el => {
-    const startInputPress = () => {
+    bindLongPress(el, 3000, () => {
       const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
-      if (rows.indexOf(row) === 0) {
-        inputLongPressTimer = setTimeout(() => {
-          openDefaultFirstRowModal();
-        }, 3000);
-      }
-    };
-    const endInputPress = () => clearTimeout(inputLongPressTimer);
-
-    el.addEventListener("mousedown", startInputPress);
-    el.addEventListener("mouseup", endInputPress);
-    el.addEventListener("mouseleave", endInputPress);
-    el.addEventListener("touchstart", startInputPress, {passive: true});
-    el.addEventListener("touchend", endInputPress, {passive: true});
+      if (rows.indexOf(row) === 0) openDefaultFirstRowModal();
+    });
   });
 
-  row.querySelectorAll('input[type="checkbox"]').forEach(el => {
+  row.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(el => {
     el.addEventListener("change", (e) => {
       if (e.target.classList.contains('mort-exclude')) showBubble(e.target.checked ? "계산 제외" : "대출 적용");
       if (e.target.classList.contains('mort-grace-check')) showBubble(e.target.checked ? "거치 적용" : "거치 해제");
@@ -490,25 +516,15 @@ function bindMortgageRowEvents(row) {
     });
 
     if (el.classList.contains('mort-exclude')) {
-      let longPressTimer;
-      const startPress = () => {
-        longPressTimer = setTimeout(() => {
-          if (document.querySelectorAll('#mortgage-inputs .mortgage-row').length > 1) {
-            row.remove(); 
-            showBubble("해당 대출 정보 삭제 완료");
-            updateMortgagePlaceholders(); 
-            if (typeof 자동계산 === 'function') 자동계산(); 
-            if (typeof saveDSRInputs === 'function') saveDSRInputs();
-          }
-        }, 2000);
-      };
-      const endPress = () => clearTimeout(longPressTimer);
-
-      el.addEventListener("mousedown", startPress);
-      el.addEventListener("mouseup", endPress);
-      el.addEventListener("mouseleave", endPress);
-      el.addEventListener("touchstart", startPress, {passive: true});
-      el.addEventListener("touchend", endPress, {passive: true});
+      bindLongPress(el, 2000, () => {
+        if (document.querySelectorAll('#mortgage-inputs .mortgage-row').length > 1) {
+          row.remove();
+          showBubble("해당 대출 정보 삭제 완료");
+          updateMortgagePlaceholders();
+          if (typeof 자동계산 === 'function') 자동계산();
+          if (typeof saveDSRInputs === 'function') saveDSRInputs();
+        }
+      });
     }
   });
 }
@@ -637,6 +653,7 @@ function 주담대행추가() {
   }
   updateMortgagePlaceholders();
   adjustTableFontSize();
+  fitAllNumericInputFontSizes();
   if (typeof 자동계산 === 'function') 자동계산();
 }
 
@@ -652,6 +669,16 @@ const LOAN_RATE_TABLE = Array.isArray(savedRates) ? savedRates : DEFAULT_LOAN_RA
 
 let memoBaseIncome = 0;
 let isEditingIncome = false;
+
+/* 나이 입력창(2자리 나이 또는 4자리 출생연도) 값을 나이(숫자)로 변환.
+   본인 소득(updateIncomeCalc, baseIncomeInput 입력 이벤트)과 배우자 소득
+   (updateSpouseIncomeCalc) 3곳에 동일한 변환 로직이 반복되어 있었음. */
+function parseAgeInputValue(rawStr) {
+  if (!rawStr) return -1;
+  if (rawStr.length === 2) return parseInt(rawStr);
+  if (rawStr.length === 4) return new Date().getFullYear() - parseInt(rawStr);
+  return -1;
+}
 
 const baseIncomeInput = document.getElementById("baseIncomeInput");
 const hiddenIncomeInput = document.getElementById("computedIncomeHidden");
@@ -673,12 +700,7 @@ function updateIncomeCalc() {
     let calculatedAge = -1;
 
     if (rawInputStr !== '') {
-        if (rawInputStr.length === 2) {
-            calculatedAge = parseInt(rawInputStr);
-        } else if (rawInputStr.length === 4) {
-            const currentYear = new Date().getFullYear();
-            calculatedAge = currentYear - parseInt(rawInputStr);
-        }
+        calculatedAge = parseAgeInputValue(rawInputStr);
 
         if (calculatedAge >= 0) {
             const matched = LOAN_RATE_TABLE.find(item => calculatedAge >= item.minAge && calculatedAge <= item.maxAge);
@@ -753,13 +775,7 @@ if (baseIncomeInput) {
       
       let tempRate = 1.0;
       if (applyRateCheck && applyRateCheck.checked && ageInput && ageInput.value !== '') {
-          let tempAge = -1;
-          if (ageInput.value.length === 2) {
-              tempAge = parseInt(ageInput.value);
-          } else if (ageInput.value.length === 4) {
-              const currentYear = new Date().getFullYear();
-              tempAge = currentYear - parseInt(ageInput.value);
-          }
+          const tempAge = parseAgeInputValue(ageInput.value);
 
           if (tempAge >= 0) {
               const matched = LOAN_RATE_TABLE.find(item => tempAge >= item.minAge && tempAge <= item.maxAge);
@@ -784,9 +800,7 @@ const spouseRateDisplay = document.getElementById("spouseRateDisplay");
 function updateSpouseIncomeCalc() {
   if (!spouseIncomeInput || !spouseHiddenIncomeInput || !spouseAgeInput || !spouseApplyRateCheck || !spouseRateDisplay) return;
   if (spouseAgeInput.value.length > 4) spouseAgeInput.value = spouseAgeInput.value.slice(0, 4);
-  let age = -1;
-  if (spouseAgeInput.value.length === 2) age = parseInt(spouseAgeInput.value);
-  else if (spouseAgeInput.value.length === 4) age = new Date().getFullYear() - parseInt(spouseAgeInput.value);
+  const age = parseAgeInputValue(spouseAgeInput.value);
   const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
   const rate = matched ? matched.percent / 100 : 1;
   spouseRateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
@@ -842,40 +856,36 @@ if (ltvMinorLeaseInput) {
   });
 }
 
-const ltvRateRadios = document.querySelectorAll('input[name="ltv_rate"]');
-ltvRateRadios.forEach(radio => {
-  radio.addEventListener("change", () => {
-    document.querySelectorAll('#ltvRateToggleGroup label').forEach(lbl => {
-      const r = lbl.querySelector('input[type="radio"]');
-      if (r && r.checked) {
-        lbl.style.backgroundColor = "#2563eb";
-        lbl.style.color = "#ffffff";
-      } else {
-        lbl.style.backgroundColor = "transparent";
-        lbl.style.color = "#64748b";
-      }
-    });
-    if (typeof 자동계산 === 'function') 자동계산();
+/* 라디오 토글 그룹(LTV 비율 / DSR 한도율) 공통 처리:
+   선택된 라디오가 속한 label만 강조색을 입히는 동일한 로직이
+   두 그룹에 그대로 반복되어 있던 것을 헬퍼 하나로 통합함. */
+function refreshRadioToggleStyles(groupSelector) {
+  document.querySelectorAll(`${groupSelector} label`).forEach(lbl => {
+    const r = lbl.querySelector('input[type="radio"]');
+    if (r && r.checked) {
+      lbl.style.backgroundColor = "#2563eb";
+      lbl.style.color = "#ffffff";
+    } else {
+      lbl.style.backgroundColor = "transparent";
+      lbl.style.color = "#64748b";
+    }
   });
-});
+}
+
+function bindRadioToggleGroup(radios, groupSelector) {
+  radios.forEach(radio => {
+    radio.addEventListener("change", () => {
+      refreshRadioToggleStyles(groupSelector);
+      if (typeof 자동계산 === 'function') 자동계산();
+    });
+  });
+}
+
+const ltvRateRadios = document.querySelectorAll('input[name="ltv_rate"]');
+bindRadioToggleGroup(ltvRateRadios, '#ltvRateToggleGroup');
 
 const dsrLimitRateRadios = document.querySelectorAll('input[name="dsr_limit_rate"]');
-dsrLimitRateRadios.forEach(radio => {
-  radio.addEventListener("change", (e) => {
-    document.querySelectorAll('#dsrLimitToggleGroup label').forEach(lbl => {
-      const r = lbl.querySelector('input[type="radio"]');
-      if (r && r.checked) {
-        lbl.style.backgroundColor = "#2563eb";
-        lbl.style.color = "#ffffff";
-      } else {
-        lbl.style.backgroundColor = "transparent";
-        lbl.style.color = "#64748b";
-      }
-    });
-
-    if (typeof 자동계산 === 'function') 자동계산();
-  });
-});
+bindRadioToggleGroup(dsrLimitRateRadios, '#dsrLimitToggleGroup');
 
 function 선택초기화() {
   const savedDefaultFirstRowData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
@@ -912,7 +922,7 @@ function 선택초기화() {
     const termInput = firstRow.querySelector('.mort-term');
     if (termInput) termInput.value = savedDefaultFirstRowData?.term || '';
 
-    firstRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    firstRow.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
       checkbox.checked = false;
     });
   }
@@ -941,10 +951,10 @@ function 선택초기화() {
     if (firstDefaultTypeBtn) firstDefaultTypeBtn.classList.add('active');
   }
 
-  document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+  document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) localStorage.removeItem(`DSR_${input.id}`);
   });
-  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+  document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) localStorage.removeItem(`DSR_${checkbox.id}`);
   });
   localStorage.removeItem('DSR_mortgageData');
@@ -954,10 +964,10 @@ function 선택초기화() {
 }
 
 function saveDSRInputs() {
-  document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+  document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) localStorage.setItem(`DSR_${input.id}`, input.value);
   });
-  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+  document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
   });
   saveMortgageRows();
@@ -985,7 +995,7 @@ function saveMortgageRows() {
 }
 
 function loadDSRInputs() {
-  document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+  document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) {
       const savedValue = localStorage.getItem(`DSR_${input.id}`);
       if (savedValue !== null) {
@@ -1000,7 +1010,7 @@ function loadDSRInputs() {
     }
   });
   
-  document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+  document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) {
       const savedValue = localStorage.getItem(`DSR_${checkbox.id}`);
       if (savedValue !== null) {
@@ -1061,7 +1071,7 @@ function loadMortgageRows() {
 }
 
 function setupDSRAutoSave() {
-  document.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').forEach(input => {
+  document.querySelectorAll(`${TEXT_NUMBER_INPUT_SELECTOR}, ${CHECKBOX_INPUT_SELECTOR}`).forEach(input => {
     input.addEventListener('change', saveDSRInputs);
     if (input.type !== 'checkbox') {
       input.addEventListener('input', saveDSRInputs);
@@ -1120,11 +1130,13 @@ function init() {
     adjustTableFontSize();
     adjustDsrMaxFontSize();
     adjustDsrToggleFontSize();
+    fitAllNumericInputFontSizes();
   });
   setTimeout(() => {
     adjustTableFontSize();
     adjustDsrMaxFontSize();
     adjustDsrToggleFontSize();
+    fitAllNumericInputFontSizes();
   }, 100);
 }
 

@@ -111,7 +111,7 @@ td, th {
   font-weight: 600;
 }
 
-td:first-child:not(.no-bg):not(.split-td) {
+td:first-child:not(.no-bg) {
   background-color: var(--c-surface-muted) !important;
   font-weight: 600;
   color: var(--c-text-muted);
@@ -119,6 +119,32 @@ td:first-child:not(.no-bg):not(.split-td) {
 .no-bg { background-color: transparent !important; }
 
 /* -------------------- Inputs -------------------- */
+/* 숫자가 입력되는 모든 입력창: 상하좌우 내부 여백 제거 (위치/종류 상관없이 전역 적용) */
+/* 단, 여백 제거로 입력창 세로 크기가 작아지지 않도록 min-height로 기존 크기를 복원 */
+input[inputmode="numeric"],
+input[inputmode="decimal"],
+input[type="number"] {
+  padding: 0 !important;
+  min-height: 32px; /* 기존 상하 padding 7px 기준 높이 복원 (입력창 내부 글자는 자동으로 세로 중앙 정렬됨) */
+}
+
+/* LTV 카드 입력창(시세/소액임차): 기존 상하 padding 8px 기준 높이 복원 */
+.ltv-cell input[inputmode="numeric"],
+.ltv-cell input[inputmode="decimal"] {
+  min-height: 34px;
+}
+
+/* 거치(개월) 입력창: 기존 상하 padding 4px 기준의 작은 높이 복원 */
+.grace-term-input {
+  min-height: 24px !important;
+}
+
+/* 장래예상소득증가율 / 본건 대출 기본값 수정 팝업 입력창: 기존 상하 padding 9px 기준 높이 복원 */
+.rate-popup-table input[inputmode="numeric"],
+.rate-popup-table input[inputmode="decimal"] {
+  min-height: 36px;
+}
+
 td input[type="text"], td input[type="number"], td select {
   width: 100%;
   box-sizing: border-box;
@@ -143,27 +169,6 @@ td input:focus {
   font-size: 15px;
   font-weight: 700;
   background-color: var(--c-surface);
-}
-
-.dropdown-select {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #cbd5e1;
-  border-radius: var(--r-sm);
-  padding: 7px 4px;
-  font-size: 12px;
-  text-align: center;
-  background-color: var(--c-surface-muted);
-  transition: all 0.2s ease;
-  color: var(--c-text);
-  font-weight: 700;
-  cursor: pointer;
-}
-.dropdown-select:focus {
-  border-color: var(--c-primary-light);
-  background-color: var(--c-surface);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 input[type="checkbox"] {
@@ -597,27 +602,25 @@ button:active { background-color: var(--c-primary-dark); transform: scale(0.99);
 /* -------------------- Income row -------------------- */
 .income-label { font-weight: bold; letter-spacing: -0.5px; vertical-align: middle; text-align: center; }
 .income-input-cell { vertical-align: middle; text-align: center; padding: 6px 3px !important; container-type: inline-size; }
-.income-label .sub-label { font-size: 10px; color: var(--c-text-muted); font-weight: normal; }
-.income-row-inner { display: flex; justify-content: center; align-items: center; }
 .income-title { display: inline-block; margin-right: 5px; vertical-align: middle; white-space: nowrap; }
 .income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 4px; vertical-align: middle; }
 /* 입력칸 너비에 따라 플레이스홀더/입력 글자 크기 자동 조절 */
 .income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
 .income-settings-cell { vertical-align: middle; padding: 6px 3px !important; border-left: 2px solid var(--c-border) !important; }
-.age-cell, .toggle-cell, .rate-cell { text-align: center; vertical-align: middle; }
+.age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
 .age-cell { container-type: inline-size; }
-.toggle-cell .rate-toggle-row, .rate-cell .rate-display { margin: 0; transform: none; }
+.toggle-cell .rate-toggle-row { margin: 0; transform: none; }
 .toggle-cell .rate-display { display: block; margin-top: 2px; }
 .income-settings { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0px; width: 100%; }
 .income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
 .income-settings .rate-toggle-row { display: inline-flex; align-items: center; gap: 0px; font-size: 11px; white-space: nowrap; }
 .income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
-.income-toggle { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; font-size: 11px; white-space: nowrap; }
-.income-toggle label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); margin-left: 1px; }
 #rateDisplay, #spouseRateDisplay { display: block; align-self: center; text-align: center; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 2px 0 0; }
 .income-settings .rate-display { font-size: 11px; }
-/* 나이 입력칸 크기: 전역 td input의 width:100%를 덮어쓰기 위해 !important 사용 */
-.age-input { width: 100% !important; max-width: none; min-width: 0; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
+/* 나이 입력칸 크기: 전역 td input의 width:100%를 덮어쓰기 위해 !important 사용.
+   숫자 입력창 공통 여백 제거 규칙과 무관하게 원래부터 여백 0으로 디자인되어 있으며,
+   높이(min-height:32px)는 다른 숫자 입력창과 동일하게 상단 공통 규칙을 그대로 적용받는다. */
+.age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
 /* 나이 입력칸의 숫자 상하 증감 버튼 제거 */
 .age-input::-webkit-outer-spin-button,
 .age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
