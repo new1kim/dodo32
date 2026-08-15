@@ -1,0 +1,857 @@
+/* =========================================================
+   DSR/DTI 계산기 - Design System
+   ========================================================= */
+
+:root {
+  /* Brand */
+  --c-primary: #2563eb;
+  --c-primary-light: #3b82f6;
+  --c-primary-dark: #1d4ed8;
+  --c-primary-soft: #eff6ff;
+  --c-primary-soft-border: #c7d2fe;
+
+  /* Semantic */
+  --c-success: #10b981;
+  --c-success-dark: #059669;
+  --c-success-soft: #f0fdf4;
+  --c-success-text: #0f766e;
+  --c-danger: #ef4444;
+  --c-danger-dark: #dc2626;
+  --c-danger-soft: #fef2f2;
+  --c-danger-text: #991b1b;
+  --c-warning-text: #d97706;
+
+  /* Neutrals */
+  --c-text: #0f172a;
+  --c-text-body: #334155;
+  --c-text-muted: #64748b;
+  --c-text-faint: #94a3b8;
+  --c-border: #dbe5f0;
+  --c-border-soft: #f1f5f9;
+  --c-surface: #ffffff;
+  --c-surface-muted: #f8fafc;
+  --c-header-bg: #eef5ff;
+  --c-header-text: #1e3a6d;
+  --c-subheader-bg: #f5f8fc;
+  --c-subheader-text: #64748b;
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* 시세 입력(LTV) 테이블의 좌우 여백 */
+  --ltv-cell-horizontal-padding: 1px;
+
+  /* Shadow */
+  --sh-card: 0 4px 18px rgba(15, 23, 42, 0.05);
+  --sh-btn: 0 2px 5px rgba(37, 99, 235, 0.18);
+
+  /* Font */
+  --font-main: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* -------------------- Base -------------------- */
+body {
+  text-align: center;
+  font-family: var(--font-main);
+  background-color: var(--c-surface-muted);
+  color: var(--c-text);
+  margin: 0;
+  padding: 5px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* -------------------- Tables (shared card look) -------------------- */
+table {
+  margin: 0 auto;
+  max-width: 600px;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--c-surface);
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--sh-card);
+  border: 1px solid var(--c-border) !important;
+  overflow: hidden;
+}
+
+td, th {
+  border: 1px solid #e2e8f0 !important;
+  padding: 1px 6px;
+  font-size: 13px;
+  vertical-align: middle;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+}
+
+
+/* Header rows: use classes instead of inline styles */
+.table-header-row {
+  background-color: var(--c-header-bg) !important;
+  color: var(--c-header-text);
+  font-weight: 700;
+}
+.table-subheader-row {
+  background-color: var(--c-subheader-bg) !important;
+  color: var(--c-subheader-text);
+  font-weight: 600;
+}
+
+td:first-child:not(.no-bg) {
+  background-color: var(--c-surface-muted) !important;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.no-bg { background-color: transparent !important; }
+
+/* -------------------- Inputs -------------------- */
+/* 숫자가 입력되는 모든 입력창: 상하좌우 내부 여백 제거 (위치/종류 상관없이 전역 적용) */
+/* 단, 여백 제거로 입력창 세로 크기가 작아지지 않도록 min-height로 기존 크기를 복원 */
+input[inputmode="numeric"],
+input[inputmode="decimal"],
+input[type="number"] {
+  padding: 0 !important;
+  min-height: 32px; /* 기존 상하 padding 7px 기준 높이 복원 (입력창 내부 글자는 자동으로 세로 중앙 정렬됨) */
+}
+
+/* LTV 카드 입력창(시세/소액임차): 기존 상하 padding 8px 기준 높이 복원 */
+.ltv-cell input[inputmode="numeric"],
+.ltv-cell input[inputmode="decimal"] {
+  min-height: 34px;
+}
+
+/* 거치(개월) 입력창: 기존 상하 padding 4px 기준의 작은 높이 복원 */
+.grace-term-input {
+  min-height: 24px !important;
+}
+
+/* 장래예상소득증가율 / 본건 대출 기본값 수정 팝업 입력창: 기존 상하 padding 9px 기준 높이 복원 */
+.rate-popup-table input[inputmode="numeric"],
+.rate-popup-table input[inputmode="decimal"] {
+  min-height: 36px;
+}
+
+td input[type="text"], td input[type="number"], td select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--r-sm);
+  padding: 7px 4px;
+  font-size: 13px;
+  text-align: center;
+  background-color: var(--c-surface-muted);
+  transition: all 0.2s ease;
+  color: var(--c-text);
+  font-weight: 700;
+  font-family: inherit;
+}
+td input:focus {
+  border-color: var(--c-primary-light);
+  background-color: var(--c-surface);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+#baseIncomeInput, #spouseIncomeInput {
+  font-size: 15px;
+  font-weight: 700;
+  background-color: var(--c-surface);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--c-primary);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* -------------------- Buttons -------------------- */
+button {
+  width: 100%;
+  background-color: var(--c-primary-light);
+  border: none;
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--sh-btn);
+  font-family: inherit;
+}
+button:hover { background-color: var(--c-primary-dark); }
+button:active { background-color: var(--c-primary-dark); transform: scale(0.99); }
+
+.type-btn-group {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  background-color: #e2e8f0;
+  border-radius: var(--r-sm);
+  padding: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.type-btn {
+  padding: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none !important;
+  background: transparent !important;
+  color: var(--c-text-muted) !important;
+  width: 33.33% !important;
+  height: 26px !important;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+}
+.type-btn.active {
+  background-color: var(--c-surface) !important;
+  color: var(--c-primary-dark) !important;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.add-btn {
+  background-color: var(--c-success);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.22);
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.add-btn:hover { background-color: var(--c-success-dark); }
+
+.reset-btn {
+  background-color: var(--c-danger);
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.22);
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.reset-btn:hover { background-color: var(--c-danger-dark); }
+
+.copy-btn {
+  background-color: var(--c-primary);
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.22);
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.copy-btn:hover { background-color: var(--c-primary-dark); }
+
+/* -------------------- Section title bar (table header w/ side buttons) -------------------- */
+.section-title-bar {
+  padding: 6px;
+  text-align: center;
+  color: var(--c-header-text);
+  font-size: 13px;
+  position: relative;
+}
+.section-title-bar .add-btn {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.section-title-bar .reset-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* -------------------- Mortgage row layout -------------------- */
+.input-flex-col { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: stretch; }
+.input-flex-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.input-flex-row input {
+  min-width: 0 !important;
+  flex: 1 !important;
+  text-align: center !important;
+}
+.mort-amount-row { display: flex; justify-content: flex-start; align-items: center; gap: 6px; width: 100%; }
+.mort-amt { flex: 1; min-width: 0; text-align: center; }
+.mortgage-row.first-row .mort-amt { flex: 1; min-width: 0; text-align: center; }
+
+.mort-exclude-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px;
+  background: var(--c-surface-muted);
+  border-radius: var(--r-sm);
+  width: 100%;
+}
+
+.amount-btn {
+  width: 25px;
+  height: 25px;
+  font-size: 35px;   /* 박스(36px)보다 작게 → 상하좌우 여백 확보 */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.amount-plus { background-color: var(--c-success); color: white; font-weight: bold; }
+.amount-minus { background-color: var(--c-danger); color: white; font-weight: bold; }
+
+/* 추가되는 행(보유대출): +버튼 위 / -버튼 아래, 같은 칸에 세로 배치 */
+.amount-btn-stack {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.amount-btn-stack .amount-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+}
+
+/* 추가되는 행(보유대출): 금액 입력 옆에 금리 입력 배치 */
+.mort-amount-row--added {
+  gap: 4px;
+}
+.mort-amount-row--added .mort-amt {
+  flex: 2.5;
+}
+.mort-amount-row--added .mort-rate {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.mortgage-row.first-row .input-flex-row { align-items: center; gap: 4px; }
+
+/* 6M / 5Y toggle switch */
+.mort-default-switch {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 0;
+  padding: 3px !important;
+  border-radius: var(--r-pill) !important;
+  background-color: var(--c-border-soft) !important;
+  border: 1px solid #cbd5e1 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  box-shadow: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.mort-default-switch:hover {
+  box-shadow: none;
+
+
+
+/*  금리선택토글 관련 코드 */
+}
+.mort-default-switch .switch-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 5px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -1px !important;
+  border-radius: var(--r-pill) !important;
+  color: var(--c-text-muted) !important;
+  line-height: 1.2 !important;
+  transition: all 0.2s ease;
+}
+.mort-default-switch .switch-label.active {
+  background: var(--c-primary);
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+}
+
+.grace-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* 추가행에 거치 체크와, 거치(개월) 입력창 표시 유무 (( 기능은 유지하되 표시만 가림 )) 나중에 필요시 아래 내용 삭제.  */
+.mortgage-row:not(.first-row) .grace-cell {
+  display: none;
+}
+
+
+.mort-grace-check {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+}
+.grace-term-input {
+  width: 42%;
+  padding: 4px;
+  font-size: 11px;
+}
+
+/* -------------------- Notification bubble -------------------- */
+#bubble-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  font-size: 14px;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* -------------------- View buttons -------------------- */
+.view-btn-wrapper { display: flex; justify-content: center; gap: 12px; margin-top: 4px; }
+.view-btn {
+  width: 48%;
+  background-color: #475569;
+  border: none !important;
+  color: white;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.18);
+}
+.view-btn:hover { background-color: #334155; }
+
+/* -------------------- DSR limit block -------------------- */
+.dsr-limit-table { margin-top: 0; font-size: 1px; }
+.dsr-label-cell {
+  background-color: var(--c-header-bg) !important;
+  color: var(--c-header-text);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+}
+.dsr-value-cell {
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  padding: 8px 4px !important;
+  transition: background-color 0.2s ease;
+}
+.dsr-value-cell:hover { background-color: var(--c-surface-muted); }
+.dsr-max-value-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  white-space: normal !important;
+}
+.dsr-max-value-number .dsr-main-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-primary-dark);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.dsr-max-value-number .dsr-sub-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  line-height: 1.2;
+}
+
+/* Pill radio toggle (DSR limit % / LTV %) */
+.pill-toggle-group {
+  display: inline-flex;
+  background-color: var(--c-border-soft);
+  border: 1px solid #cbd5e1;
+  border-radius: var(--r-pill);
+  padding: 3px;
+  gap: 2px;
+}
+.pill-toggle-group.vertical { flex-direction: column; width: 100%; }
+.pill-toggle-group label {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  background-color: transparent;
+  color: var(--c-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.pill-toggle-group label:has(input:checked) {
+  background-color: var(--c-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+.pill-toggle-group input[type="radio"] { display: none; }
+
+/* LTV 비율 버튼 간격 조절 */
+#ltvRateToggleGroup {
+  gap: 0;
+}
+#ltvRateToggleGroup label {
+  padding: 4px 5px;
+  letter-spacing: -1px;
+}
+
+/* Compact variant used for the narrow DSR-limit toggle column */
+#dsrLimitToggleGroup {
+  border-radius: 10px;
+  padding: 0;
+  gap: 0;
+}
+#dsrLimitToggleGroup label {
+  padding: 3px 3px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+/* -------------------- LTV card -------------------- */
+.ltv-table { border-collapse: separate; }
+.ltv-cell {
+  width: 33.3%;
+  padding: 10px var(--ltv-cell-horizontal-padding);
+  background-color: var(--c-surface-muted);
+  vertical-align: middle;
+  text-align: center;
+}
+.ltv-cell + .ltv-cell { border-left: 1px solid var(--c-border) !important; }
+.ltv-cell input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  font-weight: 700;
+  text-align: center;
+}
+.minor-lease-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.minor-lease-input-row input[type="text"] { flex: 1; min-width: 0; }
+.minor-lease-reference-btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ltv-stack { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.ltv-output {
+  color: var(--c-primary-dark);
+  background-color: var(--c-primary-soft) !important;
+}
+
+/* -------------------- Income row -------------------- */
+.income-label { font-weight: bold; letter-spacing: -0.5px; vertical-align: middle; text-align: center; }
+.income-input-cell { vertical-align: middle; text-align: center; padding: 6px 3px !important; container-type: inline-size; }
+.income-title { display: inline-block; margin-right: 5px; vertical-align: middle; white-space: nowrap; }
+.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 4px; vertical-align: middle; }
+/* 입력칸 너비에 따라 플레이스홀더/입력 글자 크기 자동 조절 */
+.income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
+.income-settings-cell { vertical-align: middle; padding: 6px 3px !important; border-left: 2px solid var(--c-border) !important; }
+.age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
+.age-cell { container-type: inline-size; }
+.toggle-cell .rate-toggle-row { margin: 0; transform: none; }
+.toggle-cell .rate-display { display: block; margin-top: 2px; }
+.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0px; width: 100%; }
+.income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.income-settings .rate-toggle-row { display: inline-flex; align-items: center; gap: 0px; font-size: 11px; white-space: nowrap; }
+.income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
+#rateDisplay, #spouseRateDisplay { display: block; align-self: center; text-align: center; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 2px 0 0; }
+.income-settings .rate-display { font-size: 11px; }
+/* 나이 입력칸 크기: 전역 td input의 width:100%를 덮어쓰기 위해 !important 사용.
+   숫자 입력창 공통 여백 제거 규칙과 무관하게 원래부터 여백 0으로 디자인되어 있으며,
+   높이(min-height:32px)는 다른 숫자 입력창과 동일하게 상단 공통 규칙을 그대로 적용받는다. */
+.age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
+/* 나이 입력칸의 숫자 상하 증감 버튼 제거 */
+.age-input::-webkit-outer-spin-button,
+.age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.age-input { -moz-appearance: textfield; appearance: textfield; }
+.income-result-label { background: var(--c-primary-soft) !important; color: var(--c-primary-dark); font-size: clamp(10px, 12cqw, 17px); font-weight: 700; line-height: 1.3; container-type: inline-size; }
+.income-result-cell { padding: 6px 3px !important; container-type: inline-size; }
+.income-result-cell input { width: 100%; min-width: 0; color: var(--c-primary-dark); background: var(--c-primary-soft) !important; border-color: var(--c-primary-soft-border); font-size: clamp(8px, 12cqw, 12px); }
+
+/* -------------------- Result readouts -------------------- */
+#DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }
+#DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 16px; }
+#월합계 { color: var(--c-primary); }
+
+/* -------------------- Table color tuning (structure/function unchanged) -------------------- */
+/* 본건 월 상환 요약: 차분한 블루 */
+.summary-table:has(#월합계) {
+  border-color: #cdddf3 !important;
+  background: #fbfdff;
+}
+.summary-table:has(#월합계) .table-header-row td {
+  background: #edf5ff !important;
+  color: #31547f !important;
+}
+.summary-table:has(#월합계) tr:last-child td { background: #fbfdff !important; }
+
+/* DSR 한도: 계산 가능 금액을 구분하는 부드러운 인디고 톤 */
+.dsr-limit-table {
+  border-color: #d7d9f5 !important;
+  background: #fdfdff;
+}
+.dsr-limit-table .dsr-label-cell { background: #f1f2ff !important; color: #4c4e91; }
+.dsr-limit-table .dsr-value-cell { background: #fcfcff; }
+.dsr-limit-table .dsr-value-cell:hover { background: #f4f5ff; }
+.dsr-limit-table .dsr-main-val { color: #4f46a5; }
+
+/* LTV: 담보 관련 입력을 따뜻한 중립색으로 분리 */
+.ltv-table {
+  border-color: #eadfc9 !important;
+  background: #fffefa;
+}
+.ltv-table .ltv-cell { background: #fffdf8 !important; }
+.ltv-table .ltv-cell:first-child { background: #fff8ec !important; color: #8a5b20; }
+.ltv-table .ltv-cell + .ltv-cell { border-left-color: #eadfc9 !important; }
+.ltv-table .ltv-output { background: #fff5dd !important; color: #9a5a00; border-color: #ebc986 !important; }
+
+/* DSR · DTI · 신DTI 결과표: 읽기 쉬운 라벤더 포인트 */
+.summary-table:has(#DSR확인) {
+  border-color: #dcd8f4 !important;
+  background: #fefeff;
+}
+.summary-table:has(#DSR확인) .table-header-row td { background: #f3f1ff !important; color: #5b4b9a !important; }
+.summary-table:has(#DSR확인) tr:last-child td { background: #fcfbff !important; }
+
+/* 연소득: 입력 영역임을 알리는 옅은 민트 */
+table:has(#baseIncomeInput) { border-color: #cfe7df !important; background: #fcfffe; }
+table:has(#baseIncomeInput) .income-label { background: #effaf6 !important; color: #28705e; }
+table:has(#baseIncomeInput) #연소득입력 { background: #fcfffe !important; }
+table:has(#baseIncomeInput) #baseIncomeInput { border-color: #b9ddd1; background: #fafffd; }
+table:has(#baseIncomeInput) #spouseIncomeInput { border-color: #b9ddd1; background: #fafffd; }
+
+/* 대출 정보: 표의 밀도를 낮추기 위해 헤더와 본문을 단계적으로 구분 */
+table:has(#mortgage-inputs) { border-color: #d5e0ed !important; }
+table:has(#mortgage-inputs) .section-title-bar { background: #eaf2fc !important; color: #294d79 !important; }
+table:has(#mortgage-inputs) .table-subheader-row td { background: #f6f9fd !important; color: #60738d !important; }
+table:has(#mortgage-inputs) .mortgage-row td { background: #fcfdff; }
+
+/* -------------------- Modals / popups -------------------- */
+#image-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+#modal-image-credit {
+  display: none;
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 100%;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+#image-modal img {
+  max-width: 92%;
+  max-height: 85%;
+  border-radius: var(--r-sm);
+  border: 2px solid white;
+  box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.5);
+}
+.text-popup-card {
+  background-color: var(--c-surface);
+  padding: 20px;
+  border-radius: 20px;
+  max-width: 92%;
+  width: 440px;
+  box-sizing: border-box;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  text-align: left;
+  cursor: default;
+  height: auto;
+  max-height: 85vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.text-popup-card::-webkit-scrollbar { display: none; }
+.text-popup-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-text);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--c-border-soft);
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+.text-popup-content { font-size: 13px; line-height: 1.6; color: var(--c-text-body); }
+.info-section { margin-bottom: 22px; }
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0284c7;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-list { list-style: none; padding: 0; margin: 0; }
+.info-list li { position: relative; padding-left: 14px; margin-bottom: 6px; color: var(--c-text-body); font-weight: 500; white-space: normal !important; }
+.info-list li::before { content: "•"; position: absolute; left: 2px; color: #cbd5e1; font-weight: bold; }
+.alert-box {
+  background-color: var(--c-danger-soft);
+  border-left: 4px solid var(--c-danger);
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+  color: var(--c-danger-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: normal !important;
+}
+.accent-box {
+  background-color: var(--c-success-soft);
+  border-left: 4px solid var(--c-success);
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+  color: #166534;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: normal !important;
+}
+
+.rate-popup-table { width: 100%; margin: 10px 0; border-collapse: separate; border-spacing: 0 10px; }
+.rate-popup-table td { padding: 0; border: none !important; background: transparent !important; font-weight: normal !important; color: var(--c-text-body) !important; font-size: 14px; }
+.rate-popup-table input {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--r-md);
+  background-color: var(--c-surface);
+  box-sizing: border-box;
+}
+.rate-popup-table input:focus { outline: none; border-color: var(--c-primary-light); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+.rate-popup-table thead tr { background-color: var(--c-border-soft); font-weight: bold; text-align: center; }
+
+.default-field-group { display: flex; gap: 8px; align-items: stretch; }
+.default-field {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--c-surface-muted) 0%, var(--c-surface) 100%);
+  padding: 8px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.default-field-label { font-size: 11px; font-weight: 700; color: var(--c-text-muted); margin-bottom: 5px; letter-spacing: -0.2px; }
+.default-field .rate-popup-table { margin: 0; border-spacing: 0; }
+.default-modal-actions { display: flex; gap: 8px; margin-top: 10px; }
+.default-modal-actions button { flex: 1; border: none; border-radius: var(--r-md); padding: 10px 12px; color: white; font-weight: 700; cursor: pointer; }
+.modal-actions { display: flex; gap: 8px; margin-top: 5px; }
+.modal-actions button { flex: 1; border: none; border-radius: var(--r-md); padding: 10px 12px; color: white; font-weight: 700; cursor: pointer; }
+.btn-neutral { background-color: #64748b; }
+.btn-success { background-color: var(--c-success); }
+.btn-primary { background-color: var(--c-primary-light); }
+
+/* -------------------- Schedule modal -------------------- */
+#schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+#schedule-table th {
+  position: sticky;
+  top: 0;
+  background-color: var(--c-border-soft) !important;
+  color: var(--c-text-muted);
+  font-weight: bold;
+  padding: 8px 4px;
+  border: 1px solid var(--c-border);
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+#schedule-table td { padding: 6px 4px !important; font-size: 12px !important; }
+.year-divider td { border-bottom: 2px solid #cbd5e1 !important; }
+.summary-table td { padding: 6px 4px !important; }
+.schedule-close-row { display: flex; align-items: center; margin-bottom: 8px; }
+.schedule-loan-info { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: var(--c-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
