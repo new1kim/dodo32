@@ -304,6 +304,8 @@ function 자동계산() {
     const stRateEl = row.querySelector('.mort-st-rate');
     const termEl = row.querySelector('.mort-term');
     const typeEl = row.querySelector('.mort-type');
+    const categoryEl = row.querySelector('.mort-loan-category');
+    const loanCategory = categoryEl ? categoryEl.value : "신용";
 
     const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
     const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
@@ -314,9 +316,17 @@ function 자동계산() {
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
-    let fixGrace = graceTerm >= 180 ? 179 : graceTerm;
-    let fixPostTerm = 180 - fixGrace;
-    if (fixPostTerm <= 0) fixPostTerm = 1;
+    // 신DTI 기준 만기: 본건(index 0)만 min(입력개월수, 180)으로 캡 적용.
+    // 보유대출(index > 0)은 캡 없이 실제 입력 개월수(거치 반영) 그대로 사용한다.
+    let fixPostTerm;
+    if (index === 0) {
+      const newDtiBaseTerm = Math.min(term, 180);
+      let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
+      fixPostTerm = newDtiBaseTerm - fixGrace;
+      if (fixPostTerm <= 0) fixPostTerm = 1;
+    } else {
+      fixPostTerm = postTerm;
+    }
 
     let monthlyRes;
     if (type === "만기") {
@@ -382,8 +392,13 @@ function 자동계산() {
       sumI += monthlyRes.첫달이자;
     } else {
       totalDsrDebt += annualTotal;
-      totalDtiDebt += annualInterest; 
-      totalNewDtiDebt += fixAnnualInterest;
+      // DTI/신DTI(보유대출): 만기일시는 실제로도 이자만 부담하므로 이자만 반영.
+      // 원리금균등/원금균등은 대출 종류(주담대/신용)에 따라 반영 방식이 다르다.
+      //  - 주담대: 원리금 전액 반영
+      //  - 신용대출: 원금은 반영하지 않고 이자만 반영
+      const isInterestOnly = (type === "만기") || (loanCategory === "신용");
+      totalDtiDebt += isInterestOnly ? annualInterest : annualTotal;
+      totalNewDtiDebt += isInterestOnly ? fixAnnualInterest : fixAnnualTotal;
       
       existingOtherDebtPayment += annualTotal; 
     }

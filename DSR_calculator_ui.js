@@ -299,6 +299,20 @@ function setMortgageRepaymentType(btn, type) {
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
+// 보유대출 "주담대" 단일 토글: 기본값은 "신용"(이자만 반영)이며,
+// 이 버튼을 눌러 켜면(active) "주담대"로 간주해 원리금 전액을 반영한다.
+// 원리금/원금/만기 토글과는 독립적으로 중복 선택 가능.
+function toggleLoanCategory(btn) {
+  const row = btn.closest('tr');
+  if (!row) return;
+  const categoryInput = row.querySelector('.mort-loan-category');
+  const isNowActive = !btn.classList.contains('active');
+  btn.classList.toggle('active', isNowActive);
+  if (categoryInput) categoryInput.value = isNowActive ? '주담대' : '신용';
+  if (typeof 자동계산 === 'function') 자동계산();
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
+}
+
 function showBubble(text = "신DTI 적용") {
   const b = document.getElementById("bubble-box");
   if (!b) return;
@@ -631,12 +645,16 @@ function 주담대행추가() {
       <input type="text" inputmode="numeric" placeholder="개월" class="mort-term">
     </td>
     <td class="no-bg" style="padding: 10px 3px;">
-      <div class="type-btn-group">
-        <button type="button" class="type-btn active" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
-        <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
-        <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
+      <div class="type-btn-row">
+        <div class="type-btn-group">
+          <button type="button" class="type-btn active" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
+          <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
+          <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
+        </div>
+        ${isFirstRow ? '' : `<button type="button" class="mort-category-toggle" onclick="toggleLoanCategory(this)">주담대</button>`}
       </div>
       <input type="hidden" class="mort-type" value="원리금">
+      ${isFirstRow ? '' : `<input type="hidden" class="mort-loan-category" value="신용">`}
       <div class="grace-cell">
         
         <input type="checkbox" class="mort-grace-check" title="거치 적용">
@@ -985,6 +1003,7 @@ function saveMortgageRows() {
       stRate: row.querySelector('.mort-st-rate')?.value || '',
       term: row.querySelector('.mort-term')?.value || '',
       repaymentType: row.querySelector('.mort-type')?.value || '원리금',
+      loanCategory: row.querySelector('.mort-loan-category')?.value || '신용',
       graceCheck: row.querySelector('.mort-grace-check')?.checked || false,
       graceTerm: row.querySelector('.mort-grace-term')?.value || ''
     };
@@ -1046,6 +1065,7 @@ function loadMortgageRows() {
         const stRate = currentRow.querySelector('.mort-st-rate');
         const term = currentRow.querySelector('.mort-term');
         const repaymentType = currentRow.querySelector('.mort-type');
+        const loanCategory = currentRow.querySelector('.mort-loan-category');
         const graceCheck = currentRow.querySelector('.mort-grace-check');
         const graceTerm = currentRow.querySelector('.mort-grace-term');
         
@@ -1055,6 +1075,7 @@ function loadMortgageRows() {
         if (stRate) stRate.value = rowData.stRate;
         if (term) term.value = rowData.term;
         if (repaymentType) repaymentType.value = rowData.repaymentType;
+        if (loanCategory) loanCategory.value = rowData.loanCategory || '신용';
         if (graceCheck) graceCheck.checked = rowData.graceCheck;
         if (graceTerm) graceTerm.value = rowData.graceTerm;
         
@@ -1063,6 +1084,9 @@ function loadMortgageRows() {
         if (rowData.repaymentType === '원리금') typeButtons[0]?.classList.add('active');
         else if (rowData.repaymentType === '원금') typeButtons[1]?.classList.add('active');
         else if (rowData.repaymentType === '만기') typeButtons[2]?.classList.add('active');
+
+        const categoryBtn = currentRow.querySelector('.mort-category-toggle');
+        if (categoryBtn) categoryBtn.classList.toggle('active', (rowData.loanCategory || '신용') === '주담대');
       }
     });
   } catch (e) {
@@ -1218,11 +1242,15 @@ function 대출정보텍스트생성() {
       lines.push(`배우자 소득 : ${spouseRawStr}`);
     }
 
-    // 합산소득
+    // 합산소득 (장래예상 체크된 경우에만 괄호 표시)
     const rawSum = (memoBaseIncome || 0) + spouseRawNum;
     const rawSumStr = rawSum > 0 ? Math.floor(rawSum).toLocaleString() : '-';
     const appliedSumStr = getVal('totalIncomeOutput') || rawSumStr;
-    lines.push(`합산소득 : ${rawSumStr} ( ${appliedSumStr} )`);
+    if (baseChecked || spouseChecked) {
+      lines.push(`합산소득 : ${rawSumStr} ( ${appliedSumStr} )`);
+    } else {
+      lines.push(`합산소득 : ${rawSumStr}`);
+    }
   }
 
   lines.push(구분선);
