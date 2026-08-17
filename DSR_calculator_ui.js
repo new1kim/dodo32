@@ -171,21 +171,32 @@ function openTextModal() {
   const panels = getModalPanels();
   hideOtherModalPanels(panels, 'textCard');
 
+  // "계산기 설명" 모달 안에는 장래예상소득 요율 수정, 본건 기본값 설정 섹션이
+  // 함께 들어있으므로, 모달을 여는 경로와 상관없이 저장된 값을 항상 채워둔다.
+  populateRateEditFields();
+  populateDefaultFirstRowFields();
+
   if (panels.textCard) {
     panels.textCard.style.display = "block";
     panels.textCard.scrollTop = 0;
   }
   if (panels.imageModal) panels.imageModal.style.display = "flex";
+
+  fitAllNumericInputFontSizes();
+}
+
+function populateRateEditFields() {
+  LOAN_RATE_TABLE.forEach((item, index) => {
+    const editEl = document.getElementById(`edit-rate-${index}`);
+    if (editEl) editEl.value = item.percent;
+  });
 }
 
 function openRateEditModal() {
   const panels = getModalPanels();
   hideOtherModalPanels(panels, 'textCard');
 
-  LOAN_RATE_TABLE.forEach((item, index) => {
-    const editEl = document.getElementById(`edit-rate-${index}`);
-    if (editEl) editEl.value = item.percent;
-  });
+  populateRateEditFields();
 
   if (panels.textCard) panels.textCard.style.display = "block";
   if (panels.imageModal) panels.imageModal.style.display = "flex";
@@ -199,10 +210,7 @@ function openRateEditModal() {
 /* 본건 대출 기본값(6M/5Y 금리·ST금리·개월) 입력창 id 목록 - 모달 열기/저장 양쪽에서 공용 */
 const DEFAULT_FIRST_ROW_FIELD_IDS = ['default-mort-rate', 'default-five-year-rate', 'default-mort-st-rate', 'default-five-year-st-rate', 'default-mort-term', 'default-five-year-term'];
 
-function openDefaultFirstRowModal() {
-  const panels = getModalPanels();
-  hideOtherModalPanels(panels, 'textCard');
-
+function populateDefaultFirstRowFields() {
   const data = getStoredJson("DEFAULT_FIRST_ROW_DATA");
   const valuesById = data ? {
     'default-mort-rate': data.sixMonthRate || data.rate || "",
@@ -217,6 +225,13 @@ function openDefaultFirstRowModal() {
     const el = document.getElementById(id);
     if (el) el.value = valuesById ? valuesById[id] : "";
   });
+}
+
+function openDefaultFirstRowModal() {
+  const panels = getModalPanels();
+  hideOtherModalPanels(panels, 'textCard');
+
+  populateDefaultFirstRowFields();
 
   if (panels.textCard) panels.textCard.style.display = "block";
   if (panels.imageModal) panels.imageModal.style.display = "flex";
