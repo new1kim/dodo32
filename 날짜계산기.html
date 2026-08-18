@@ -4,129 +4,277 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>대출 업무용 영업일 날짜 계산기</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
     <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
-            --primary-color: #007bff;
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #e1e8ed;
+            --ink: #1b2a4a;
+            --ink-soft: #4c5876;
+            --paper: #f4efe3;
+            --card: #fffdf8;
+            --gold: #a9812f;
+            --gold-soft: rgba(169, 129, 47, 0.14);
+            --stamp: #b23a2f;
+            --stamp-soft: rgba(178, 58, 47, 0.10);
+            --line: #ddd2b8;
+            --sat: #2f5fa8;
         }
 
+        * { box-sizing: border-box; }
+
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-            background: linear-gradient(135deg, #f4f7ff 0%, #f8fafc 45%, #eef4ff 100%);
-            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background:
+                radial-gradient(circle at 1px 1px, rgba(27,42,74,0.06) 1px, transparent 0) 0 0/22px 22px,
+                linear-gradient(160deg, #f7f2e6 0%, #f2ece0 55%, #eee7d9 100%);
+            color: var(--ink);
             margin: 0;
-            padding: 24px 16px 32px;
+            padding: 32px 16px 40px;
             min-height: 100vh;
-            box-sizing: border-box;
         }
 
         .calculator-container {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 20px;
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+            background: var(--card);
+            border: 1px solid rgba(27, 42, 74, 0.08);
+            border-radius: 6px;
+            box-shadow: 0 24px 48px rgba(27, 42, 74, 0.12), 0 2px 0 var(--gold);
             width: 100%;
-            max-width: 500px;
-            padding: 28px;
-            box-sizing: border-box;
+            max-width: 460px;
+            padding: 36px 32px 28px;
             margin: 0 auto;
-            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .calculator-container::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border: 1px solid rgba(169, 129, 47, 0.25);
+            border-radius: 3px;
+            pointer-events: none;
         }
 
         .calculator-header {
-            margin-bottom: 24px;
+            margin-bottom: 26px;
+            text-align: center;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: var(--gold);
+            text-transform: uppercase;
+            margin-bottom: 10px;
         }
 
         h2 {
-            margin: 0 0 8px;
-            font-size: 24px;
-            font-weight: 800;
-            color: #0f172a;
+            font-family: 'Noto Serif KR', serif;
+            margin: 0 0 10px;
+            font-size: 25px;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+        }
+
+        .rule {
+            width: 48px;
+            height: 3px;
+            background: var(--gold);
+            margin: 0 auto 14px;
+            border-radius: 2px;
         }
 
         .header-subtitle {
             margin: 0;
             font-size: 13px;
-            color: #64748b;
-            line-height: 1.5;
+            color: var(--ink-soft);
+            line-height: 1.6;
         }
 
-        .input-group {
-            margin-bottom: 20px;
+        .ledger {
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            padding: 4px 0;
+            margin-bottom: 26px;
         }
 
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #555;
+        .ledger-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 2px;
         }
 
-        input[type="text"] {
+        .ledger-row + .ledger-row {
+            border-top: 1px dashed var(--line);
+        }
+
+        .ledger-row label {
+            flex: 0 0 auto;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+        }
+
+        .ledger-row input[type="text"] {
+            flex: 1;
             width: 100%;
-            padding: 12px 16px;
+            text-align: right;
+            padding: 6px 4px;
             font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-sizing: border-box;
-            background-color: #fafbfc;
-            transition: border-color 0.2s, background-color 0.2s;
+            font-weight: 600;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--ink);
+            border: none;
+            border-bottom: 1px solid transparent;
+            background: transparent;
             cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
         }
 
-        input[type="text"]:focus {
+        .ledger-row input[type="text"]::placeholder {
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 400;
+            color: #b7ae9a;
+        }
+
+        .ledger-row input[type="text"]:focus {
             outline: none;
-            border-color: var(--primary-color);
-            background-color: #fff;
+            border-bottom-color: var(--gold);
         }
 
         .result-box {
-            margin-top: 30px;
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 8px 4px 4px;
         }
 
         .result-item {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 14px;
+            gap: 6px;
         }
 
-        .result-item:last-child {
-            margin-bottom: 0;
+        .result-item.plain {
+            align-items: flex-start;
+            flex: 1;
         }
 
         .result-label {
-            font-size: 15px;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .result-value {
-            font-size: 18px;
+            font-size: 12px;
             font-weight: 700;
-            color: var(--primary-color);
+            color: var(--ink-soft);
+            letter-spacing: 0.03em;
         }
 
-        .result-value.total {
-            color: #0056b3;
+        .result-label small {
+            font-weight: 500;
+            color: #9a9480;
+            font-size: 10px;
+        }
+
+        #totalDays {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- 결재 스탬프 (signature element) --- */
+        .stamp {
+            position: relative;
+            width: 108px;
+            height: 108px;
+            border-radius: 50%;
+            border: 2.5px solid var(--stamp);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--stamp);
+            mix-blend-mode: multiply;
+            opacity: 0;
+            transform: rotate(-10deg) scale(0.85);
+            transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.34,1.56,.64,1);
+        }
+
+        .stamp::after {
+            content: "";
+            position: absolute;
+            inset: 6px;
+            border: 1px solid var(--stamp);
+            border-radius: 50%;
+        }
+
+        .stamp.show {
+            opacity: 0.85;
+            transform: rotate(-8deg) scale(1);
+        }
+
+        .stamp-ring-text {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stamp-value {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 26px;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stamp-unit {
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 2px;
+            letter-spacing: 0.05em;
         }
 
         .notice {
-            margin-top: 16px;
-            font-size: 12px;
-            color: #888;
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            font-size: 11.5px;
+            color: #8b8570;
+            line-height: 1.7;
+        }
+
+        .notice strong {
+            color: var(--ink-soft);
+            font-weight: 700;
+        }
+
+        .notice-list {
+            margin-bottom: 12px;
+        }
+
+        .notice-row {
+            text-align: left;
+        }
+
+        .notice-row strong {
+            margin-right: 3px;
+        }
+
+        .notice-footnote {
+            margin: 0;
             text-align: center;
-            line-height: 1.4;
         }
 
         /* --- 달력 스타일 커스텀 --- */
@@ -143,8 +291,8 @@
         }
 
         .flatpickr-day:not(.selected):not(.startRange):not(.endRange):hover {
-            background: #e9ecef !important;
-            border-color: #e9ecef !important;
+            background: var(--gold-soft) !important;
+            border-color: var(--gold-soft) !important;
         }
 
         .flatpickr-day.selected,
@@ -153,8 +301,8 @@
         .flatpickr-day.selected:hover,
         .flatpickr-day.startRange:hover,
         .flatpickr-day.endRange:hover {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
+            background: var(--ink) !important;
+            border-color: var(--ink) !important;
             color: #ffffff !important;
             font-weight: bold;
         }
@@ -164,11 +312,11 @@
         }
 
         .flatpickr-day.sat {
-            color: #0066cc !important;
+            color: var(--sat) !important;
         }
         .flatpickr-day.sun,
         .flatpickr-day.holiday {
-            color: #e53935 !important;
+            color: var(--stamp) !important;
         }
 
         .flatpickr-day.sat.selected,
@@ -185,67 +333,48 @@
             width: 100%;
             font-size: 10px;
             line-height: 1.1;
-            color: #b91c1c;
+            color: var(--stamp);
             font-weight: 600;
             text-align: center;
             pointer-events: none;
         }
 
-        .holiday-legend {
-            margin-top: 18px;
-            font-size: 13px;
-            color: #475569;
-            line-height: 1.6;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 14px;
-        }
-
-        .holiday-legend strong {
-            display: block;
-            margin-bottom: 6px;
-            color: #e53935;
-        }
-
-        .holiday-legend span {
-            display: inline-block;
-            background: rgba(229, 57, 53, 0.08);
-            color: #b91c1c;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-weight: 600;
-        }
-
         .flatpickr-calendar {
             max-width: min(100vw - 24px, 360px);
+            border-radius: 8px !important;
+            box-shadow: 0 16px 32px rgba(27,42,74,0.18) !important;
+        }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            font-weight: 700;
         }
 
         @media (max-width: 480px) {
-            body {
-                padding: 16px 12px 24px;
-            }
+            body { padding: 20px 10px 28px; }
 
             .calculator-container {
-                padding: 20px 16px;
-                border-radius: 16px;
+                padding: 28px 20px 22px;
             }
 
-            h2 {
-                font-size: 20px;
+            h2 { font-size: 21px; }
+
+            .result-box {
+                gap: 10px;
             }
 
-            .result-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
+            .stamp {
+                width: 92px;
+                height: 92px;
             }
 
-            .result-value {
-                font-size: 16px;
-            }
+            .stamp-value { font-size: 22px; }
 
-            .flatpickr-day .holiday-label {
-                font-size: 8px;
-            }
+            #totalDays { font-size: 24px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .stamp { transition: none; }
         }
     </style>
 </head>
@@ -253,36 +382,45 @@
 
     <div class="calculator-container">
         <div class="calculator-header">
-            <h2>대출 영업일 날짜 계산기</h2>
-        </div>
-        
-        <div class="input-group">
-            <label for="startDate">접수일</label>
-            <input type="text" id="startDate" readonly placeholder="날짜를 선택하세요">
+            <h2>영업일 계산기</h2>
+            <div class="rule"></div>
+            <p class="header-subtitle">접수일과 실행일을 선택하면<br>영업일수를 자동으로 계산합니다.</p>
         </div>
 
-        <div class="input-group">
-            <label for="endDate">실행일</label>
-            <input type="text" id="endDate" readonly placeholder="날짜를 선택하세요">
+        <div class="ledger">
+            <div class="ledger-row">
+                <label for="startDate">접수일</label>
+                <input type="text" id="startDate" readonly placeholder="날짜 선택">
+            </div>
+            <div class="ledger-row">
+                <label for="endDate">실행일</label>
+                <input type="text" id="endDate" readonly placeholder="날짜 선택">
+            </div>
         </div>
 
         <div class="result-box">
-            <div class="result-item">
-                <span class="result-label">단순 날짜 차이</span>
-                <span class="result-value total" id="totalDays">- 일</span>
+            <div class="result-item plain">
+                <span class="result-label">단순 일수</span>
+                <span class="result-value" id="totalDays">-</span>
             </div>
             <div class="result-item">
-                <span class="result-label">영업일 기준 차이 (*휴일 제외)</span>
-                <span class="result-value" id="businessDays">- 일</span>
+                <span class="result-label">영업일수<br><small>주말·휴일 제외</small></span>
+                <div class="stamp" id="stampWrap">
+                    <span class="stamp-value" id="businessDays">-</span>
+                    <span class="stamp-unit">영업일</span>
+                </div>
             </div>
         </div>
 
         <div class="notice">
-            * 휴일 [ 주말, 법정, 대체 공휴일을 영업일수에서 제외 ]<br>
-            * 접수일을 제외한 날짜를 카운트합니다.<br>
+            <div class="notice-list">
+                <div class="notice-row"><strong>주택금융</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>도시보증</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>서울보증</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 45일 ]</div>
+                <div class="notice-row"><strong>주 담 대</strong> 접수일 ~ 실행일 포함 [ 영업 30일 ~ 단순 60일 ]</div>
+            </div>
+            <p class="notice-footnote">접수일자를 포함하여 계산.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
         </div>
-
-
     </div>
 
     <!-- Flatpickr JS -->
@@ -325,14 +463,16 @@
             return !!holidayData[dateStr];
         }
 
+        // 접수일자를 포함하여 계산 (start ~ end 구간을 모두 카운트)
         function calculateBusinessDays(startDate, endDate) {
             let start = new Date(startDate);
             let end = new Date(endDate);
             if (start > end) return { total: 0, business: 0 };
-            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+
+            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
             let businessDays = 0;
             let curDate = new Date(start.getTime());
-            curDate.setDate(curDate.getDate() + 1);
+
             while (curDate <= end) {
                 const dayOfWeek = curDate.getDay();
                 const year = curDate.getFullYear();
@@ -381,7 +521,7 @@
                 try {
                     await fetchHolidayData(year - 1, year + 2);
                 } catch (error) {
-                    console.warn('Google Calendar holiday fetch failed:', error);
+                    console.warn('Holiday fetch failed:', error);
                 }
 
                 flatpickr("#startDate", {
@@ -397,10 +537,14 @@
             function triggerCalculation() {
                 const startVal = document.getElementById('startDate').value;
                 const endVal = document.getElementById('endDate').value;
+                const stampEl = document.getElementById('stampWrap');
                 if (startVal && endVal) {
                     const result = calculateBusinessDays(startVal, endVal);
-                    document.getElementById('totalDays').innerText = result.total + " 일";
-                    document.getElementById('businessDays').innerText = result.business + " 일";
+                    document.getElementById('totalDays').innerText = result.total + "일";
+                    document.getElementById('businessDays').innerText = result.business;
+                    stampEl.classList.add('show');
+                } else {
+                    stampEl.classList.remove('show');
                 }
             }
         });
