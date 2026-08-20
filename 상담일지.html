@@ -92,8 +92,8 @@
         .history-modal.open { right: 0; }
         .modal-header { padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
         .modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
-        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8; padding: 0; }
-        .close-btn:hover { color: #64748b; }
+        .close-btn { background: none; border: none; font-size: 26px; line-height: 1; cursor: pointer; color: #94a3b8; padding: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; box-shadow: none; }
+        .close-btn:hover { color: #64748b; background: #eef2f7; }
         
         .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; }
         .search-input { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
@@ -118,13 +118,12 @@
 
         @media (max-width: 600px) {
             .table-wrap { margin: 10px; padding: 10px; }
-            .top-actions { flex-direction: column; align-items: stretch; gap: 8px; }
-            .user-code-input { flex: 1; max-width: none; }
+            .top-actions { flex-wrap: nowrap; gap: 8px; }
+            .left-actions, .right-actions { flex-shrink: 0; }
+            .user-code-input { width: 90px !important; }
             th, td, input, textarea { font-size: 13px; }
             textarea { height: 320px; }
             .history-modal { width: 100%; right: -100%; }
-            .user-auth-container { width: 100%; }
-            .user-code-input { width: 100% !important; }
         }
     </style>
 </head>
@@ -132,18 +131,14 @@
 
 <div class="table-wrap">
     <div class="top-actions">
-        <div class="left-actions"></div>
-        <div class="right-actions">
+        <div class="left-actions">
             <div id="authSection" class="user-auth-container">
                 <input type="text" id="userCodeInput" class="user-code-input" placeholder="👤 사용자 이름" title="사용자 이름을 입력하세요" style="width: 125px !important;" onkeydown="if(event.key === 'Enter') submitUserCode()">
                 <button type="button" id="authSubmitBtn" class="user-submit-btn" onclick="submitUserCode()">확인</button>
             </div>
             <span id="userDisplay" class="user-display-name" style="display: none;"></span>
-            
-            <label style="vertical-align:middle; display:flex; align-items:center; gap:8px;">
-                <input type="checkbox" id="saveModeSwitch" checked style="accent-color:var(--primary); width:18px; height:18px; vertical-align:middle;">
-                <span id="saveModeLabel" style="font-size:14px; font-weight:700; color:#1e293b;">On(로컬저장)</span>
-            </label>
+        </div>
+        <div class="right-actions">
             <button type="button" id="saveBtn">저장</button>
             <button type="button" id="loadBtn">불러오기</button>
         </div>
@@ -510,20 +505,6 @@ window.addEventListener('DOMContentLoaded', function() {
         updateAmountPercentage();
     }
 
-    const saveSwitch = document.getElementById('saveModeSwitch');
-    const saveLabel  = document.getElementById('saveModeLabel');
-    
-    const savedSaveMode = localStorage.getItem('상담일지_저장모드');
-    if (savedSaveMode !== null) {
-        saveSwitch.checked = savedSaveMode === 'true';
-        saveLabel.textContent = saveSwitch.checked ? '[로컬저장]' : '[서버저장]';
-    }
-    
-    saveSwitch.addEventListener('change', function() {
-        saveLabel.textContent = saveSwitch.checked ? '[로컬저장]' : '[서버저장]';
-        localStorage.setItem('상담일지_저장모드', saveSwitch.checked);
-    });
-
     document.getElementById('copyBtn').addEventListener('click', function() {
         const userCode   = userCodeInput.value.trim();
         const phone      = phoneInput.value.trim();
@@ -580,9 +561,30 @@ window.addEventListener('DOMContentLoaded', function() {
             .catch(() => alert('복사 중 문제가 발생했습니다. 다시 시도해 주세요.'));
     });
 
-    document.getElementById('saveBtn').addEventListener('click', function() {
+    function parseServerDateTime(str) {
+        const match = (str || '').match(/(\d{2})\/(\d{2})\/(\d{2})\D+(\d{2}):(\d{2})/);
+        if (!match) return 0;
+        const [, yy, mm, dd, hh, min] = match;
+        return new Date(2000 + Number(yy), Number(mm) - 1, Number(dd), Number(hh), Number(min)).getTime();
+    }
+
+    async function findExistingByPhone(userCode, phone) {
+        const cleanPhone = phone.replace(/\D/g, '');
+        try {
+            const res = await fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`);
+            const data = await res.json();
+            const matches = data.filter(item => (item.phone || '').replace(/\D/g, '') === cleanPhone);
+            if (matches.length === 0) return null;
+            matches.sort((a, b) => parseServerDateTime(b.dateTime) - parseServerDateTime(a.dateTime));
+            return matches[0];
+        } catch (err) {
+            return null;
+        }
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async function() {
         const userCode   = userCodeInput.value.trim();
-        
+
         // [수정사항] 저장 버튼을 누르는 현재 시점으로 시간을 생성
         const nowClick = new Date();
         const yyClick = String(nowClick.getFullYear()).slice(-2);
@@ -609,47 +611,55 @@ window.addEventListener('DOMContentLoaded', function() {
         if(!userCode) { return alert('상담을 식별할 [사용자 이름]를 입력해 주세요.'); }
         if(!name || !phone) { return alert('최소한 이름과 연락처는 기입하셔야 저장 가능합니다.'); }
 
-        if (!saveSwitch.checked) {
-            const formData = new URLSearchParams();
-            formData.append('userCode', userCode);
-            formData.append('dateTime', dateTime);
-            formData.append('phone', phone);
-            formData.append('name', name);
-            formData.append('needDate', needDate);
-            formData.append('needAmount', needAmount);
-            formData.append('loanType', loanType);
-            formData.append('memo', memo);
-            
-            formData.append('broker', broker);
-            formData.append('kbStatus', kbStatus);
-            formData.append('kbPrice', kbPrice);
-            formData.append('saleStatus', saleStatus);
-            formData.append('salePrice', salePrice);
-
-            fetch(`${WEB_APP_URL}?action=insert`, {
-                method: 'POST',
-                mode: 'no-cors', 
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData.toString()
-            })
-            .then(() => {
-                alert(`[${userCode}] 서버 최신 상담내역 저장을 요청했습니다.`);
-                clearForm();
-            })
-            .catch(err => alert('서버 저장 오류: ' + err));
-            return;
+        const existing = await findExistingByPhone(userCode, phone);
+        if (existing) {
+            const overwrite = confirm(`[${phone}] 번호로 이미 저장된 상담 내역이 있습니다.\n(${existing.dateTime} / ${existing.name || '이름 없음'})\n\n해당 내역에 새 내용으로 덮어써서 저장하시겠습니까?`);
+            if (!overwrite) return;
         }
 
-        let db = [];
-        const dbKey = `상담일지_DB_${userCode}`;
-        const dbStr = localStorage.getItem(dbKey);
-        if (dbStr) { try { db = JSON.parse(dbStr); } catch (e) { db = []; } }
-        
-        const recordObj = { userCode, dateTime, phone, name, needDate, needAmount, loanType, memo, broker, kbStatus, kbPrice, saleStatus, salePrice };
-        db.push(recordObj);
-        localStorage.setItem(dbKey, JSON.stringify(db));
-        alert(`내 컴퓨터(로컬)의 [${userCode}] 전용 공간에 데이터가 저장되었습니다.`);
-        clearForm();
+        const formData = new URLSearchParams();
+        formData.append('userCode', userCode);
+        formData.append('dateTime', dateTime);
+        formData.append('phone', phone);
+        formData.append('name', name);
+        formData.append('needDate', needDate);
+        formData.append('needAmount', needAmount);
+        formData.append('loanType', loanType);
+        formData.append('memo', memo);
+
+        formData.append('broker', broker);
+        formData.append('kbStatus', kbStatus);
+        formData.append('kbPrice', kbPrice);
+        formData.append('saleStatus', saleStatus);
+        formData.append('salePrice', salePrice);
+
+        if (existing) {
+            try {
+                await fetch(`${WEB_APP_URL}?action=delete&userCode=${encodeURIComponent(userCode)}&dateTime=${encodeURIComponent(existing.dateTime)}&name=${encodeURIComponent(existing.name)}`);
+            } catch (err) {
+                return alert('기존 내역을 갱신하는 중 오류가 발생했습니다: ' + err);
+            }
+        }
+
+        fetch(`${WEB_APP_URL}?action=insert`, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        })
+        .then(() => {
+            // Call Note 앱(안드로이드) 안에서 열려 있을 때만 존재하는 창구 — 로컬 캐시에도 즉시 반영해서
+            // 다음 전화 수신 때 서버를 다시 안 타도 바로 뜨게 함. 일반 브라우저에서는 그냥 무시됨.
+            if (window.AndroidBridge && window.AndroidBridge.saveLocalRecord) {
+                window.AndroidBridge.saveLocalRecord(JSON.stringify({
+                    userCode, dateTime, phone, name, needDate, needAmount, loanType, memo,
+                    broker, kbStatus, kbPrice, saleStatus, salePrice
+                }));
+            }
+            alert(`[${userCode}] 서버 최신 상담내역 저장을 요청했습니다.`);
+            clearForm();
+        })
+        .catch(err => alert('서버 저장 오류: ' + err));
     });
 
     const openModal = () => { $('#historyModal').classList.add('open'); $('#modalOverlay').classList.add('open'); };
@@ -657,54 +667,132 @@ window.addEventListener('DOMContentLoaded', function() {
     $('#closeModal').addEventListener('click', closeModal);
     $('#modalOverlay').addEventListener('click', closeModal);
 
-    function loadHistoryData() {
+    function loadHistoryData(onReady) {
         const userCode = userCodeInput.value.trim();
         if(!userCode) {
             closeModal();
             return alert('히스토리를 조회할 [사용자 이름]를 먼저 입력해 주세요.');
         }
 
-        if (saveSwitch.checked) {
-            $('#modalTitle').textContent = `[${userCode}] 로컬 저장소 히스토리`;
-            const dbKey = `상담일지_DB_${userCode}`;
-            const dbStr = localStorage.getItem(dbKey);
-            if (!dbStr) { $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 코드로 저장된 로컬 기록이 없습니다.</div>`; return; }
-            let db = []; try { db = JSON.parse(dbStr); } catch (e) { db = []; }
-            
-            rawHistoryData = db.map((item, originalIndex) => {
-                return { ...item, origIdx: originalIndex };
-            }).reverse(); 
-            
+        // Call Note 앱 안이면 로컬 캐시(하루 4회 동기화 + 저장 시 즉시 반영)를 그대로 사용 — 서버 호출 없음.
+        // 검색해서 로컬에 없는 번호가 나오면 renderHistoryCards의 "서버에서 다시 검색" 버튼으로 그때만 요청함.
+        if (window.AndroidBridge && window.AndroidBridge.getLocalRecords) {
+            $('#modalTitle').textContent = `[${userCode}] 로컬 캐시 히스토리`;
+            try {
+                rawHistoryData = JSON.parse(window.AndroidBridge.getLocalRecords());
+            } catch (e) {
+                rawHistoryData = [];
+            }
             renderHistoryCards(rawHistoryData);
-        } else {
-            $('#modalTitle').textContent = `[${userCode}] 서버 실시간 히스토리`;
-            fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`)
-            .then(res => res.json())
-            .then(data => {
-                if(data.length === 0) {
-                    $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 시트에 등록된 상담 내역이 없습니다.</div>`;
-                    return;
-                }
-                rawHistoryData = data; 
-                renderHistoryCards(rawHistoryData);
-            })
-            .catch(err => {
-                $('#modalBody').innerHTML = `<div class="loading-view" style="color:#e74c3c;">데이터 수신 실패.<br>(${err})</div>`;
-            });
+            if (onReady) onReady();
+            return;
         }
+
+        // 일반 브라우저(Call Note 앱이 아님) — 기존처럼 서버에서 직접 조회
+        $('#modalTitle').textContent = `[${userCode}] 서버 실시간 히스토리`;
+        fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.length === 0) {
+                $('#modalBody').innerHTML = `<div class="loading-view">[${userCode}] 시트에 등록된 상담 내역이 없습니다.</div>`;
+                return;
+            }
+            rawHistoryData = data;
+            renderHistoryCards(rawHistoryData);
+        })
+        .catch(err => {
+            $('#modalBody').innerHTML = `<div class="loading-view" style="color:#e74c3c;">데이터 수신 실패.<br>(${err})</div>`;
+        })
+        .finally(() => {
+            if (onReady) onReady();
+        });
     }
+
+    // 검색결과가 로컬 캐시에 없을 때, 사용자가 버튼을 눌러야만 서버로 해당 번호를 조회함(자동 요청 안 함)
+    function searchServerByPhone() {
+        const userCode = userCodeInput.value.trim();
+        const query = (document.getElementById('historySearch').value || '').trim();
+        if (!userCode || !query) return;
+
+        $('#modalBody').innerHTML = '<div class="loading-view">서버에서 조회하는 중입니다...</div>';
+
+        fetch(`${WEB_APP_URL}?action=readByPhone&userCode=${encodeURIComponent(userCode)}&phone=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.length === 0) {
+                $('#modalBody').innerHTML = '<div class="loading-view">서버에도 일치하는 내역이 없습니다.</div>';
+                return;
+            }
+            // 다음부터는 로컬 캐시에서 바로 찾히도록 반영
+            if (window.AndroidBridge && window.AndroidBridge.saveLocalRecord) {
+                data.forEach(item => window.AndroidBridge.saveLocalRecord(JSON.stringify(item)));
+            }
+            renderHistoryCards(data);
+        })
+        .catch(err => {
+            $('#modalBody').innerHTML = `<div class="loading-view" style="color:#e74c3c;">서버 조회 실패.<br>(${err})</div>`;
+        });
+    }
+
+    // Call Note 앱(수신전화 팝업)에서 "상담일지 열기"를 누르면 호출되는 진입점
+    window.injectCallData = function(phone, name, memo) {
+        if (phone) phoneInput.value = phone;
+        if (name) nameInput.value = name;
+
+        const userCode = userCodeInput.value.trim();
+        if (!userCode) return;
+
+        $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
+        openModal();
+
+        // 목록이 실제로 다 그려진 뒤(서버 응답 시점)에 검색창을 채워야 필터가 제대로 먹힘.
+        // 고정 딜레이(setTimeout)로 추측하면 서버 응답이 늦을 때 빈 데이터에 필터를 걸게 되어,
+        // 화면엔 번호가 입력돼 있어도 결과가 안 나오는 문제가 생김 (그 뒤 번호를 다시 입력해야 되던 원인).
+        loadHistoryData(function() {
+            const searchEl = document.getElementById('historySearch');
+            if (searchEl && phone) {
+                searchEl.value = phone;
+                searchEl.dispatchEvent(new Event('input'));
+            }
+        });
+    };
+
+    // 팝업을 거치지 않고 나중에 앱을 직접 열었을 때, 아직 통화 중인 번호가 있으면 연락처 칸만 채워줌
+    window.fillActivePhone = function(phone) {
+        if (phone && phoneInput) phoneInput.value = phone;
+    };
 
     document.getElementById('loadBtn').addEventListener('click', function() {
         const userCode = userCodeInput.value.trim();
         if(!userCode) { return alert('상담원 식별을 위해 [사용자 이름]를 먼저 입력해 주세요.'); }
         $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
         openModal();
-        loadHistoryData();
+
+        // 연락처 칸에 이미 번호가 입력돼 있으면, 목록이 다 뜬 뒤 검색창에도 그대로 채워서 바로 필터링해줌
+        const prefilledPhone = phoneInput.value.trim();
+        loadHistoryData(function() {
+            const searchEl = document.getElementById('historySearch');
+            if (searchEl && prefilledPhone) {
+                searchEl.value = prefilledPhone;
+                searchEl.dispatchEvent(new Event('input'));
+            }
+        });
     });
 
     function renderHistoryCards(list) {
         if(list.length === 0) {
-            $('#modalBody').innerHTML = '<div class="loading-view">검색 조건과 일치하는 내역이 없습니다.</div>';
+            const currentSearch = (document.getElementById('historySearch').value || '').trim();
+            if (currentSearch) {
+                $('#modalBody').innerHTML = `
+                    <div class="loading-view">
+                        로컬에서 일치하는 내역이 없습니다.<br><br>
+                        <button type="button" id="serverSearchBtn" style="background:#0f172a;color:#fff;">서버에서 다시 검색</button>
+                    </div>`;
+                const btn = document.getElementById('serverSearchBtn');
+                if (btn) btn.addEventListener('click', searchServerByPhone);
+            } else {
+                $('#modalBody').innerHTML = '<div class="loading-view">등록된 상담 내역이 없습니다.</div>';
+            }
             return;
         }
         let html = '';
@@ -787,36 +875,23 @@ window.addEventListener('DOMContentLoaded', function() {
 
                 if(!confirm(`[${targetData.name || '미입력'}] 님의 상담 내역을 정말 삭제하시겠습니까?`)) return;
 
-                if(saveSwitch.checked) {
-                    const dbKey = `상담일지_DB_${currentUserCode}`;
-                    let dbStr = localStorage.getItem(dbKey);
-                    if(dbStr) {
-                        let db = JSON.parse(dbStr);
-                        db.splice(targetData.origIdx, 1); 
-                        localStorage.setItem(dbKey, JSON.stringify(db));
-                        alert('로컬 데이터가 삭제되었습니다.');
-                        loadHistoryData(); 
+                $('#modalBody').innerHTML = '<div class="loading-view">서버에서 데이터를 삭제 중입니다...</div>';
+                const deleteUrl = `${WEB_APP_URL}?action=delete&userCode=${encodeURIComponent(currentUserCode)}&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
+
+                fetch(deleteUrl, { method: 'GET' })
+                .then(res => res.text())
+                .then(result => {
+                    if(result === "성공") {
+                        alert('서버에서 해당 상담 내역이 삭제되었습니다.');
+                    } else {
+                        alert('삭제 실패: ' + result);
                     }
-                } 
-                else {
-                    $('#modalBody').innerHTML = '<div class="loading-view">서버에서 데이터를 삭제 중입니다...</div>';
-                    const deleteUrl = `${WEB_APP_URL}?action=delete&userCode=${encodeURIComponent(currentUserCode)}&dateTime=${encodeURIComponent(targetData.dateTime)}&name=${encodeURIComponent(targetData.name)}`;
-                    
-                    fetch(deleteUrl, { method: 'GET' }) 
-                    .then(res => res.text())
-                    .then(result => {
-                        if(result === "성공") {
-                            alert('서버에서 해당 상담 내역이 삭제되었습니다.');
-                        } else {
-                            alert('삭제 실패: ' + result);
-                        }
-                        loadHistoryData(); 
-                    })
-                    .catch(err => {
-                        alert('통신 실패: ' + err);
-                        loadHistoryData();
-                    });
-                }
+                    loadHistoryData();
+                })
+                .catch(err => {
+                    alert('통신 실패: ' + err);
+                    loadHistoryData();
+                });
             });
         });
     }
@@ -877,23 +952,27 @@ window.addEventListener('DOMContentLoaded', function() {
 
     $('#historySearch').addEventListener('input', function(e) {
         const keyword = e.target.value.toLowerCase().trim();
+        const keywordDigits = keyword.replace(/\D/g, '');
         const filtered = rawHistoryData.filter(item => {
             const name = (item.name || '').toLowerCase();
             const phone = (item.phone || '').toLowerCase();
+            const phoneDigits = phone.replace(/\D/g, '');
             const memo = (item.memo || '').toLowerCase();
             const loanType = (item.loanType || '').toLowerCase();
             const needAmount = (item.needAmount || '').toLowerCase();
             const needDate = (item.needDate || '').toLowerCase();
-            
+
             const broker = (item.broker || '').toLowerCase();
             const kbPrice = (item.kbPrice || '').toLowerCase();
             const salePrice = (item.salePrice || '').toLowerCase();
-            
-            return name.includes(keyword) || 
-                   phone.includes(keyword) || 
-                   memo.includes(keyword) || 
-                   loanType.includes(keyword) || 
-                   needAmount.includes(keyword) || 
+
+            const phoneMatch = keywordDigits ? phoneDigits.includes(keywordDigits) : phone.includes(keyword);
+
+            return name.includes(keyword) ||
+                   phoneMatch ||
+                   memo.includes(keyword) ||
+                   loanType.includes(keyword) ||
+                   needAmount.includes(keyword) ||
                    needDate.includes(keyword) ||
                    broker.includes(keyword) ||
                    kbPrice.includes(keyword) ||
@@ -913,15 +992,13 @@ window.addEventListener('DOMContentLoaded', function() {
         input.value = '';
       });
 
-      // 체크박스 초기화 (서버저장 체크박스는 제외)
+      // 체크박스 초기화
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
-        if (checkbox.id !== 'saveModeSwitch') {
-          checkbox.checked = false;
-        }
+        checkbox.checked = false;
       });
 
-      // 주요 필드들 초기화 (서버저장은 제외)
+      // 주요 필드들 초기화
       const mainFields = [
         'userCodeInput', 'phoneInput', 'nameInput', 'dateInput', 
         'needDateInput', 'moneyInput', 'typeInput', 'contentInput', 

@@ -45,6 +45,11 @@
   --r-lg: 18px;
   --r-pill: 999px;
 
+  /* Toggle button (선택된 상태) - 꽉 찬 사각형 그라데이션 버튼 */
+  --toggle-radius: 8px;
+  --toggle-gradient: linear-gradient(135deg, #4f6fe4 0%, #22c9c0 100%);
+  --toggle-shadow: 0 3px 8px rgba(34, 100, 200, 0.28);
+
   --ltv-cell-horizontal-padding: 2px;
 
   /* Shadow — 얕고 넓게 */
@@ -58,7 +63,13 @@
 * { box-sizing: border-box; }
 
 /* -------------------- Base -------------------- */
+html {
+  height: 100%;
+  overflow: hidden; /* 실제 스크롤은 body 하나에서만 발생시킴 (가로/세로 통합) */
+}
+
 body {
+  height: 100%;
   text-align: center;
   font-family: var(--font-main);
   background-color: var(--c-canvas);
@@ -70,9 +81,32 @@ body {
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "tnum" 1;
   letter-spacing: -0.2px;
+  /* 콘텐츠가 min-width(430px)보다 좁아지면 가로/세로 모두 이 요소 하나에서 스크롤 */
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* 스크롤바는 기본적으로 숨김 - .is-scrolling일 때만 노출 (JS로 토글) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+body.is-scrolling {
+  scrollbar-width: thin;
+}
+body.is-scrolling::-webkit-scrollbar-thumb {
+  background-color: rgba(21, 27, 38, 0.32);
 }
 
 .container {
+  min-width: 430px;
   max-width: 600px;
   margin: 0 auto;
   display: flex;
@@ -228,10 +262,10 @@ button:active { background-color: var(--c-primary-dark); transform: scale(0.985)
   transition: all 0.18s ease;
 }
 .type-btn.active {
-  background-color: var(--c-surface) !important;
-  color: var(--c-primary-dark) !important;
+  background: var(--toggle-gradient) !important;
+  color: #ffffff !important;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(21, 27, 38, 0.12) !important;
+  box-shadow: var(--toggle-shadow) !important;
 }
 
 td:has(.type-btn-row) {
@@ -266,10 +300,11 @@ td:has(.type-btn-row) {
   align-self: center;
 }
 .mort-category-toggle.active {
-  background-color: var(--c-primary) !important;
-  border-color: var(--c-primary) !important;
+  background: var(--toggle-gradient) !important;
+  border-color: transparent !important;
   color: #fff !important;
   font-weight: 700;
+  box-shadow: var(--toggle-shadow);
 }
 
 .add-btn {
@@ -422,7 +457,7 @@ td:has(.type-btn-row) {
   justify-content: center;
   gap: 0;
   padding: 3px !important;
-  border-radius: var(--r-pill) !important;
+  border-radius: var(--toggle-radius) !important;
   background-color: #eaedf4 !important;
   border: 1px solid var(--c-border) !important;
   cursor: pointer !important;
@@ -443,15 +478,15 @@ td:has(.type-btn-row) {
   font-size: 13px !important;
   font-weight: 700 !important;
   letter-spacing: -1px !important;
-  border-radius: var(--r-pill) !important;
+  border-radius: 5px !important;
   color: var(--c-text-muted) !important;
   line-height: 1.2 !important;
   transition: all 0.18s ease;
 }
 .mort-default-switch .switch-label.active {
-  background: var(--c-primary);
+  background: var(--toggle-gradient);
   color: #fff !important;
-  box-shadow: none;
+  box-shadow: var(--toggle-shadow);
 }
 
 .grace-cell {
@@ -556,7 +591,7 @@ td:has(.type-btn-row) {
   display: inline-flex;
   background-color: #eaedf4;
   border: 1px solid var(--c-border);
-  border-radius: var(--r-pill);
+  border-radius: var(--toggle-radius);
   padding: 3px;
   gap: 2px;
 }
@@ -564,7 +599,7 @@ td:has(.type-btn-row) {
 .pill-toggle-group label {
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: var(--r-pill);
+  border-radius: 5px;
   background-color: transparent !important;
   color: var(--c-text-muted) !important;
   font-size: 13px;
@@ -576,23 +611,43 @@ td:has(.type-btn-row) {
 }
 /* JS/HTML의 인라인 색상보다 우선하도록 !important 사용 (기능은 그대로) */
 .pill-toggle-group label:has(input:checked) {
-  background-color: var(--c-primary) !important;
+  background: var(--toggle-gradient) !important;
   color: #ffffff !important;
-  box-shadow: none;
+  box-shadow: var(--toggle-shadow);
 }
 .pill-toggle-group input[type="radio"] { display: none; }
 
-#ltvRateToggleGroup { gap: 0; }
-#ltvRateToggleGroup label { padding: 4px 5px; letter-spacing: -1px; }
+#ltvRateToggleGroup { gap: 0; width: 100%; }
 
+/* DSR_40 / DSR_50 버튼: 위 .pill-toggle-group 공통 규칙으로 이미 꽉 찬 사각형 적용됨 */
+/* 셀(.ltv-cell) 폭 기준 cqw로 글자 크기/좌우 여백을 자동 조절 - 좁아져도 "80%" 등 내용이 잘리지 않게 함 */
+#ltvRateToggleGroup label {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px clamp(1px, 2cqw, 5px);
+  font-size: clamp(8px, 7cqw, 13px);
+  letter-spacing: clamp(-1px, -0.3cqw, 0px);
+  white-space: nowrap;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.dsr-toggle-caption {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  text-align: center;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
 #dsrLimitToggleGroup {
-  border-radius: 11px;
-  padding: 0;
-  gap: 0;
+  border-radius: var(--toggle-radius);
+  padding: 3px;
+  gap: 2px;
 }
 #dsrLimitToggleGroup label {
-  padding: 3px 3px;
-  border-radius: 11px;
+  padding: 4px 3px;
+  border-radius: 5px;
   font-size: 10px;
 }
 
@@ -604,6 +659,7 @@ td:has(.type-btn-row) {
   background-color: var(--c-surface-muted);
   vertical-align: middle;
   text-align: center;
+  container-type: inline-size;
 }
 .ltv-cell + .ltv-cell { border-left: 1px solid var(--c-border) !important; }
 .ltv-cell input[type="text"] {
@@ -643,14 +699,27 @@ td:has(.type-btn-row) {
 }
 
 /* -------------------- Income row -------------------- */
-.income-label { font-weight: bold; letter-spacing: -0.5px; vertical-align: middle; text-align: center; }
+.income-label {
+  font-weight: bold;
+  letter-spacing: -0.5px;
+  vertical-align: middle;
+  text-align: center;
+  padding: 2px 1px !important; /* 상하좌우 여백 최소화 */
+  container-type: inline-size;
+}
 .income-input-cell { vertical-align: middle; text-align: center; padding: 6px 3px !important; container-type: inline-size; }
-.income-title { display: inline-block; margin-right: 5px; vertical-align: middle; white-space: nowrap; }
+.income-title { display: block; margin-right: 0; margin-bottom: 1px; vertical-align: middle; white-space: nowrap; text-align: center; font-size: clamp(10px, 17cqw, 15px); }
 .income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 4px; vertical-align: middle; }
 .income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
+.income-input:disabled {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+}
 .income-settings-cell { vertical-align: middle; padding: 6px 3px !important; border-left: 1px solid var(--c-border) !important; }
 .age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
-.age-cell { container-type: inline-size; }
+.age-cell, .toggle-cell { container-type: inline-size; }
 .toggle-cell .rate-toggle-row { margin: 0; transform: none; }
 .toggle-cell .rate-display { display: block; margin-top: 2px; }
 .income-settings { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0px; width: 100%; }
@@ -663,9 +732,107 @@ td:has(.type-btn-row) {
 .age-input::-webkit-outer-spin-button,
 .age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .age-input { -moz-appearance: textfield; appearance: textfield; }
-.income-result-label { background: var(--c-success-soft) !important; color: var(--c-success-text); font-size: clamp(10px, 12cqw, 17px); font-weight: 700; line-height: 1.3; container-type: inline-size; }
-.income-result-cell { padding: 6px 3px !important; container-type: inline-size; }
-.income-result-cell input { width: 100%; min-width: 0; color: var(--c-success-text); background: var(--c-success-soft) !important; border-color: #cbe5dc; font-size: clamp(8px, 12cqw, 12px); }
+.income-result-label { background: var(--c-success-soft) !important; color: var(--c-success-text); font-size: clamp(10px, 12cqw, 17px); font-weight: 700; line-height: 1.3; container-type: inline-size; text-align: center; }
+.income-result-cell { padding: 10px 5px !important; container-type: inline-size; text-align: center; }
+.income-result-cell input[type="text"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 2px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--r-sm);
+  color: var(--c-success-text);
+  background: var(--c-success-soft) !important;
+  font-size: clamp(9px, 13cqw, 18px);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* -------------------- Income row: 증빙/신고 mode toggle -------------------- */
+.income-mode-toggle {
+  display: flex;
+  flex-direction: row; /* 이름은 한 줄, 그 아래 얇은 가로형 2단 토글 */
+  justify-content: center;
+  align-items: center;
+  margin-top: 0;
+  padding: 0;
+  padding-top: 1px;
+  border-top: 1px dashed #d8dee9;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.income-mode-toggle label {
+  padding: 0.5px 2px; /* 좌우 여백을 텍스트 크기에 거의 딱 맞게, 상하도 최소화 */
+  font-size: clamp(9px, 15cqw, 13px);
+  width: auto;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* -------------------- Income row: 신고소득(카드/건강/연금) - 같은 행 셀 교체 방식 -------------------- */
+.declare-input-group {
+  display: flex;
+  flex-direction: column; /* 카드/건보/연금 선택기 바로 아랫줄에 연사용액 입력 */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 2px; /* 선택기-입력창 간 위아래 간격 최소화 */
+  box-sizing: border-box;
+}
+.declare-input-group .declare-type-toggle {
+  width: 100%;
+  padding: 1px;
+  gap: 0px;
+}
+.age-slot, .toggle-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.declare-input-group .declare-amount-input {
+  width: 100%;
+  box-sizing: border-box;
+  /* input[inputmode="numeric"]의 전역 !important(padding:0, min-height:32px)를 이 칸에서만 재정의:
+     위아래 폭이 글자 크기(em)에 비례해서 움직이고, 간격은 최소화 */
+  padding: 0.15em 0 !important;
+  min-height: 0 !important;
+  margin: 0;
+  font-size: clamp(8px, 9cqw, 13px);
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+}
+.toggle-slot .declare-converted-output {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 3px;
+  font-size: clamp(10px, 12cqw, 17px);
+  font-weight: 700;
+  text-align: center;
+  color: #6d28d9;
+  background: #f5f3ff !important;
+  border: 1px solid #ddd6fe;
+  border-radius: var(--r-sm);
+}
+.declare-type-toggle {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 1px;
+  gap: 0px;
+}
+.declare-type-toggle label {
+  flex: 1 1 0;      /* 버튼 3개가 동일한 너비로 나눠 갖도록 함 (좌우 크기 핵심) */
+  min-width: 0;
+  padding: 4px 1px; /* 좌우 값(1px)을 늘리면 버튼이 더 넓어짐 */
+  font-size: 11px;
+  text-align: center;
+}
 
 /* -------------------- Result readouts -------------------- */
 #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }

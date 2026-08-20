@@ -48,7 +48,7 @@ function shrinkFontSizeToFit(ghost, text, maxWidth, startSize, minSize = 4, step
 function adjustTableFontSize() {
   const cells = document.querySelectorAll('table th, table td');
   cells.forEach(cell => {
-    if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card') || cell.closest('#modal-text-card') || cell.closest('#modal-schedule-card')) return;
+    if (cell.closest('#modal-rate-card') || cell.closest('#modal-default-card') || cell.closest('#modal-text-card') || cell.closest('#modal-schedule-card') || cell.closest('.income-label') || cell.querySelector('#dsrLimitToggleGroup')) return;
 
     if (!cell.dataset.origSize) {
       cell.dataset.origSize = window.getComputedStyle(cell).fontSize;
@@ -175,6 +175,7 @@ function openTextModal() {
   // 함께 들어있으므로, 모달을 여는 경로와 상관없이 저장된 값을 항상 채워둔다.
   populateRateEditFields();
   populateDefaultFirstRowFields();
+  populateDeclareRateEditFields();
 
   if (panels.textCard) {
     panels.textCard.style.display = "block";
@@ -727,7 +728,8 @@ function updateIncomeCalc() {
     }
 
     const rawInputStr = ageInput.value;
-    const isChecked = applyRateCheck.checked;
+    const isDeclareMode = (typeof baseIncomeMode !== 'undefined' && baseIncomeMode === '신고');
+    const isChecked = applyRateCheck.checked && !isDeclareMode; // 신고소득 모드에서는 장래예상 미적용
     let currentRate = 1.0;
     let percentStr = "-";
     let calculatedAge = -1;
@@ -758,7 +760,7 @@ function updateIncomeCalc() {
     if (!isEditingIncome) {
         baseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
         
-        if (isChecked && currentRate !== 1.0 && memoBaseIncome > 0) {
+        if (isChecked && currentRate !== 1.0 && memoBaseIncome > 0 && (typeof baseIncomeMode === 'undefined' || baseIncomeMode !== '신고')) {
             baseIncomeInput.style.color = "#1d4ed8";
             baseIncomeInput.style.fontWeight = "bold";
             baseIncomeInput.style.backgroundColor = "#eff6ff";
@@ -790,6 +792,7 @@ if (baseIncomeInput) {
       if (v && memoBaseIncome === 0) {
           memoBaseIncome = parseFloat(v);
       }
+      memoBaseIncomeDirect = memoBaseIncome;
       baseIncomeInput.value = memoBaseIncome > 0 ? memoBaseIncome.toLocaleString() : "";
       baseIncomeInput.style.color = "";
       baseIncomeInput.style.backgroundColor = "";
@@ -804,6 +807,7 @@ if (baseIncomeInput) {
   baseIncomeInput.addEventListener("input", (e) => {
       let v = e.target.value.replace(/\D/g, '');
       memoBaseIncome = v ? parseFloat(v) : 0;
+      memoBaseIncomeDirect = memoBaseIncome;
       e.target.value = v ? memoBaseIncome.toLocaleString() : '';
       
       let tempRate = 1.0;
@@ -836,11 +840,13 @@ function updateSpouseIncomeCalc() {
   const age = parseAgeInputValue(spouseAgeInput.value);
   const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
   const rate = matched ? matched.percent / 100 : 1;
+  const spouseIsDeclareMode = (typeof spouseIncomeMode !== 'undefined' && spouseIncomeMode === '신고');
+  const spouseRateApplies = spouseApplyRateCheck.checked && !spouseIsDeclareMode; // 신고소득 모드에서는 장래예상 미적용
   spouseRateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
-  const finalVal = spouseApplyRateCheck.checked ? memoSpouseIncome * rate : memoSpouseIncome;
+  const finalVal = spouseRateApplies ? memoSpouseIncome * rate : memoSpouseIncome;
   spouseHiddenIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
   if (!isEditingSpouseIncome) spouseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-  if (spouseApplyRateCheck.checked && matched && memoSpouseIncome > 0) {
+  if (spouseApplyRateCheck.checked && matched && memoSpouseIncome > 0 && (typeof spouseIncomeMode === 'undefined' || spouseIncomeMode !== '신고')) {
     spouseIncomeInput.style.color = "#1d4ed8";
     spouseIncomeInput.style.backgroundColor = "#eff6ff";
   } else {
@@ -857,6 +863,7 @@ if (spouseIncomeInput) {
     isEditingSpouseIncome = true;
     const value = spouseIncomeInput.value.replace(/\D/g, '');
     if (value && memoSpouseIncome === 0) memoSpouseIncome = parseFloat(value);
+    memoSpouseIncomeDirect = memoSpouseIncome;
     spouseIncomeInput.value = memoSpouseIncome > 0 ? memoSpouseIncome.toLocaleString() : "";
   });
   spouseIncomeInput.addEventListener("blur", () => {
@@ -866,9 +873,252 @@ if (spouseIncomeInput) {
   spouseIncomeInput.addEventListener("input", (e) => {
     const value = e.target.value.replace(/\D/g, '');
     memoSpouseIncome = value ? parseFloat(value) : 0;
+    memoSpouseIncomeDirect = memoSpouseIncome;
     e.target.value = value ? memoSpouseIncome.toLocaleString() : "";
     updateSpouseIncomeCalc();
   });
+}
+
+/* ==========================================================================
+   신고소득(카드/건강/연금) 환산 - 차주/배우자 공통
+   증빙(기존 방식) / 신고(카드·건강·연금 환산) 토글에 따라 소득을 다르게 산출한다.
+   환산 공식: 환산소득 = 입력금액 ÷ (요율/100) × 개월수 × (인정배수/100)
+   - 카드: 개월수 1 (연간사용액을 그대로 사용, 월환산 없음)
+   - 건강/연금: 개월수 12 (월 보험료를 연간으로 환산)
+   ========================================================================== */
+const DEFAULT_DECLARE_INCOME_RATES = {
+  '카드': { divisor: 40.9, months: 1, multiplier: 90 },
+  '건강': { divisor: 3.595, months: 12, multiplier: 95 },
+  '연금': { divisor: 9.5, months: 12, multiplier: 95 }
+};
+const savedDeclareRates = getStoredJson("CUSTOM_DECLARE_INCOME_RATES");
+const DECLARE_INCOME_RATES = (savedDeclareRates && typeof savedDeclareRates === 'object')
+  ? {
+      '카드': Object.assign({}, DEFAULT_DECLARE_INCOME_RATES['카드'], savedDeclareRates['카드']),
+      '건강': Object.assign({}, DEFAULT_DECLARE_INCOME_RATES['건강'], savedDeclareRates['건강']),
+      '연금': Object.assign({}, DEFAULT_DECLARE_INCOME_RATES['연금'], savedDeclareRates['연금'])
+    }
+  : JSON.parse(JSON.stringify(DEFAULT_DECLARE_INCOME_RATES));
+
+const DECLARE_INCOME_CAP = 50000000; // 신고소득 환산: 1인당 최대 인정 금액
+const COMBINED_DECLARE_INCOME_CAP = 50000000; // 차주/배우자 중 1명 이상 신고소득 사용 시, 합산 소득 최대 인정 금액
+
+function calcDeclareConvertedIncome(type, rawAmount) {
+  const cfg = DECLARE_INCOME_RATES[type];
+  if (!cfg || !rawAmount || rawAmount <= 0) return 0;
+  const raw = (rawAmount / (cfg.divisor / 100)) * cfg.months * (cfg.multiplier / 100);
+  return Math.min(raw, DECLARE_INCOME_CAP);
+}
+
+let baseIncomeMode = '증빙';
+let baseDeclareType = '카드';
+let memoBaseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 }; // 추정 버튼(카드/건보/연금) 별로 입력값을 따로 저장
+let memoBaseIncomeDirect = 0; // 증빙 모드에서 직접 입력한 원본 연소득 (모드 전환 시 복원용)
+
+let spouseIncomeMode = '증빙';
+let spouseDeclareType = '카드';
+let memoSpouseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
+let memoSpouseIncomeDirect = 0;
+
+const baseIncomeModeRadios = document.querySelectorAll('input[name="base_income_mode"]');
+const baseDeclareTypeRadios = document.querySelectorAll('input[name="base_declare_type"]');
+const baseDeclareAmountInput = document.getElementById("baseDeclareAmountInput");
+const baseDeclareConvertedOutput = document.getElementById("baseDeclareConvertedOutput");
+const baseDeclareInputGroup = document.getElementById("baseDeclareInputGroup");
+
+const spouseIncomeModeRadios = document.querySelectorAll('input[name="spouse_income_mode"]');
+const spouseDeclareTypeRadios = document.querySelectorAll('input[name="spouse_declare_type"]');
+const spouseDeclareAmountInput = document.getElementById("spouseDeclareAmountInput");
+const spouseDeclareConvertedOutput = document.getElementById("spouseDeclareConvertedOutput");
+const spouseDeclareInputGroup = document.getElementById("spouseDeclareInputGroup");
+
+// 카드는 연사용액을 그대로 입력, 건보/연금은 최근 3개월 평균 월납부액을 입력받는다.
+const DECLARE_AMOUNT_PLACEHOLDERS = { '카드': '연사용액 입력', '건강': '3개월 평균 입력', '연금': '3개월 평균 입력' };
+const DECLARE_TYPE_LABELS = { '카드': '카드', '건강': '건보', '연금': '연금' }; // 내용복사 텍스트 등에서 화면 표기(건보)와 맞추기 위한 라벨
+
+function refreshBaseDeclareConverted() {
+  const amount = memoBaseDeclareAmounts[baseDeclareType] || 0;
+  const converted = calcDeclareConvertedIncome(baseDeclareType, amount);
+  if (baseDeclareConvertedOutput) {
+    baseDeclareConvertedOutput.value = converted > 0 ? Math.floor(converted).toLocaleString() : "";
+  }
+  return converted;
+}
+
+function refreshSpouseDeclareConverted() {
+  const amount = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
+  const converted = calcDeclareConvertedIncome(spouseDeclareType, amount);
+  if (spouseDeclareConvertedOutput) {
+    spouseDeclareConvertedOutput.value = converted > 0 ? Math.floor(converted).toLocaleString() : "";
+  }
+  return converted;
+}
+
+/* 신고소득 모드 전환: 같은 행 안에서 칸의 내용을 그대로 바꿔치기한다.
+   연소득 입력칸 -> 카드/건강/연금 토글(+ 바로 아랫줄 연사용액 입력),
+   나이 칸 + 장래예상 체크박스 칸 -> 두 칸을 합쳐 환산금액 표시. */
+function applyBaseIncomeMode() {
+  const isDeclare = baseIncomeMode === '신고';
+  if (baseIncomeInput) baseIncomeInput.style.display = isDeclare ? 'none' : '';
+  if (baseDeclareInputGroup) baseDeclareInputGroup.style.display = isDeclare ? 'flex' : 'none';
+  if (ageInput) ageInput.style.display = isDeclare ? 'none' : '';
+  if (baseDeclareAmountInput) {
+    baseDeclareAmountInput.style.display = isDeclare ? '' : 'none';
+    baseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[baseDeclareType] || '금액 입력';
+    const amt = memoBaseDeclareAmounts[baseDeclareType] || 0;
+    baseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
+  }
+  const baseRateToggleRow = applyRateCheck ? applyRateCheck.closest('.rate-toggle-row') : null;
+  if (baseRateToggleRow) baseRateToggleRow.style.display = isDeclare ? 'none' : '';
+  if (baseDeclareConvertedOutput) baseDeclareConvertedOutput.style.display = isDeclare ? '' : 'none';
+  if (rateDisplay) rateDisplay.style.display = isDeclare ? 'none' : '';
+  // 추정(신고) 모드에서는 나이 칸을 숨기고, 환산금액 칸이 두 칸 폭을 모두 차지하도록 합친다.
+  const baseAgeCell = document.getElementById('baseAgeCell');
+  const baseToggleCell = document.getElementById('baseToggleCell');
+  if (baseAgeCell) baseAgeCell.style.display = isDeclare ? 'none' : '';
+  if (baseToggleCell) baseToggleCell.colSpan = isDeclare ? 2 : 1;
+  memoBaseIncome = isDeclare ? refreshBaseDeclareConverted() : memoBaseIncomeDirect;
+  updateIncomeCalc();
+}
+
+function applySpouseIncomeMode() {
+  const isDeclare = spouseIncomeMode === '신고';
+  if (spouseIncomeInput) spouseIncomeInput.style.display = isDeclare ? 'none' : '';
+  if (spouseDeclareInputGroup) spouseDeclareInputGroup.style.display = isDeclare ? 'flex' : 'none';
+  if (spouseAgeInput) spouseAgeInput.style.display = isDeclare ? 'none' : '';
+  if (spouseDeclareAmountInput) {
+    spouseDeclareAmountInput.style.display = isDeclare ? '' : 'none';
+    spouseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[spouseDeclareType] || '금액 입력';
+    const amt = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
+    spouseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
+  }
+  const spouseRateToggleRow = spouseApplyRateCheck ? spouseApplyRateCheck.closest('.rate-toggle-row') : null;
+  if (spouseRateToggleRow) spouseRateToggleRow.style.display = isDeclare ? 'none' : '';
+  if (spouseDeclareConvertedOutput) spouseDeclareConvertedOutput.style.display = isDeclare ? '' : 'none';
+  if (spouseRateDisplay) spouseRateDisplay.style.display = isDeclare ? 'none' : '';
+  // 추정(신고) 모드에서는 나이 칸을 숨기고, 환산금액 칸이 두 칸 폭을 모두 차지하도록 합친다.
+  const spouseAgeCell = document.getElementById('spouseAgeCell');
+  const spouseToggleCell = document.getElementById('spouseToggleCell');
+  if (spouseAgeCell) spouseAgeCell.style.display = isDeclare ? 'none' : '';
+  if (spouseToggleCell) spouseToggleCell.colSpan = isDeclare ? 2 : 1;
+  memoSpouseIncome = isDeclare ? refreshSpouseDeclareConverted() : memoSpouseIncomeDirect;
+  updateSpouseIncomeCalc();
+}
+
+baseIncomeModeRadios.forEach(radio => {
+  radio.addEventListener("change", () => {
+    baseIncomeMode = radio.value;
+    refreshRadioToggleStyles('#baseIncomeModeToggle');
+    showBubble(baseIncomeMode === '신고' ? '차주 추정소득 모드' : '차주 증빙소득 모드');
+    applyBaseIncomeMode();
+  });
+});
+
+spouseIncomeModeRadios.forEach(radio => {
+  radio.addEventListener("change", () => {
+    spouseIncomeMode = radio.value;
+    refreshRadioToggleStyles('#spouseIncomeModeToggle');
+    showBubble(spouseIncomeMode === '신고' ? '배우자 추정소득 모드' : '배우자 증빙소득 모드');
+    applySpouseIncomeMode();
+  });
+});
+
+baseDeclareTypeRadios.forEach(radio => {
+  radio.addEventListener("change", () => {
+    baseDeclareType = radio.value;
+    refreshRadioToggleStyles('#baseDeclareTypeToggle');
+    if (baseDeclareAmountInput) {
+      baseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[baseDeclareType] || '금액 입력';
+      // 종류별로 저장해둔 금액을 그대로 불러와 입력창에 표시 (다른 종류의 금액과 섞이지 않음)
+      const amt = memoBaseDeclareAmounts[baseDeclareType] || 0;
+      baseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
+    }
+    if (baseIncomeMode === '신고') {
+      memoBaseIncome = refreshBaseDeclareConverted();
+      updateIncomeCalc();
+    }
+  });
+});
+
+spouseDeclareTypeRadios.forEach(radio => {
+  radio.addEventListener("change", () => {
+    spouseDeclareType = radio.value;
+    refreshRadioToggleStyles('#spouseDeclareTypeToggle');
+    if (spouseDeclareAmountInput) {
+      spouseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[spouseDeclareType] || '금액 입력';
+      const amt = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
+      spouseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
+    }
+    if (spouseIncomeMode === '신고') {
+      memoSpouseIncome = refreshSpouseDeclareConverted();
+      updateSpouseIncomeCalc();
+    }
+  });
+});
+
+if (baseDeclareAmountInput) {
+  baseDeclareAmountInput.addEventListener("input", (e) => {
+    const v = e.target.value.replace(/\D/g, '');
+    const num = v ? parseFloat(v) : 0;
+    memoBaseDeclareAmounts[baseDeclareType] = num; // 현재 선택된 종류(카드/건보/연금)에만 저장
+    e.target.value = v ? num.toLocaleString() : '';
+    if (baseIncomeMode === '신고') {
+      memoBaseIncome = refreshBaseDeclareConverted();
+      updateIncomeCalc();
+    } else {
+      refreshBaseDeclareConverted();
+    }
+  });
+}
+
+if (spouseDeclareAmountInput) {
+  spouseDeclareAmountInput.addEventListener("input", (e) => {
+    const v = e.target.value.replace(/\D/g, '');
+    const num = v ? parseFloat(v) : 0;
+    memoSpouseDeclareAmounts[spouseDeclareType] = num;
+    e.target.value = v ? num.toLocaleString() : '';
+    if (spouseIncomeMode === '신고') {
+      memoSpouseIncome = refreshSpouseDeclareConverted();
+      updateSpouseIncomeCalc();
+    } else {
+      refreshSpouseDeclareConverted();
+    }
+  });
+}
+
+function populateDeclareRateEditFields() {
+  Object.keys(DECLARE_INCOME_RATES).forEach(type => {
+    const cfg = DECLARE_INCOME_RATES[type];
+    const divisorEl = document.getElementById(`edit-declare-${type}-divisor`);
+    const multiplierEl = document.getElementById(`edit-declare-${type}-multiplier`);
+    if (divisorEl) divisorEl.value = cfg.divisor;
+    if (multiplierEl) multiplierEl.value = cfg.multiplier;
+  });
+}
+
+function saveDeclareIncomeRates() {
+  const types = Object.keys(DECLARE_INCOME_RATES);
+  const parsed = {};
+  for (const type of types) {
+    const divisorEl = document.getElementById(`edit-declare-${type}-divisor`);
+    const multiplierEl = document.getElementById(`edit-declare-${type}-multiplier`);
+    const divisorVal = parseFloat(divisorEl?.value);
+    const multiplierVal = parseFloat(multiplierEl?.value);
+    if (isNaN(divisorVal) || divisorVal <= 0 || isNaN(multiplierVal) || multiplierVal < 0) {
+      alert("올바른 요율(숫자)을 입력해주세요.");
+      return;
+    }
+    parsed[type] = { divisor: divisorVal, multiplier: multiplierVal };
+  }
+  types.forEach(type => {
+    DECLARE_INCOME_RATES[type].divisor = parsed[type].divisor;
+    DECLARE_INCOME_RATES[type].multiplier = parsed[type].multiplier;
+  });
+  localStorage.setItem("CUSTOM_DECLARE_INCOME_RATES", JSON.stringify(DECLARE_INCOME_RATES));
+  showBubble("신고소득 환산 요율 저장 완료");
+  closeModal();
+  if (baseIncomeMode === '신고') { memoBaseIncome = refreshBaseDeclareConverted(); updateIncomeCalc(); }
+  if (spouseIncomeMode === '신고') { memoSpouseIncome = refreshSpouseDeclareConverted(); updateSpouseIncomeCalc(); }
 }
 
 const ltvMarketPriceInput = document.getElementById("ltvMarketPriceInput");
@@ -936,6 +1186,34 @@ function 선택초기화() {
   if (spouseApplyRateCheck) spouseApplyRateCheck.checked = false;
   if (spouseAgeInput) spouseAgeInput.value = "";
 
+  // 신고소득(카드/건강/연금) 관련 상태 초기화
+  memoBaseIncomeDirect = 0;
+  memoSpouseIncomeDirect = 0;
+  memoBaseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
+  memoSpouseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
+  baseIncomeMode = '증빙';
+  spouseIncomeMode = '증빙';
+  baseDeclareType = '카드';
+  spouseDeclareType = '카드';
+  if (baseDeclareAmountInput) baseDeclareAmountInput.value = "";
+  if (spouseDeclareAmountInput) spouseDeclareAmountInput.value = "";
+  if (baseDeclareConvertedOutput) baseDeclareConvertedOutput.value = "";
+  if (spouseDeclareConvertedOutput) spouseDeclareConvertedOutput.value = "";
+  const baseModeDefaultRadio = document.querySelector('input[name="base_income_mode"][value="증빙"]');
+  if (baseModeDefaultRadio) baseModeDefaultRadio.checked = true;
+  const spouseModeDefaultRadio = document.querySelector('input[name="spouse_income_mode"][value="증빙"]');
+  if (spouseModeDefaultRadio) spouseModeDefaultRadio.checked = true;
+  const baseDeclareDefaultRadio = document.querySelector('input[name="base_declare_type"][value="카드"]');
+  if (baseDeclareDefaultRadio) baseDeclareDefaultRadio.checked = true;
+  const spouseDeclareDefaultRadio = document.querySelector('input[name="spouse_declare_type"][value="카드"]');
+  if (spouseDeclareDefaultRadio) spouseDeclareDefaultRadio.checked = true;
+  refreshRadioToggleStyles('#baseIncomeModeToggle');
+  refreshRadioToggleStyles('#spouseIncomeModeToggle');
+  refreshRadioToggleStyles('#baseDeclareTypeToggle');
+  refreshRadioToggleStyles('#spouseDeclareTypeToggle');
+  applyBaseIncomeMode();
+  applySpouseIncomeMode();
+
   if (ltvMarketPriceInput) ltvMarketPriceInput.value = "";
   const ltvMaxAmountOutput = document.getElementById("ltvMaxAmountOutput");
   if (ltvMaxAmountOutput) ltvMaxAmountOutput.value = "";
@@ -990,6 +1268,13 @@ function 선택초기화() {
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) localStorage.removeItem(`DSR_${checkbox.id}`);
   });
+  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
+    localStorage.removeItem(`DSR_radio_${name}`);
+  });
+  ['카드', '건강', '연금'].forEach(type => {
+    localStorage.removeItem(`DSR_declareAmt_base_${type}`);
+    localStorage.removeItem(`DSR_declareAmt_spouse_${type}`);
+  });
   localStorage.removeItem('DSR_mortgageData');
   
   updateIncomeCalc();
@@ -1002,6 +1287,16 @@ function saveDSRInputs() {
   });
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
+  });
+  // 증빙/신고 및 카드·건강·연금 선택 상태도 함께 저장 (새로고침 후에도 환산 금액이 바로 계산되도록)
+  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
+    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    if (checked) localStorage.setItem(`DSR_radio_${name}`, checked.value);
+  });
+  // 추정(카드/건보/연금) 버튼별 입력 금액을 각각 따로 저장 (공용 입력창 하나를 돌려쓰기 때문에 종류별로 키를 분리해야 함)
+  ['카드', '건강', '연금'].forEach(type => {
+    localStorage.setItem(`DSR_declareAmt_base_${type}`, memoBaseDeclareAmounts[type] || 0);
+    localStorage.setItem(`DSR_declareAmt_spouse_${type}`, memoSpouseDeclareAmounts[type] || 0);
   });
   saveMortgageRows();
 }
@@ -1040,6 +1335,8 @@ function loadDSRInputs() {
         if (input.id === 'spouseIncomeInput') {
           memoSpouseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
         }
+        // 카드/건강/연금 금액 입력창(공용 필드)의 값은 아래 별도 로직에서
+        // 종류별로 복원하므로, 여기서는 화면 표시값만 그대로 둔다.
       }
     }
   });
@@ -1051,6 +1348,31 @@ function loadDSRInputs() {
         checkbox.checked = savedValue === 'true';
       }
     }
+  });
+
+  // 증빙/신고 및 카드·건강·연금 선택 상태 복원
+  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
+    const savedValue = localStorage.getItem(`DSR_radio_${name}`);
+    if (savedValue !== null) {
+      const radio = document.querySelector(`input[name="${name}"][value="${savedValue}"]`);
+      if (radio) radio.checked = true;
+    }
+  });
+  const baseModeChecked = document.querySelector('input[name="base_income_mode"]:checked');
+  if (baseModeChecked) baseIncomeMode = baseModeChecked.value;
+  const spouseModeChecked = document.querySelector('input[name="spouse_income_mode"]:checked');
+  if (spouseModeChecked) spouseIncomeMode = spouseModeChecked.value;
+  const baseTypeChecked = document.querySelector('input[name="base_declare_type"]:checked');
+  if (baseTypeChecked) baseDeclareType = baseTypeChecked.value;
+  const spouseTypeChecked = document.querySelector('input[name="spouse_declare_type"]:checked');
+  if (spouseTypeChecked) spouseDeclareType = spouseTypeChecked.value;
+
+  // 추정(카드/건보/연금) 버튼별로 저장해둔 금액을 각각 복원
+  ['카드', '건강', '연금'].forEach(type => {
+    const savedBaseAmt = localStorage.getItem(`DSR_declareAmt_base_${type}`);
+    if (savedBaseAmt !== null) memoBaseDeclareAmounts[type] = parseFloat(savedBaseAmt) || 0;
+    const savedSpouseAmt = localStorage.getItem(`DSR_declareAmt_spouse_${type}`);
+    if (savedSpouseAmt !== null) memoSpouseDeclareAmounts[type] = parseFloat(savedSpouseAmt) || 0;
   });
 
   loadMortgageRows();
@@ -1139,16 +1461,21 @@ function splitIncomeSettingsIntoCells() {
     const toggle = cell.querySelector('.rate-toggle-row');
     const rate = cell.querySelector('.rate-display');
     if (!age || !toggle || !rate) return;
-    const makeCell = (cls, node) => {
+    const prefix = age.id === 'spouseAgeInput' ? 'spouse' : 'base'; // 분리된 셀을 이후 JS에서 다시 찾아 숨기기 위한 식별용 접두사
+    // .age-slot/.toggle-slot 래퍼가 있으면 그 안의 신고소득 대체 입력칸까지 통째로 옮긴다.
+    const ageNode = age.closest('.age-slot') || age;
+    const toggleNode = toggle.closest('.toggle-slot') || toggle;
+    const makeCell = (cls, node, id) => {
       const td = document.createElement('td');
       td.className = `income-settings-cell ${cls}`;
+      if (id) td.id = id;
       td.appendChild(node);
       return td;
     };
     const row = cell.parentElement;
-    const toggleCell = makeCell('toggle-cell', toggle);
+    const toggleCell = makeCell('toggle-cell', toggleNode, `${prefix}ToggleCell`);
     toggleCell.appendChild(rate);
-    row.insertBefore(makeCell('age-cell', age), cell);
+    row.insertBefore(makeCell('age-cell', ageNode, `${prefix}AgeCell`), cell);
     row.insertBefore(toggleCell, cell);
     cell.remove();
   });
@@ -1161,6 +1488,12 @@ function init() {
   }
   loadDSRInputs();
   setupDSRAutoSave();
+  refreshRadioToggleStyles('#baseIncomeModeToggle');
+  refreshRadioToggleStyles('#spouseIncomeModeToggle');
+  refreshRadioToggleStyles('#baseDeclareTypeToggle');
+  refreshRadioToggleStyles('#spouseDeclareTypeToggle');
+  applyBaseIncomeMode();
+  applySpouseIncomeMode();
   updateIncomeCalc();
   updateSpouseIncomeCalc();
   if (typeof 자동계산 === 'function') 자동계산();
@@ -1230,7 +1563,10 @@ function 대출정보텍스트생성() {
   const baseChecked = applyRateCheck ? applyRateCheck.checked : false;
   const baseRawNum = memoBaseIncome || 0;
   const baseRawStr = baseRawNum > 0 ? Math.floor(baseRawNum).toLocaleString() : (getVal('baseIncomeInput') || '-');
-  if (baseChecked) {
+  if (baseIncomeMode === '신고') {
+    // 추정소득(카드/건보/연금) 모드: 어떤 항목으로 추정했는지 함께 표시
+    lines.push(`차주 소득 : ${baseRawStr} (${DECLARE_TYPE_LABELS[baseDeclareType] || baseDeclareType})`);
+  } else if (baseChecked) {
     const baseAppliedStr = hiddenIncomeInput && hiddenIncomeInput.value ? hiddenIncomeInput.value : baseRawStr;
     const baseAppliedNum = parseFloat((hiddenIncomeInput?.value || '').replace(/,/g, '')) || baseRawNum;
     const baseIncreaseStr = Math.max(0, Math.floor(baseAppliedNum - baseRawNum)).toLocaleString();
@@ -1243,11 +1579,14 @@ function 대출정보텍스트생성() {
   // 배우자 소득 (소득값이 없으면 배우자 소득/합산소득 줄 자체를 생략)
   const spouseRawNum = memoSpouseIncome || 0;
   const hasSpouseIncome = spouseRawNum > 0;
+  let spouseChecked = false;
 
   if (hasSpouseIncome) {
-    const spouseChecked = spouseApplyRateCheck ? spouseApplyRateCheck.checked : false;
+    spouseChecked = spouseApplyRateCheck ? spouseApplyRateCheck.checked : false;
     const spouseRawStr = Math.floor(spouseRawNum).toLocaleString();
-    if (spouseChecked) {
+    if (spouseIncomeMode === '신고') {
+      lines.push(`배우자 소득 : ${spouseRawStr} (${DECLARE_TYPE_LABELS[spouseDeclareType] || spouseDeclareType})`);
+    } else if (spouseChecked) {
       const spouseAppliedStr = spouseHiddenIncomeInput && spouseHiddenIncomeInput.value ? spouseHiddenIncomeInput.value : spouseRawStr;
       const spouseAppliedNum = parseFloat((spouseHiddenIncomeInput?.value || '').replace(/,/g, '')) || spouseRawNum;
       const spouseIncreaseStr = Math.max(0, Math.floor(spouseAppliedNum - spouseRawNum)).toLocaleString();
@@ -1257,11 +1596,11 @@ function 대출정보텍스트생성() {
       lines.push(`배우자 소득 : ${spouseRawStr}`);
     }
 
-    // 합산소득 (장래예상 체크된 경우에만 괄호 표시)
+    // 합산소득 (장래예상 체크 또는 추정소득 사용된 경우에만 괄호 표시)
     const rawSum = (memoBaseIncome || 0) + spouseRawNum;
     const rawSumStr = rawSum > 0 ? Math.floor(rawSum).toLocaleString() : '-';
     const appliedSumStr = getVal('totalIncomeOutput') || rawSumStr;
-    if (baseChecked || spouseChecked) {
+    if (baseChecked || spouseChecked || baseIncomeMode === '신고' || spouseIncomeMode === '신고') {
       lines.push(`합산소득 : ${rawSumStr} ( ${appliedSumStr} )`);
     } else {
       lines.push(`합산소득 : ${rawSumStr}`);

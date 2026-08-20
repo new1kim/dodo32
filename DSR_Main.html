@@ -38,10 +38,10 @@
         <td class="dsr-label-cell" style="padding: 6px 4px;">
           <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
             <label style="background-color: #2563eb; color: #ffffff;">
-              <input type="radio" name="dsr_limit_rate" value="40" checked>DSR_40
+              <input type="radio" name="dsr_limit_rate" value="40" checked>40%
             </label>
             <label style="background-color: transparent; color: #64748b;">
-              <input type="radio" name="dsr_limit_rate" value="50">DSR_50
+              <input type="radio" name="dsr_limit_rate" value="50">50%
             </label>
           </div>
         </td>
@@ -154,55 +154,109 @@
 
     <table class="income-table">
       <colgroup>
-        <col style="width: 10%;">
-        <col style="width: 24%;">
+        <col style="width: 13%;">
+        <col style="width: 25%;">
         <col style="width: 15%;">
         <col style="width: 15%;">
-        <col style="width: 24%;">
+        <col style="width: 22%;">
       </colgroup>
       <tr>
         <td class="income-label">
-          <div class="income-title">차주<br>소득</div>
+          <div class="income-title">차주</div>
+          <div class="income-mode-toggle pill-toggle-group" id="baseIncomeModeToggle">
+            <label style="background-color: #2563eb; color: #ffffff;">
+              <input type="radio" name="base_income_mode" value="증빙" checked>증빙
+            </label>
+            <label style="background-color: transparent; color: #64748b;">
+              <input type="radio" name="base_income_mode" value="신고">추정
+            </label>
+          </div>
         </td>
-        <td class="income-input-cell">
+        <td class="income-input-cell" id="baseIncomeInputCell">
           <input type="hidden" id="computedIncomeHidden" value="">
           <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
+          <div class="declare-input-group" id="baseDeclareInputGroup" style="display:none;">
+            <div class="pill-toggle-group declare-type-toggle" id="baseDeclareTypeToggle">
+              <label style="background-color: #2563eb; color: #ffffff;">
+                <input type="radio" name="base_declare_type" value="카드" checked>카드
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="base_declare_type" value="건강">건보
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="base_declare_type" value="연금">연금
+              </label>
+            </div>
+            <input type="text" inputmode="numeric" class="declare-amount-input" id="baseDeclareAmountInput" placeholder="연사용액 입력">
+          </div>
         </td>
-        <td class="income-settings-cell">
-          <div class="income-settings">
+        <td class="income-settings-cell" id="baseSettingsCell">
+          <div class="income-settings" id="baseIncomeSettings">
             <div class="income-settings-top">
-              <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992">
-              <span class="rate-toggle-row">
-                <input type="checkbox" id="applyRateCheck">
-                <label for="applyRateCheck">장래예상</label>
-              </span>
+              <div class="age-slot">
+                <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992">
+              </div>
+              <div class="toggle-slot">
+                <span class="rate-toggle-row">
+                  <input type="checkbox" id="applyRateCheck">
+                  <label for="applyRateCheck">장래예상</label>
+                </span>
+                <input type="text" class="declare-converted-output" id="baseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
+              </div>
             </div>
             <span id="rateDisplay" class="rate-display">(-)</span>
           </div>
         </td>
-        <td class="income-result-label">합산 소득</td>
+        <td class="income-result-label" id="incomeResultLabelCell">합산 소득</td>
       </tr>
       <tr>
         <td class="income-label">
-          <div class="income-title">배우자<br>소득</div>
+          <div class="income-title">배우자</div>
+          <div class="income-mode-toggle pill-toggle-group" id="spouseIncomeModeToggle">
+            <label style="background-color: #2563eb; color: #ffffff;">
+              <input type="radio" name="spouse_income_mode" value="증빙" checked>증빙
+            </label>
+            <label style="background-color: transparent; color: #64748b;">
+              <input type="radio" name="spouse_income_mode" value="신고">추정
+            </label>
+          </div>
         </td>
-        <td class="income-input-cell">
+        <td class="income-input-cell" id="spouseIncomeInputCell">
           <input type="hidden" id="spouseComputedIncomeHidden" value="">
           <input type="text" id="spouseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
+          <div class="declare-input-group" id="spouseDeclareInputGroup" style="display:none;">
+            <div class="pill-toggle-group declare-type-toggle" id="spouseDeclareTypeToggle">
+              <label style="background-color: #2563eb; color: #ffffff;">
+                <input type="radio" name="spouse_declare_type" value="카드" checked>카드
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="spouse_declare_type" value="건강">건보
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="spouse_declare_type" value="연금">연금
+              </label>
+            </div>
+            <input type="text" inputmode="numeric" class="declare-amount-input" id="spouseDeclareAmountInput" placeholder="연사용액 입력">
+          </div>
         </td>
-        <td class="income-settings-cell">
-          <div class="income-settings">
+        <td class="income-settings-cell" id="spouseSettingsCell">
+          <div class="income-settings" id="spouseIncomeSettings">
             <div class="income-settings-top">
-              <input type="number" id="spouseAgeInput" class="age-input" placeholder="32 or 1992">
-              <span class="rate-toggle-row">
-                <input type="checkbox" id="spouseApplyRateCheck">
-                <label for="spouseApplyRateCheck">장래예상</label>
-              </span>
+              <div class="age-slot">
+                <input type="number" id="spouseAgeInput" class="age-input" placeholder="32 or 1992">
+              </div>
+              <div class="toggle-slot">
+                <span class="rate-toggle-row">
+                  <input type="checkbox" id="spouseApplyRateCheck">
+                  <label for="spouseApplyRateCheck">장래예상</label>
+                </span>
+                <input type="text" class="declare-converted-output" id="spouseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
+              </div>
             </div>
             <span id="spouseRateDisplay" class="rate-display">(-)</span>
           </div>
         </td>
-        <td class="income-result-cell"><input type="text" id="totalIncomeOutput" readonly placeholder="합계"></td>
+        <td class="income-result-cell" id="incomeResultValueCell"><input type="text" id="totalIncomeOutput" readonly placeholder="합계"></td>
       </tr>
     </table>
 
@@ -248,7 +302,7 @@
     </div>
 
     <div class="view-btn-wrapper">
-      <button class="view-btn" onclick="openTextModal()">계산기 설명</button>
+      <button class="view-btn" onclick="openTextModal()">기본값 설정 및 안내</button>
       <!-- <button class="view-btn" onclick="openImageModal('장래예상소득증가율.png')">장래예상소득 기준</button> -->
     </div>
 
@@ -378,6 +432,49 @@
               <button type="button" class="btn-primary" onclick="saveDefaultFirstRowData()">기본값 저장</button>
             </div>
           </div>
+
+          <div class="info-section">
+            <div class="section-title">📐 신고소득 환산 요율</div>
+            <ul class="info-list">
+              <li>카드는 연간 사용금액을 그대로 입력하고(월환산 없음), 건보·연금은 최근 3개월 평균 월납부액을 입력하면 12개월로 환산하여 계산합니다.</li>
+              <li>카드/건보/연금 입력 금액은 종류별로 각각 따로 저장됩니다. 예: 카드에 입력한 금액과 건보에 입력한 금액은 서로 섞이지 않고 버튼 전환 시 그대로 유지됩니다.</li>
+              <li>환산된 소득은 1인당 최대 5,000만원까지만 인정되며, 차주·배우자 중 한쪽이라도 신고소득을 사용하면 두 사람 합산 소득 역시 최대 5,000만원까지만 인정됩니다.</li>
+            </ul>
+          </div>
+
+          <div class="info-section" id="modal-declare-rate-card" style="text-align:center;">
+            <div class="section-title" style="justify-content:center;">✏️ 신고소득 환산 요율 수정</div>
+            <table class="rate-popup-table">
+              <thead>
+                <tr>
+                  <td>구분</td>
+                  <td>요율 % (÷)</td>
+                  <td>인정배수 % (X)</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>카드</td>
+                  <td><input type="text" id="edit-declare-카드-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-카드-multiplier" inputmode="decimal"></td>
+                </tr>
+                <tr>
+                  <td>건보</td>
+                  <td><input type="text" id="edit-declare-건강-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-건강-multiplier" inputmode="decimal"></td>
+                </tr>
+                <tr>
+                  <td>연금</td>
+                  <td><input type="text" id="edit-declare-연금-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-연금-multiplier" inputmode="decimal"></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="modal-actions">
+              <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
+              <button type="button" class="btn-success" onclick="saveDeclareIncomeRates()">저장하기</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -412,5 +509,19 @@
   <!-- JavaScript 파일 연결 -->
   <script src="DSR_calculator_logic.min.js"></script>
   <script src="DSR_calculator_ui.js"></script>
+  <!-- 페이지 스크롤바 자동 숨김: 스크롤 중에만 표시하고, 멈추면 다시 숨김 -->
+  <script>
+    (function () {
+      var hideTimer = null;
+      function onPageScroll() {
+        document.body.classList.add('is-scrolling');
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(function () {
+          document.body.classList.remove('is-scrolling');
+        }, 800);
+      }
+      document.body.addEventListener('scroll', onPageScroll, { passive: true });
+    })();
+  </script>
 </body>
 </html>

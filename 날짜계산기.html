@@ -23,6 +23,8 @@
             --stamp-soft: rgba(178, 58, 47, 0.10);
             --line: #ddd2b8;
             --sat: #2f5fa8;
+            --receipt-blue: #3b6bb0;
+            --exec-red: #b97a72;
         }
 
         * { box-sizing: border-box; }
@@ -152,12 +154,25 @@
             border-bottom-color: var(--gold);
         }
 
+        #startDate {
+            color: var(--receipt-blue);
+        }
+
+        #endDate {
+            color: var(--exec-red);
+        }
+
         .result-box {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 18px;
             padding: 8px 4px 4px;
+            width: 100%;
+        }
+
+        .ledger-result-row {
+            padding: 6px 2px;
         }
 
         .result-item {
@@ -187,17 +202,153 @@
 
         #totalDays {
             font-family: 'Noto Serif KR', serif;
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--ink);
             font-variant-numeric: tabular-nums;
         }
 
+        /* --- 실행일 기준 접수가능일 빠른 계산 (신규) --- */
+        .quick-calc {
+            margin-bottom: 26px;
+            padding: 18px 16px;
+            border: 1px dashed var(--line);
+            border-radius: 6px;
+            background: rgba(169, 129, 47, 0.05);
+        }
+
+        .quick-calc-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.02em;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        .quick-calc-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-calc-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .quick-calc-col label {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+
+        .quick-calc-date-display {
+            width: 100%;
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--exec-red);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--card);
+            cursor: pointer;
+            white-space: normal;
+            word-break: keep-all;
+            line-height: 1.3;
+        }
+
+        .quick-calc-date-display.placeholder {
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 400;
+            color: #b7ae9a;
+        }
+
+        .quick-calc-picker-wrap {
+            display: grid;
+            width: 100%;
+        }
+
+        /* 실제 flatpickr 입력과 보이는 텍스트(줄바꿈 포함)를 같은 grid 셀에 겹쳐서
+           position:absolute 없이 flatpickr의 위치 계산이 어긋나지 않도록 한다 */
+        .quick-calc-picker-wrap > * {
+            grid-area: 1 / 1;
+        }
+
+        .quick-calc-picker-wrap input[type="text"] {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .quick-calc-buttons {
+            flex: 1.2 1 0;
+            gap: 4px;
+        }
+
+        .day-select-btn {
+            width: 100%;
+            padding: 6px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: inherit;
+            color: var(--ink-soft);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .day-select-btn:hover {
+            border-color: var(--gold);
+        }
+
+        .day-select-btn.active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #ffffff;
+        }
+
+        .quick-calc-result {
+            width: 100%;
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--receipt-blue);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--card);
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 480px) {
+            .quick-calc-row {
+                flex-wrap: wrap;
+            }
+            .quick-calc-col {
+                flex: 1 1 100%;
+            }
+        }
+
         /* --- 결재 스탬프 (signature element) --- */
         .stamp {
             position: relative;
-            width: 108px;
-            height: 108px;
+            width: 88px;
+            height: 88px;
             border-radius: 50%;
             border: 2.5px solid var(--stamp);
             display: flex;
@@ -233,14 +384,14 @@
 
         .stamp-value {
             font-family: 'Noto Serif KR', serif;
-            font-size: 26px;
+            font-size: 20px;
             font-weight: 900;
             line-height: 1;
             font-variant-numeric: tabular-nums;
         }
 
         .stamp-unit {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             margin-top: 2px;
             letter-spacing: 0.05em;
@@ -364,13 +515,13 @@
             }
 
             .stamp {
-                width: 92px;
-                height: 92px;
+                width: 76px;
+                height: 76px;
             }
 
-            .stamp-value { font-size: 22px; }
+            .stamp-value { font-size: 17px; }
 
-            #totalDays { font-size: 24px; }
+            #totalDays { font-size: 19px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -392,34 +543,57 @@
                 <label for="startDate">접수일</label>
                 <input type="text" id="startDate" readonly placeholder="날짜 선택">
             </div>
+            <div class="ledger-row ledger-result-row">
+                <div class="result-box">
+                    <div class="result-item plain">
+                        <span class="result-label">단순 일수</span>
+                        <span class="result-value" id="totalDays">-</span>
+                    </div>
+                    <div class="result-item">
+                        <div class="stamp" id="stampWrap">
+                            <span class="stamp-value" id="businessDays">-</span>
+                            <span class="stamp-unit">영업일</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="ledger-row">
                 <label for="endDate">실행일</label>
                 <input type="text" id="endDate" readonly placeholder="날짜 선택">
             </div>
         </div>
 
-        <div class="result-box">
-            <div class="result-item plain">
-                <span class="result-label">단순 일수</span>
-                <span class="result-value" id="totalDays">-</span>
-            </div>
-            <div class="result-item">
-                <span class="result-label">영업일수<br><small>주말·휴일 제외</small></span>
-                <div class="stamp" id="stampWrap">
-                    <span class="stamp-value" id="businessDays">-</span>
-                    <span class="stamp-unit">영업일</span>
+        <div class="quick-calc">
+            <div class="quick-calc-title">실행일 기준 접수가능일 계산</div>
+            <div class="quick-calc-row">
+                <div class="quick-calc-col">
+                    <label for="execDate">실행일</label>
+                    <div class="quick-calc-picker-wrap">
+                        <div class="quick-calc-date-display placeholder" id="execDateDisplay">날짜 선택</div>
+                        <input type="text" id="execDate" readonly>
+                    </div>
+                </div>
+                <div class="quick-calc-col quick-calc-buttons">
+                    <button type="button" class="day-select-btn" data-mode="biz10">영업10일 이상</button>
+                    <button type="button" class="day-select-btn" data-mode="biz30">영업30일 이상</button>
+                    <button type="button" class="day-select-btn" data-mode="simple45">45일 이하</button>
+                    <button type="button" class="day-select-btn" data-mode="simple60">60일 이하</button>
+                </div>
+                <div class="quick-calc-col">
+                    <div class="quick-calc-result" id="receiptDate">-</div>
+                    <label id="receiptDateLabel">까지 접수가능</label>
                 </div>
             </div>
         </div>
 
         <div class="notice">
             <div class="notice-list">
-                <div class="notice-row"><strong>주택금융</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 60일 ]</div>
-                <div class="notice-row"><strong>도시보증</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 60일 ]</div>
-                <div class="notice-row"><strong>서울보증</strong> 접수일 ~ 실행일 포함 [ 11일 ~ 45일 ]</div>
-                <div class="notice-row"><strong>주 담 대</strong> 접수일 ~ 실행일 포함 [ 영업 30일 ~ 단순 60일 ]</div>
+                <div class="notice-row"><strong>주택금융</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>도시보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>서울보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 45일 ]</div>
+                <div class="notice-row"><strong>주 담 대</strong> 접수일 제외 ~ 실행일 포함 [ 영업 30일 ~ 단순 60일 ]</div>
             </div>
-            <p class="notice-footnote">접수일자를 포함하여 계산.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
+            <p class="notice-footnote">접수일자는 제외하고 계산합니다.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
         </div>
     </div>
 
@@ -463,15 +637,52 @@
             return !!holidayData[dateStr];
         }
 
-        // 접수일자를 포함하여 계산 (start ~ end 구간을 모두 카운트)
+        function toDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+        function toDateStringWithWeekday(date) {
+            return `${toDateString(date)} (${WEEKDAY_KO[date.getDay()]})`;
+        }
+
+        // 실행일부터 거꾸로 영업일을 count 개 채우는 접수가능일을 찾는다 (실행일 포함, 접수가능일 제외)
+        function findDateByBusinessDaysBack(endDate, count) {
+            let cur = new Date(endDate.getTime());
+            let remaining = count;
+            while (remaining > 0) {
+                const dayOfWeek = cur.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toDateString(cur))) {
+                    remaining--;
+                    if (remaining === 0) break;
+                }
+                cur.setDate(cur.getDate() - 1);
+            }
+            cur.setDate(cur.getDate() - 1);
+            return cur;
+        }
+
+        // 실행일부터 거꾸로 단순 일수(count)를 채우는 접수가능일을 찾는다 (실행일 포함, 접수가능일 제외)
+        function findDateBySimpleDaysBack(endDate, count) {
+            const cur = new Date(endDate.getTime());
+            cur.setDate(cur.getDate() - count);
+            return cur;
+        }
+
+        // 접수일자는 제외하고 계산 (start 다음 날 ~ end 구간을 카운트)
         function calculateBusinessDays(startDate, endDate) {
             let start = new Date(startDate);
             let end = new Date(endDate);
             if (start > end) return { total: 0, business: 0 };
 
-            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
             let businessDays = 0;
             let curDate = new Date(start.getTime());
+            curDate.setDate(curDate.getDate() + 1);
 
             while (curDate <= end) {
                 const dayOfWeek = curDate.getDay();
@@ -530,6 +741,18 @@
                 });
 
                 flatpickr("#endDate", pickerConfig);
+
+                flatpickr("#execDate", {
+                    ...pickerConfig,
+                    onChange: function(selectedDates) {
+                        const displayEl = document.getElementById('execDateDisplay');
+                        if (selectedDates[0]) {
+                            displayEl.innerText = toDateStringWithWeekday(selectedDates[0]);
+                            displayEl.classList.remove('placeholder');
+                        }
+                        triggerReceiptCalculation();
+                    }
+                });
             }
 
             initializeCalendar();
@@ -546,6 +769,43 @@
                 } else {
                     stampEl.classList.remove('show');
                 }
+            }
+
+            let selectedMode = null;
+            const dayButtons = document.querySelectorAll('.day-select-btn');
+            dayButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    dayButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedMode = btn.dataset.mode;
+                    triggerReceiptCalculation();
+                });
+            });
+
+            function triggerReceiptCalculation() {
+                const execVal = document.getElementById('execDate').value;
+                const resultEl = document.getElementById('receiptDate');
+                const labelEl = document.getElementById('receiptDateLabel');
+                if (!execVal || !selectedMode) {
+                    resultEl.innerText = '-';
+                    return;
+                }
+                const execDate = new Date(execVal);
+                let receiptDate;
+                let labelText = '까지 접수가능';
+                if (selectedMode === 'biz30') {
+                    receiptDate = findDateByBusinessDaysBack(execDate, 30);
+                } else if (selectedMode === 'biz10') {
+                    receiptDate = findDateByBusinessDaysBack(execDate, 10);
+                } else if (selectedMode === 'simple45') {
+                    receiptDate = findDateBySimpleDaysBack(execDate, 45);
+                    labelText = '부터 접수가능';
+                } else if (selectedMode === 'simple60') {
+                    receiptDate = findDateBySimpleDaysBack(execDate, 60);
+                    labelText = '부터 접수가능';
+                }
+                resultEl.innerText = toDateStringWithWeekday(receiptDate);
+                labelEl.innerText = labelText;
             }
         });
     </script>
