@@ -34,10 +34,10 @@
   --c-surface: #ffffff;
   --c-surface-muted: #f7f8fb;
   --c-canvas: #eceef3;
-  --c-header-bg: #f4f6fa;
+  --c-header-bg: #e2e7f4;
   --c-header-text: #2c3550;
-  --c-subheader-bg: #f8f9fc;
-  --c-subheader-text: #77808f;
+  --c-subheader-bg: #eef1f8;
+  --c-subheader-text: #5b6472;
 
   /* Radius */
   --r-sm: 9px;
@@ -106,7 +106,7 @@ body.is-scrolling::-webkit-scrollbar-thumb {
 }
 
 .container {
-  min-width: 430px;
+  min-width: 396px;
   max-width: 600px;
   margin: 0 auto;
   display: flex;
@@ -116,7 +116,7 @@ body.is-scrolling::-webkit-scrollbar-thumb {
 
 /* -------------------- Tables (shared card look) -------------------- */
 table {
-  margin: 0 auto;
+  margin: 0 auto 4px auto;
   max-width: 600px;
   width: 100%;
   table-layout: fixed;
@@ -125,13 +125,81 @@ table {
   background-color: var(--c-surface);
   border-radius: var(--r-lg) !important;
   box-shadow: var(--sh-card);
-  border: 1px solid var(--c-border) !important;
+  border: 1.5px solid #b9e2f5 !important; /* 테이블 간 구분선 - 아주 연한 하늘색 */
   overflow: hidden;
+}
+table:last-child { margin-bottom: 0; }
+
+/* 테이블 사이 구분선 - 맨 위 표에는 안 붙게 첫 번째는 제외 */
+.dsr-table-wrap {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--c-border);
+}
+.dsr-table-wrap:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* 테스트용 테이블 순서 선택기 - 테스트 끝나면 삭제 예정 */
+.table-order-test-panel {
+  margin: 10px auto 0;
+  max-width: 600px;
+  padding: 10px 12px;
+  border: 1px dashed var(--c-primary-soft-border);
+  border-radius: var(--r-md);
+  background: var(--c-primary-soft);
+}
+.table-order-test-panel label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-primary-dark);
+  margin-bottom: 6px;
+}
+.table-order-btn-row {
+  display: flex;
+  gap: 4px;
+}
+.table-order-btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 2px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.table-order-btn-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+.table-order-btn-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.table-order-btn.selected {
+  background: var(--c-primary);
+  border-color: var(--c-primary-dark);
+}
+.table-order-btn.selected .table-order-btn-num,
+.table-order-btn.selected .table-order-btn-label {
+  color: #ffffff;
 }
 
 td, th {
   border: 1px solid var(--c-line) !important;
-  padding: 2px 6px;
+  padding: 0; /* 텍스트/숫자가 꽉 차게 - 칸마다 필요한 곳만 별도로 여백을 준다 */
   font-size: 13px;
   vertical-align: middle;
   white-space: nowrap !important;
@@ -202,8 +270,9 @@ td input:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
 }
-#baseIncomeInput, #spouseIncomeInput {
-  font-size: 15px;
+/* 소득1의 연소득 입력칸 디자인을 소득2 이후 동적 행에도 동일하게 적용 (.income-input 클래스는 공용) */
+.income-input {
+  font-size: 15px !important;
   font-weight: 700;
   background-color: var(--c-surface);
 }
@@ -358,15 +427,85 @@ td:has(.type-btn-row) {
 }
 .copy-btn:hover { background-color: var(--c-primary); color: #fff; border-color: var(--c-primary); }
 
+/* 내용복사 버튼 - "텍스트로 복사" / "화면 캡쳐" 2개 버블 선택 팝업 (소액임차금액 버블과 같은 스타일).
+   left/top은 JS에서 fixed로 매번 계산 - table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮겨서 렌더링 */
+.copy-menu-wrap { position: relative; display: inline-block; }
+.copy-menu-list {
+  display: none;
+  position: fixed;
+  transform: translateX(-50%);
+  gap: 10px;
+  z-index: 999;
+  padding-top: 8px; /* 말풍선 꼬리 자리 */
+}
+.copy-menu-list.open { display: flex; }
+.copy-menu-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.1);
+  z-index: -1;
+}
+.copy-menu-item {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.4);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.copy-menu-item:nth-child(1) { background: linear-gradient(135deg, #4f6fe4, #22c9c0); animation-delay: 0s; }
+.copy-menu-item:nth-child(2) { background: linear-gradient(135deg, #fb923c, #f43f5e); animation-delay: 0.05s; }
+.copy-menu-item:hover,
+.copy-menu-item:active { transform: scale(1.12); }
+
 /* -------------------- Section title bar -------------------- */
 .section-title-bar {
-  padding: 9px 6px;
+  padding: 2px 6px;
   text-align: center;
   color: var(--c-header-text);
   font-size: 13px;
   letter-spacing: 0.4px;
   position: relative;
 }
+.section-title-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+/* 제목 텍스트를 브랜드 그라데이션으로 채운 그래픽 텍스트로 표시 (여러 곳에서 재사용) */
+.section-title-graphic {
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--toggle-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+.section-title-bar .section-title-graphic { font-size: 24px; line-height: 1; }
 .section-title-bar .add-btn {
   position: absolute;
   left: 7px;
@@ -407,10 +546,19 @@ td:has(.type-btn-row) {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px;
+  padding: 0;
   background: var(--c-surface-muted);
   border-radius: var(--r-sm);
   width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  container-type: inline-size;
+}
+/* 체크박스를 칸 크기에 꽉 차게 - 칸(.mort-exclude-cell) 너비 기준 cqw 단위라 칸이
+   반응형으로 커지고 작아질 때 체크박스 크기도 함께 따라간다. */
+.mort-exclude {
+  width: clamp(16px, 85cqw, 48px) !important;
+  height: clamp(16px, 85cqw, 48px) !important;
 }
 
 .amount-btn {
@@ -559,7 +707,7 @@ td:has(.type-btn-row) {
   cursor: pointer;
   text-align: center;
   vertical-align: middle;
-  padding: 10px 4px !important;
+  padding: 3px 4px !important;
   transition: background-color 0.18s ease;
 }
 .dsr-value-cell:hover { background-color: var(--c-surface-muted); }
@@ -617,7 +765,7 @@ td:has(.type-btn-row) {
 }
 .pill-toggle-group input[type="radio"] { display: none; }
 
-#ltvRateToggleGroup { gap: 0; width: 100%; }
+#ltvRateToggleGroup { gap: 0; width: 100%; padding: 0; }
 
 /* DSR_40 / DSR_50 버튼: 위 .pill-toggle-group 공통 규칙으로 이미 꽉 찬 사각형 적용됨 */
 /* 셀(.ltv-cell) 폭 기준 cqw로 글자 크기/좌우 여백을 자동 조절 - 좁아져도 "80%" 등 내용이 잘리지 않게 함 */
@@ -642,11 +790,11 @@ td:has(.type-btn-row) {
 }
 #dsrLimitToggleGroup {
   border-radius: var(--toggle-radius);
-  padding: 3px;
-  gap: 2px;
+  padding: 0.9px 3px;
+  gap: 0.6px;
 }
 #dsrLimitToggleGroup label {
-  padding: 4px 3px;
+  padding: 1.2px 3px;
   border-radius: 5px;
   font-size: 10px;
 }
@@ -673,13 +821,98 @@ td:has(.type-btn-row) {
   font-weight: 700;
   text-align: center;
 }
+.ltv-market-price-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#marketPriceLookupBtn {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 7px 4px;
+  background-color: var(--c-primary);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#marketPriceLookupBtn:active { background-color: var(--c-primary-dark); transform: scale(0.97); }
 .minor-lease-input-row {
   display: flex;
   align-items: center;
   gap: 4px;
   width: 100%;
 }
-.minor-lease-input-row input[type="text"] { flex: 1; min-width: 0; }
+.minor-lease-input-wrap { position: relative; flex: 1; min-width: 0; }
+.minor-lease-input-wrap input[type="text"] { width: 100%; }
+.minor-lease-suggest-list {
+  display: none;
+  /* left/top은 JS에서 fixed로 매번 계산해 지정함 - table의 overflow:hidden +
+     container-type이 만드는 클리핑 컨테이닝 블록을 피하기 위해 body 바로 아래로
+     옮겨서 렌더링한다. 폭은 버블 콘텐츠에 맞춰 자동, 가로 중앙 정렬만 transform으로 처리 */
+  position: fixed;
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  z-index: 999;
+  gap: 8px;
+  padding-top: 8px; /* 말풍선 꼬리 자리 */
+}
+.minor-lease-suggest-list.open { display: flex; }
+/* 말풍선 꼬리 - 입력칸을 가리키도록 위쪽을 향한 다이아몬드 */
+.minor-lease-suggest-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.1);
+  z-index: -1;
+}
+.minor-lease-suggest-item {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.4);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.minor-lease-suggest-item:nth-child(1) { background: linear-gradient(135deg, #4f6fe4, #22c9c0); animation-delay: 0s; }
+.minor-lease-suggest-item:nth-child(2) { background: linear-gradient(135deg, #fb923c, #f43f5e); animation-delay: 0.05s; }
+.minor-lease-suggest-item:nth-child(3) { background: linear-gradient(135deg, #22c55e, #0d9488); animation-delay: 0.1s; }
+.minor-lease-suggest-item:nth-child(4) { background: linear-gradient(135deg, #a855f7, #6366f1); animation-delay: 0.15s; }
+.minor-lease-suggest-item:hover,
+.minor-lease-suggest-item.active {
+  transform: scale(1.14);
+  box-shadow: 0 10px 20px -6px rgba(15, 23, 42, 0.5);
+}
+@keyframes minorLeaseBubblePop {
+  0% { transform: scale(0.3); opacity: 0; }
+  65% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
 .minor-lease-reference-btn {
   width: auto;
   flex: 0 0 auto;
@@ -698,88 +931,278 @@ td:has(.type-btn-row) {
   background-color: #fdf6e9 !important;
 }
 
+/* -------------------- Income table: 상단 제어 행 (소득 추가 / 소득정보입력 / 합산소득) -------------------- */
+.income-control-cell {
+  padding: 2px 5px !important;
+  text-align: center;
+  vertical-align: middle;
+}
+.income-control-cell-btn { text-align: center; }
+.income-control-cell-info {
+  border-left: 1px solid var(--c-border) !important;
+  text-align: left;
+  container-type: inline-size;
+}
+.income-control-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.income-add-btn {
+  padding: 3px 8px !important;
+  font-size: 12px !important; /* "대출 추가" 버튼(.add-btn 기본값)과 글자 크기 동일하게 맞춤 */
+}
+.income-control-title {
+  display: inline-block;
+  flex: 1 1 auto;
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+}
+
 /* -------------------- Income row -------------------- */
 .income-label {
   font-weight: bold;
   letter-spacing: -0.5px;
   vertical-align: middle;
   text-align: center;
-  padding: 2px 1px !important; /* 상하좌우 여백 최소화 */
+  padding: 0 !important; /* 상하좌우 여백 없이 텍스트가 칸에 꽉 차게 */
   container-type: inline-size;
 }
-.income-input-cell { vertical-align: middle; text-align: center; padding: 6px 3px !important; container-type: inline-size; }
-.income-title { display: block; margin-right: 0; margin-bottom: 1px; vertical-align: middle; white-space: nowrap; text-align: center; font-size: clamp(10px, 17cqw, 15px); }
-.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 4px; vertical-align: middle; }
+.income-input-cell { vertical-align: middle; text-align: center; padding: 0 !important; container-type: inline-size; }
+.income-title { display: block; margin-right: 0; margin-bottom: 1px; vertical-align: middle; white-space: nowrap; text-align: center; font-size: clamp(10px, 17cqw, 15px); cursor: pointer; }
+.income-title:hover { text-decoration: underline; }
+.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 2px; vertical-align: middle; }
 .income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
-.income-input:disabled {
+/* 증빙 모드: 연소득 입력 + 장래예상을 한 칸 안에서 가로로 나란히 배치 */
+.income-cell-flex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+/* 장래예상 체크 시 나이/요율이 나타나도 연소득 입력칸이 눌려 작아지지 않도록 최소 폭을 보장 */
+.income-cell-flex .income-input { width: 150px; flex: 0 0 150px; }
+.income-cell-flex .future-income-row { width: auto; flex: 0 0 auto; }
+.income-input:disabled,
+.declare-amount-input:disabled {
   background-color: #f1f5f9 !important;
   color: #94a3b8 !important;
   border-color: #e2e8f0 !important;
   cursor: not-allowed;
 }
-.income-settings-cell { vertical-align: middle; padding: 6px 3px !important; border-left: 1px solid var(--c-border) !important; }
+/* 차주가 건보/연금 추정소득일 때 배우자 행을 흐리게 비활성화 (합산 불가).
+   tr 자체에 opacity를 주면 자식에게도 곱연산으로 겹쳐 적용돼 합산소득 칸까지 흐려지므로,
+   칸(td) 단위로 적용하고 합산소득 칸(.income-result-cell)만 예외로 뺀다. */
+.income-row-blocked > td:not(.income-result-cell) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.income-settings-cell { vertical-align: middle; padding: 0 !important; border-left: 1px solid var(--c-border) !important; }
 .age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
 .age-cell, .toggle-cell { container-type: inline-size; }
 .toggle-cell .rate-toggle-row { margin: 0; transform: none; }
 .toggle-cell .rate-display { display: block; margin-top: 2px; }
-.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0px; width: 100%; }
+.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0px; width: 100%; }
 .income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
-.income-settings .rate-toggle-row { display: inline-flex; align-items: center; gap: 0px; font-size: 11px; white-space: nowrap; }
+.income-settings .rate-toggle-row,
+.future-income-row .rate-toggle-row { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; }
 .income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
-#rateDisplay, #spouseRateDisplay { display: block; align-self: center; text-align: center; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 2px 0 0; }
+.future-income-row .rate-toggle-row label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
+.future-income-row .rate-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
+/* "장래예상" 라벨 아래에 예상효율을 줄바꿈해서 표시 (체크박스 옆에 세로로 쌓임) */
+.rate-toggle-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+/* 장래예상 체크박스 - (라벨+요율 2줄) - 나이입력을 한 줄에 왼쪽 정렬로 배치 (체크 전엔 나이/요율 숨김) */
+.future-income-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+.future-income-row .age-input {
+  width: 58px !important;
+  font-size: 13px !important;
+  flex: 0 0 auto;
+}
+.future-income-row .rate-display {
+  margin: 0;
+}
+/* 예상효율 빨간색 표시 - 소득2 이후 동적 행도 동일하게 적용 (.rate-display 클래스는 공용) */
+.rate-display { display: block; text-align: left; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 0; font-size: 11px; }
 .income-settings .rate-display { font-size: 11px; }
 .age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
 .age-input::-webkit-outer-spin-button,
 .age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .age-input { -moz-appearance: textfield; appearance: textfield; }
-.income-result-label { background: var(--c-success-soft) !important; color: var(--c-success-text); font-size: clamp(10px, 12cqw, 17px); font-weight: 700; line-height: 1.3; container-type: inline-size; text-align: center; }
-.income-result-cell { padding: 10px 5px !important; container-type: inline-size; text-align: center; }
-.income-result-cell input[type="text"] {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-  padding: 6px 2px;
+/* 합산 소득 - 라벨과 값을 하나의 배지(chip)로 묶어 오른쪽 정렬 */
+.income-result-badge {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  max-width: 100%;
+  padding: 5px 12px;
+  border-radius: var(--r-md);
+  background: var(--c-success-soft);
+  border: 1px solid #cbe5dc;
   box-sizing: border-box;
-  border: none;
-  border-radius: var(--r-sm);
-  color: var(--c-success-text);
-  background: var(--c-success-soft) !important;
-  font-size: clamp(9px, 13cqw, 18px);
+}
+.income-result-badge-label {
+  font-size: clamp(11px, 11cqw, 15px);
   font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--c-success-text);
+  opacity: 0.75;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
   text-align: center;
+  flex-shrink: 0; /* 값 입력칸 때문에 눌리지 않도록 */
+}
+.income-result-badge-value {
+  display: block;
+  /* width는 JS(자동계산)에서 size 속성을 자릿수에 맞게 갱신해 자동으로 늘고 줄게 함 */
+  width: auto;
+  min-width: 50px; /* 값이 없을 때도 칸이 너무 작아지지 않도록 최소값 */
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0 !important;
+  box-sizing: border-box;
+  border: none !important;
+  background: transparent !important;
+  color: var(--c-success-text);
+  font-size: clamp(12px, 13cqw, 19px);
+  font-weight: 800;
+  text-align: right;
+  line-height: 1.25;
 }
 
-/* -------------------- Income row: 증빙/신고 mode toggle -------------------- */
+/* -------------------- Income row: 증빙/신고 mode toggle (전용 칸에 세로로 배치) -------------------- */
+/* 이 칸(.income-mode-cell) 자체가 항상 빈칸이라 - 안의 토글은 숨겨져 있고, 실제 버블 팝업은
+   setupIncomeTitleBubble()이 document.body로 옮겨서 렌더링함(DSR_calculator_ui.js) - 칸을
+   통째로 접어서(display:none) 옆 연소득 입력칸이 그 공간을 대신 쓰도록 한다. */
+.income-mode-cell { display: none !important; }
 .income-mode-toggle {
-  display: flex;
-  flex-direction: row; /* 이름은 한 줄, 그 아래 얇은 가로형 2단 토글 */
+  display: none;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin-top: 0;
+  margin: 0;
   padding: 0;
-  padding-top: 1px;
-  border-top: 1px dashed #d8dee9;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
   box-sizing: border-box;
 }
 .income-mode-toggle label {
-  padding: 0.5px 2px; /* 좌우 여백을 텍스트 크기에 거의 딱 맞게, 상하도 최소화 */
-  font-size: clamp(9px, 15cqw, 13px);
-  width: auto;
+  padding: 2px 4px;
+  font-size: clamp(10px, 15cqw, 13px);
+  width: 100%;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: visible;
 }
 
+/* -------------------- "추정" 버튼에서 뜨는 카드/건보/연금 곡선(") 모양) 버블 팝업 --------------------
+   position/left/top은 JS에서 fixed로 매번 계산 - table의 overflow:hidden + 셀의
+   container-type이 만드는 클리핑을 피하기 위해 body 바로 아래로 옮겨서 렌더링한다. */
+.declare-type-bubble-list {
+  display: none;
+  position: fixed;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  z-index: 999;
+}
+.declare-type-bubble-list.open { display: flex; }
+.declare-type-bubble-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -5px rgba(15, 23, 42, 0.45);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* 위/아래는 트리거 쪽에 가깝게, 가운데만 오른쪽으로 볼록 튀어나오게 - ")" 괄호 곡선 느낌.
+   position(순서)이 아니라 data-value로 색을 지정해 항목이 늘어나도(증빙/삭제 추가) 카드/건보/연금 색이 유지된다. */
+.declare-type-bubble-item[data-value="증빙"] { background: linear-gradient(135deg, #2563eb, #1d4ed8); margin-left: 2px; animation-delay: 0s; }
+.declare-type-bubble-item[data-value="카드"] { background: linear-gradient(135deg, #a855f7, #6366f1); margin-left: 14px; animation-delay: 0.05s; }
+.declare-type-bubble-item[data-value="건강"] { background: linear-gradient(135deg, #fb923c, #f43f5e); margin-left: 2px; animation-delay: 0.1s; }
+.declare-type-bubble-item[data-value="연금"] { background: linear-gradient(135deg, #22c55e, #0d9488); margin-left: 14px; animation-delay: 0.15s; }
+.declare-type-bubble-item[data-value="삭제"] { background: linear-gradient(135deg, #ef4444, #b91c1c); margin-left: 2px; animation-delay: 0.2s; }
+.declare-type-bubble-item[data-value="초기화"] { background: linear-gradient(135deg, #64748b, #334155); margin-left: 2px; animation-delay: 0.2s; }
+.declare-type-bubble-item:hover,
+.declare-type-bubble-item.active {
+  transform: scale(1.14);
+  box-shadow: 0 8px 18px -5px rgba(15, 23, 42, 0.55);
+}
+
+/* 소득1 버블만 마름모(다이아몬드) 배치로 변경: 위 카드/증빙, 가운데 건보(좌)·연금(우), 아래 초기화 */
+#baseDeclareTypeBubbleList.open {
+  display: grid;
+  grid-template-columns: 40px 40px;
+  grid-template-rows: repeat(3, 40px);
+  gap: 6px;
+  justify-items: center;
+  align-items: center;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="증빙"],
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="카드"] {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="건강"] {
+  grid-column: 1;
+  grid-row: 2;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="연금"] {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="초기화"] {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  margin-left: 0;
+}
+
 /* -------------------- Income row: 신고소득(카드/건강/연금) - 같은 행 셀 교체 방식 -------------------- */
+/* 추정 모드도 증빙과 마찬가지로 칸 안의 구성(연사용액 입력 / 환산금액)을 가로로 나란히 배치 */
+.declare-cell-flex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+.declare-cell-flex .declare-input-group { width: auto; flex: 1 1 auto; min-width: 50px; }
+.declare-cell-flex .declare-converted-output { width: auto; flex: 1 1 auto; min-width: 50px; }
 .declare-input-group {
   display: flex;
   flex-direction: column; /* 카드/건보/연금 선택기 바로 아랫줄에 연사용액 입력 */
   align-items: center;
   justify-content: center;
-  width: 100%;
   gap: 2px; /* 선택기-입력창 간 위아래 간격 최소화 */
   box-sizing: border-box;
 }
@@ -796,19 +1219,18 @@ td:has(.type-btn-row) {
 .declare-input-group .declare-amount-input {
   width: 100%;
   box-sizing: border-box;
-  /* input[inputmode="numeric"]의 전역 !important(padding:0, min-height:32px)를 이 칸에서만 재정의:
-     위아래 폭이 글자 크기(em)에 비례해서 움직이고, 간격은 최소화 */
-  padding: 0.15em 0 !important;
-  min-height: 0 !important;
+  /* 증빙 모드의 #baseIncomeInput/#spouseIncomeInput과 칸 크기·글자 크기를 동일하게 맞춤 */
+  padding: 0 !important;
+  min-height: 32px !important;
   margin: 0;
-  font-size: clamp(8px, 9cqw, 13px);
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   text-align: center;
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface);
 }
-.toggle-slot .declare-converted-output {
+.declare-converted-output {
   width: 100%;
   box-sizing: border-box;
   padding: 4px 3px;
@@ -836,60 +1258,63 @@ td:has(.type-btn-row) {
 
 /* -------------------- Result readouts -------------------- */
 #DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }
-#DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 17px; letter-spacing: -0.4px; }
+#DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 21px; letter-spacing: -0.4px; }
 #월합계 { color: var(--c-primary); font-size: 15px; }
 
-/* -------------------- Card color tuning (구조/기능 동일, 색만 정돈) -------------------- */
+/* -------------------- Card color tuning (구조/기능 동일, 색만 정돈) --------------------
+   제목줄(헤더)과 값을 입력/표시하는 작업줄이 한눈에 구분되도록, 테이블마다 정한 톤을
+   "제목줄(진하게) > 라벨/보조헤더줄(중간) > 입력·데이터 칸(흰색)" 3단계로 명확히 나눈다. */
 /* 본건 월 상환 요약: 기본 뉴트럴 + 파랑 포인트 */
 .summary-table:has(#월합계) {
-  border-color: var(--c-border) !important;
+  border-color: #b9e2f5 !important;
   background: var(--c-surface);
 }
 .summary-table:has(#월합계) .table-header-row td {
-  background: #f4f6fa !important;
-  color: #3b4661 !important;
+  background: #dbe2f3 !important;
+  color: #2c3958 !important;
   font-size: 12px;
+  font-weight: 800;
 }
 .summary-table:has(#월합계) tr:last-child td { background: #ffffff !important; }
 
 /* DSR 한도: 인디고 톤 */
 .dsr-limit-table {
-  border-color: #dfe3f6 !important;
+  border-color: #b9e2f5 !important;
   background: #fdfdff;
 }
-.dsr-limit-table .dsr-label-cell { background: #f1f3fd !important; color: #3a4680; }
+.dsr-limit-table td.dsr-label-cell { background: #d9def9 !important; color: #303e93; font-weight: 800; }
 .dsr-limit-table .dsr-value-cell { background: #fdfdff; }
 .dsr-limit-table .dsr-value-cell:hover { background: #f6f7fe; }
 .dsr-limit-table .dsr-main-val { color: var(--c-primary-dark); }
 
 /* LTV: 담보 영역은 따뜻한 샌드 톤 */
 .ltv-table {
-  border-color: #ece2cf !important;
+  border-color: #b9e2f5 !important;
   background: #fffdf9;
 }
 .ltv-table .ltv-cell { background: #fffdf9 !important; }
-.ltv-table .ltv-cell:first-child { background: #fdf7ea !important; color: #8a6420; }
+.ltv-table .ltv-cell:first-child { background: #f6e7c4 !important; color: #7a5814; font-weight: 800; }
 .ltv-table .ltv-cell + .ltv-cell { border-left-color: #ece2cf !important; }
 .ltv-table .ltv-output { background: #fdf3e0 !important; color: #93641b; border-color: #e6cf9f !important; }
 
 /* DSR · DTI · 신DTI 결과표 */
 .summary-table:has(#DSR확인) {
-  border-color: #dfe3f6 !important;
+  border-color: #b9e2f5 !important;
   background: #ffffff;
 }
-.summary-table:has(#DSR확인) .table-header-row td { background: #f1f3fd !important; color: #3a4680 !important; font-size: 12px; letter-spacing: 1px; }
-.summary-table:has(#DSR확인) tr:last-child td { background: #ffffff !important; }
+.summary-table:has(#DSR확인) .table-header-row td { background: #d9def9 !important; color: #303e93 !important; font-size: 16px; font-weight: 800; letter-spacing: 1px; padding: 8px 4px !important; }
+.summary-table:has(#DSR확인) tr:last-child td { background: #ffffff !important; padding: 7px 4px !important; }
 
-/* 연소득: 세이지 그린 */
-table:has(#baseIncomeInput) { border-color: #d8e7e1 !important; background: #fdfffe; }
-table:has(#baseIncomeInput) .income-label { background: #f1f8f5 !important; color: var(--c-success-text); }
-table:has(#baseIncomeInput) #baseIncomeInput,
-table:has(#baseIncomeInput) #spouseIncomeInput { border-color: #cbe5dc; background: #fdfffe; }
+/* 연소득: 세이지 그린 - 제목줄(소득 추가/소득 정보)을 가장 진하게, 소득N 라벨 칸을 한 단계 연하게 */
+table:has(#baseIncomeInput) { border-color: #b9e2f5 !important; background: #fdfffe; }
+table:has(#baseIncomeInput) .income-control-cell { background: #cdeadb !important; }
+table:has(#baseIncomeInput) .income-label { background: #e3f4ec !important; color: var(--c-success-text); font-weight: 800; }
+table:has(#baseIncomeInput) .income-input { border-color: #cbe5dc; background: #fdfffe; }
 
-/* 대출 정보 */
-table:has(#mortgage-inputs) { border-color: var(--c-border) !important; }
-table:has(#mortgage-inputs) .section-title-bar { background: #f1f3fd !important; color: #3a4680 !important; }
-table:has(#mortgage-inputs) .table-subheader-row td { background: #f8f9fc !important; color: var(--c-text-muted) !important; }
+/* 대출 정보 - 제목 막대(진한 인디고) > 열 이름줄(옅은 인디고) > 실제 입력 행(흰색) */
+table:has(#mortgage-inputs) { border-color: #b9e2f5 !important; }
+table:has(#mortgage-inputs) .section-title-bar { background: #d9def9 !important; color: #303e93 !important; }
+table:has(#mortgage-inputs) .table-subheader-row td { background: #eceffb !important; color: #565f86 !important; font-weight: 700; }
 table:has(#mortgage-inputs) .mortgage-row td { background: #ffffff; }
 table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 
@@ -1043,6 +1468,6 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 }
 #schedule-table td { padding: 6px 4px !important; font-size: 12px !important; }
 .year-divider td { border-bottom: 1px solid var(--c-border) !important; }
-.summary-table td { padding: 7px 4px !important; }
+.summary-table td { padding: 2px 4px !important; }
 .schedule-close-row { display: flex; align-items: center; margin-bottom: 8px; }
 .schedule-loan-info { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: var(--c-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

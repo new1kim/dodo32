@@ -95,14 +95,18 @@
         .close-btn { background: none; border: none; font-size: 26px; line-height: 1; cursor: pointer; color: #94a3b8; padding: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; box-shadow: none; }
         .close-btn:hover { color: #64748b; background: #eef2f7; }
         
-        .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; }
-        .search-input { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
+        .search-input { width: 50%; padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
         .search-input:focus { border-color: var(--primary); outline: none; }
+        #historySearch { width: auto; flex: 1; } /* 버튼이 차지하는 만큼을 제외한 나머지를 검색창이 채움 */
+        #syncNowBtn { flex: 0 0 auto; background: #0f172a; color: #fff; padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+        #syncNowBtn:disabled { opacity: 0.6; cursor: default; }
         
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #f8fafc; }
         
         .history-card { position: relative; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease; }
         .history-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.1); }
+        .call-log-item:hover { background: #f1f5f9; }
         .card-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #64748b; padding-right: 30px; }
         .card-user { font-size: 16px; font-weight: bold; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
         .card-phone { font-size: 14px; color: var(--primary); font-weight: 500; }
@@ -223,6 +227,7 @@
     </div>
     <div class="search-box-wrap">
         <input type="text" class="search-input" id="historySearch" placeholder="이름, 연락처, 메모 등으로 검색">
+        <button type="button" id="syncNowBtn">로컬에 저장</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
 </div>
@@ -304,6 +309,59 @@ window.addEventListener('DOMContentLoaded', function() {
         if (v.length > 7)      v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
         else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,4})/, '$1-$2');
         e.target.value = v.replace(/-+$/, '');
+    });
+
+    // 연락처 칸을 탭하면 최근 통화기록(부재중 제외, 최근 15건) 드롭다운을 보여줌 — Call Note 앱 안에서만 동작
+    function showCallLogDropdown() {
+        if (!(window.AndroidBridge && window.AndroidBridge.getRecentCallLog)) return;
+
+        let dropdown = document.getElementById('callLogDropdown');
+        if (!dropdown) {
+            dropdown = document.createElement('div');
+            dropdown.id = 'callLogDropdown';
+            dropdown.style.cssText = 'position:absolute; z-index:2000; background:#fff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); max-height:280px; overflow-y:auto; display:none;';
+            document.body.appendChild(dropdown);
+        }
+
+        let records = [];
+        try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()); } catch (e) { records = []; }
+
+        if (records.length === 0) {
+            dropdown.innerHTML = '<div style="padding:12px 14px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
+        } else {
+            dropdown.innerHTML = records.map(r => {
+                const icon = r.direction === 'OUT' ? '📤' : '📥';
+                const label = r.name
+                    ? `<b>${r.name}</b> <span style="color:#64748b;">(${r.phone})</span>`
+                    : r.phone;
+                return `<div class="call-log-item" data-phone="${r.phone}" data-name="${r.name || ''}"
+                             style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:14px;">${icon} ${label}</div>`;
+            }).join('');
+        }
+
+        const rect = phoneInput.getBoundingClientRect();
+        dropdown.style.left = (rect.left + window.scrollX) + 'px';
+        dropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        dropdown.style.width = Math.max(rect.width, 220) + 'px';
+        dropdown.style.display = 'block';
+
+        dropdown.querySelectorAll('.call-log-item').forEach(item => {
+            item.addEventListener('click', function() {
+                phoneInput.value = this.getAttribute('data-phone');
+                const nm = this.getAttribute('data-name');
+                if (nm) nameInput.value = nm;
+                dropdown.style.display = 'none';
+            });
+        });
+    }
+
+    phoneInput.addEventListener('click', showCallLogDropdown);
+    phoneInput.addEventListener('focus', showCallLogDropdown);
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('callLogDropdown');
+        if (dropdown && dropdown.style.display === 'block' && e.target !== phoneInput && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
     });
 
     function formatToCustomDate(str) {
@@ -762,6 +820,25 @@ window.addEventListener('DOMContentLoaded', function() {
         if (phone && phoneInput) phoneInput.value = phone;
     };
 
+    // 통화 중에 앱을 열었을 때 연락처 칸만 채우는 게 아니라, 히스토리 검색까지 화면에 안 띄우고 미리 해둠
+    // (모달을 열지 않은 채 modalBody/검색창만 채워두는 것 — openModal()을 안 부르므로 화면엔 아무 변화 없음).
+    // 나중에 사용자가 '불러오기'를 누르면 이미 그 번호로 필터링된 결과가 바로 보임.
+    window.prefetchActiveCall = function(phone) {
+        if (!phone) return;
+        fillActivePhone(phone);
+
+        const userCode = userCodeInput.value.trim();
+        if (!userCode) return;
+
+        loadHistoryData(function() {
+            const searchEl = document.getElementById('historySearch');
+            if (searchEl) {
+                searchEl.value = phone;
+                searchEl.dispatchEvent(new Event('input'));
+            }
+        });
+    };
+
     document.getElementById('loadBtn').addEventListener('click', function() {
         const userCode = userCodeInput.value.trim();
         if(!userCode) { return alert('상담원 식별을 위해 [사용자 이름]를 먼저 입력해 주세요.'); }
@@ -777,6 +854,35 @@ window.addEventListener('DOMContentLoaded', function() {
                 searchEl.dispatchEvent(new Event('input'));
             }
         });
+    });
+
+    // "로컬에 저장" — 하루 4회 자동 동기화를 기다리지 않고, 그 자리에서 서버 자료를 로컬 캐시로 즉시 반영
+    document.getElementById('syncNowBtn').addEventListener('click', function() {
+        if (!(window.AndroidBridge && window.AndroidBridge.syncNowBlocking)) {
+            return alert('이 기능은 Call Note 앱 안에서만 사용할 수 있습니다.');
+        }
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '동기화 중...';
+
+        // 버튼 텍스트가 화면에 반영된 뒤에 블로킹 호출을 실행(그렇지 않으면 텍스트 변경 전에 멈춰버림)
+        setTimeout(function() {
+            let ok = false;
+            try { ok = window.AndroidBridge.syncNowBlocking(); } catch (e) { ok = false; }
+
+            btn.disabled = false;
+            btn.textContent = originalText;
+
+            if (ok) {
+                alert('서버 자료를 로컬에 저장했습니다.');
+                if (document.getElementById('historyModal').classList.contains('open')) {
+                    loadHistoryData();
+                }
+            } else {
+                alert('동기화에 실패했습니다. 네트워크 상태를 확인해주세요.');
+            }
+        }, 50);
     });
 
     function renderHistoryCards(list) {
@@ -986,9 +1092,10 @@ window.addEventListener('DOMContentLoaded', function() {
   <script>
     // 부모(index.html)에서 호출할 전체 필드 초기화 함수
     function resetAllFields() {
-      // 모든 입력 필드 초기화 (서버저장 체크박스 제외)
+      // 모든 입력 필드 초기화 (서버저장 체크박스, 사용자 이름 입력창 제외)
       const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], select, textarea');
       inputs.forEach(input => {
+        if (input.id === 'userCodeInput') return; // 사용자 이름은 초기화 대상이 아님
         input.value = '';
       });
 
@@ -998,10 +1105,10 @@ window.addEventListener('DOMContentLoaded', function() {
         checkbox.checked = false;
       });
 
-      // 주요 필드들 초기화
+      // 주요 필드들 초기화 (사용자 이름은 유지)
       const mainFields = [
-        'userCodeInput', 'phoneInput', 'nameInput', 'dateInput', 
-        'needDateInput', 'moneyInput', 'typeInput', 'contentInput', 
+        'phoneInput', 'nameInput', 'dateInput',
+        'needDateInput', 'moneyInput', 'typeInput', 'contentInput',
         'brokerInput', 'kbPriceInput', 'salePriceInput'
       ];
       
@@ -1035,6 +1142,13 @@ window.addEventListener('DOMContentLoaded', function() {
           localStorage.removeItem(key);
         }
       });
+
+      // 사용자 이름은 초기화 대상이 아님 — 혹시라도 비워졌다면 저장된 원래 값으로 다시 채워줌
+      const savedUserCode = localStorage.getItem('calc_user_name');
+      const userCodeEl = document.getElementById('userCodeInput');
+      if (savedUserCode && userCodeEl && !userCodeEl.value) {
+        userCodeEl.value = savedUserCode;
+      }
 
       // 모달 창 닫기
       const modalOverlay = document.getElementById('modalOverlay');

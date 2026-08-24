@@ -12,113 +12,106 @@
     <div id="bubble-box">신DTI 적용</div>
 
     <div id="capture-area">
-    <table class="summary-table">
-      <tr class="table-header-row">
-        <td rowspan="2" style="width: 22%; cursor: pointer; text-decoration: underline; font-weight: bold;" onclick="openScheduleModal()">본건 월별<br>상환 스케줄</td>
-        <td style="color:#475569; font-weight:normal;">합 계</td>
-        <td style="color:#475569; font-weight:normal;">월 원금</td>
-        <td style="color:#475569; font-weight:normal;">월 이자</td>
-      </tr>
-      <tr>
-        <td id="월합계" class="no-bg">-</td>
-        <td id="월원금" class="no-bg">-</td>
-        <td id="월이자" class="no-bg">-</td>
-      </tr>
-    </table>
+    <div class="dsr-table-wrap" data-table-key="schedule">
+      <table class="summary-table">
+        <tr class="table-header-row">
+          <td rowspan="2" style="width: 22%; cursor: pointer; text-decoration: underline; font-weight: bold;" onclick="openScheduleModal()"><span class="section-title-graphic">본건 월별<br>상환 스케줄</span></td>
+          <td style="color:#475569; font-weight:normal;">합 계</td>
+          <td style="color:#475569; font-weight:normal;">월 원금</td>
+          <td style="color:#475569; font-weight:normal;">월 이자</td>
+        </tr>
+        <tr>
+          <td id="월합계" class="no-bg">-</td>
+          <td id="월원금" class="no-bg">-</td>
+          <td id="월이자" class="no-bg">-</td>
+        </tr>
+      </table>
+    </div>
 
-    <table class="dsr-limit-table">
-      <colgroup>
-        <col style="width: 10%;">
-        <col style="width: 5%;">
-        <col style="width: 25%;">
-        <col style="width: 5%;">
-        <col style="width: 25%;">
-      </colgroup>
-      <tr id="dsrLimitRow">
-        <td class="dsr-label-cell" style="padding: 6px 4px;">
-          <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
-            <label style="background-color: #2563eb; color: #ffffff;">
-              <input type="radio" name="dsr_limit_rate" value="40" checked>40%
-            </label>
-            <label style="background-color: transparent; color: #64748b;">
-              <input type="radio" name="dsr_limit_rate" value="50">50%
-            </label>
-          </div>
-        </td>
-        <td class="dsr-label-cell" style="line-height: 1.1;">원<br>리<br>금</td>
-        <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
-            <span class="dsr-main-val">-</span>
-            <span class="dsr-sub-val">-</span>
-          </span>
-        </td>
-        <td class="dsr-label-cell" style="line-height: 1.1;">원<br>금</td>
-        <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-          <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
-            <span class="dsr-main-val">-</span>
-            <span class="dsr-sub-val">-</span>
-          </span>
-        </td>
-      </tr>
-    </table>
-
-    <table class="ltv-table summary-table">
-      <tr class="table-header-row">
-        <!-- 1번 칸: 시세 입력 -->
-        <td class="ltv-cell">
-          <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)">
-        </td>
-
-        <!-- 2번 & 4번 칸을 하나로 묶어 세로 간격 최소화 -->
-        <td class="ltv-cell">
-          <div class="ltv-stack">
-            <!-- 토글 버튼 영역 -->
-            <div class="pill-toggle-group" id="ltvRateToggleGroup">
+    <div class="dsr-table-wrap" data-table-key="dsr-limit">
+      <table class="dsr-limit-table">
+        <colgroup>
+          <col style="width: 10%;">
+          <col style="width: 5%;">
+          <col style="width: 25%;">
+          <col style="width: 5%;">
+          <col style="width: 25%;">
+        </colgroup>
+        <tr id="dsrLimitRow">
+          <td class="dsr-label-cell" style="padding: 1.8px 4px;">
+            <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
               <label style="background-color: #2563eb; color: #ffffff;">
-                <input type="radio" name="ltv_rate" value="80" checked> 80%
+                <input type="radio" name="dsr_limit_rate" value="40" checked>40%
               </label>
               <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="ltv_rate" value="70"> 70%
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="ltv_rate" value="60"> 60%
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="ltv_rate" value="40"> 40%
+                <input type="radio" name="dsr_limit_rate" value="50">50%
               </label>
             </div>
+          </td>
+          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>리<br>금</td>
+          <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
+            <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
+              <span class="dsr-main-val">-</span>
+              <span class="dsr-sub-val">-</span>
+            </span>
+          </td>
+          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>금</td>
+          <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
+            <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
+              <span class="dsr-main-val">-</span>
+              <span class="dsr-sub-val">-</span>
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
 
-            <!-- 소액임차금액 입력 영역 -->
-            <div class="minor-lease-input-row">
-              <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액 입력">
-              <!-- 나중에 참고 이미지를 연결할 버튼 -->
-              <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+    <div class="dsr-table-wrap" data-table-key="ltv">
+      <table class="ltv-table summary-table">
+        <tr class="table-header-row">
+          <!-- 1번 칸: 시세 입력 -->
+          <td class="ltv-cell">
+            <div class="ltv-market-price-wrap">
+              <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" autocomplete="off">
+              <button type="button" id="marketPriceLookupBtn" onclick="openMarketPriceOverlay()">KB시세 조회</button>
             </div>
-          </div>
-        </td>
+          </td>
 
-        <!-- 3번 칸: LTV 최대한도 -->
-        <td class="ltv-cell">
-          <input type="text" id="ltvMaxAmountOutput" class="ltv-output" placeholder="LTV 최대한도" readonly>
-        </td>
-      </tr>
-    </table>
+          <!-- 2번 & 4번 칸을 하나로 묶어 세로 간격 최소화 -->
+          <td class="ltv-cell">
+            <div class="ltv-stack">
+              <!-- 토글 버튼 영역 -->
+              <div class="pill-toggle-group" id="ltvRateToggleGroup">
+                <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="80" checked>80%</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="70">70%</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="60">60%</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="40">40%</label>
+              </div>
 
-    <table class="summary-table">
-      <tr class="table-header-row">
-        <td style="width: 33.33%;">D S R</td>
-        <td style="width: 33.33%;">D T I</td>
-        <td style="width: 33.33%;">신 D T I</td>
-      </tr>
-      <tr>
-        <td id="DSR확인" class="no-bg">-</td>
-        <td id="DIT확인" class="no-bg">-</td>
-        <td id="신DTI확인" class="no-bg">-</td>
-      </tr>
-    </table>
+              <!-- 소액임차금액 입력 영역 -->
+              <div class="minor-lease-input-row">
+                <div class="minor-lease-input-wrap">
+                  <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액" autocomplete="off">
+                  <div class="minor-lease-suggest-list" id="minorLeaseSuggestList">
+                    <div class="minor-lease-suggest-item" data-value="55000000">5,500만</div>
+                    <div class="minor-lease-suggest-item" data-value="48000000">4,800만</div>
+                    <div class="minor-lease-suggest-item" data-value="28000000">2,800만</div>
+                    <div class="minor-lease-suggest-item" data-value="25000000">2,500만</div>
+                  </div>
+                </div>
+                <!-- 나중에 참고 이미지를 연결할 버튼 -->
+                <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+              </div>
+            </div>
+          </td>
 
-
-
+          <!-- 3번 칸: LTV 최대한도 -->
+          <td class="ltv-cell">
+            <input type="text" id="ltvMaxAmountOutput" class="ltv-output" placeholder="LTV 최대한도" readonly>
+          </td>
+        </tr>
+      </table>
+    </div>
 
 
 
@@ -152,113 +145,107 @@
 
     
 
+    <div class="dsr-table-wrap" data-table-key="dsr-dti">
+      <table class="summary-table">
+        <tr class="table-header-row">
+          <td style="width: 33.33%;">D S R</td>
+          <td style="width: 33.33%;">D T I</td>
+          <td style="width: 33.33%;">신 D T I</td>
+        </tr>
+        <tr>
+          <td id="DSR확인" class="no-bg">-</td>
+          <td id="DIT확인" class="no-bg">-</td>
+          <td id="신DTI확인" class="no-bg">-</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="dsr-table-wrap" data-table-key="income">
     <table class="income-table">
       <colgroup>
-        <col style="width: 13%;">
-        <col style="width: 25%;">
-        <col style="width: 15%;">
-        <col style="width: 15%;">
-        <col style="width: 22%;">
+        <col style="width: 12%;">
+        <col style="width: 12%;">
+        <col style="width: 35%;">
+        <col style="width: 31%;">
       </colgroup>
-      <tr>
+      <tr class="income-control-row">
+        <td class="income-control-cell income-control-cell-btn">
+          <button type="button" class="add-btn income-add-btn" onclick="handleAddIncomeClick(this)">소 득<br>추 가</button>
+          <div class="declare-type-bubble-list" id="incomeAddTypeBubbleList">
+            <div class="declare-type-bubble-item" data-value="증빙">증빙</div>
+            <div class="declare-type-bubble-item" data-value="카드">카드</div>
+          </div>
+        </td>
+        <td class="income-control-cell income-control-cell-info" colspan="3">
+          <div class="income-control-info-row">
+            <span class="income-control-title section-title-graphic">소득 정보</span>
+            <div class="income-result-badge">
+              <span class="income-result-badge-label">합산</span>
+              <input type="text" id="totalIncomeOutput" class="income-result-badge-value" readonly placeholder="합계">
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="income-data-row" id="incomeRow_1">
         <td class="income-label">
-          <div class="income-title">차주</div>
+          <div class="income-title" id="baseIncomeTitle">소득1</div>
+        </td>
+        <td class="income-mode-cell" id="baseModeCell">
           <div class="income-mode-toggle pill-toggle-group" id="baseIncomeModeToggle">
             <label style="background-color: #2563eb; color: #ffffff;">
-              <input type="radio" name="base_income_mode" value="증빙" checked>증빙
+              <input type="radio" name="base_income_mode" value="증빙" checked><span class="income-mode-label">증빙</span>
             </label>
             <label style="background-color: transparent; color: #64748b;">
-              <input type="radio" name="base_income_mode" value="신고">추정
+              <input type="radio" name="base_income_mode" value="신고"><span class="income-mode-label" id="baseEstimateLabel">추정</span>
             </label>
           </div>
-        </td>
-        <td class="income-input-cell" id="baseIncomeInputCell">
-          <input type="hidden" id="computedIncomeHidden" value="">
-          <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
-          <div class="declare-input-group" id="baseDeclareInputGroup" style="display:none;">
-            <div class="pill-toggle-group declare-type-toggle" id="baseDeclareTypeToggle">
-              <label style="background-color: #2563eb; color: #ffffff;">
-                <input type="radio" name="base_declare_type" value="카드" checked>카드
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="base_declare_type" value="건강">건보
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="base_declare_type" value="연금">연금
-              </label>
-            </div>
-            <input type="text" inputmode="numeric" class="declare-amount-input" id="baseDeclareAmountInput" placeholder="연사용액 입력">
+          <div class="declare-type-bubble-list" id="baseDeclareTypeBubbleList">
+            <div class="declare-type-bubble-item" data-value="증빙">증빙</div>
+            <div class="declare-type-bubble-item" data-value="카드">카드</div>
+            <div class="declare-type-bubble-item" data-value="건강">건보</div>
+            <div class="declare-type-bubble-item" data-value="연금">연금</div>
+            <div class="declare-type-bubble-item" data-value="초기화">초기화</div>
           </div>
         </td>
-        <td class="income-settings-cell" id="baseSettingsCell">
-          <div class="income-settings" id="baseIncomeSettings">
-            <div class="income-settings-top">
-              <div class="age-slot">
-                <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992">
-              </div>
-              <div class="toggle-slot">
-                <span class="rate-toggle-row">
-                  <input type="checkbox" id="applyRateCheck">
+        <td class="income-input-cell" id="baseIncomeInputCell" colspan="3">
+          <input type="hidden" id="computedIncomeHidden" class="income-computed-hidden" value="">
+          <!-- 증빙 모드: 연소득 입력 + 장래예상(체크박스/나이/요율)을 가로로 나란히 배치 -->
+          <div class="income-cell-flex" id="baseIncomeCellFlex">
+            <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
+            <div class="future-income-row" id="baseFutureIncomeRow">
+              <span class="rate-toggle-row">
+                <span class="rate-toggle-text">
                   <label for="applyRateCheck">장래예상</label>
+                  <span id="rateDisplay" class="rate-display" style="display:none;">(-)</span>
                 </span>
-                <input type="text" class="declare-converted-output" id="baseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
-              </div>
+                <input type="checkbox" id="applyRateCheck">
+              </span>
+              <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992" style="display:none;">
             </div>
-            <span id="rateDisplay" class="rate-display">(-)</span>
           </div>
-        </td>
-        <td class="income-result-label" id="incomeResultLabelCell">합산 소득</td>
-      </tr>
-      <tr>
-        <td class="income-label">
-          <div class="income-title">배우자</div>
-          <div class="income-mode-toggle pill-toggle-group" id="spouseIncomeModeToggle">
-            <label style="background-color: #2563eb; color: #ffffff;">
-              <input type="radio" name="spouse_income_mode" value="증빙" checked>증빙
-            </label>
-            <label style="background-color: transparent; color: #64748b;">
-              <input type="radio" name="spouse_income_mode" value="신고">추정
-            </label>
-          </div>
-        </td>
-        <td class="income-input-cell" id="spouseIncomeInputCell">
-          <input type="hidden" id="spouseComputedIncomeHidden" value="">
-          <input type="text" id="spouseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력">
-          <div class="declare-input-group" id="spouseDeclareInputGroup" style="display:none;">
-            <div class="pill-toggle-group declare-type-toggle" id="spouseDeclareTypeToggle">
-              <label style="background-color: #2563eb; color: #ffffff;">
-                <input type="radio" name="spouse_declare_type" value="카드" checked>카드
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="spouse_declare_type" value="건강">건보
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="spouse_declare_type" value="연금">연금
-              </label>
-            </div>
-            <input type="text" inputmode="numeric" class="declare-amount-input" id="spouseDeclareAmountInput" placeholder="연사용액 입력">
-          </div>
-        </td>
-        <td class="income-settings-cell" id="spouseSettingsCell">
-          <div class="income-settings" id="spouseIncomeSettings">
-            <div class="income-settings-top">
-              <div class="age-slot">
-                <input type="number" id="spouseAgeInput" class="age-input" placeholder="32 or 1992">
+          <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
+          <div class="declare-cell-flex" id="baseDeclareCellFlex">
+            <div class="declare-input-group" id="baseDeclareInputGroup" style="display:none;">
+              <!-- 카드/건보/연금 선택은 이제 왼쪽 "추정" 버튼에서 뜨는 버블 팝업으로 처리 - 이 라디오들은 상태 보관용으로만 남기고 화면엔 숨김 -->
+              <div class="pill-toggle-group declare-type-toggle" id="baseDeclareTypeToggle" style="display:none;">
+                <label style="background-color: #2563eb; color: #ffffff;">
+                  <input type="radio" name="base_declare_type" value="카드" checked>카드
+                </label>
+                <label style="background-color: transparent; color: #64748b;">
+                  <input type="radio" name="base_declare_type" value="건강">건보
+                </label>
+                <label style="background-color: transparent; color: #64748b;">
+                  <input type="radio" name="base_declare_type" value="연금">연금
+                </label>
               </div>
-              <div class="toggle-slot">
-                <span class="rate-toggle-row">
-                  <input type="checkbox" id="spouseApplyRateCheck">
-                  <label for="spouseApplyRateCheck">장래예상</label>
-                </span>
-                <input type="text" class="declare-converted-output" id="spouseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
-              </div>
+              <input type="text" inputmode="numeric" class="declare-amount-input" id="baseDeclareAmountInput" placeholder="연사용액 입력">
             </div>
-            <span id="spouseRateDisplay" class="rate-display">(-)</span>
+            <input type="text" class="declare-converted-output" id="baseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
           </div>
         </td>
-        <td class="income-result-cell" id="incomeResultValueCell"><input type="text" id="totalIncomeOutput" readonly placeholder="합계"></td>
       </tr>
     </table>
+    </div>
 
 
 
@@ -268,38 +255,57 @@
 
 
 
-
-
+    <div class="dsr-table-wrap" data-table-key="loan">
     <table>
       <colgroup>
-          <col style="width: 6%;">   
-          <col style="width: 52%;">  
-          <col style="width: 12%;">  
+          <col style="width: 6%;">
+          <col style="width: 52%;">
+          <col style="width: 12%;">
           <col style="width: 24%;">  
       </colgroup>
       <thead>
         <tr class="table-header-row">
           <th colspan="4" class="section-title-bar">
-            <button type="button" class="add-btn" onclick="주담대행추가()">행 추가</button>
-            대출 정보 입력
-            <button type="button" class="copy-btn" onclick="내용복사()">내용복사</button>
-            <button type="button" class="copy-btn" id="screenshot-btn" onclick="화면캡쳐()">화면캡쳐</button>
+            <button type="button" class="add-btn" onclick="주담대행추가()">대 출<br>추 가</button>
+            <div class="section-title-bar-inner">
+              <span class="section-title-graphic">대출 정보</span>
+              <span class="copy-menu-wrap">
+                <button type="button" class="copy-btn" id="copy-menu-btn">내 용<br>복 사</button>
+                <span class="copy-menu-list" id="copyMenuList">
+                  <span class="copy-menu-item" onclick="내용복사()">텍스트<BR> 복사</span>
+                  <span class="copy-menu-item" onclick="화면캡쳐()">화면<BR>캡쳐</span>
+                </span>
+              </span>
+            </div>
+            <button type="button" class="copy-btn" id="screenshot-btn" onclick="화면캡쳐()" style="display:none;">화면캡쳐</button>
             <button type="button" class="reset-btn" onclick="선택초기화()">초기화</button>
           </th>
         </tr>
         <tr class="table-subheader-row" style="font-size: 11px; text-align: center;">
+          <!--
           <td style="padding: 6px 2px; white-space: normal !important;">
             <div style="font-weight:700; font-size:12px; line-height:1.1; text-align:center;">상환<br>조건</div>
+                  (( 바로 위에 주석처리 한 내용은 지우지 말것 )) -->
+              
           </td>
-          <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
+          <!-- <td style="white-space: normal !important; padding: 6px 2px;">대출원금<br>금리 | ST금리</td>
           <td style="white-space: normal !important; padding: 6px 2px;">기간</td>
-          <td style="white-space: normal !important; padding: 6px 2px;">상환 방식</td>
+          <td style="white-space: normal !important; padding: 6px 2px;">상환 방식</td>  -->
         </tr>
       </thead>
       <tbody id="mortgage-inputs">
       </tbody>
     </table>
     </div>
+    </div>
+
+    <!-- 테이블 순서 테스트용 선택기 - 최종 순서(6,2,1,4,3,5)를 위 테이블 배치에 직접 반영해서 지금은 숨겨둠.
+         나중에 순서를 다시 실험하고 싶으면 이 주석만 풀면 바로 재사용 가능 (JS/CSS는 그대로 남겨둠).
+    <div id="tableOrderTestPanel" class="table-order-test-panel">
+      <label>테이블 순서 테스트 (버튼 두 개를 순서대로 누르면 서로 자리를 바꿔요)</label>
+      <div class="table-order-btn-row" id="tableOrderBtnRow"></div>
+    </div>
+    -->
 
     <div class="view-btn-wrapper">
       <button class="view-btn" onclick="openTextModal()">기본값 설정 및 안내</button>
@@ -448,23 +454,23 @@
               <thead>
                 <tr>
                   <td>구분</td>
-                  <td>요율 % (÷)</td>
-                  <td>인정배수 % (X)</td>
+                  <td>(÷) 요율 %</td>
+                  <td>(X) 인정배수 %</td>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>카드</td>
+                  <td>카드 연사용액</td>
                   <td><input type="text" id="edit-declare-카드-divisor" inputmode="decimal"></td>
                   <td><input type="text" id="edit-declare-카드-multiplier" inputmode="decimal"></td>
                 </tr>
                 <tr>
-                  <td>건보</td>
+                  <td>건보 3개월평균<br>세대주</td>
                   <td><input type="text" id="edit-declare-건강-divisor" inputmode="decimal"></td>
                   <td><input type="text" id="edit-declare-건강-multiplier" inputmode="decimal"></td>
                 </tr>
                 <tr>
-                  <td>연금</td>
+                  <td>연금 3개월평균</td>
                   <td><input type="text" id="edit-declare-연금-divisor" inputmode="decimal"></td>
                   <td><input type="text" id="edit-declare-연금-multiplier" inputmode="decimal"></td>
                 </tr>
@@ -504,6 +510,11 @@
     </div>
   </div>
 
+  <!-- KB 시세 조회 전체화면 오버레이 -->
+  <div id="marketPriceOverlay" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
+    <iframe id="marketPriceFrame" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
+  </div>
+
   <!-- 화면 캡쳐용 라이브러리 (html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- JavaScript 파일 연결 -->
@@ -522,6 +533,41 @@
       }
       document.body.addEventListener('scroll', onPageScroll, { passive: true });
     })();
+  </script>
+
+  <!-- KB 시세 조회 오버레이 열기/닫기 + 결과 적용 -->
+  <script>
+    function openMarketPriceOverlay() {
+      var overlay = document.getElementById('marketPriceOverlay');
+      var frame = document.getElementById('marketPriceFrame');
+      frame.src = '시세조회.html';
+      overlay.style.display = 'block';
+    }
+
+    function closeMarketPriceOverlay() {
+      var overlay = document.getElementById('marketPriceOverlay');
+      var frame = document.getElementById('marketPriceFrame');
+      overlay.style.display = 'none';
+      frame.src = 'about:blank';
+    }
+
+    window.addEventListener('message', function (e) {
+      if (!e.data || !e.data.type) return;
+
+      if (e.data.type === 'kbMarketPriceClose') {
+        closeMarketPriceOverlay();
+        return;
+      }
+
+      if (e.data.type === 'kbMarketPrice') {
+        var input = document.getElementById('ltvMarketPriceInput');
+        if (input) {
+          input.value = String(e.data.value);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        closeMarketPriceOverlay();
+      }
+    });
   </script>
 </body>
 </html>

@@ -329,12 +329,19 @@ function toggleLoanCategory(btn) {
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
+let bubbleHideTimer = null;
 function showBubble(text = "신DTI 적용") {
   const b = document.getElementById("bubble-box");
   if (!b) return;
   b.innerText = text;
-  b.style.display = "block"; 
-  setTimeout(() => b.style.display = "none", 1000);
+  b.style.display = "block";
+  // 이전 메시지가 아직 떠 있는 상태에서 새로 호출되면, 남아있던 타이머가 새 메시지를
+  // 조기에 꺼버리지 않도록 취소하고 지금 이 호출 기준으로 1초를 다시 센다.
+  if (bubbleHideTimer) clearTimeout(bubbleHideTimer);
+  bubbleHideTimer = setTimeout(() => {
+    b.style.display = "none";
+    bubbleHideTimer = null;
+  }, 1000);
 }
 
 function setFirstRowRepaymentType(type) {
@@ -649,7 +656,7 @@ function 주담대행추가() {
   `;
 
   newRow.innerHTML = `
-    <td class="no-bg" style="padding: 6px 4px; vertical-align: middle;">
+    <td class="no-bg" style="padding: 2px; vertical-align: middle;">
       <div class="mort-exclude-cell">
         <input type="checkbox" class="mort-exclude" title="계산제외">
       </div>
@@ -777,6 +784,9 @@ function updateIncomeCalc() {
 if (applyRateCheck) {
   applyRateCheck.addEventListener("change", (e) => {
       showBubble(e.target.checked ? "장래예상 적용" : "장래예상 해제");
+      // 체크 시에만 나이/요율 칸이 옆에 나타나도록 표시 여부를 다시 계산
+      if (ageInput) ageInput.style.display = e.target.checked ? '' : 'none';
+      if (rateDisplay) rateDisplay.style.display = e.target.checked ? '' : 'none';
       updateIncomeCalc();
   });
 }
@@ -825,59 +835,7 @@ if (baseIncomeInput) {
   });
 }
 
-// 배우자 연소득 입력 및 상환능력 보정
-let memoSpouseIncome = 0;
-let isEditingSpouseIncome = false;
-const spouseIncomeInput = document.getElementById("spouseIncomeInput");
-const spouseHiddenIncomeInput = document.getElementById("spouseComputedIncomeHidden");
-const spouseAgeInput = document.getElementById("spouseAgeInput");
-const spouseApplyRateCheck = document.getElementById("spouseApplyRateCheck");
-const spouseRateDisplay = document.getElementById("spouseRateDisplay");
-
-function updateSpouseIncomeCalc() {
-  if (!spouseIncomeInput || !spouseHiddenIncomeInput || !spouseAgeInput || !spouseApplyRateCheck || !spouseRateDisplay) return;
-  if (spouseAgeInput.value.length > 4) spouseAgeInput.value = spouseAgeInput.value.slice(0, 4);
-  const age = parseAgeInputValue(spouseAgeInput.value);
-  const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
-  const rate = matched ? matched.percent / 100 : 1;
-  const spouseIsDeclareMode = (typeof spouseIncomeMode !== 'undefined' && spouseIncomeMode === '신고');
-  const spouseRateApplies = spouseApplyRateCheck.checked && !spouseIsDeclareMode; // 신고소득 모드에서는 장래예상 미적용
-  spouseRateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
-  const finalVal = spouseRateApplies ? memoSpouseIncome * rate : memoSpouseIncome;
-  spouseHiddenIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-  if (!isEditingSpouseIncome) spouseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-  if (spouseApplyRateCheck.checked && matched && memoSpouseIncome > 0 && (typeof spouseIncomeMode === 'undefined' || spouseIncomeMode !== '신고')) {
-    spouseIncomeInput.style.color = "#1d4ed8";
-    spouseIncomeInput.style.backgroundColor = "#eff6ff";
-  } else {
-    spouseIncomeInput.style.color = "";
-    spouseIncomeInput.style.backgroundColor = "";
-  }
-  if (typeof 자동계산 === 'function') 자동계산();
-}
-
-if (spouseApplyRateCheck) spouseApplyRateCheck.addEventListener("change", updateSpouseIncomeCalc);
-if (spouseAgeInput) spouseAgeInput.addEventListener("input", updateSpouseIncomeCalc);
-if (spouseIncomeInput) {
-  spouseIncomeInput.addEventListener("focus", () => {
-    isEditingSpouseIncome = true;
-    const value = spouseIncomeInput.value.replace(/\D/g, '');
-    if (value && memoSpouseIncome === 0) memoSpouseIncome = parseFloat(value);
-    memoSpouseIncomeDirect = memoSpouseIncome;
-    spouseIncomeInput.value = memoSpouseIncome > 0 ? memoSpouseIncome.toLocaleString() : "";
-  });
-  spouseIncomeInput.addEventListener("blur", () => {
-    isEditingSpouseIncome = false;
-    updateSpouseIncomeCalc();
-  });
-  spouseIncomeInput.addEventListener("input", (e) => {
-    const value = e.target.value.replace(/\D/g, '');
-    memoSpouseIncome = value ? parseFloat(value) : 0;
-    memoSpouseIncomeDirect = memoSpouseIncome;
-    e.target.value = value ? memoSpouseIncome.toLocaleString() : "";
-    updateSpouseIncomeCalc();
-  });
-}
+// 배우자(고정 1인) 로직은 동적 "소득N" 행 제네릭 엔진으로 대체됨 - 아래 "소득행 제네릭 엔진" 섹션 참고.
 
 /* ==========================================================================
    신고소득(카드/건강/연금) 환산 - 차주/배우자 공통
@@ -915,22 +873,12 @@ let baseDeclareType = '카드';
 let memoBaseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 }; // 추정 버튼(카드/건보/연금) 별로 입력값을 따로 저장
 let memoBaseIncomeDirect = 0; // 증빙 모드에서 직접 입력한 원본 연소득 (모드 전환 시 복원용)
 
-let spouseIncomeMode = '증빙';
-let spouseDeclareType = '카드';
-let memoSpouseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
-let memoSpouseIncomeDirect = 0;
-
 const baseIncomeModeRadios = document.querySelectorAll('input[name="base_income_mode"]');
 const baseDeclareTypeRadios = document.querySelectorAll('input[name="base_declare_type"]');
 const baseDeclareAmountInput = document.getElementById("baseDeclareAmountInput");
 const baseDeclareConvertedOutput = document.getElementById("baseDeclareConvertedOutput");
 const baseDeclareInputGroup = document.getElementById("baseDeclareInputGroup");
-
-const spouseIncomeModeRadios = document.querySelectorAll('input[name="spouse_income_mode"]');
-const spouseDeclareTypeRadios = document.querySelectorAll('input[name="spouse_declare_type"]');
-const spouseDeclareAmountInput = document.getElementById("spouseDeclareAmountInput");
-const spouseDeclareConvertedOutput = document.getElementById("spouseDeclareConvertedOutput");
-const spouseDeclareInputGroup = document.getElementById("spouseDeclareInputGroup");
+const baseEstimateLabel = document.getElementById("baseEstimateLabel");
 
 // 카드는 연사용액을 그대로 입력, 건보/연금은 최근 3개월 평균 월납부액을 입력받는다.
 const DECLARE_AMOUNT_PLACEHOLDERS = { '카드': '연사용액 입력', '건강': '3개월 평균 입력', '연금': '3개월 평균 입력' };
@@ -945,15 +893,6 @@ function refreshBaseDeclareConverted() {
   return converted;
 }
 
-function refreshSpouseDeclareConverted() {
-  const amount = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
-  const converted = calcDeclareConvertedIncome(spouseDeclareType, amount);
-  if (spouseDeclareConvertedOutput) {
-    spouseDeclareConvertedOutput.value = converted > 0 ? Math.floor(converted).toLocaleString() : "";
-  }
-  return converted;
-}
-
 /* 신고소득 모드 전환: 같은 행 안에서 칸의 내용을 그대로 바꿔치기한다.
    연소득 입력칸 -> 카드/건강/연금 토글(+ 바로 아랫줄 연사용액 입력),
    나이 칸 + 장래예상 체크박스 칸 -> 두 칸을 합쳐 환산금액 표시. */
@@ -961,65 +900,62 @@ function applyBaseIncomeMode() {
   const isDeclare = baseIncomeMode === '신고';
   if (baseIncomeInput) baseIncomeInput.style.display = isDeclare ? 'none' : '';
   if (baseDeclareInputGroup) baseDeclareInputGroup.style.display = isDeclare ? 'flex' : 'none';
-  if (ageInput) ageInput.style.display = isDeclare ? 'none' : '';
   if (baseDeclareAmountInput) {
     baseDeclareAmountInput.style.display = isDeclare ? '' : 'none';
     baseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[baseDeclareType] || '금액 입력';
     const amt = memoBaseDeclareAmounts[baseDeclareType] || 0;
     baseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
   }
-  const baseRateToggleRow = applyRateCheck ? applyRateCheck.closest('.rate-toggle-row') : null;
-  if (baseRateToggleRow) baseRateToggleRow.style.display = isDeclare ? 'none' : '';
+  // 장래예상(체크박스+나이+요율) 한 줄 전체는 추정(신고) 모드에서는 의미가 없으므로 숨기고,
+  // 증빙 모드에서는 체크박스만 항상 보이다가 체크했을 때만 나이/요율이 옆에 나타난다.
+  const baseFutureIncomeRow = document.getElementById('baseFutureIncomeRow');
+  if (baseFutureIncomeRow) baseFutureIncomeRow.style.display = isDeclare ? 'none' : '';
+  const showAgeAndRate = !isDeclare && applyRateCheck && applyRateCheck.checked;
+  if (ageInput) ageInput.style.display = showAgeAndRate ? '' : 'none';
+  if (rateDisplay) rateDisplay.style.display = showAgeAndRate ? '' : 'none';
   if (baseDeclareConvertedOutput) baseDeclareConvertedOutput.style.display = isDeclare ? '' : 'none';
-  if (rateDisplay) rateDisplay.style.display = isDeclare ? 'none' : '';
-  // 추정(신고) 모드에서는 나이 칸을 숨기고, 환산금액 칸이 두 칸 폭을 모두 차지하도록 합친다.
-  const baseAgeCell = document.getElementById('baseAgeCell');
-  const baseToggleCell = document.getElementById('baseToggleCell');
-  if (baseAgeCell) baseAgeCell.style.display = isDeclare ? 'none' : '';
-  if (baseToggleCell) baseToggleCell.colSpan = isDeclare ? 2 : 1;
+  // "추정" 버튼 라벨: 신고 모드일 땐 현재 선택된 카드/건보/연금을, 증빙으로 돌아가면 "추정"으로 복원
+  const baseTitleEl = document.getElementById('baseIncomeTitle');
+  if (baseEstimateLabel) {
+    baseEstimateLabel.textContent = isDeclare ? (DECLARE_TYPE_LABELS[baseDeclareType] || '추정') : '추정';
+    const baseEstimateLabelEl = baseEstimateLabel.closest('label');
+    const baseRow = baseEstimateLabel.closest('tr');
+    const baseLabelCell = baseRow ? baseRow.querySelector('.income-label') : null;
+    if (isDeclare) {
+      const activeBubble = document.querySelector(`#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="${baseDeclareType}"]`);
+      const bg = activeBubble ? getComputedStyle(activeBubble).backgroundImage : null;
+      if (bg) {
+        if (baseEstimateLabelEl) baseEstimateLabelEl.style.setProperty('background', bg, 'important');
+        if (baseLabelCell) {
+          baseLabelCell.style.setProperty('background', bg, 'important');
+          baseLabelCell.style.setProperty('color', '#ffffff', 'important');
+        }
+      }
+      // 선택된 소득 종류(카드/건보/연금) 이름을 "소득1" 자리에 그대로 표시
+      if (baseTitleEl) {
+        baseTitleEl.textContent = DECLARE_TYPE_LABELS[baseDeclareType] || baseTitleEl.textContent;
+        baseTitleEl.dataset.labelOverride = '1';
+      }
+    } else {
+      if (baseEstimateLabelEl) baseEstimateLabelEl.style.removeProperty('background');
+      if (baseLabelCell) {
+        baseLabelCell.style.removeProperty('background');
+        baseLabelCell.style.removeProperty('color');
+      }
+      if (baseTitleEl) delete baseTitleEl.dataset.labelOverride;
+    }
+  }
   memoBaseIncome = isDeclare ? refreshBaseDeclareConverted() : memoBaseIncomeDirect;
   updateIncomeCalc();
-}
-
-function applySpouseIncomeMode() {
-  const isDeclare = spouseIncomeMode === '신고';
-  if (spouseIncomeInput) spouseIncomeInput.style.display = isDeclare ? 'none' : '';
-  if (spouseDeclareInputGroup) spouseDeclareInputGroup.style.display = isDeclare ? 'flex' : 'none';
-  if (spouseAgeInput) spouseAgeInput.style.display = isDeclare ? 'none' : '';
-  if (spouseDeclareAmountInput) {
-    spouseDeclareAmountInput.style.display = isDeclare ? '' : 'none';
-    spouseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[spouseDeclareType] || '금액 입력';
-    const amt = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
-    spouseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
-  }
-  const spouseRateToggleRow = spouseApplyRateCheck ? spouseApplyRateCheck.closest('.rate-toggle-row') : null;
-  if (spouseRateToggleRow) spouseRateToggleRow.style.display = isDeclare ? 'none' : '';
-  if (spouseDeclareConvertedOutput) spouseDeclareConvertedOutput.style.display = isDeclare ? '' : 'none';
-  if (spouseRateDisplay) spouseRateDisplay.style.display = isDeclare ? 'none' : '';
-  // 추정(신고) 모드에서는 나이 칸을 숨기고, 환산금액 칸이 두 칸 폭을 모두 차지하도록 합친다.
-  const spouseAgeCell = document.getElementById('spouseAgeCell');
-  const spouseToggleCell = document.getElementById('spouseToggleCell');
-  if (spouseAgeCell) spouseAgeCell.style.display = isDeclare ? 'none' : '';
-  if (spouseToggleCell) spouseToggleCell.colSpan = isDeclare ? 2 : 1;
-  memoSpouseIncome = isDeclare ? refreshSpouseDeclareConverted() : memoSpouseIncomeDirect;
-  updateSpouseIncomeCalc();
+  applyOtherRowsBlock();
+  relabelIncomeRows();
 }
 
 baseIncomeModeRadios.forEach(radio => {
   radio.addEventListener("change", () => {
     baseIncomeMode = radio.value;
     refreshRadioToggleStyles('#baseIncomeModeToggle');
-    showBubble(baseIncomeMode === '신고' ? '차주 추정소득 모드' : '차주 증빙소득 모드');
     applyBaseIncomeMode();
-  });
-});
-
-spouseIncomeModeRadios.forEach(radio => {
-  radio.addEventListener("change", () => {
-    spouseIncomeMode = radio.value;
-    refreshRadioToggleStyles('#spouseIncomeModeToggle');
-    showBubble(spouseIncomeMode === '신고' ? '배우자 추정소득 모드' : '배우자 증빙소득 모드');
-    applySpouseIncomeMode();
   });
 });
 
@@ -1027,34 +963,143 @@ baseDeclareTypeRadios.forEach(radio => {
   radio.addEventListener("change", () => {
     baseDeclareType = radio.value;
     refreshRadioToggleStyles('#baseDeclareTypeToggle');
-    if (baseDeclareAmountInput) {
-      baseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[baseDeclareType] || '금액 입력';
-      // 종류별로 저장해둔 금액을 그대로 불러와 입력창에 표시 (다른 종류의 금액과 섞이지 않음)
-      const amt = memoBaseDeclareAmounts[baseDeclareType] || 0;
-      baseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
-    }
-    if (baseIncomeMode === '신고') {
-      memoBaseIncome = refreshBaseDeclareConverted();
-      updateIncomeCalc();
-    }
+    // 이미 신고 모드인 상태에서 카드->건보처럼 종류만 바뀌는 경우 모드 라디오는 change가 안 뜨므로,
+    // 제목/라벨 갱신을 포함한 applyBaseIncomeMode()를 여기서 직접 호출해줘야 반영된다.
+    applyBaseIncomeMode();
   });
 });
 
-spouseDeclareTypeRadios.forEach(radio => {
-  radio.addEventListener("change", () => {
-    spouseDeclareType = radio.value;
-    refreshRadioToggleStyles('#spouseDeclareTypeToggle');
-    if (spouseDeclareAmountInput) {
-      spouseDeclareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[spouseDeclareType] || '금액 입력';
-      const amt = memoSpouseDeclareAmounts[spouseDeclareType] || 0;
-      spouseDeclareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
-    }
-    if (spouseIncomeMode === '신고') {
-      memoSpouseIncome = refreshSpouseDeclareConverted();
-      updateSpouseIncomeCalc();
-    }
+// "소득N" 제목을 클릭하면 뜨는 증빙/카드/(건보/연금)/삭제/초기화 곡선(")") 버블 팝업 - 소득 모드를
+// 고르거나 행을 삭제/초기화하는 유일한 수단(연소득 입력 옆의 증빙/추정 버튼은 숨김 처리됨).
+// 소득1(base)은 증빙/카드/건보/연금/초기화, 소득2 이후는 증빙/카드/삭제만 표시하도록 각 행의
+// declare-type-bubble-list HTML 자체에 항목을 다르게 구성해둔다.
+function setupIncomeTitleBubble(titleEl, bubbleListEl, modeRadios, typeRadios, options = {}) {
+  if (!titleEl || !bubbleListEl) return null;
+  document.body.appendChild(bubbleListEl);
+
+  const positionBubble = () => {
+    const rect = titleEl.getBoundingClientRect();
+    bubbleListEl.style.left = (rect.right + 10) + 'px';
+    bubbleListEl.style.top = (rect.top + rect.height / 2 - bubbleListEl.offsetHeight / 2) + 'px';
+  };
+  const openBubble = () => {
+    // 이미 선택되어 있는 값(증빙 or 현재 declareType)은 버블 목록에서 감춘다 - 삭제/초기화 같은
+    // 동작 항목은 선택 상태와 무관하므로 항상 표시한다.
+    const modeChecked = [...modeRadios].find(r => r.checked);
+    const activeValue = (modeChecked && modeChecked.value === '신고')
+      ? (([...typeRadios].find(r => r.checked) || {}).value)
+      : '증빙';
+    bubbleListEl.querySelectorAll('.declare-type-bubble-item').forEach(item => {
+      const value = item.dataset.value;
+      if (value === '삭제' || value === '초기화') return;
+      item.style.display = (value === activeValue) ? 'none' : '';
+    });
+    bubbleListEl.classList.add('open');
+    positionBubble();
+  };
+  const closeBubble = () => bubbleListEl.classList.remove('open');
+
+  titleEl.addEventListener('click', () => openBubble());
+
+  bubbleListEl.querySelectorAll('.declare-type-bubble-item').forEach(item => {
+    const value = item.dataset.value;
+
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (value === '삭제') {
+        closeBubble();
+        if (options.onDelete) options.onDelete();
+        return;
+      }
+      if (value === '초기화') {
+        closeBubble();
+        if (options.onReset) options.onReset();
+        return;
+      }
+      if (value === '증빙') {
+        const modeRadio = [...modeRadios].find(r => r.value === '증빙');
+        if (modeRadio && !modeRadio.checked) {
+          modeRadio.checked = true;
+          modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      } else {
+        // 종류(카드/건보/연금)를 먼저 반영해야, 뒤이어 모드를 "신고"로 바꿀 때 실행되는
+        // 라벨/제목 갱신 로직이 방금 고른 종류를 정확히 읽는다(순서가 바뀌면 이전 종류로 표시됨).
+        const typeRadio = [...typeRadios].find(r => r.value === value);
+        if (typeRadio && !typeRadio.checked) {
+          typeRadio.checked = true;
+          typeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const modeRadio = [...modeRadios].find(r => r.value === '신고');
+        if (modeRadio && !modeRadio.checked) {
+          modeRadio.checked = true;
+          modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+      closeBubble();
+    });
   });
-});
+
+  document.addEventListener('click', (e) => {
+    if (e.target === titleEl || bubbleListEl.contains(e.target)) return;
+    closeBubble();
+  });
+
+  document.body.addEventListener('scroll', closeBubble, { passive: true });
+
+  return { openBubble, closeBubble };
+}
+
+setupIncomeTitleBubble(
+  document.getElementById('baseIncomeTitle'),
+  document.getElementById('baseDeclareTypeBubbleList'),
+  baseIncomeModeRadios,
+  baseDeclareTypeRadios,
+  {
+    onReset: () => {
+      소득1초기화();
+      showBubble('소득1이 초기화되었습니다');
+      if (typeof saveDSRInputs === 'function') saveDSRInputs();
+    },
+  }
+);
+
+/* "소득 추가" 버튼 옆에서 증빙/카드 중 어떤 종류로 새 행을 만들지 먼저 고르는 버블.
+   행 생성 전에 뜨는 버블이라 기존 declare-type-bubble-list를 그대로 재사용하되,
+   기존 행에 딸린 라디오 상태와는 무관하게 독립적으로 동작한다. */
+const incomeAddTypeBubbleList = document.getElementById('incomeAddTypeBubbleList');
+let openIncomeAddTypeBubble = null;
+if (incomeAddTypeBubbleList) {
+  document.body.appendChild(incomeAddTypeBubbleList);
+
+  const positionAddBubble = (triggerEl) => {
+    const rect = triggerEl.getBoundingClientRect();
+    incomeAddTypeBubbleList.style.left = (rect.right + 10) + 'px';
+    incomeAddTypeBubbleList.style.top = (rect.top + rect.height / 2 - incomeAddTypeBubbleList.offsetHeight / 2) + 'px';
+  };
+  const closeAddBubble = () => incomeAddTypeBubbleList.classList.remove('open');
+
+  openIncomeAddTypeBubble = (triggerEl) => {
+    incomeAddTypeBubbleList.classList.add('open');
+    positionAddBubble(triggerEl);
+  };
+
+  incomeAddTypeBubbleList.querySelectorAll('.declare-type-bubble-item').forEach(item => {
+    const value = item.dataset.value;
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      closeAddBubble();
+      소득행추가(undefined, false, value);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    const btn = document.querySelector('.income-add-btn');
+    if (e.target === btn || incomeAddTypeBubbleList.contains(e.target)) return;
+    closeAddBubble();
+  });
+  document.body.addEventListener('scroll', closeAddBubble, { passive: true });
+}
 
 if (baseDeclareAmountInput) {
   baseDeclareAmountInput.addEventListener("input", (e) => {
@@ -1071,19 +1116,370 @@ if (baseDeclareAmountInput) {
   });
 }
 
-if (spouseDeclareAmountInput) {
-  spouseDeclareAmountInput.addEventListener("input", (e) => {
-    const v = e.target.value.replace(/\D/g, '');
-    const num = v ? parseFloat(v) : 0;
-    memoSpouseDeclareAmounts[spouseDeclareType] = num;
-    e.target.value = v ? num.toLocaleString() : '';
-    if (spouseIncomeMode === '신고') {
-      memoSpouseIncome = refreshSpouseDeclareConverted();
-      updateSpouseIncomeCalc();
+/* ==========================================================================
+   소득행 제네릭 엔진 - "소득 추가" 버튼으로 늘어나는 소득2, 소득3, ... 행 전용.
+   소득1(위의 base* 코드)은 기존 그대로 두고, 2번째 이후 행만 이 엔진으로 동적 생성/관리한다.
+   ========================================================================== */
+const incomeRowState = new Map(); // index(2,3,...) -> {mode, declareType, memoIncome, memoIncomeDirect, memoDeclareAmounts, isEditing}
+let nextIncomeRowIndex = 2;
+let otherRowsWereBlocked = false;
+
+function extraIncomeRowIndexes() {
+  return [...incomeRowState.keys()].sort((a, b) => a - b);
+}
+
+function getRowEls(index) {
+  return {
+    row: document.getElementById(`incomeRow_${index}`),
+    incomeInput: document.getElementById(`incomeInput_${index}`),
+    hiddenInput: document.getElementById(`computedIncomeHidden_${index}`),
+    ageInput: document.getElementById(`ageInput_${index}`),
+    applyRateCheck: document.getElementById(`applyRateCheck_${index}`),
+    rateDisplay: document.getElementById(`rateDisplay_${index}`),
+    declareAmountInput: document.getElementById(`declareAmountInput_${index}`),
+    declareConvertedOutput: document.getElementById(`declareConvertedOutput_${index}`),
+    declareInputGroup: document.getElementById(`declareInputGroup_${index}`),
+    estimateLabel: document.getElementById(`estimateLabel_${index}`),
+    bubbleList: document.getElementById(`declareTypeBubbleList_${index}`),
+    titleEl: document.getElementById(`incomeTitle_${index}`),
+    futureIncomeRow: document.getElementById(`futureIncomeRow_${index}`),
+    modeRadios: document.querySelectorAll(`input[name="income_mode_${index}"]`),
+    typeRadios: document.querySelectorAll(`input[name="declare_type_${index}"]`),
+  };
+}
+
+function buildIncomeRowHTML(index) {
+  return `
+      <tr class="income-data-row" id="incomeRow_${index}">
+        <td class="income-label">
+          <div class="income-title" id="incomeTitle_${index}">소득${index}</div>
+        </td>
+        <td class="income-mode-cell" id="modeCell_${index}">
+          <div class="income-mode-toggle pill-toggle-group" id="incomeModeToggle_${index}">
+            <label style="background-color: #2563eb; color: #ffffff;">
+              <input type="radio" name="income_mode_${index}" value="증빙" checked><span class="income-mode-label">증빙</span>
+            </label>
+            <label style="background-color: transparent; color: #64748b;">
+              <input type="radio" name="income_mode_${index}" value="신고"><span class="income-mode-label" id="estimateLabel_${index}">추정</span>
+            </label>
+          </div>
+          <div class="declare-type-bubble-list" id="declareTypeBubbleList_${index}">
+            <div class="declare-type-bubble-item" data-value="증빙">증빙</div>
+            <div class="declare-type-bubble-item" data-value="카드">카드</div>
+            <div class="declare-type-bubble-item" data-value="삭제">삭제</div>
+          </div>
+        </td>
+        <td class="income-input-cell" id="incomeInputCell_${index}" colspan="3">
+          <input type="hidden" id="computedIncomeHidden_${index}" class="income-computed-hidden" value="">
+          <!-- 증빙 모드: 연소득 입력 + 장래예상(체크박스/나이/요율)을 가로로 나란히 배치 -->
+          <div class="income-cell-flex" id="incomeCellFlex_${index}">
+            <input type="text" id="incomeInput_${index}" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
+            <div class="future-income-row" id="futureIncomeRow_${index}">
+              <span class="rate-toggle-row">
+                <span class="rate-toggle-text">
+                  <label for="applyRateCheck_${index}">장래예상</label>
+                  <span id="rateDisplay_${index}" class="rate-display" style="display:none;">(-)</span>
+                </span>
+                <input type="checkbox" id="applyRateCheck_${index}">
+              </span>
+              <input type="number" id="ageInput_${index}" class="age-input" placeholder="32 or 1992" style="display:none;">
+            </div>
+          </div>
+          <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
+          <div class="declare-cell-flex" id="declareCellFlex_${index}">
+            <div class="declare-input-group" id="declareInputGroup_${index}" style="display:none;">
+              <div class="pill-toggle-group declare-type-toggle" id="declareTypeToggle_${index}" style="display:none;">
+                <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="declare_type_${index}" value="카드" checked>카드</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="declare_type_${index}" value="건강">건보</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="declare_type_${index}" value="연금">연금</label>
+              </div>
+              <input type="text" inputmode="numeric" class="declare-amount-input" id="declareAmountInput_${index}" placeholder="연사용액 입력">
+            </div>
+            <input type="text" class="declare-converted-output" id="declareConvertedOutput_${index}" readonly placeholder="환산금액" style="display:none;">
+          </div>
+        </td>
+      </tr>`;
+}
+
+function refreshRowDeclareConverted(index) {
+  const els = getRowEls(index);
+  const st = incomeRowState.get(index);
+  if (!st) return 0;
+  const amount = st.memoDeclareAmounts[st.declareType] || 0;
+  const converted = calcDeclareConvertedIncome(st.declareType, amount);
+  if (els.declareConvertedOutput) {
+    els.declareConvertedOutput.value = converted > 0 ? Math.floor(converted).toLocaleString() : "";
+  }
+  return converted;
+}
+
+function updateRowIncomeCalc(index) {
+  const els = getRowEls(index);
+  const st = incomeRowState.get(index);
+  if (!st || !els.incomeInput || !els.hiddenInput || !els.ageInput || !els.applyRateCheck || !els.rateDisplay) return;
+  if (els.ageInput.value.length > 4) els.ageInput.value = els.ageInput.value.slice(0, 4);
+  const age = parseAgeInputValue(els.ageInput.value);
+  const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
+  const rate = matched ? matched.percent / 100 : 1;
+  const isDeclareMode = st.mode === '신고';
+  const rateApplies = els.applyRateCheck.checked && !isDeclareMode; // 신고소득 모드에서는 장래예상 미적용
+  els.rateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
+  const finalVal = rateApplies ? st.memoIncome * rate : st.memoIncome;
+  // 소득1이 건보/연금 추정소득이면 나머지 행 소득은 합산 대상에서 제외한다 (입력값 자체는 보존).
+  els.hiddenInput.value = (!isOtherIncomeBlocked() && finalVal > 0) ? Math.floor(finalVal).toLocaleString() : "";
+  if (!st.isEditing) els.incomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
+  if (els.applyRateCheck.checked && matched && st.memoIncome > 0 && !isDeclareMode) {
+    els.incomeInput.style.color = "#1d4ed8";
+    els.incomeInput.style.backgroundColor = "#eff6ff";
+  } else {
+    els.incomeInput.style.color = "";
+    els.incomeInput.style.backgroundColor = "";
+  }
+  if (typeof 자동계산 === 'function') 자동계산();
+}
+
+function applyIncomeRowMode(index) {
+  const els = getRowEls(index);
+  const st = incomeRowState.get(index);
+  if (!st || !els.row) return;
+  // 소득2 이후 행은 건보/연금 추정소득 자체를 쓸 수 없음 - 복원된 값 등으로 남아있으면 카드로 강제 복원
+  if (st.declareType === '건강' || st.declareType === '연금') {
+    st.declareType = '카드';
+    const cardRadio = [...els.typeRadios].find(r => r.value === '카드');
+    if (cardRadio) cardRadio.checked = true;
+    refreshRadioToggleStyles(`#declareTypeToggle_${index}`);
+  }
+  const isDeclare = st.mode === '신고';
+  if (els.incomeInput) els.incomeInput.style.display = isDeclare ? 'none' : '';
+  if (els.declareInputGroup) els.declareInputGroup.style.display = isDeclare ? 'flex' : 'none';
+  if (els.declareAmountInput) {
+    els.declareAmountInput.style.display = isDeclare ? '' : 'none';
+    els.declareAmountInput.placeholder = DECLARE_AMOUNT_PLACEHOLDERS[st.declareType] || '금액 입력';
+    const amt = st.memoDeclareAmounts[st.declareType] || 0;
+    els.declareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
+  }
+  // 장래예상(체크박스+나이+요율) 한 줄은 추정 모드에서는 숨기고, 증빙 모드에서는 체크박스만
+  // 항상 보이다가 체크했을 때만 나이/요율이 옆에 나타난다.
+  if (els.futureIncomeRow) els.futureIncomeRow.style.display = isDeclare ? 'none' : '';
+  const showAgeAndRate = !isDeclare && els.applyRateCheck && els.applyRateCheck.checked;
+  if (els.ageInput) els.ageInput.style.display = showAgeAndRate ? '' : 'none';
+  if (els.rateDisplay) els.rateDisplay.style.display = showAgeAndRate ? '' : 'none';
+  if (els.declareConvertedOutput) els.declareConvertedOutput.style.display = isDeclare ? '' : 'none';
+  if (els.estimateLabel) {
+    els.estimateLabel.textContent = isDeclare ? (DECLARE_TYPE_LABELS[st.declareType] || '추정') : '추정';
+    const estimateLabelEl = els.estimateLabel.closest('label');
+    const labelCell = els.row ? els.row.querySelector('.income-label') : null;
+    if (isDeclare) {
+      const activeBubble = els.bubbleList ? els.bubbleList.querySelector(`.declare-type-bubble-item[data-value="${st.declareType}"]`) : null;
+      const bg = activeBubble ? getComputedStyle(activeBubble).backgroundImage : null;
+      if (bg) {
+        if (estimateLabelEl) estimateLabelEl.style.setProperty('background', bg, 'important');
+        if (labelCell) {
+          labelCell.style.setProperty('background', bg, 'important');
+          labelCell.style.setProperty('color', '#ffffff', 'important');
+        }
+      }
+      // 선택된 소득 종류(카드) 이름을 "소득N" 자리에 그대로 표시
+      if (els.titleEl) {
+        els.titleEl.textContent = DECLARE_TYPE_LABELS[st.declareType] || els.titleEl.textContent;
+        els.titleEl.dataset.labelOverride = '1';
+      }
     } else {
-      refreshSpouseDeclareConverted();
+      if (estimateLabelEl) estimateLabelEl.style.removeProperty('background');
+      if (labelCell) {
+        labelCell.style.removeProperty('background');
+        labelCell.style.removeProperty('color');
+      }
+      if (els.titleEl) delete els.titleEl.dataset.labelOverride;
     }
+  }
+  st.memoIncome = isDeclare ? refreshRowDeclareConverted(index) : st.memoIncomeDirect;
+  updateRowIncomeCalc(index);
+  relabelIncomeRows();
+}
+
+function wireIncomeRow(index) {
+  const els = getRowEls(index);
+  els.modeRadios.forEach(radio => {
+    radio.addEventListener("change", () => {
+      incomeRowState.get(index).mode = radio.value;
+      refreshRadioToggleStyles(`#incomeModeToggle_${index}`);
+      applyIncomeRowMode(index);
+    });
   });
+  els.typeRadios.forEach(radio => {
+    radio.addEventListener("change", () => {
+      const st = incomeRowState.get(index);
+      st.declareType = radio.value;
+      refreshRadioToggleStyles(`#declareTypeToggle_${index}`);
+      // 이미 신고 모드인 상태에서 종류만 바뀌는 경우 모드 라디오는 change가 안 뜨므로,
+      // 제목/라벨 갱신을 포함한 applyIncomeRowMode()를 여기서 직접 호출해줘야 반영된다.
+      applyIncomeRowMode(index);
+    });
+  });
+  if (els.declareAmountInput) {
+    els.declareAmountInput.addEventListener("input", (e) => {
+      const st = incomeRowState.get(index);
+      const v = e.target.value.replace(/\D/g, '');
+      const num = v ? parseFloat(v) : 0;
+      st.memoDeclareAmounts[st.declareType] = num;
+      e.target.value = v ? num.toLocaleString() : '';
+      if (st.mode === '신고') {
+        st.memoIncome = refreshRowDeclareConverted(index);
+        updateRowIncomeCalc(index);
+      } else {
+        refreshRowDeclareConverted(index);
+      }
+    });
+  }
+  if (els.applyRateCheck) {
+    els.applyRateCheck.addEventListener("change", (e) => {
+      // 체크 시에만 나이/요율 칸이 옆에 나타나도록 표시 여부를 다시 계산
+      if (els.ageInput) els.ageInput.style.display = e.target.checked ? '' : 'none';
+      if (els.rateDisplay) els.rateDisplay.style.display = e.target.checked ? '' : 'none';
+      updateRowIncomeCalc(index);
+    });
+  }
+  if (els.ageInput) els.ageInput.addEventListener("input", () => updateRowIncomeCalc(index));
+  if (els.incomeInput) {
+    els.incomeInput.addEventListener("focus", () => {
+      const st = incomeRowState.get(index);
+      st.isEditing = true;
+      const value = els.incomeInput.value.replace(/\D/g, '');
+      if (value && st.memoIncome === 0) st.memoIncome = parseFloat(value);
+      st.memoIncomeDirect = st.memoIncome;
+      els.incomeInput.value = st.memoIncome > 0 ? st.memoIncome.toLocaleString() : "";
+    });
+    els.incomeInput.addEventListener("blur", () => {
+      incomeRowState.get(index).isEditing = false;
+      updateRowIncomeCalc(index);
+    });
+    els.incomeInput.addEventListener("input", (e) => {
+      const st = incomeRowState.get(index);
+      const value = e.target.value.replace(/\D/g, '');
+      st.memoIncome = value ? parseFloat(value) : 0;
+      st.memoIncomeDirect = st.memoIncome;
+      e.target.value = value ? st.memoIncome.toLocaleString() : "";
+      updateRowIncomeCalc(index);
+    });
+  }
+  return setupIncomeTitleBubble(
+    els.titleEl,
+    els.bubbleList,
+    els.modeRadios,
+    els.typeRadios,
+    { onDelete: () => 소득행삭제(index) }
+  );
+}
+
+/* 소득1(base)이 건보/연금 추정소득이면 소득2 이후 행 전체를 입력 불가(회색) 처리한다. */
+function isOtherIncomeBlocked() {
+  return baseIncomeMode === '신고' && (baseDeclareType === '건강' || baseDeclareType === '연금');
+}
+
+function applyOtherRowsBlock() {
+  const blocked = isOtherIncomeBlocked();
+  extraIncomeRowIndexes().forEach(idx => {
+    const els = getRowEls(idx);
+    [els.incomeInput, els.declareAmountInput, els.ageInput, els.applyRateCheck, ...els.modeRadios].forEach(el => {
+      if (el) el.disabled = blocked;
+    });
+    if (els.row) els.row.classList.toggle('income-row-blocked', blocked);
+    updateRowIncomeCalc(idx); // blocked 여부에 맞춰 합산 포함/제외를 다시 반영
+  });
+  if (blocked && !otherRowsWereBlocked) {
+    showBubble('건보/연금 소득은 다른 소득에 합산이 불가합니다');
+  }
+  otherRowsWereBlocked = blocked;
+  if (typeof 자동계산 === 'function') 자동계산();
+}
+
+function relabelIncomeRows() {
+  document.querySelectorAll('.income-data-row').forEach((row, i) => {
+    const titleEl = row.querySelector('.income-title');
+    if (!titleEl) return;
+    // 카드/건보/연금 등 선택된 라벨을 표시 중인 행(labelOverride)은 번호로 덮어쓰지 않는다.
+    if (titleEl.dataset.labelOverride === '1') return;
+    titleEl.textContent = `소득${i + 1}`;
+  });
+}
+
+// explicitIndex: 저장된 값 복원 시 원래 인덱스 그대로 재생성하기 위해 사용 (삭제로 인덱스에 구멍이 생길 수 있음).
+// isRestore: true면 새로고침 복원 과정이므로 선택 버블을 자동으로 띄우지 않는다.
+// presetType: 소득추가 버튼의 사전 선택 버블(증빙/카드)에서 이미 종류를 고르고 들어온 경우 - 행 생성 직후
+//             해당 종류를 바로 적용하고, 뒤이어 뜨는 증빙/카드/삭제 선택 버블은 띄우지 않는다.
+function 소득행추가(explicitIndex, isRestore, presetType) {
+  const index = (typeof explicitIndex === 'number') ? explicitIndex : nextIncomeRowIndex++;
+  if (index >= nextIncomeRowIndex) nextIncomeRowIndex = index + 1;
+  const table = document.querySelector('.income-table');
+  if (!table) return;
+  table.insertAdjacentHTML('beforeend', buildIncomeRowHTML(index));
+  incomeRowState.set(index, {
+    mode: '증빙',
+    declareType: '카드',
+    memoIncome: 0,
+    memoIncomeDirect: 0,
+    memoDeclareAmounts: { '카드': 0, '건강': 0, '연금': 0 },
+    isEditing: false,
+  });
+  const titleBubble = wireIncomeRow(index);
+  applyIncomeRowMode(index);
+  applyOtherRowsBlock();
+  relabelIncomeRows();
+  adjustTableFontSize();
+  showBubble(`소득${index} 행이 추가되었습니다`);
+
+  if (presetType) {
+    const els = getRowEls(index);
+    if (presetType === '카드') {
+      // 종류(카드)를 먼저 반영해야, 뒤이어 모드를 "신고"로 바꿀 때 실행되는 라벨/제목 갱신 로직이
+      // 방금 고른 종류를 정확히 읽는다(순서가 바뀌면 이전 종류로 표시됨).
+      const typeRadio = [...els.typeRadios].find(r => r.value === '카드');
+      if (typeRadio && !typeRadio.checked) {
+        typeRadio.checked = true;
+        typeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      const modeRadio = [...els.modeRadios].find(r => r.value === '신고');
+      if (modeRadio && !modeRadio.checked) {
+        modeRadio.checked = true;
+        modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else {
+      const modeRadio = [...els.modeRadios].find(r => r.value === '증빙');
+      if (modeRadio && !modeRadio.checked) {
+        modeRadio.checked = true;
+        modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  } else if (!isRestore && titleBubble) {
+    // 소득 추가 버튼을 눌러 새로 만든 행은 곧바로 증빙/카드/삭제 버블을 띄워 종류를 고르게 한다.
+    // setTimeout으로 다음 틱에 열어야, 지금 이 클릭 이벤트가 document까지 버블링되면서 바로 닫아버리는 것을 피할 수 있다.
+    setTimeout(() => titleBubble.openBubble(), 0);
+  }
+  return index;
+}
+
+/* "소득 추가" 버튼: 1번 행이 건보/연금이면 합산 자체가 불가하므로 행을 만들지 않고 안내만 띄운다.
+   그 외(증빙/카드)에는 행을 만들기 전에 먼저 증빙/카드 중 어떤 종류로 추가할지 버블로 고르게 한다. */
+function handleAddIncomeClick(triggerEl) {
+  if (isOtherIncomeBlocked()) {
+    showBubble('건보 또는 연금은 소득합산 불가');
+    return;
+  }
+  if (typeof openIncomeAddTypeBubble === 'function') openIncomeAddTypeBubble(triggerEl);
+}
+
+function 소득행삭제(index) {
+  const els = getRowEls(index);
+  if (els.row) els.row.remove();
+  if (els.bubbleList) els.bubbleList.remove(); // body로 옮겨져 있으므로 행 삭제와 별개로 제거해야 함
+  incomeRowState.delete(index);
+  applyOtherRowsBlock();
+  relabelIncomeRows();
+  adjustTableFontSize();
+  if (typeof 자동계산 === 'function') 자동계산();
+  showBubble('소득 행이 삭제되었습니다');
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
 function populateDeclareRateEditFields() {
@@ -1118,7 +1514,10 @@ function saveDeclareIncomeRates() {
   showBubble("신고소득 환산 요율 저장 완료");
   closeModal();
   if (baseIncomeMode === '신고') { memoBaseIncome = refreshBaseDeclareConverted(); updateIncomeCalc(); }
-  if (spouseIncomeMode === '신고') { memoSpouseIncome = refreshSpouseDeclareConverted(); updateSpouseIncomeCalc(); }
+  extraIncomeRowIndexes().forEach(idx => {
+    const st = incomeRowState.get(idx);
+    if (st.mode === '신고') { st.memoIncome = refreshRowDeclareConverted(idx); updateRowIncomeCalc(idx); }
+  });
 }
 
 const ltvMarketPriceInput = document.getElementById("ltvMarketPriceInput");
@@ -1137,6 +1536,76 @@ if (ltvMinorLeaseInput) {
     e.target.value = v ? parseInt(v).toLocaleString() : '';
     if (typeof 자동계산 === 'function') 자동계산();
   });
+}
+
+// 소액임차금액 추천 목록: 브라우저 자동완성(과거 입력 이력) 대신 지정된 4개 금액만
+// 라벨("5,500만" 등)로 보여주고, 선택 시 전체 숫자를 입력칸에 채워 넣는 커스텀 드롭다운.
+const minorLeaseSuggestList = document.getElementById("minorLeaseSuggestList");
+if (ltvMinorLeaseInput && minorLeaseSuggestList) {
+  // table의 overflow:hidden + 셀의 container-type이 만드는 클리핑/컨테이닝 블록을
+  // 피하기 위해 드롭다운을 body 바로 아래로 옮기고, position:fixed 좌표를 매번 계산한다.
+  document.body.appendChild(minorLeaseSuggestList);
+
+  const positionList = () => {
+    // 버블 팝업은 입력칸 폭에 맞추지 않고 콘텐츠 크기대로 펼쳐지므로,
+    // 입력칸 가로 중앙에 맞춰 배치한다 (CSS의 translateX(-50%)와 짝을 이룸).
+    const rect = ltvMinorLeaseInput.getBoundingClientRect();
+    minorLeaseSuggestList.style.left = (rect.left + rect.width / 2) + 'px';
+    minorLeaseSuggestList.style.top = (rect.bottom + 4) + 'px';
+  };
+  const openList = () => { positionList(); minorLeaseSuggestList.classList.add('open'); };
+  const closeList = () => minorLeaseSuggestList.classList.remove('open');
+
+  // focus만으로는 입력칸이 이미 포커스된 상태(다른 버블의 mousedown preventDefault로 blur가
+  // 안 일어난 경우)에서 다시 클릭해도 focus 이벤트가 재발생하지 않아 버블이 안 뜨는 문제가 있어
+  // click에도 동일하게 열어준다.
+  ltvMinorLeaseInput.addEventListener("focus", openList);
+  ltvMinorLeaseInput.addEventListener("click", openList);
+
+  minorLeaseSuggestList.querySelectorAll('.minor-lease-suggest-item').forEach(item => {
+    // click보다 먼저 발생하는 mousedown에서 처리 - input의 blur가 항목 클릭을 가로채지 않도록 함
+    item.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      ltvMinorLeaseInput.value = item.dataset.value;
+      ltvMinorLeaseInput.dispatchEvent(new Event('input', { bubbles: true }));
+      closeList();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target !== ltvMinorLeaseInput && !minorLeaseSuggestList.contains(e.target)) {
+      closeList();
+    }
+  });
+
+  // 스크롤 중에는 좌표가 어긋날 수 있으므로 열려 있으면 닫는다 (페이지 스크롤 컨테이너는 body).
+  document.body.addEventListener("scroll", closeList, { passive: true });
+}
+
+// 내용복사 버튼: "텍스트로 복사" / "화면 캡쳐" 2가지 선택 팝업
+// table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮기고 position:fixed 좌표를 매번 계산한다.
+const copyMenuBtn = document.getElementById("copy-menu-btn");
+const copyMenuList = document.getElementById("copyMenuList");
+if (copyMenuBtn && copyMenuList) {
+  document.body.appendChild(copyMenuList);
+  const positionCopyMenu = () => {
+    const rect = copyMenuBtn.getBoundingClientRect();
+    copyMenuList.style.left = (rect.left + rect.width / 2) + 'px';
+    copyMenuList.style.top = (rect.bottom + 6) + 'px';
+  };
+  copyMenuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    positionCopyMenu();
+    copyMenuList.classList.toggle("open");
+  });
+  copyMenuList.querySelectorAll(".copy-menu-item").forEach(item => {
+    item.addEventListener("click", () => copyMenuList.classList.remove("open"));
+  });
+  document.addEventListener("click", (e) => {
+    if (e.target === copyMenuBtn || copyMenuList.contains(e.target)) return;
+    copyMenuList.classList.remove("open");
+  });
+  document.body.addEventListener("scroll", () => copyMenuList.classList.remove("open"), { passive: true });
 }
 
 /* 라디오 토글 그룹(LTV 비율 / DSR 한도율) 공통 처리:
@@ -1170,49 +1639,54 @@ bindRadioToggleGroup(ltvRateRadios, '#ltvRateToggleGroup');
 const dsrLimitRateRadios = document.querySelectorAll('input[name="dsr_limit_rate"]');
 bindRadioToggleGroup(dsrLimitRateRadios, '#dsrLimitToggleGroup');
 
-function 선택초기화() {
-  const savedDefaultFirstRowData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
-
+// 소득1(본인) 행만 초기값으로 되돌린다 - 대출/LTV 등 다른 입력은 건드리지 않는다.
+// "소득1" 제목 버블의 "초기화" 항목과 선택초기화() 양쪽에서 공유해서 쓴다.
+function 소득1초기화() {
   if (baseIncomeInput) baseIncomeInput.value = "";
   memoBaseIncome = 0;
   const computedHidden = document.getElementById("computedIncomeHidden");
   if (computedHidden) computedHidden.value = "";
-  if (spouseIncomeInput) spouseIncomeInput.value = "";
-  memoSpouseIncome = 0;
-  if (spouseHiddenIncomeInput) spouseHiddenIncomeInput.value = "";
 
   if (applyRateCheck) applyRateCheck.checked = false;
   if (ageInput) ageInput.value = "";
-  if (spouseApplyRateCheck) spouseApplyRateCheck.checked = false;
-  if (spouseAgeInput) spouseAgeInput.value = "";
 
   // 신고소득(카드/건강/연금) 관련 상태 초기화
   memoBaseIncomeDirect = 0;
-  memoSpouseIncomeDirect = 0;
   memoBaseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
-  memoSpouseDeclareAmounts = { '카드': 0, '건강': 0, '연금': 0 };
   baseIncomeMode = '증빙';
-  spouseIncomeMode = '증빙';
   baseDeclareType = '카드';
-  spouseDeclareType = '카드';
   if (baseDeclareAmountInput) baseDeclareAmountInput.value = "";
-  if (spouseDeclareAmountInput) spouseDeclareAmountInput.value = "";
   if (baseDeclareConvertedOutput) baseDeclareConvertedOutput.value = "";
-  if (spouseDeclareConvertedOutput) spouseDeclareConvertedOutput.value = "";
   const baseModeDefaultRadio = document.querySelector('input[name="base_income_mode"][value="증빙"]');
   if (baseModeDefaultRadio) baseModeDefaultRadio.checked = true;
-  const spouseModeDefaultRadio = document.querySelector('input[name="spouse_income_mode"][value="증빙"]');
-  if (spouseModeDefaultRadio) spouseModeDefaultRadio.checked = true;
   const baseDeclareDefaultRadio = document.querySelector('input[name="base_declare_type"][value="카드"]');
   if (baseDeclareDefaultRadio) baseDeclareDefaultRadio.checked = true;
-  const spouseDeclareDefaultRadio = document.querySelector('input[name="spouse_declare_type"][value="카드"]');
-  if (spouseDeclareDefaultRadio) spouseDeclareDefaultRadio.checked = true;
   refreshRadioToggleStyles('#baseIncomeModeToggle');
-  refreshRadioToggleStyles('#spouseIncomeModeToggle');
   refreshRadioToggleStyles('#baseDeclareTypeToggle');
-  refreshRadioToggleStyles('#spouseDeclareTypeToggle');
   applyBaseIncomeMode();
-  applySpouseIncomeMode();
+
+  [baseIncomeInput, ageInput, applyRateCheck, baseDeclareAmountInput].forEach(el => {
+    if (el && el.id) localStorage.removeItem(`DSR_${el.id}`);
+  });
+  localStorage.removeItem('DSR_radio_base_income_mode');
+  localStorage.removeItem('DSR_radio_base_declare_type');
+  ['카드', '건강', '연금'].forEach(type => localStorage.removeItem(`DSR_declareAmt_base_${type}`));
+}
+
+function 선택초기화() {
+  const savedDefaultFirstRowData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
+
+  소득1초기화();
+
+  // "소득 추가"로 늘어난 소득2 이후 행은 모두 제거하고 소득1만 남긴다.
+  extraIncomeRowIndexes().forEach(idx => {
+    const els = getRowEls(idx);
+    if (els.row) els.row.remove();
+    if (els.bubbleList) els.bubbleList.remove(); // body로 옮겨져 있으므로 행 삭제와 별개로 제거해야 함
+  });
+  incomeRowState.clear();
+  nextIncomeRowIndex = 2;
+  otherRowsWereBlocked = false;
 
   if (ltvMarketPriceInput) ltvMarketPriceInput.value = "";
   const ltvMaxAmountOutput = document.getElementById("ltvMaxAmountOutput");
@@ -1238,20 +1712,14 @@ function 선택초기화() {
     });
   }
 
+  // "대출 추가"로 늘어난 두 번째 이후 대출 행은 값만 지우지 말고 행 자체를 제거해야
+  // 새로고침 없이도 화면에서 바로 사라진다.
   const allRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
-  for (let i = 1; i < allRows.length; i++) {
-    allRows[i].querySelectorAll('input, select').forEach(input => {
-      if (input.type === 'checkbox') input.checked = false;
-      else input.value = '';
-    });
-
-    const typeInput = allRows[i].querySelector('.mort-type');
-    const typeButtons = allRows[i].querySelectorAll('.type-btn');
-    if (typeInput) typeInput.value = '원리금';
-    typeButtons.forEach(btn => btn.classList.remove('active'));
-    const defaultTypeBtn = allRows[i].querySelector('.type-btn:nth-child(1)');
-    if (defaultTypeBtn) defaultTypeBtn.classList.add('active');
+  for (let i = allRows.length - 1; i >= 1; i--) {
+    allRows[i].remove();
   }
+  mortCount = allRows.length > 0 ? 1 : 0;
+  updateMortgagePlaceholders();
 
   if (firstRow) {
     const firstRowTypeInput = firstRow.querySelector('.mort-type');
@@ -1268,13 +1736,16 @@ function 선택초기화() {
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) localStorage.removeItem(`DSR_${checkbox.id}`);
   });
-  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
-    localStorage.removeItem(`DSR_radio_${name}`);
+  localStorage.removeItem('DSR_radio_base_income_mode');
+  localStorage.removeItem('DSR_radio_base_declare_type');
+  // 소득2 이후 행(income_mode_N / declare_type_N / declareAmt_N_*)은 몇 개였는지 몰라도
+  // 접두어로 한 번에 훑어서 지운다.
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('DSR_radio_income_mode_') || key.startsWith('DSR_radio_declare_type_') || key.startsWith('DSR_declareAmt_')) {
+      localStorage.removeItem(key);
+    }
   });
-  ['카드', '건강', '연금'].forEach(type => {
-    localStorage.removeItem(`DSR_declareAmt_base_${type}`);
-    localStorage.removeItem(`DSR_declareAmt_spouse_${type}`);
-  });
+  localStorage.removeItem('DSR_incomeRowIndexes');
   localStorage.removeItem('DSR_mortgageData');
   
   updateIncomeCalc();
@@ -1289,15 +1760,23 @@ function saveDSRInputs() {
     if (checkbox.id) localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
   });
   // 증빙/신고 및 카드·건강·연금 선택 상태도 함께 저장 (새로고침 후에도 환산 금액이 바로 계산되도록)
-  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
-    const checked = document.querySelector(`input[name="${name}"]:checked`);
-    if (checked) localStorage.setItem(`DSR_radio_${name}`, checked.value);
+  const saveRadioAndAmounts = (modeName, typeName, amountKey, amounts) => {
+    const modeChecked = document.querySelector(`input[name="${modeName}"]:checked`);
+    if (modeChecked) localStorage.setItem(`DSR_radio_${modeName}`, modeChecked.value);
+    const typeChecked = document.querySelector(`input[name="${typeName}"]:checked`);
+    if (typeChecked) localStorage.setItem(`DSR_radio_${typeName}`, typeChecked.value);
+    // 추정(카드/건보/연금) 버튼별 입력 금액을 각각 따로 저장 (공용 입력창 하나를 돌려쓰기 때문에 종류별로 키를 분리해야 함)
+    ['카드', '건강', '연금'].forEach(type => {
+      localStorage.setItem(`DSR_declareAmt_${amountKey}_${type}`, amounts[type] || 0);
+    });
+  };
+  saveRadioAndAmounts('base_income_mode', 'base_declare_type', 'base', memoBaseDeclareAmounts);
+  const extraIdx = extraIncomeRowIndexes();
+  extraIdx.forEach(idx => {
+    saveRadioAndAmounts(`income_mode_${idx}`, `declare_type_${idx}`, String(idx), incomeRowState.get(idx).memoDeclareAmounts);
   });
-  // 추정(카드/건보/연금) 버튼별 입력 금액을 각각 따로 저장 (공용 입력창 하나를 돌려쓰기 때문에 종류별로 키를 분리해야 함)
-  ['카드', '건강', '연금'].forEach(type => {
-    localStorage.setItem(`DSR_declareAmt_base_${type}`, memoBaseDeclareAmounts[type] || 0);
-    localStorage.setItem(`DSR_declareAmt_spouse_${type}`, memoSpouseDeclareAmounts[type] || 0);
-  });
+  // 새로고침 시 어떤 인덱스의 소득 행을 다시 만들어야 하는지 저장 (개별 삭제로 인덱스에 구멍이 생길 수 있어 개수 대신 목록으로 저장)
+  localStorage.setItem('DSR_incomeRowIndexes', JSON.stringify(extraIdx));
   saveMortgageRows();
 }
 
@@ -1324,6 +1803,12 @@ function saveMortgageRows() {
 }
 
 function loadDSRInputs() {
+  // "소득 추가"로 늘어났던 행들을 먼저 원래 인덱스 그대로 다시 만들어둬야, 그 안의 입력값들이
+  // 아래 일반 복원 루프(TEXT_NUMBER_INPUT_SELECTOR)에서 정상적으로 걸린다.
+  let savedIndexes = [];
+  try { savedIndexes = JSON.parse(localStorage.getItem('DSR_incomeRowIndexes') || '[]'); } catch (e) { savedIndexes = []; }
+  savedIndexes.forEach(idx => 소득행추가(idx, true));
+
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) {
       const savedValue = localStorage.getItem(`DSR_${input.id}`);
@@ -1331,16 +1816,22 @@ function loadDSRInputs() {
         input.value = savedValue;
         if (input.id === 'baseIncomeInput') {
           memoBaseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
+          memoBaseIncomeDirect = memoBaseIncome; // applyBaseIncomeMode()가 증빙 모드로 되돌릴 때 이 값을 기준으로 삼음
         }
-        if (input.id === 'spouseIncomeInput') {
-          memoSpouseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
+        const extraMatch = input.id.match(/^incomeInput_(\d+)$/);
+        if (extraMatch) {
+          const st = incomeRowState.get(parseInt(extraMatch[1], 10));
+          if (st) {
+            st.memoIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
+            st.memoIncomeDirect = st.memoIncome; // applyIncomeRowMode()가 증빙 모드로 되돌릴 때 이 값을 기준으로 삼음
+          }
         }
         // 카드/건강/연금 금액 입력창(공용 필드)의 값은 아래 별도 로직에서
         // 종류별로 복원하므로, 여기서는 화면 표시값만 그대로 둔다.
       }
     }
   });
-  
+
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) {
       const savedValue = localStorage.getItem(`DSR_${checkbox.id}`);
@@ -1350,29 +1841,34 @@ function loadDSRInputs() {
     }
   });
 
-  // 증빙/신고 및 카드·건강·연금 선택 상태 복원
-  ['base_income_mode', 'spouse_income_mode', 'base_declare_type', 'spouse_declare_type'].forEach(name => {
-    const savedValue = localStorage.getItem(`DSR_radio_${name}`);
-    if (savedValue !== null) {
-      const radio = document.querySelector(`input[name="${name}"][value="${savedValue}"]`);
+  // 증빙/신고 및 카드·건강·연금 선택 상태 + 종류별 금액 복원 (소득1 / 소득N 공용)
+  const restoreRadioAndAmounts = (modeName, typeName, amountKey, amounts, setMode, setType) => {
+    const savedMode = localStorage.getItem(`DSR_radio_${modeName}`);
+    if (savedMode !== null) {
+      const radio = document.querySelector(`input[name="${modeName}"][value="${savedMode}"]`);
       if (radio) radio.checked = true;
     }
-  });
-  const baseModeChecked = document.querySelector('input[name="base_income_mode"]:checked');
-  if (baseModeChecked) baseIncomeMode = baseModeChecked.value;
-  const spouseModeChecked = document.querySelector('input[name="spouse_income_mode"]:checked');
-  if (spouseModeChecked) spouseIncomeMode = spouseModeChecked.value;
-  const baseTypeChecked = document.querySelector('input[name="base_declare_type"]:checked');
-  if (baseTypeChecked) baseDeclareType = baseTypeChecked.value;
-  const spouseTypeChecked = document.querySelector('input[name="spouse_declare_type"]:checked');
-  if (spouseTypeChecked) spouseDeclareType = spouseTypeChecked.value;
+    const savedType = localStorage.getItem(`DSR_radio_${typeName}`);
+    if (savedType !== null) {
+      const radio = document.querySelector(`input[name="${typeName}"][value="${savedType}"]`);
+      if (radio) radio.checked = true;
+    }
+    ['카드', '건강', '연금'].forEach(type => {
+      const saved = localStorage.getItem(`DSR_declareAmt_${amountKey}_${type}`);
+      if (saved !== null) amounts[type] = parseFloat(saved) || 0;
+    });
+    const modeChecked = document.querySelector(`input[name="${modeName}"]:checked`);
+    if (modeChecked) setMode(modeChecked.value);
+    const typeChecked = document.querySelector(`input[name="${typeName}"]:checked`);
+    if (typeChecked) setType(typeChecked.value);
+  };
 
-  // 추정(카드/건보/연금) 버튼별로 저장해둔 금액을 각각 복원
-  ['카드', '건강', '연금'].forEach(type => {
-    const savedBaseAmt = localStorage.getItem(`DSR_declareAmt_base_${type}`);
-    if (savedBaseAmt !== null) memoBaseDeclareAmounts[type] = parseFloat(savedBaseAmt) || 0;
-    const savedSpouseAmt = localStorage.getItem(`DSR_declareAmt_spouse_${type}`);
-    if (savedSpouseAmt !== null) memoSpouseDeclareAmounts[type] = parseFloat(savedSpouseAmt) || 0;
+  restoreRadioAndAmounts('base_income_mode', 'base_declare_type', 'base', memoBaseDeclareAmounts,
+    (v) => { baseIncomeMode = v; }, (v) => { baseDeclareType = v; });
+  extraIncomeRowIndexes().forEach(idx => {
+    const st = incomeRowState.get(idx);
+    restoreRadioAndAmounts(`income_mode_${idx}`, `declare_type_${idx}`, String(idx), st.memoDeclareAmounts,
+      (v) => { st.mode = v; }, (v) => { st.declareType = v; });
   });
 
   loadMortgageRows();
@@ -1452,50 +1948,123 @@ function setupDSRAutoSave() {
   });
 }
 
-function splitIncomeSettingsIntoCells() {
-  const table = document.querySelector('.income-table');
-  if (!table || table.dataset.splitCells === 'true') return;
-  table.dataset.splitCells = 'true';
-  table.querySelectorAll('.income-settings-cell').forEach(cell => {
-    const age = cell.querySelector('.age-input');
-    const toggle = cell.querySelector('.rate-toggle-row');
-    const rate = cell.querySelector('.rate-display');
-    if (!age || !toggle || !rate) return;
-    const prefix = age.id === 'spouseAgeInput' ? 'spouse' : 'base'; // 분리된 셀을 이후 JS에서 다시 찾아 숨기기 위한 식별용 접두사
-    // .age-slot/.toggle-slot 래퍼가 있으면 그 안의 신고소득 대체 입력칸까지 통째로 옮긴다.
-    const ageNode = age.closest('.age-slot') || age;
-    const toggleNode = toggle.closest('.toggle-slot') || toggle;
-    const makeCell = (cls, node, id) => {
-      const td = document.createElement('td');
-      td.className = `income-settings-cell ${cls}`;
-      if (id) td.id = id;
-      td.appendChild(node);
-      return td;
-    };
-    const row = cell.parentElement;
-    const toggleCell = makeCell('toggle-cell', toggleNode, `${prefix}ToggleCell`);
-    toggleCell.appendChild(rate);
-    row.insertBefore(makeCell('age-cell', ageNode, `${prefix}AgeCell`), cell);
-    row.insertBefore(toggleCell, cell);
-    cell.remove();
+/* -------------------- 테이블 롱프레스 드래그 재배치 --------------------
+   저장 키를 DSR_ 접두사 없이 따로 둔다 - 선택초기화()/소득1초기화() 등 기존 초기화 로직이
+   DSR_ 접두사가 붙은 키만 개별적으로 지우므로, 테이블 배치 순서는 그 영향을 받지 않고
+   새로고침 후에도 그대로 유지된다. */
+const TABLE_ORDER_STORAGE_KEY = 'dsrTableLayoutOrder';
+
+function applySavedTableLayoutOrder() {
+  const area = document.getElementById('capture-area');
+  if (!area) return;
+  const saved = getStoredJson(TABLE_ORDER_STORAGE_KEY, null);
+  if (!Array.isArray(saved) || !saved.length) return;
+  saved.forEach(key => {
+    const wrap = area.querySelector(`:scope > .dsr-table-wrap[data-table-key="${key}"]`);
+    if (wrap) area.appendChild(wrap);
   });
 }
 
+function saveCurrentTableLayoutOrder() {
+  const area = document.getElementById('capture-area');
+  if (!area) return;
+  const order = [...area.querySelectorAll(':scope > .dsr-table-wrap[data-table-key]')].map(w => w.dataset.tableKey);
+  localStorage.setItem(TABLE_ORDER_STORAGE_KEY, JSON.stringify(order));
+}
+
+// 1.시세입력 2.DSR선택 3.소득입력 4.DSR값표시 5.대출정보입력 6.상환스케줄표
+const TABLE_ORDER_NUMBER_TO_KEY = {
+  1: 'ltv',
+  2: 'dsr-limit',
+  3: 'income',
+  4: 'dsr-dti',
+  5: 'loan',
+  6: 'schedule',
+};
+const TABLE_ORDER_KEY_TO_NUMBER = Object.fromEntries(
+  Object.entries(TABLE_ORDER_NUMBER_TO_KEY).map(([num, key]) => [key, Number(num)])
+);
+
+const TABLE_ORDER_SHORT_LABELS = {
+  'ltv': '시세',
+  'dsr-limit': 'DSR%',
+  'income': '소득',
+  'dsr-dti': 'DSR값',
+  'loan': '대출',
+  'schedule': '스케줄',
+};
+
+let tableOrderSelectedKey = null;
+
+// 지금 화면에 실제로 놓인 순서 그대로 버튼 6개를 다시 그린다 (선택된 버튼은 강조 표시)
+function renderTableOrderButtons() {
+  const row = document.getElementById('tableOrderBtnRow');
+  const area = document.getElementById('capture-area');
+  if (!row || !area) return;
+  const keys = [...area.querySelectorAll(':scope > .dsr-table-wrap[data-table-key]')].map(w => w.dataset.tableKey);
+  row.innerHTML = keys.map(key => `
+    <button type="button" class="table-order-btn${key === tableOrderSelectedKey ? ' selected' : ''}" onclick="handleTableOrderBtnClick('${key}')">
+      <span class="table-order-btn-num">${TABLE_ORDER_KEY_TO_NUMBER[key]}</span>
+      <span class="table-order-btn-label">${TABLE_ORDER_SHORT_LABELS[key]}</span>
+    </button>
+  `).join('');
+}
+
+// 버튼 하나를 누르면 선택, 다른 버튼을 이어서 누르면 두 표의 자리를 서로 맞바꾼다
+function handleTableOrderBtnClick(key) {
+  if (tableOrderSelectedKey === null) {
+    tableOrderSelectedKey = key;
+    renderTableOrderButtons();
+    return;
+  }
+  if (tableOrderSelectedKey === key) {
+    tableOrderSelectedKey = null;
+    renderTableOrderButtons();
+    return;
+  }
+
+  const area = document.getElementById('capture-area');
+  const wrapA = area.querySelector(`:scope > .dsr-table-wrap[data-table-key="${tableOrderSelectedKey}"]`);
+  const wrapB = area.querySelector(`:scope > .dsr-table-wrap[data-table-key="${key}"]`);
+  if (wrapA && wrapB) {
+    const nextA = wrapA.nextSibling;
+    const nextB = wrapB.nextSibling;
+    if (nextA === wrapB) {
+      area.insertBefore(wrapB, wrapA);
+    } else if (nextB === wrapA) {
+      area.insertBefore(wrapA, wrapB);
+    } else {
+      area.insertBefore(wrapA, nextB);
+      area.insertBefore(wrapB, nextA);
+    }
+    saveCurrentTableLayoutOrder();
+    showBubble('테이블 순서가 적용되었습니다');
+  }
+
+  tableOrderSelectedKey = null;
+  renderTableOrderButtons();
+}
+
 function init() {
-  splitIncomeSettingsIntoCells();
+  // 테이블 순서를 최종 배치(6,2,1,4,3,5)로 HTML에 직접 고정해서, 순서 선택기(테스트용)는
+  // 지금은 꺼둔다 - 나중에 다시 실험하려면 이 두 줄만 살리면 된다 (선택기 HTML은 DSR_Main.html에 주석으로 남아있음).
+  // applySavedTableLayoutOrder();
+  // renderTableOrderButtons();
   if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === "[]") {
     주담대행추가();
   }
   loadDSRInputs();
   setupDSRAutoSave();
   refreshRadioToggleStyles('#baseIncomeModeToggle');
-  refreshRadioToggleStyles('#spouseIncomeModeToggle');
   refreshRadioToggleStyles('#baseDeclareTypeToggle');
-  refreshRadioToggleStyles('#spouseDeclareTypeToggle');
   applyBaseIncomeMode();
-  applySpouseIncomeMode();
+  extraIncomeRowIndexes().forEach(idx => {
+    refreshRadioToggleStyles(`#incomeModeToggle_${idx}`);
+    refreshRadioToggleStyles(`#declareTypeToggle_${idx}`);
+    applyIncomeRowMode(idx);
+  });
   updateIncomeCalc();
-  updateSpouseIncomeCalc();
+  applyOtherRowsBlock();
   if (typeof 자동계산 === 'function') 자동계산();
   
   window.addEventListener('resize', () => {
@@ -1558,49 +2127,55 @@ function 대출정보텍스트생성() {
   lines.push(`DSR : ${getText('DSR확인') || '-'}    DTI : ${getText('DIT확인') || '-'}    신DTI : ${getText('신DTI확인') || '-'}`);
   lines.push(구분선);
 
-  // 5) 소득
+  // 5) 소득 (소득1 + "소득 추가"로 늘어난 소득2, 소득3, ...)
   lines.push('[ 소득 ]');
   const baseChecked = applyRateCheck ? applyRateCheck.checked : false;
   const baseRawNum = memoBaseIncome || 0;
   const baseRawStr = baseRawNum > 0 ? Math.floor(baseRawNum).toLocaleString() : (getVal('baseIncomeInput') || '-');
+  let anyChecked = baseChecked || baseIncomeMode === '신고';
+  let rawSum = baseRawNum;
   if (baseIncomeMode === '신고') {
     // 추정소득(카드/건보/연금) 모드: 어떤 항목으로 추정했는지 함께 표시
-    lines.push(`차주 소득 : ${baseRawStr} (${DECLARE_TYPE_LABELS[baseDeclareType] || baseDeclareType})`);
+    lines.push(`소득1 : ${baseRawStr} (${DECLARE_TYPE_LABELS[baseDeclareType] || baseDeclareType})`);
   } else if (baseChecked) {
     const baseAppliedStr = hiddenIncomeInput && hiddenIncomeInput.value ? hiddenIncomeInput.value : baseRawStr;
     const baseAppliedNum = parseFloat((hiddenIncomeInput?.value || '').replace(/,/g, '')) || baseRawNum;
     const baseIncreaseStr = Math.max(0, Math.floor(baseAppliedNum - baseRawNum)).toLocaleString();
     const basePercent = rateDisplay ? rateDisplay.innerText.replace(/[()]/g, '') : '-';
-    lines.push(`차주 소득 : ${baseRawStr} ( ${baseAppliedStr} )    나이 : ${getVal('ageInput') || '-'}    장래예상 : ${basePercent} (${baseIncreaseStr})`);
+    lines.push(`소득1 : ${baseRawStr} ( ${baseAppliedStr} )    나이 : ${getVal('ageInput') || '-'}    장래예상 : ${basePercent} (${baseIncreaseStr})`);
   } else {
-    lines.push(`차주 소득 : ${baseRawStr}`);
+    lines.push(`소득1 : ${baseRawStr}`);
   }
 
-  // 배우자 소득 (소득값이 없으면 배우자 소득/합산소득 줄 자체를 생략)
-  const spouseRawNum = memoSpouseIncome || 0;
-  const hasSpouseIncome = spouseRawNum > 0;
-  let spouseChecked = false;
-
-  if (hasSpouseIncome) {
-    spouseChecked = spouseApplyRateCheck ? spouseApplyRateCheck.checked : false;
-    const spouseRawStr = Math.floor(spouseRawNum).toLocaleString();
-    if (spouseIncomeMode === '신고') {
-      lines.push(`배우자 소득 : ${spouseRawStr} (${DECLARE_TYPE_LABELS[spouseDeclareType] || spouseDeclareType})`);
-    } else if (spouseChecked) {
-      const spouseAppliedStr = spouseHiddenIncomeInput && spouseHiddenIncomeInput.value ? spouseHiddenIncomeInput.value : spouseRawStr;
-      const spouseAppliedNum = parseFloat((spouseHiddenIncomeInput?.value || '').replace(/,/g, '')) || spouseRawNum;
-      const spouseIncreaseStr = Math.max(0, Math.floor(spouseAppliedNum - spouseRawNum)).toLocaleString();
-      const spousePercent = spouseRateDisplay ? spouseRateDisplay.innerText.replace(/[()]/g, '') : '-';
-      lines.push(`배우자 소득 : ${spouseRawStr} ( ${spouseAppliedStr} )    나이 : ${getVal('spouseAgeInput') || '-'}    장래예상 : ${spousePercent} (${spouseIncreaseStr})`);
+  // 소득2 이후 행 (값이 없는 행은 줄 자체를 생략)
+  extraIncomeRowIndexes().forEach(idx => {
+    const st = incomeRowState.get(idx);
+    const els = getRowEls(idx);
+    const rawNum = st.memoIncome || 0;
+    if (rawNum <= 0) return;
+    rawSum += rawNum;
+    const rawStr = Math.floor(rawNum).toLocaleString();
+    const rowChecked = els.applyRateCheck ? els.applyRateCheck.checked : false;
+    if (st.mode === '신고') {
+      lines.push(`소득${idx} : ${rawStr} (${DECLARE_TYPE_LABELS[st.declareType] || st.declareType})`);
+      anyChecked = true;
+    } else if (rowChecked) {
+      const appliedStr = els.hiddenInput && els.hiddenInput.value ? els.hiddenInput.value : rawStr;
+      const appliedNum = parseFloat((els.hiddenInput?.value || '').replace(/,/g, '')) || rawNum;
+      const increaseStr = Math.max(0, Math.floor(appliedNum - rawNum)).toLocaleString();
+      const percent = els.rateDisplay ? els.rateDisplay.innerText.replace(/[()]/g, '') : '-';
+      lines.push(`소득${idx} : ${rawStr} ( ${appliedStr} )    나이 : ${getVal(`ageInput_${idx}`) || '-'}    장래예상 : ${percent} (${increaseStr})`);
+      anyChecked = true;
     } else {
-      lines.push(`배우자 소득 : ${spouseRawStr}`);
+      lines.push(`소득${idx} : ${rawStr}`);
     }
+  });
 
-    // 합산소득 (장래예상 체크 또는 추정소득 사용된 경우에만 괄호 표시)
-    const rawSum = (memoBaseIncome || 0) + spouseRawNum;
+  // 합산소득 (소득이 2줄 이상일 때만 표시 - 장래예상/추정소득 사용 시에만 괄호로 실제 반영값 병기)
+  if (extraIncomeRowIndexes().some(idx => (incomeRowState.get(idx).memoIncome || 0) > 0)) {
     const rawSumStr = rawSum > 0 ? Math.floor(rawSum).toLocaleString() : '-';
     const appliedSumStr = getVal('totalIncomeOutput') || rawSumStr;
-    if (baseChecked || spouseChecked || baseIncomeMode === '신고' || spouseIncomeMode === '신고') {
+    if (anyChecked) {
       lines.push(`합산소득 : ${rawSumStr} ( ${appliedSumStr} )`);
     } else {
       lines.push(`합산소득 : ${rawSumStr}`);
@@ -1737,9 +2312,9 @@ async function 화면캡쳐() {
 
     groupEl.innerHTML =
       `<div style="display:block;background-color:#e5e7f5;border-radius:999px;padding:3px;">` +
-      pill('40', 'DSR40%') +
+      pill('40', '40%') +
       `<div style="height:2px;"></div>` +
-      pill('50', 'DSR50%') +
+      pill('50', '50%') +
       `</div>`;
 
     return () => {
