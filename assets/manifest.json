@@ -1,7 +1,7 @@
 {
   "name": "도도32",
   "short_name": "도도32",
-  "start_url": "../DSR_Main.html",
+  "start_url": "../index.html",
   "display": "standalone",
   "background_color": "#eceef3",
   "theme_color": "#3a52b8",
