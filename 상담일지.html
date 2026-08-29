@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>스마트 상담일지 프리미엄</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 즐겨찾기/홈 화면 추가 시 보이는 아이콘 -->
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+    <meta name="theme-color" content="#3a52b8">
     <style>
         :root {
             --primary: #2196f3;
@@ -167,7 +172,7 @@
             <td class="label">중개업소</td>
         </tr>
         <tr>
-            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric"></td>
+            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
             <td><input type="text" placeholder="단지명,평,층" inputmode="text" lang="ko"></td>
             <td><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
         </tr>
