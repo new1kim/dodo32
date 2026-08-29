@@ -555,6 +555,8 @@ function bindMortgageRowEvents(row) {
     if (el.classList.contains('mort-exclude')) {
       bindLongPress(el, 2000, () => {
         if (document.querySelectorAll('#mortgage-inputs .mortgage-row').length > 1) {
+          const memoRow = row.nextElementSibling;
+          if (memoRow && memoRow.classList.contains('mortgage-memo-row')) memoRow.remove();
           row.remove();
           showBubble("해당 대출 정보 삭제 완료");
           updateMortgagePlaceholders();
@@ -615,6 +617,47 @@ function decreaseAmount(btn) {
 }
 
 let mortCount = 0;
+
+// KB 시세 조회 오버레이에서 선택한 아파트명/타입/평형 정보 - "내용복사" 텍스트에 같이 포함시킨다.
+let selectedAptInfo = null; // { aptName, typeLabel, pyeong, priceField }
+function setSelectedAptInfo(info) {
+  selectedAptInfo = info;
+  renderSelectedAptRow();
+  if (typeof saveDSRInputs === 'function') saveDSRInputs();
+}
+
+// 시세입력 테이블 맨 아래 - 선택된 아파트 정보를 보여주는 행을 갱신한다.
+// selectedAptInfo가 없으면(아직 KB시세 조회로 선택한 적 없으면) 행 자체를 숨긴다.
+const APT_PRICE_FIELD_LABELS = { '매매하한가': '하한가', '매매일반가': '일반가', '매매상한가': '상한가' };
+
+function renderSelectedAptRow() {
+  const row = document.getElementById('selectedAptRow');
+  const textEl = document.getElementById('selectedAptInfoText');
+  const addressEl = document.getElementById('selectedAptAddressText');
+  if (!row || !textEl || !addressEl) return;
+
+  if (!selectedAptInfo || !selectedAptInfo.aptName) {
+    row.style.display = 'none';
+    return;
+  }
+
+  const typePart = selectedAptInfo.typeLabel ? ` (${selectedAptInfo.typeLabel}타입)` : '';
+  const areaPart = selectedAptInfo.exclusiveSqm
+    ? `전용 ${selectedAptInfo.exclusiveSqm}㎡, 공급 ${selectedAptInfo.supplyPyeong}평`
+    : `전용 ${selectedAptInfo.pyeong}평`; // 예전에 저장된 값(공급/㎡ 정보 없음)과의 호환용
+  const priceTierText = APT_PRICE_FIELD_LABELS[selectedAptInfo.priceField] || '';
+
+  textEl.textContent = `${selectedAptInfo.aptName}${typePart}, ${areaPart}${priceTierText ? '     ' + priceTierText : ''}`;
+  addressEl.textContent = selectedAptInfo.address || '';
+  row.style.display = '';
+}
+
+// 대출 행(.mortgage-row) 바로 아래 짝지어진 메모 행에서 입력값을 읽어온다.
+function getMortgageRowMemo(row) {
+  const memoRow = row?.nextElementSibling;
+  if (!memoRow || !memoRow.classList.contains('mortgage-memo-row')) return '';
+  return memoRow.querySelector('.mort-memo')?.value.trim() || '';
+}
 
 function 주담대행추가() {
   mortCount++;
@@ -687,7 +730,18 @@ function 주담대행추가() {
   `;
   
   tbody.appendChild(newRow);
-  
+
+  // 대출 행마다 바로 아래에 메모 전용 행을 붙인다 (.mortgage-row가 아니어서 대출 행 개수를
+  // 세는 기존 로직에는 안 잡히고, 항상 newRow의 다음 형제로만 짝지어 찾는다).
+  const memoRow = document.createElement('tr');
+  memoRow.className = 'mortgage-memo-row';
+  memoRow.innerHTML = `
+    <td colspan="4" class="no-bg">
+      <input type="text" class="mort-memo" placeholder="메모 입력" lang="ko" inputmode="text">
+    </td>
+  `;
+  tbody.appendChild(memoRow);
+
   bindMortgageRowEvents(newRow);
   if (isFirstRow) {
     applyDefaultProfileToRow(newRow, '6M');
@@ -1198,6 +1252,11 @@ function buildIncomeRowHTML(index) {
             <input type="text" class="declare-converted-output" id="declareConvertedOutput_${index}" readonly placeholder="환산금액" style="display:none;">
           </div>
         </td>
+      </tr>
+      <tr class="income-memo-row">
+        <td colspan="4">
+          <input type="text" id="incomeMemo_${index}" class="income-memo" placeholder="메모 입력" lang="ko" inputmode="text">
+        </td>
       </tr>`;
 }
 
@@ -1471,6 +1530,8 @@ function handleAddIncomeClick(triggerEl) {
 
 function 소득행삭제(index) {
   const els = getRowEls(index);
+  const memoRow = els.row?.nextElementSibling;
+  if (memoRow && memoRow.classList.contains('income-memo-row')) memoRow.remove();
   if (els.row) els.row.remove();
   if (els.bubbleList) els.bubbleList.remove(); // body로 옮겨져 있으므로 행 삭제와 별개로 제거해야 함
   incomeRowState.delete(index);
@@ -1649,6 +1710,8 @@ function 소득1초기화() {
 
   if (applyRateCheck) applyRateCheck.checked = false;
   if (ageInput) ageInput.value = "";
+  const baseIncomeMemo = document.getElementById("baseIncomeMemo");
+  if (baseIncomeMemo) baseIncomeMemo.value = "";
 
   // 신고소득(카드/건강/연금) 관련 상태 초기화
   memoBaseIncomeDirect = 0;
@@ -1681,6 +1744,8 @@ function 선택초기화() {
   // "소득 추가"로 늘어난 소득2 이후 행은 모두 제거하고 소득1만 남긴다.
   extraIncomeRowIndexes().forEach(idx => {
     const els = getRowEls(idx);
+    const memoRow = els.row?.nextElementSibling;
+    if (memoRow && memoRow.classList.contains('income-memo-row')) memoRow.remove();
     if (els.row) els.row.remove();
     if (els.bubbleList) els.bubbleList.remove(); // body로 옮겨져 있으므로 행 삭제와 별개로 제거해야 함
   });
@@ -1707,6 +1772,12 @@ function 선택초기화() {
     const termInput = firstRow.querySelector('.mort-term');
     if (termInput) termInput.value = savedDefaultFirstRowData?.term || '';
 
+    const firstMemoRow = firstRow.nextElementSibling;
+    if (firstMemoRow && firstMemoRow.classList.contains('mortgage-memo-row')) {
+      const firstMemoInput = firstMemoRow.querySelector('.mort-memo');
+      if (firstMemoInput) firstMemoInput.value = '';
+    }
+
     firstRow.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
       checkbox.checked = false;
     });
@@ -1716,6 +1787,8 @@ function 선택초기화() {
   // 새로고침 없이도 화면에서 바로 사라진다.
   const allRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
   for (let i = allRows.length - 1; i >= 1; i--) {
+    const memoRow = allRows[i].nextElementSibling;
+    if (memoRow && memoRow.classList.contains('mortgage-memo-row')) memoRow.remove();
     allRows[i].remove();
   }
   mortCount = allRows.length > 0 ? 1 : 0;
@@ -1747,12 +1820,16 @@ function 선택초기화() {
   });
   localStorage.removeItem('DSR_incomeRowIndexes');
   localStorage.removeItem('DSR_mortgageData');
-  
+  localStorage.removeItem('DSR_selectedAptInfo');
+  selectedAptInfo = null;
+  renderSelectedAptRow();
+
   updateIncomeCalc();
   showBubble("입력 내용이 초기화되었습니다.");
 }
 
 function saveDSRInputs() {
+  localStorage.setItem('DSR_selectedAptInfo', selectedAptInfo ? JSON.stringify(selectedAptInfo) : '');
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) localStorage.setItem(`DSR_${input.id}`, input.value);
   });
@@ -1794,7 +1871,10 @@ function saveMortgageRows() {
       repaymentType: row.querySelector('.mort-type')?.value || '원리금',
       loanCategory: row.querySelector('.mort-loan-category')?.value || '신용',
       graceCheck: row.querySelector('.mort-grace-check')?.checked || false,
-      graceTerm: row.querySelector('.mort-grace-term')?.value || ''
+      graceTerm: row.querySelector('.mort-grace-term')?.value || '',
+      memo: row.nextElementSibling?.classList.contains('mortgage-memo-row')
+        ? (row.nextElementSibling.querySelector('.mort-memo')?.value || '')
+        : ''
     };
     mortgageData.push(rowData);
   });
@@ -1803,6 +1883,14 @@ function saveMortgageRows() {
 }
 
 function loadDSRInputs() {
+  try {
+    const savedAptInfo = localStorage.getItem('DSR_selectedAptInfo');
+    selectedAptInfo = savedAptInfo ? JSON.parse(savedAptInfo) : null;
+  } catch (e) {
+    selectedAptInfo = null;
+  }
+  renderSelectedAptRow();
+
   // "소득 추가"로 늘어났던 행들을 먼저 원래 인덱스 그대로 다시 만들어둬야, 그 안의 입력값들이
   // 아래 일반 복원 루프(TEXT_NUMBER_INPUT_SELECTOR)에서 정상적으로 걸린다.
   let savedIndexes = [];
@@ -1882,7 +1970,7 @@ function loadMortgageRows() {
     const tbody = document.getElementById('mortgage-inputs');
     if (!tbody) return;
     
-    tbody.querySelectorAll('.mortgage-row').forEach(row => row.remove());
+    tbody.querySelectorAll('.mortgage-row, .mortgage-memo-row').forEach(row => row.remove());
     mortCount = 0;
     
     mortgageData.forEach(rowData => {
@@ -1911,7 +1999,13 @@ function loadMortgageRows() {
         if (loanCategory) loanCategory.value = rowData.loanCategory || '신용';
         if (graceCheck) graceCheck.checked = rowData.graceCheck;
         if (graceTerm) graceTerm.value = rowData.graceTerm;
-        
+
+        const memoRow = currentRow.nextElementSibling;
+        if (memoRow && memoRow.classList.contains('mortgage-memo-row')) {
+          const memoInput = memoRow.querySelector('.mort-memo');
+          if (memoInput) memoInput.value = rowData.memo || '';
+        }
+
         const typeButtons = currentRow.querySelectorAll('.type-btn');
         typeButtons.forEach(btn => btn.classList.remove('active'));
         if (rowData.repaymentType === '원리금') typeButtons[0]?.classList.add('active');
@@ -1925,6 +2019,142 @@ function loadMortgageRows() {
   } catch (e) {
     console.warn('Failed to load mortgage data:', e);
   }
+}
+
+/* -------------------- 저장/불러오기 슬롯 (1/2/3번 버튼) --------------------
+   버튼을 길게 누르면(0.7초) 지금 입력된 모든 내용을 그 번호에 저장하고,
+   짧게 누르면 그 번호에 저장된 내용을 불러온다. 화면에 이미 뭔가 입력돼 있으면
+   불러오기 전에 덮어쓸지 한 번 물어본다. */
+const SLOT_SAVE_LONG_PRESS_MS = 700;
+const DSR_SLOT_PREFIX = 'DSR_SLOT_';
+
+function formHasContent() {
+  const hasTextValue = [...document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR)]
+    .some(el => el.value && el.value.trim() !== '');
+  const hasExtraIncomeRows = extraIncomeRowIndexes().length > 0;
+  const hasExtraLoanRows = document.querySelectorAll('#mortgage-inputs .mortgage-row').length > 1;
+  return hasTextValue || hasExtraIncomeRows || hasExtraLoanRows;
+}
+
+function refreshSlotButtonStates() {
+  document.querySelectorAll('.slot-btn').forEach(btn => {
+    const n = btn.dataset.slot;
+    btn.classList.toggle('slot-has-data', !!localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`));
+  });
+}
+
+function saveFormToSlot(n) {
+  saveDSRInputs(); // 지금 상태를 최신 DSR_* 키에 우선 반영
+  const snapshot = {};
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('DSR_') && !key.startsWith(DSR_SLOT_PREFIX)) {
+      snapshot[key] = localStorage.getItem(key);
+    }
+  });
+  localStorage.setItem(`${DSR_SLOT_PREFIX}${n}`, JSON.stringify(snapshot));
+  showBubble(`${n}번에 저장되었습니다`);
+  refreshSlotButtonStates();
+}
+
+// init()이 새로고침 시 하는 순서와 동일하게, 저장된 스냅샷 기준으로 화면을 다시 그린다.
+function applySlotSnapshot(n) {
+  const raw = localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`);
+  if (!raw) { showBubble(`${n}번에 저장된 내용이 없습니다`); return; }
+  let snapshot;
+  try {
+    snapshot = JSON.parse(raw);
+  } catch (e) {
+    showBubble('저장된 데이터를 불러올 수 없습니다');
+    return;
+  }
+
+  // 지금 늘어나 있는 소득 추가행부터 정리한다 (대출행은 loadMortgageRows가 스스로 정리함).
+  extraIncomeRowIndexes().forEach(idx => {
+    const els = getRowEls(idx);
+    const memoRow = els.row?.nextElementSibling;
+    if (memoRow && memoRow.classList.contains('income-memo-row')) memoRow.remove();
+    if (els.row) els.row.remove();
+    if (els.bubbleList) els.bubbleList.remove();
+  });
+  incomeRowState.clear();
+  nextIncomeRowIndex = 2;
+  otherRowsWereBlocked = false;
+
+  // 스냅샷에 없는 기존 DSR_* 값(예: 방금까지 있던 소득행 인덱스 등)은 지워서 안 섞이게 한다.
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('DSR_') && !k.startsWith(DSR_SLOT_PREFIX))
+    .forEach(k => localStorage.removeItem(k));
+  Object.entries(snapshot).forEach(([k, v]) => localStorage.setItem(k, v));
+
+  if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === '[]') {
+    주담대행추가();
+  }
+  loadDSRInputs();
+  refreshRadioToggleStyles('#baseIncomeModeToggle');
+  refreshRadioToggleStyles('#baseDeclareTypeToggle');
+  applyBaseIncomeMode();
+  extraIncomeRowIndexes().forEach(idx => {
+    refreshRadioToggleStyles(`#incomeModeToggle_${idx}`);
+    refreshRadioToggleStyles(`#declareTypeToggle_${idx}`);
+    applyIncomeRowMode(idx);
+  });
+  updateIncomeCalc();
+  applyOtherRowsBlock();
+  if (typeof 자동계산 === 'function') 자동계산();
+  showBubble(`${n}번 저장 내용을 불러왔습니다`);
+}
+
+function loadFormFromSlot(n) {
+  if (!localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`)) {
+    showBubble(`${n}번에 저장된 내용이 없습니다`);
+    return;
+  }
+  if (formHasContent()) {
+    if (confirm('입력창에 내용이 남아있습니다. 덮어씌울까요?')) applySlotSnapshot(n);
+  } else {
+    applySlotSnapshot(n);
+  }
+}
+
+function initSlotButtons() {
+  document.querySelectorAll('.slot-btn').forEach(btn => {
+    const n = btn.dataset.slot;
+    let timer = null;
+    let longPressFired = false;
+
+    const start = () => {
+      if (timer) clearTimeout(timer);
+      longPressFired = false;
+      btn.classList.add('slot-saving');
+      timer = setTimeout(() => {
+        longPressFired = true;
+        timer = null;
+        btn.classList.remove('slot-saving');
+        saveFormToSlot(n);
+        if (navigator.vibrate) navigator.vibrate(25);
+      }, SLOT_SAVE_LONG_PRESS_MS);
+    };
+    const cancel = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      btn.classList.remove('slot-saving');
+    };
+
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('touchstart', start, { passive: true });
+    btn.addEventListener('mouseup', cancel);
+    btn.addEventListener('mouseleave', cancel);
+    btn.addEventListener('touchend', cancel, { passive: true });
+    btn.addEventListener('touchcancel', cancel, { passive: true });
+
+    btn.addEventListener('click', () => {
+      if (longPressFired) {
+        longPressFired = false;
+        return;
+      }
+      loadFormFromSlot(n);
+    });
+  });
+  refreshSlotButtonStates();
 }
 
 function setupDSRAutoSave() {
@@ -2055,6 +2285,7 @@ function init() {
   }
   loadDSRInputs();
   setupDSRAutoSave();
+  initSlotButtons();
   refreshRadioToggleStyles('#baseIncomeModeToggle');
   refreshRadioToggleStyles('#baseDeclareTypeToggle');
   applyBaseIncomeMode();
@@ -2091,33 +2322,27 @@ function 대출정보텍스트생성() {
     const el = document.getElementById(id);
     return el ? el.innerText.trim() : '';
   };
+  const getIncomeMemo = (index) => {
+    const el = document.getElementById(index === 1 ? 'baseIncomeMemo' : `incomeMemo_${index}`);
+    return el ? el.value.trim() : '';
+  };
 
   const lines = [];
   const 구분선 = '－－－－－－－－－－－－－－－－－－';
 
-  // 1) 본건 월별 상환 스케줄
-  lines.push('[ 본건 월별 상환 스케줄 ]');
-  lines.push(`합 계 : ${getText('월합계') || '-'}    월원금 : ${getText('월원금') || '-'}    월이자 : ${getText('월이자') || '-'}`);
-  lines.push(구분선);
-
-  // 2) DSR 최대한도 (원리금 / 원금)
-  const dsrLimitRadio = document.querySelector('input[name="dsr_limit_rate"]:checked');
-  const dsrLimitLabel = dsrLimitRadio ? `DSR${dsrLimitRadio.value}%` : '-';
-  const dsrWonrigeumMain = document.querySelector('#DSR최대금액확인-원리금 .dsr-main-val')?.innerText.trim() || '-';
-  const dsrWonrigeumSub = document.querySelector('#DSR최대금액확인-원리금 .dsr-sub-val')?.innerText.trim() || '';
-  const dsrWongeumMain = document.querySelector('#DSR최대금액확인-원금 .dsr-main-val')?.innerText.trim() || '-';
-  const dsrWongeumSub = document.querySelector('#DSR최대금액확인-원금 .dsr-sub-val')?.innerText.trim() || '';
-  lines.push(`[ DSR 최대한도 (${dsrLimitLabel}) ]`);
-  lines.push(`원리금 : ${dsrWonrigeumMain} ${dsrWonrigeumSub}`.trim());
-  lines.push(`원  금 : ${dsrWongeumMain} ${dsrWongeumSub}`.trim());
-  lines.push(구분선);
-
-  // 3) LTV
+  // LTV
   lines.push('[ LTV ]');
   const ltvRadio = document.querySelector('input[name="ltv_rate"]:checked');
   const ltvPercent = ltvRadio ? `${ltvRadio.value}%` : '-';
   const kbSise = getVal('ltvMarketPriceInput') || '-';
   lines.push(`KB시세 : ${kbSise}    LTV비율 : ${ltvPercent}`);
+  if (selectedAptInfo && selectedAptInfo.aptName) {
+    const typePart = selectedAptInfo.typeLabel ? `${selectedAptInfo.typeLabel}타입 · ` : '';
+    const areaPart = selectedAptInfo.exclusiveSqm
+      ? `전용 ${selectedAptInfo.exclusiveSqm}㎡ · 공급 ${selectedAptInfo.supplyPyeong}평`
+      : `전용 ${selectedAptInfo.pyeong}평`; // 예전에 저장된 값(공급/㎡ 정보 없음)과의 호환용
+    lines.push(`단지 : ${selectedAptInfo.aptName} (${typePart}${areaPart})`);
+  }
   lines.push(`소액임차금액 : ${getVal('ltvMinorLeaseInput') || '-'}`);
   lines.push(`계산값 : ${getVal('ltvMaxAmountOutput') || '-'}`);
   lines.push(구분선);
@@ -2142,10 +2367,12 @@ function 대출정보텍스트생성() {
     const baseAppliedNum = parseFloat((hiddenIncomeInput?.value || '').replace(/,/g, '')) || baseRawNum;
     const baseIncreaseStr = Math.max(0, Math.floor(baseAppliedNum - baseRawNum)).toLocaleString();
     const basePercent = rateDisplay ? rateDisplay.innerText.replace(/[()]/g, '') : '-';
-    lines.push(`소득1 : ${baseRawStr} ( ${baseAppliedStr} )    나이 : ${getVal('ageInput') || '-'}    장래예상 : ${basePercent} (${baseIncreaseStr})`);
+    lines.push(`소득1 : ${baseRawStr} (근로소득) ( ${baseAppliedStr} )    나이 : ${getVal('ageInput') || '-'}    장래예상 : ${basePercent} (${baseIncreaseStr})`);
   } else {
-    lines.push(`소득1 : ${baseRawStr}`);
+    lines.push(`소득1 : ${baseRawStr} (근로소득)`);
   }
+  const baseMemo = getIncomeMemo(1);
+  if (baseMemo) lines.push(`  메모 : ${baseMemo}`);
 
   // 소득2 이후 행 (값이 없는 행은 줄 자체를 생략)
   extraIncomeRowIndexes().forEach(idx => {
@@ -2164,11 +2391,13 @@ function 대출정보텍스트생성() {
       const appliedNum = parseFloat((els.hiddenInput?.value || '').replace(/,/g, '')) || rawNum;
       const increaseStr = Math.max(0, Math.floor(appliedNum - rawNum)).toLocaleString();
       const percent = els.rateDisplay ? els.rateDisplay.innerText.replace(/[()]/g, '') : '-';
-      lines.push(`소득${idx} : ${rawStr} ( ${appliedStr} )    나이 : ${getVal(`ageInput_${idx}`) || '-'}    장래예상 : ${percent} (${increaseStr})`);
+      lines.push(`소득${idx} : ${rawStr} (근로소득) ( ${appliedStr} )    나이 : ${getVal(`ageInput_${idx}`) || '-'}    장래예상 : ${percent} (${increaseStr})`);
       anyChecked = true;
     } else {
-      lines.push(`소득${idx} : ${rawStr}`);
+      lines.push(`소득${idx} : ${rawStr} (근로소득)`);
     }
+    const rowMemo = getIncomeMemo(idx);
+    if (rowMemo) lines.push(`  메모 : ${rowMemo}`);
   });
 
   // 합산소득 (소득이 2줄 이상일 때만 표시 - 장래예상/추정소득 사용 시에만 괄호로 실제 반영값 병기)
@@ -2204,6 +2433,8 @@ function 대출정보텍스트생성() {
     if (graceChecked) {
       lines.push(`거치 : ${graceTerm}개월`);
     }
+    const firstMemo = getMortgageRowMemo(firstRow);
+    if (firstMemo) lines.push(`메모 : ${firstMemo}`);
   }
 
   lines.push(구분선);
@@ -2222,6 +2453,8 @@ function 대출정보텍스트생성() {
       let rowLine = `보유대출${idx + 1} : ${amt}    금리 : ${rate}%    기간 : ${term}개월    상환방식 : ${type}`;
       if (conditionChecked) rowLine += `    [[ 당일상환조건 ]]`;
       lines.push(rowLine);
+      const memo = getMortgageRowMemo(row);
+      if (memo) lines.push(`  메모 : ${memo}`);
     });
   }
 

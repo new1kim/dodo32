@@ -227,6 +227,75 @@
     z-index: 10;
   }
   .mp-toast.show { opacity: 1; }
+
+  /* ---------- 최근 조회 히스토리 ---------- */
+  .mp-history-section { margin-bottom: 16px; }
+  .mp-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .mp-history-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--c-text-muted);
+    letter-spacing: 0.3px;
+  }
+  .mp-history-clear {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--c-text-faint);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-clear:active { opacity: 0.6; }
+  .mp-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    background: var(--c-surface);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-item:active { background: var(--c-surface-muted); transform: scale(0.99); }
+  .mp-history-info { min-width: 0; overflow: hidden; text-align: left; }
+  .mp-history-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mp-history-meta { font-size: 11px; font-weight: 600; color: var(--c-text-muted); margin-top: 1px; }
+  .mp-history-price {
+    flex: 0 0 auto;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--c-primary-dark);
+  }
+  .mp-history-remove {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-pill);
+    background: var(--c-surface-muted);
+    color: var(--c-text-faint);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-remove:active { background: var(--c-danger-soft); color: var(--c-danger-text); transform: scale(0.9); }
 </style>
 </head>
 <body>
@@ -242,8 +311,17 @@
         <input type="text" id="searchInput" inputmode="search" placeholder="주소 또는 아파트명 (예: 수원 팰루시드)" autocomplete="off">
         <button onclick="searchApartment()">검색</button>
       </div>
+
       <div id="resultList"></div>
       <div id="searchHint" class="mp-hint">아파트 단지명을 검색해보세요</div>
+
+      <div id="historySection" class="mp-history-section" style="display:none;">
+        <div class="mp-history-head">
+          <span class="mp-history-title">최근 조회</span>
+          <span class="mp-history-clear" onclick="clearHistory()">지우기</span>
+        </div>
+        <div id="historyList"></div>
+      </div>
     </div>
 
     <div id="detailView" style="display:none;">
@@ -356,7 +434,7 @@ async function searchApartment() {
 
     resultListEl.querySelectorAll('.mp-result-card').forEach(card => {
       const apt = aptList[Number(card.dataset.idx)];
-      card.addEventListener('click', () => selectComplex(apt.COMPLEX_NO, apt.HSCM_NM));
+      card.addEventListener('click', () => selectComplex(apt.COMPLEX_NO, apt.HSCM_NM, apt.NEWADDRESS));
     });
 
   } catch (error) {
@@ -370,7 +448,7 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
 });
 
 // 단지 선택 -> 평형별 KB시세 + 투기과열/조정대상 여부 조회
-async function selectComplex(complexNo, aptName) {
+async function selectComplex(complexNo, aptName, address) {
   document.getElementById('searchView').style.display = 'none';
   document.getElementById('detailView').style.display = 'block';
   document.getElementById('complexNameEl').textContent = aptName || '';
@@ -428,7 +506,7 @@ async function selectComplex(complexNo, aptName) {
     typeListEl.querySelectorAll('.mp-price-chip').forEach(chip => {
       const t = types[Number(chip.dataset.idx)];
       const field = chip.dataset.field;
-      chip.addEventListener('click', () => applyPrice(aptName, t, field));
+      chip.addEventListener('click', () => applyPrice(aptName, address, t, field));
     });
 
   } catch (error) {
@@ -438,22 +516,128 @@ async function selectComplex(complexNo, aptName) {
 }
 
 // 선택한 가격(만원)을 원 단위로 변환해 부모 화면(시세 입력칸)에 전달
-function applyPrice(aptName, typeInfo, field) {
+function applyPrice(aptName, address, typeInfo, field) {
   const manwon = Number(typeInfo[field]) || 0;
   const won = manwon * 10000;
+  const pyeong = typeInfo.전용면적평;
+  const typeLabel = typeInfo.타입;
+
+  addToHistory({
+    aptName,
+    address,
+    typeLabel,
+    pyeong, // 부모 화면(내용복사)에 그대로 넘길 때 쓰는 전용면적평 - 히스토리 표시에는 안 씀
+    exclusiveSqm: typeInfo.전용면적,
+    supplyPyeong: typeInfo.공급면적평,
+    priceField: field,
+    manwon
+  });
 
   if (hasParent) {
     window.parent.postMessage({
       type: 'kbMarketPrice',
       value: won,
       aptName: aptName,
-      typeLabel: typeInfo.타입,
+      address: address,
+      typeLabel: typeLabel,
+      pyeong: pyeong,
+      exclusiveSqm: typeInfo.전용면적,
+      supplyPyeong: typeInfo.공급면적평,
       priceField: field
     }, '*');
   } else {
     showToast(`${formatWon(manwon)}원 (${won.toLocaleString()}원)`);
   }
 }
+
+/* -------------------- 최근 조회 히스토리 --------------------
+   가격을 하나 선택할 때마다(applyPrice) 로컬에 남겨서, 검색 화면을 다시 열었을 때
+   최근 몇 건을 바로 볼 수 있게 한다. 항목을 탭하면 그 값을 다시 그대로 적용한다. */
+const HISTORY_STORAGE_KEY = 'kbSiseHistory';
+const HISTORY_MAX = 8;
+const PRICE_FIELD_LABELS = { '매매하한가': '하한가', '매매일반가': '일반가', '매매상한가': '상한가' };
+
+function loadHistory() {
+  try {
+    const list = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function addToHistory(entry) {
+  const list = loadHistory();
+  list.unshift(entry);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  renderHistory();
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  renderHistory();
+}
+
+function removeHistoryItem(index) {
+  const list = loadHistory();
+  list.splice(index, 1);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(list));
+  renderHistory();
+}
+
+function reapplyHistoryItem(h) {
+  const won = h.manwon * 10000;
+  if (hasParent) {
+    window.parent.postMessage({
+      type: 'kbMarketPrice',
+      value: won,
+      aptName: h.aptName,
+      address: h.address,
+      typeLabel: h.typeLabel,
+      pyeong: h.pyeong,
+      exclusiveSqm: h.exclusiveSqm,
+      supplyPyeong: h.supplyPyeong,
+      priceField: h.priceField
+    }, '*');
+  } else {
+    showToast(`${formatWon(h.manwon)}원 (${won.toLocaleString()}원)`);
+  }
+}
+
+function renderHistory() {
+  const section = document.getElementById('historySection');
+  const listEl = document.getElementById('historyList');
+  const list = loadHistory();
+
+  if (!list.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  listEl.innerHTML = list.map((h, i) => `
+    <div class="mp-history-item" data-idx="${i}">
+      <div class="mp-history-info">
+        <div class="mp-history-name">${h.aptName}</div>
+        <div class="mp-history-meta">${h.typeLabel ? h.typeLabel + '타입 · ' : ''}전용 ${h.exclusiveSqm}㎡ · 공급 ${h.supplyPyeong}평 · ${PRICE_FIELD_LABELS[h.priceField] || ''}</div>
+      </div>
+      <div class="mp-history-price">${formatWon(h.manwon)}</div>
+      <button type="button" class="mp-history-remove" data-idx="${i}" aria-label="이 기록 삭제">✕</button>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('.mp-history-item').forEach(item => {
+    const h = list[Number(item.dataset.idx)];
+    item.addEventListener('click', () => reapplyHistoryItem(h));
+  });
+  listEl.querySelectorAll('.mp-history-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // 부모 항목의 재적용 클릭으로 안 번지게 막는다
+      removeHistoryItem(Number(btn.dataset.idx));
+    });
+  });
+}
+
+renderHistory();
 </script>
 </body>
 </html>

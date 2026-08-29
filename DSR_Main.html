@@ -82,8 +82,8 @@
             <div class="ltv-stack">
               <!-- 토글 버튼 영역 -->
               <div class="pill-toggle-group" id="ltvRateToggleGroup">
-                <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="80" checked>80%</label>
-                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="70">70%</label>
+                <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="80">80%</label>
+                <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="70" checked>70%</label>
                 <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="60">60%</label>
                 <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="40">40%</label>
               </div>
@@ -108,6 +108,13 @@
           <!-- 3번 칸: LTV 최대한도 -->
           <td class="ltv-cell">
             <input type="text" id="ltvMaxAmountOutput" class="ltv-output" placeholder="LTV 최대한도" readonly>
+          </td>
+        </tr>
+        <!-- KB시세 조회에서 시세를 선택했을 때만 나타나는 행 - 선택 전엔 완전히 숨김 -->
+        <tr id="selectedAptRow" class="selected-apt-row" style="display:none;">
+          <td colspan="3">
+            <div class="selected-apt-info" id="selectedAptInfoText"></div>
+            <div class="selected-apt-address" id="selectedAptAddressText"></div>
           </td>
         </tr>
       </table>
@@ -244,6 +251,11 @@
           </div>
         </td>
       </tr>
+      <tr class="income-memo-row">
+        <td colspan="4">
+          <input type="text" id="baseIncomeMemo" class="income-memo" placeholder="메모 입력" lang="ko" inputmode="text">
+        </td>
+      </tr>
     </table>
     </div>
 
@@ -310,6 +322,11 @@
     <div class="view-btn-wrapper">
       <button class="view-btn" onclick="openTextModal()">기본값 설정 및 안내</button>
       <!-- <button class="view-btn" onclick="openImageModal('장래예상소득증가율.png')">장래예상소득 기준</button> -->
+      <div class="slot-btn-group" id="slotBtnGroup">
+        <button type="button" class="slot-btn" data-slot="1">1</button>
+        <button type="button" class="slot-btn" data-slot="2">2</button>
+        <button type="button" class="slot-btn" data-slot="3">3</button>
+      </div>
     </div>
 
     <!-- 모달 등 기타 UI 마크업 생략 없이 모두 포함 -->
@@ -564,6 +581,19 @@
         if (input) {
           input.value = String(e.data.value);
           input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        // 아파트명/타입/평형 정보도 같이 기억해뒀다가, "내용복사" 시 같이 옮겨지게 한다.
+        if (typeof setSelectedAptInfo === 'function') {
+          setSelectedAptInfo({
+            aptName: e.data.aptName || '',
+            address: e.data.address || '',
+            typeLabel: e.data.typeLabel || '',
+            pyeong: e.data.pyeong || '',
+            exclusiveSqm: e.data.exclusiveSqm || '',
+            supplyPyeong: e.data.supplyPyeong || '',
+            priceField: e.data.priceField || '',
+            priceWon: e.data.value || 0
+          });
         }
         closeMarketPriceOverlay();
       }

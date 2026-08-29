@@ -39,7 +39,7 @@
         #loadBtn:hover { background: #f8fbff; transform: translateY(-1px); }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: 15px; text-align: center; box-sizing: border-box; }
+        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: clamp(13px, 2.5vw, 15px); text-align: center; box-sizing: border-box; }
         th:last-child, td:last-child { border-right: none; }
         tr:last-child td { border-bottom: none; }
         th, .label { background: #e3effa; font-weight: bold; color: #2c5270; }
@@ -67,7 +67,10 @@
         .content-row { background: #fff; text-align: left; vertical-align: top; padding: 0; }
         
         textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 12px; box-sizing: border-box; outline: none; line-height: 1.5; }
-        input[type="text"] { width: 100%; box-sizing: border-box; font-size: 15px; padding: 6px 8px; border: 1px solid #b3c6d7; border-radius: 4px; background: #fff; transition: border 0.2s; text-align: center; }
+        input[type="text"] { width: 100%; height: 100%; box-sizing: border-box; font-size: clamp(13px, 2.5vw, 15px); padding: 6px 8px; border: 1px solid #b3c6d7; border-radius: 4px; background: #fff; transition: border 0.2s; text-align: center; }
+        /* 입력칸을 담고 있는 칸은 안쪽 여백을 없애서 입력창이 칸에 꽉 차게 한다.
+           height:1px 트릭 - 그냥 두면 셀 높이가 auto라 자식의 height:100%가 안 먹혀서 세로로는 꽉 안 참 */
+        td:has(> input[type="text"]) { padding: 0; height: 1px; }
         input[type="text"]:focus { border-color: var(--primary); outline: none; background: #fff; }
         textarea::placeholder, input::placeholder { color: #a0aec0; }
 
@@ -125,7 +128,7 @@
             .top-actions { flex-wrap: nowrap; gap: 8px; }
             .left-actions, .right-actions { flex-shrink: 0; }
             .user-code-input { width: 90px !important; }
-            th, td, input, textarea { font-size: 13px; }
+            textarea { font-size: 13px; }
             textarea { height: 320px; }
             .history-modal { width: 100%; right: -100%; }
         }
@@ -1156,4 +1159,62 @@ window.addEventListener('DOMContentLoaded', function() {
         modalOverlay.style.display = 'none';
       }
     }
+  </script>
+
+  <script>
+    // 표 안 텍스트 입력칸: 내용이 칸 폭보다 길면 글자를 줄이고, 짧아지면 원래 크기로 다시 키운다.
+    // 값이 타이핑/불러오기/전화번호 자동입력 등 어디서 바뀌든 다 반영되도록 value 세터 자체를 감싼다
+    // (호출 지점이 여러 곳에 흩어져 있어 하나하나 찾아 고치는 대신 이 방식이 안전함).
+    (function () {
+      const ghost = document.createElement('span');
+      ghost.style.position = 'absolute';
+      ghost.style.visibility = 'hidden';
+      ghost.style.whiteSpace = 'pre';
+      ghost.style.left = '-9999px';
+      ghost.style.top = '-9999px';
+      document.body.appendChild(ghost);
+
+      function fitTableInputFontSize(input) {
+        if (!input || input.type !== 'text' || !input.closest('table')) return;
+        if (!input.dataset.origSize) {
+          input.dataset.origSize = window.getComputedStyle(input).fontSize;
+        }
+        const origSize = parseFloat(input.dataset.origSize);
+        const maxWidth = input.clientWidth - 18; // 좌우 padding(8px*2) + 커서 여유분 감안
+        if (maxWidth <= 0) { input.style.fontSize = input.dataset.origSize; return; }
+
+        const cs = window.getComputedStyle(input);
+        ghost.style.fontFamily = cs.fontFamily;
+        ghost.style.fontWeight = cs.fontWeight;
+
+        let size = origSize;
+        ghost.style.fontSize = size + 'px';
+        ghost.textContent = input.value || input.placeholder || '';
+        while (size > 9 && ghost.offsetWidth > maxWidth) {
+          size -= 0.5;
+          ghost.style.fontSize = size + 'px';
+        }
+        input.style.fontSize = size + 'px';
+      }
+
+      function fitAllTableInputFontSizes() {
+        document.querySelectorAll('table input[type="text"]').forEach(fitTableInputFontSize);
+      }
+
+      const nativeValueDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      Object.defineProperty(HTMLInputElement.prototype, 'value', {
+        configurable: true,
+        get() { return nativeValueDescriptor.get.call(this); },
+        set(v) {
+          nativeValueDescriptor.set.call(this, v);
+          fitTableInputFontSize(this);
+        },
+      });
+
+      document.querySelectorAll('table input[type="text"]').forEach(input => {
+        input.addEventListener('input', () => fitTableInputFontSize(input));
+      });
+      window.addEventListener('resize', fitAllTableInputFontSizes);
+      fitAllTableInputFontSizes();
+    })();
   </script>
