@@ -114,7 +114,10 @@
         <tr id="selectedAptRow" class="selected-apt-row" style="display:none;">
           <td colspan="3">
             <div class="selected-apt-info" id="selectedAptInfoText"></div>
-            <div class="selected-apt-address" id="selectedAptAddressText"></div>
+            <div class="selected-apt-address-row">
+              <div class="selected-apt-address" id="selectedAptAddressText"></div>
+              <span class="apt-reg-badges" id="selectedAptRegulationBadges"></span>
+            </div>
           </td>
         </tr>
       </table>
@@ -592,7 +595,9 @@
             exclusiveSqm: e.data.exclusiveSqm || '',
             supplyPyeong: e.data.supplyPyeong || '',
             priceField: e.data.priceField || '',
-            priceWon: e.data.value || 0
+            priceWon: e.data.value || 0,
+            투기과열지구: !!e.data.투기과열지구,
+            조정대상지역: !!e.data.조정대상지역
           });
         }
         closeMarketPriceOverlay();

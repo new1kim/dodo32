@@ -634,10 +634,12 @@ function renderSelectedAptRow() {
   const row = document.getElementById('selectedAptRow');
   const textEl = document.getElementById('selectedAptInfoText');
   const addressEl = document.getElementById('selectedAptAddressText');
-  if (!row || !textEl || !addressEl) return;
+  const badgesEl = document.getElementById('selectedAptRegulationBadges');
+  if (!row || !textEl || !addressEl || !badgesEl) return;
 
   if (!selectedAptInfo || !selectedAptInfo.aptName) {
     row.style.display = 'none';
+    badgesEl.innerHTML = '';
     return;
   }
 
@@ -649,6 +651,12 @@ function renderSelectedAptRow() {
 
   textEl.textContent = `${selectedAptInfo.aptName}${typePart}, ${areaPart}${priceTierText ? '     ' + priceTierText : ''}`;
   addressEl.textContent = selectedAptInfo.address || '';
+
+  const badges = [];
+  if (selectedAptInfo.투기과열지구) badges.push('<span class="apt-reg-badge apt-reg-badge-danger">투기과열지구</span>');
+  if (selectedAptInfo.조정대상지역) badges.push('<span class="apt-reg-badge apt-reg-badge-warning">조정대상지역</span>');
+  badgesEl.innerHTML = badges.join('');
+
   row.style.display = '';
 }
 
