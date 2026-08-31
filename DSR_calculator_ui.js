@@ -2578,8 +2578,33 @@ async function 화면캡쳐() {
     };
   };
 
+  // "본건 월별 상환 스케줄", "소득 정보", "대출 정보" 제목은 background-clip:text로
+  // 그라데이션을 입힌 글자라, html2canvas가 이 속성을 지원하지 못해 캡쳐본에는
+  // 글자 없이 그라데이션 배경 박스만 찍힌다. 캡쳐하는 순간에만 단색 글자로 바꿔치기한다.
+  const swapGradientTitlesForCapture = () => {
+    const titleEls = target.querySelectorAll('.section-title-graphic');
+    const originalStyles = [...titleEls].map(el => el.getAttribute('style'));
+
+    titleEls.forEach(el => {
+      el.style.setProperty('background', 'none', 'important');
+      el.style.setProperty('-webkit-background-clip', 'initial', 'important');
+      el.style.setProperty('background-clip', 'initial', 'important');
+      el.style.setProperty('-webkit-text-fill-color', '#3a52b8', 'important');
+      el.style.setProperty('color', '#3a52b8', 'important');
+    });
+
+    return () => {
+      titleEls.forEach((el, i) => {
+        const original = originalStyles[i];
+        if (original === null) el.removeAttribute('style');
+        else el.setAttribute('style', original);
+      });
+    };
+  };
+
   const renderBlob = async () => {
-    const restore = swapDsrToggleForCapture();
+    const restoreDsrToggle = swapDsrToggleForCapture();
+    const restoreGradientTitles = swapGradientTitlesForCapture();
     try {
       const canvas = await html2canvas(target, {
         backgroundColor: '#ffffff',
@@ -2588,7 +2613,8 @@ async function 화면캡쳐() {
       });
       return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     } finally {
-      restore();
+      restoreDsrToggle();
+      restoreGradientTitles();
     }
   };
 
