@@ -231,6 +231,7 @@
                 <input type="checkbox" id="applyRateCheck">
               </span>
               <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992" style="display:none;">
+              <span id="baseFutureIncomeConverted" class="future-income-converted" style="display:none;"></span>
             </div>
           </div>
           <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
@@ -597,7 +598,9 @@
             priceField: e.data.priceField || '',
             priceWon: e.data.value || 0,
             투기과열지구: !!e.data.투기과열지구,
-            조정대상지역: !!e.data.조정대상지역
+            조정대상지역: !!e.data.조정대상지역,
+            dong: e.data.dong || '',
+            ho: e.data.ho || ''
           });
         }
         closeMarketPriceOverlay();

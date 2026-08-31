@@ -650,7 +650,8 @@ function renderSelectedAptRow() {
   const priceTierText = APT_PRICE_FIELD_LABELS[selectedAptInfo.priceField] || '';
 
   textEl.textContent = `${selectedAptInfo.aptName}${typePart}, ${areaPart}${priceTierText ? '     ' + priceTierText : ''}`;
-  addressEl.textContent = selectedAptInfo.address || '';
+  const dongHoPart = (selectedAptInfo.dong && selectedAptInfo.ho) ? `, ${selectedAptInfo.dong}동 ${selectedAptInfo.ho}호` : '';
+  addressEl.textContent = (selectedAptInfo.address || '') + dongHoPart;
 
   const badges = [];
   if (selectedAptInfo.투기과열지구) badges.push('<span class="apt-reg-badge apt-reg-badge-danger">투기과열지구</span>');
@@ -788,6 +789,7 @@ const hiddenIncomeInput = document.getElementById("computedIncomeHidden");
 const ageInput = document.getElementById("ageInput");
 const applyRateCheck = document.getElementById("applyRateCheck");
 const rateDisplay = document.getElementById("rateDisplay");
+const baseFutureIncomeConverted = document.getElementById("baseFutureIncomeConverted");
 
 function updateIncomeCalc() {
     if (!ageInput || !applyRateCheck || !rateDisplay || !hiddenIncomeInput || !baseIncomeInput) return;
@@ -824,20 +826,22 @@ function updateIncomeCalc() {
         finalVal = memoBaseIncome * currentRate;
     }
 
-    hiddenIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-    
-    if (!isEditingIncome) {
-        baseIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-        
-        if (isChecked && currentRate !== 1.0 && memoBaseIncome > 0 && (typeof baseIncomeMode === 'undefined' || baseIncomeMode !== '신고')) {
-            baseIncomeInput.style.color = "#1d4ed8";
-            baseIncomeInput.style.fontWeight = "bold";
-            baseIncomeInput.style.backgroundColor = "#eff6ff";
+    if (baseFutureIncomeConverted) {
+        if (isChecked && currentRate !== 1.0 && finalVal > 0) {
+            baseFutureIncomeConverted.textContent = `→ ${Math.floor(finalVal).toLocaleString()}원`;
+            baseFutureIncomeConverted.style.display = '';
         } else {
-            baseIncomeInput.style.color = "";
-            baseIncomeInput.style.fontWeight = "bold"; 
-            baseIncomeInput.style.backgroundColor = "";
+            baseFutureIncomeConverted.style.display = 'none';
         }
+    }
+
+    hiddenIncomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
+
+    // 연소득 입력칸 자체는 항상 원래 입력값(memoBaseIncome)만 보여준다 - 장래예상 환산값은
+    // baseFutureIncomeConverted(나이입력 오른쪽 표시)에서만 보여주면 되고, 입력칸 자체를
+    // 환산값으로 덮어써서 강조 색칠하던 방식은 더 이상 쓰지 않는다.
+    if (!isEditingIncome) {
+        baseIncomeInput.value = memoBaseIncome > 0 ? Math.floor(memoBaseIncome).toLocaleString() : "";
     }
     
     if (typeof 자동계산 === 'function') 자동계산();
@@ -1198,6 +1202,7 @@ function getRowEls(index) {
     ageInput: document.getElementById(`ageInput_${index}`),
     applyRateCheck: document.getElementById(`applyRateCheck_${index}`),
     rateDisplay: document.getElementById(`rateDisplay_${index}`),
+    futureIncomeConverted: document.getElementById(`futureIncomeConverted_${index}`),
     declareAmountInput: document.getElementById(`declareAmountInput_${index}`),
     declareConvertedOutput: document.getElementById(`declareConvertedOutput_${index}`),
     declareInputGroup: document.getElementById(`declareInputGroup_${index}`),
@@ -1245,6 +1250,7 @@ function buildIncomeRowHTML(index) {
                 <input type="checkbox" id="applyRateCheck_${index}">
               </span>
               <input type="number" id="ageInput_${index}" class="age-input" placeholder="32 or 1992" style="display:none;">
+              <span id="futureIncomeConverted_${index}" class="future-income-converted" style="display:none;"></span>
             </div>
           </div>
           <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
@@ -1294,13 +1300,16 @@ function updateRowIncomeCalc(index) {
   const finalVal = rateApplies ? st.memoIncome * rate : st.memoIncome;
   // 소득1이 건보/연금 추정소득이면 나머지 행 소득은 합산 대상에서 제외한다 (입력값 자체는 보존).
   els.hiddenInput.value = (!isOtherIncomeBlocked() && finalVal > 0) ? Math.floor(finalVal).toLocaleString() : "";
-  if (!st.isEditing) els.incomeInput.value = finalVal > 0 ? Math.floor(finalVal).toLocaleString() : "";
-  if (els.applyRateCheck.checked && matched && st.memoIncome > 0 && !isDeclareMode) {
-    els.incomeInput.style.color = "#1d4ed8";
-    els.incomeInput.style.backgroundColor = "#eff6ff";
-  } else {
-    els.incomeInput.style.color = "";
-    els.incomeInput.style.backgroundColor = "";
+  // 연소득 입력칸 자체는 항상 원래 입력값(st.memoIncome)만 보여주고, 장래예상 환산값은
+  // futureIncomeConverted(나이입력 오른쪽 표시)에서만 보여준다.
+  if (!st.isEditing) els.incomeInput.value = st.memoIncome > 0 ? Math.floor(st.memoIncome).toLocaleString() : "";
+  if (els.futureIncomeConverted) {
+    if (rateApplies && finalVal > 0) {
+      els.futureIncomeConverted.textContent = `→ ${Math.floor(finalVal).toLocaleString()}원`;
+      els.futureIncomeConverted.style.display = '';
+    } else {
+      els.futureIncomeConverted.style.display = 'none';
+    }
   }
   if (typeof 자동계산 === 'function') 자동계산();
 }
