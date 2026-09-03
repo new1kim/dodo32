@@ -838,14 +838,6 @@ td:has(.type-btn-row) {
   box-sizing: border-box;
 }
 
-.dsr-toggle-caption {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--c-text-muted);
-  text-align: center;
-  margin-bottom: 3px;
-  white-space: nowrap;
-}
 #dsrLimitToggleGroup {
   border-radius: var(--toggle-radius);
   padding: 0.9px 3px;
@@ -1092,16 +1084,7 @@ td:has(.type-btn-row) {
   opacity: 0.5;
   pointer-events: none;
 }
-.income-settings-cell { vertical-align: middle; padding: 0 !important; border-left: 1px solid var(--c-border) !important; }
-.age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
-.age-cell, .toggle-cell { container-type: inline-size; }
-.toggle-cell .rate-toggle-row { margin: 0; transform: none; }
-.toggle-cell .rate-display { display: block; margin-top: 2px; }
-.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0px; width: 100%; }
-.income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
-.income-settings .rate-toggle-row,
 .future-income-row .rate-toggle-row { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; }
-.income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
 .future-income-row .rate-toggle-row label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
 .future-income-row .rate-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
 /* "장래예상" 라벨 아래에 예상효율을 줄바꿈해서 표시 (체크박스 옆에 세로로 쌓임) */
@@ -1142,7 +1125,6 @@ td:has(.type-btn-row) {
 }
 /* 예상효율 빨간색 표시 - 소득2 이후 동적 행도 동일하게 적용 (.rate-display 클래스는 공용) */
 .rate-display { display: block; text-align: left; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 0; font-size: 11px; }
-.income-settings .rate-display { font-size: 11px; }
 .age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
 .age-input::-webkit-outer-spin-button,
 .age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -1318,11 +1300,6 @@ td:has(.type-btn-row) {
   width: 100%;
   padding: 1px;
   gap: 0px;
-}
-.age-slot, .toggle-slot {
-  flex: 1 1 0;
-  min-width: 0;
-  box-sizing: border-box;
 }
 .declare-input-group .declare-amount-input {
   width: 100%;
