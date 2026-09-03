@@ -15,6 +15,16 @@ function getStoredJson(key, fallback = null) {
   }
 }
 
+/* getStoredJson의 짝. 저장 용량 초과(iOS 사파리 시크릿 모드 등)로 setItem이 던져도
+   계산 화면 자체는 계속 쓸 수 있어야 하므로 예외를 삼키고 경고만 남긴다. */
+function setStoredJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.warn(`저장에 실패했습니다: ${key}`, e);
+  }
+}
+
 /* -------------------- 공통 유틸: 글자크기 자동 축소(fit-to-width) -------------------- */
 /* 여러 곳(테이블 셀/입력창, DSR 최대금액, DSR 한도 토글 라벨 등)에서
    "보이지 않는 ghost 엘리먼트로 텍스트 폭을 재서 넘치면 글자를 줄인다"는
@@ -251,7 +261,7 @@ function saveDefaultFirstRowData() {
     stRate: sixMonthStRate,
     term: sixMonthTerm
   };
-  localStorage.setItem("DEFAULT_FIRST_ROW_DATA", JSON.stringify(data));
+  setStoredJson("DEFAULT_FIRST_ROW_DATA", data);
   showBubble("본건 대출 기본값 저장 완료");
   closeModal();
 
@@ -277,7 +287,7 @@ function saveCustomRates() {
       LOAN_RATE_TABLE[i].percent = val;
     }
   }
-  localStorage.setItem("CUSTOM_LOAN_RATE_TABLE", JSON.stringify(LOAN_RATE_TABLE));
+  setStoredJson("CUSTOM_LOAN_RATE_TABLE", LOAN_RATE_TABLE);
   showBubble("예상 요율 저장 완료");
   closeModal();
   if (typeof updateIncomeCalc === 'function') updateIncomeCalc();
@@ -1545,7 +1555,7 @@ function saveDeclareIncomeRates() {
     DECLARE_INCOME_RATES[type].divisor = parsed[type].divisor;
     DECLARE_INCOME_RATES[type].multiplier = parsed[type].multiplier;
   });
-  localStorage.setItem("CUSTOM_DECLARE_INCOME_RATES", JSON.stringify(DECLARE_INCOME_RATES));
+  setStoredJson("CUSTOM_DECLARE_INCOME_RATES", DECLARE_INCOME_RATES);
   showBubble("신고소득 환산 요율 저장 완료");
   closeModal();
   if (baseIncomeMode === '신고') { memoBaseIncome = refreshBaseDeclareConverted(); updateIncomeCalc(); }
@@ -1827,7 +1837,7 @@ function saveDSRInputs() {
     saveRadioAndAmounts(`income_mode_${idx}`, `declare_type_${idx}`, String(idx), incomeRowState.get(idx).memoDeclareAmounts);
   });
   // 새로고침 시 어떤 인덱스의 소득 행을 다시 만들어야 하는지 저장 (개별 삭제로 인덱스에 구멍이 생길 수 있어 개수 대신 목록으로 저장)
-  localStorage.setItem('DSR_incomeRowIndexes', JSON.stringify(extraIdx));
+  setStoredJson('DSR_incomeRowIndexes', extraIdx);
   saveMortgageRows();
 }
 
@@ -1853,23 +1863,16 @@ function saveMortgageRows() {
     mortgageData.push(rowData);
   });
   
-  localStorage.setItem('DSR_mortgageData', JSON.stringify(mortgageData));
+  setStoredJson('DSR_mortgageData', mortgageData);
 }
 
 function loadDSRInputs() {
-  try {
-    const savedAptInfo = localStorage.getItem('DSR_selectedAptInfo');
-    selectedAptInfo = savedAptInfo ? JSON.parse(savedAptInfo) : null;
-  } catch (e) {
-    selectedAptInfo = null;
-  }
+  selectedAptInfo = getStoredJson('DSR_selectedAptInfo', null);
   renderSelectedAptRow();
 
   // "소득 추가"로 늘어났던 행들을 먼저 원래 인덱스 그대로 다시 만들어둬야, 그 안의 입력값들이
   // 아래 일반 복원 루프(TEXT_NUMBER_INPUT_SELECTOR)에서 정상적으로 걸린다.
-  let savedIndexes = [];
-  try { savedIndexes = JSON.parse(localStorage.getItem('DSR_incomeRowIndexes') || '[]'); } catch (e) { savedIndexes = []; }
-  savedIndexes.forEach(idx => 소득행추가(idx, true));
+  getStoredJson('DSR_incomeRowIndexes', []).forEach(idx => 소득행추가(idx, true));
 
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) {
@@ -2025,7 +2028,7 @@ function saveFormToSlot(n) {
       snapshot[key] = localStorage.getItem(key);
     }
   });
-  localStorage.setItem(`${DSR_SLOT_PREFIX}${n}`, JSON.stringify(snapshot));
+  setStoredJson(`${DSR_SLOT_PREFIX}${n}`, snapshot);
   showBubble(`${n}번에 저장되었습니다`);
   refreshSlotButtonStates();
 }
@@ -2173,7 +2176,7 @@ function saveCurrentTableLayoutOrder() {
   const area = document.getElementById('capture-area');
   if (!area) return;
   const order = [...area.querySelectorAll(':scope > .dsr-table-wrap[data-table-key]')].map(w => w.dataset.tableKey);
-  localStorage.setItem(TABLE_ORDER_STORAGE_KEY, JSON.stringify(order));
+  setStoredJson(TABLE_ORDER_STORAGE_KEY, order);
 }
 
 // 1.시세입력 2.DSR선택 3.소득입력 4.DSR값표시 5.대출정보입력 6.상환스케줄표
