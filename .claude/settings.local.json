@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Administrator/AndroidStudioProjects/CallNote/**)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
+      "Bash(./gradlew.bat assembleDebug --console=plain)",
+      "PowerShell(cd \"C:\\\\Users\\\\Administrator\\\\AndroidStudioProjects\\\\CallNote\"; $env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat assembleDebug --console=plain --no-daemon 2>&1 | Select-Object -Last 150)"
+    ]
+  }
+}

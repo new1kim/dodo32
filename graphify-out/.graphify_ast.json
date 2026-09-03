@@ -1,0 +1,4290 @@
+{
+  "nodes": [
+    {
+      "id": "dsr_calculator_logic",
+      "label": "DSR_calculator_logic.js",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_원리금균등_계산대출",
+      "label": "원리금균등_계산대출()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L3",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_원금균등_월부담액",
+      "label": "원금균등_월부담액()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L13",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_원금균등_연간계산",
+      "label": "원금균등_연간계산()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_formatkoreanamount",
+      "label": "formatKoreanAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L35",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_parsekoreanamounttext",
+      "label": "parseKoreanAmountText()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L48",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_getgraceadjustedterm",
+      "label": "getGraceAdjustedTerm()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L68",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_getltvmaxlimitbymarketprice",
+      "label": "getLtvMaxLimitByMarketPrice()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L83",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_calculateltvmaxamount",
+      "label": "calculateLtvMaxAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L96",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_updateltvmaxamount",
+      "label": "updateLtvMaxAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L115",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_updatescheduleloaninfo",
+      "label": "updateScheduleLoanInfo()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L129",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_buildschedulerow",
+      "label": "buildScheduleRow()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L143",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_generateschedule",
+      "label": "generateSchedule()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L155",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_applyratioresultstyle",
+      "label": "applyRatioResultStyle()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L248",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_resetratioresultdisplay",
+      "label": "resetRatioResultDisplay()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L261",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_resetdsrmaxblocks",
+      "label": "resetDsrMaxBlocks()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L271",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_자동계산",
+      "label": "자동계산()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L281",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min",
+      "label": "DSR_calculator_logic.min.js",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_0xccbd22",
+      "label": "_0xccbd22",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_원리금균등_계산대출",
+      "label": "원리금균등_계산대출()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_원금균등_월부담액",
+      "label": "원금균등_월부담액()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_원금균등_연간계산",
+      "label": "원금균등_연간계산()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_formatkoreanamount",
+      "label": "formatKoreanAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_parsekoreanamounttext",
+      "label": "parseKoreanAmountText()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_0x53ca",
+      "label": "_0x53ca()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_getgraceadjustedterm",
+      "label": "getGraceAdjustedTerm()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_getltvmaxlimitbymarketprice",
+      "label": "getLtvMaxLimitByMarketPrice()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_calculateltvmaxamount",
+      "label": "calculateLtvMaxAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_updateltvmaxamount",
+      "label": "updateLtvMaxAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_updatescheduleloaninfo",
+      "label": "updateScheduleLoanInfo()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_buildschedulerow",
+      "label": "buildScheduleRow()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_generateschedule",
+      "label": "generateSchedule()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_applyratioresultstyle",
+      "label": "applyRatioResultStyle()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_resetratioresultdisplay",
+      "label": "resetRatioResultDisplay()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_resetdsrmaxblocks",
+      "label": "resetDsrMaxBlocks()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_0x343f",
+      "label": "_0x343f()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_logic_min_자동계산",
+      "label": "자동계산()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui",
+      "label": "DSR_calculator_ui.js",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_getstoredjson",
+      "label": "getStoredJson()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L7",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_getmeasureghost",
+      "label": "getMeasureGhost()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L22",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_shrinkfontsizetofit",
+      "label": "shrinkFontSizeToFit()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L37",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_adjusttablefontsize",
+      "label": "adjustTableFontSize()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L48",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_fitnumericinputfontsize",
+      "label": "fitNumericInputFontSize()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L98",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "label": "fitAllNumericInputFontSizes()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L116",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_getmodalpanels",
+      "label": "getModalPanels()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L132",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_hideothermodalpanels",
+      "label": "hideOtherModalPanels()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L141",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_openschedulemodal",
+      "label": "openScheduleModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L147",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_openimagemodal",
+      "label": "openImageModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L157",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_opentextmodal",
+      "label": "openTextModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L170",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_populaterateeditfields",
+      "label": "populateRateEditFields()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L189",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_openrateeditmodal",
+      "label": "openRateEditModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L196",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_default_first_row_field_ids",
+      "label": "DEFAULT_FIRST_ROW_FIELD_IDS",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L212",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_populatedefaultfirstrowfields",
+      "label": "populateDefaultFirstRowFields()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L214",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "label": "openDefaultFirstRowModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L231",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savedefaultfirstrowdata",
+      "label": "saveDefaultFirstRowData()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L246",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savecustomrates",
+      "label": "saveCustomRates()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L283",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_closemodal",
+      "label": "closeModal()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L301",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_setmortgagerepaymenttype",
+      "label": "setMortgageRepaymentType()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L306",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_toggleloancategory",
+      "label": "toggleLoanCategory()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L321",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_showbubble",
+      "label": "showBubble()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L332",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_setfirstrowrepaymenttype",
+      "label": "setFirstRowRepaymentType()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L340",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_handledsrmaxblockclick",
+      "label": "handleDsrMaxBlockClick()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L347",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_전달dsr한도금액",
+      "label": "전달DSR한도금액()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L374",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_adjustdsrmaxfontsize",
+      "label": "adjustDsrMaxFontSize()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L402",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "label": "adjustDsrToggleFontSize()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L423",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_getdefaultprofilevalues",
+      "label": "getDefaultProfileValues()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L439",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_applydefaultprofiletorow",
+      "label": "applyDefaultProfileToRow()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L455",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_bindlongpress",
+      "label": "bindLongPress()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L489",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_bindmortgagerowevents",
+      "label": "bindMortgageRowEvents()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L500",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_updatemortgageplaceholders",
+      "label": "updateMortgagePlaceholders()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L562",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_increaseamount",
+      "label": "increaseAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L577",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_decreaseamount",
+      "label": "decreaseAmount()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L592",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_주담대행추가",
+      "label": "주담대행추가()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L612",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_default_loan_rate_table",
+      "label": "DEFAULT_LOAN_RATE_TABLE",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L694",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savedrates",
+      "label": "savedRates",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L701",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_parseageinputvalue",
+      "label": "parseAgeInputValue()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L710",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_baseincomeinput",
+      "label": "baseIncomeInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L717",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_hiddenincomeinput",
+      "label": "hiddenIncomeInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L718",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_ageinput",
+      "label": "ageInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L719",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_applyratecheck",
+      "label": "applyRateCheck",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L720",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_ratedisplay",
+      "label": "rateDisplay",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L721",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_updateincomecalc",
+      "label": "updateIncomeCalc()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L723",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spouseincomeinput",
+      "label": "spouseIncomeInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L831",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spousehiddenincomeinput",
+      "label": "spouseHiddenIncomeInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L832",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spouseageinput",
+      "label": "spouseAgeInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L833",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spouseapplyratecheck",
+      "label": "spouseApplyRateCheck",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L834",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spouseratedisplay",
+      "label": "spouseRateDisplay",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L835",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_updatespouseincomecalc",
+      "label": "updateSpouseIncomeCalc()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L837",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_default_declare_income_rates",
+      "label": "DEFAULT_DECLARE_INCOME_RATES",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L889",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_saveddeclarerates",
+      "label": "savedDeclareRates",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L894",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_calcdeclareconvertedincome",
+      "label": "calcDeclareConvertedIncome()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L906",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_memobasedeclareamounts",
+      "label": "memoBaseDeclareAmounts",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L915",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_memospousedeclareamounts",
+      "label": "memoSpouseDeclareAmounts",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L920",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_baseincomemoderadios",
+      "label": "baseIncomeModeRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L923",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_basedeclaretyperadios",
+      "label": "baseDeclareTypeRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L924",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_basedeclareamountinput",
+      "label": "baseDeclareAmountInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L925",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_basedeclareconvertedoutput",
+      "label": "baseDeclareConvertedOutput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L926",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_basedeclareinputgroup",
+      "label": "baseDeclareInputGroup",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L927",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spouseincomemoderadios",
+      "label": "spouseIncomeModeRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L929",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spousedeclaretyperadios",
+      "label": "spouseDeclareTypeRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L930",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spousedeclareamountinput",
+      "label": "spouseDeclareAmountInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L931",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spousedeclareconvertedoutput",
+      "label": "spouseDeclareConvertedOutput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L932",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_spousedeclareinputgroup",
+      "label": "spouseDeclareInputGroup",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L933",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_declare_amount_placeholders",
+      "label": "DECLARE_AMOUNT_PLACEHOLDERS",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L936",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_declare_type_labels",
+      "label": "DECLARE_TYPE_LABELS",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L937",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_refreshbasedeclareconverted",
+      "label": "refreshBaseDeclareConverted()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L939",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_refreshspousedeclareconverted",
+      "label": "refreshSpouseDeclareConverted()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L948",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_applybaseincomemode",
+      "label": "applyBaseIncomeMode()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L960",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_applyspouseincomemode",
+      "label": "applySpouseIncomeMode()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L979",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_populatedeclarerateeditfields",
+      "label": "populateDeclareRateEditFields()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1079",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savedeclareincomerates",
+      "label": "saveDeclareIncomeRates()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1089",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_ltvmarketpriceinput",
+      "label": "ltvMarketPriceInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1114",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_ltvminorleaseinput",
+      "label": "ltvMinorLeaseInput",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1123",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_refreshradiotogglestyles",
+      "label": "refreshRadioToggleStyles()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1135",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_bindradiotogglegroup",
+      "label": "bindRadioToggleGroup()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1148",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_ltvrateradios",
+      "label": "ltvRateRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1157",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_dsrlimitrateradios",
+      "label": "dsrLimitRateRadios",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1160",
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_선택초기화",
+      "label": "선택초기화()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1163",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savedsrinputs",
+      "label": "saveDSRInputs()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1274",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_savemortgagerows",
+      "label": "saveMortgageRows()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1294",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_loaddsrinputs",
+      "label": "loadDSRInputs()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1316",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_loadmortgagerows",
+      "label": "loadMortgageRows()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1371",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_setupdsrautosave",
+      "label": "setupDSRAutoSave()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1424",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_splitincomesettingsintocells",
+      "label": "splitIncomeSettingsIntoCells()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1445",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_init",
+      "label": "init()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1474",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_대출정보텍스트생성",
+      "label": "대출정보텍스트생성()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1506",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_fallbackcopytext",
+      "label": "fallbackCopyText()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1646",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_내용복사",
+      "label": "내용복사()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1663",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "dsr_calculator_ui_화면캡쳐",
+      "label": "화면캡쳐()",
+      "file_type": "code",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1677",
+      "_callable": true,
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate",
+      "label": "obfuscate.js",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_javascriptobfuscator",
+      "label": "JavaScriptObfuscator",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_fs",
+      "label": "fs",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L2",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_path",
+      "label": "path",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_targetpath",
+      "label": "targetPath",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_outputpath",
+      "label": "outputPath",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L9",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_code",
+      "label": "code",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L18",
+      "_origin": "ast"
+    },
+    {
+      "id": "obfuscate_obfuscationresult",
+      "label": "obfuscationResult",
+      "file_type": "code",
+      "source_file": "obfuscate.js",
+      "source_location": "L21",
+      "_origin": "ast"
+    },
+    {
+      "id": "package",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies",
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies_javascript_obfuscator",
+      "label": "javascript-obfuscator",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "javascript_obfuscator",
+      "label": "javascript-obfuscator",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "_origin": "ast"
+    }
+  ],
+  "edges": [
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_원리금균등_계산대출",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_원금균등_월부담액",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_원금균등_연간계산",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_formatkoreanamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_parsekoreanamounttext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_getgraceadjustedterm",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_getltvmaxlimitbymarketprice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L83",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_calculateltvmaxamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L96",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_updateltvmaxamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L115",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_updatescheduleloaninfo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L129",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_buildschedulerow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L143",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_generateschedule",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L155",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_applyratioresultstyle",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L248",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_resetratioresultdisplay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L261",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_resetdsrmaxblocks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L271",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic",
+      "target": "dsr_calculator_logic_자동계산",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L281",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_calculateltvmaxamount",
+      "target": "dsr_calculator_logic_getltvmaxlimitbymarketprice",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L108",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_updateltvmaxamount",
+      "target": "dsr_calculator_logic_calculateltvmaxamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_updateltvmaxamount",
+      "target": "dsr_calculator_logic_formatkoreanamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L125",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_generateschedule",
+      "target": "dsr_calculator_logic_updatescheduleloaninfo",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L161",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_generateschedule",
+      "target": "dsr_calculator_logic_getgraceadjustedterm",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_generateschedule",
+      "target": "dsr_calculator_logic_formatkoreanamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L186",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_generateschedule",
+      "target": "dsr_calculator_logic_buildschedulerow",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L204",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_getgraceadjustedterm",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L326",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_원리금균등_계산대출",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L349",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_원금균등_월부담액",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L356",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_원금균등_연간계산",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L385",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_applyratioresultstyle",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L432",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_calculateltvmaxamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L446",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_formatkoreanamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L471",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_resetdsrmaxblocks",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L497",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_resetratioresultdisplay",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L501",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_자동계산",
+      "target": "dsr_calculator_logic_updateltvmaxamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.js",
+      "source_location": "L507",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_0xccbd22",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_원리금균등_계산대출",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_원금균등_월부담액",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_원금균등_연간계산",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_formatkoreanamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_parsekoreanamounttext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_0x53ca",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_getgraceadjustedterm",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_getltvmaxlimitbymarketprice",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_calculateltvmaxamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_updateltvmaxamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_updatescheduleloaninfo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_buildschedulerow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_generateschedule",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_applyratioresultstyle",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_resetratioresultdisplay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_resetdsrmaxblocks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_0x343f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_자동계산",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_0x53ca",
+      "target": "dsr_calculator_logic_min_0x343f",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_calculateltvmaxamount",
+      "target": "dsr_calculator_logic_min_getltvmaxlimitbymarketprice",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_updateltvmaxamount",
+      "target": "dsr_calculator_logic_min_calculateltvmaxamount",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_updateltvmaxamount",
+      "target": "dsr_calculator_logic_min_formatkoreanamount",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_updatescheduleloaninfo",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_getgraceadjustedterm",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_updatescheduleloaninfo",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_formatkoreanamount",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_buildschedulerow",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_generateschedule",
+      "target": "dsr_calculator_logic_min_buildschedulerow",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_getgraceadjustedterm",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_원리금균등_계산대출",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_원금균등_월부담액",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_원리금균등_계산대출",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_원금균등_연간계산",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_applyratioresultstyle",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_applyratioresultstyle",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_calculateltvmaxamount",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_formatkoreanamount",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_resetdsrmaxblocks",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_resetratioresultdisplay",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_resetdsrmaxblocks",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_logic_min_updateltvmaxamount",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min",
+      "target": "dsr_calculator_logic_min_0x343f",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_getstoredjson",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_getmeasureghost",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_shrinkfontsizetofit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_adjusttablefontsize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_fitnumericinputfontsize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L98",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L116",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L132",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_openschedulemodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L147",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_openimagemodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L157",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_opentextmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L170",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_populaterateeditfields",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L189",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_openrateeditmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L196",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_default_first_row_field_ids",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L212",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_populatedefaultfirstrowfields",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L214",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savedefaultfirstrowdata",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L246",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savecustomrates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L283",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_closemodal",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L301",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_setmortgagerepaymenttype",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L306",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_toggleloancategory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L321",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L332",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_setfirstrowrepaymenttype",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L340",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_handledsrmaxblockclick",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L347",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_전달dsr한도금액",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L374",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_adjustdsrmaxfontsize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L402",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L423",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_getdefaultprofilevalues",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L439",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_applydefaultprofiletorow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L455",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_bindlongpress",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L489",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_bindmortgagerowevents",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L500",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_updatemortgageplaceholders",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L562",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_increaseamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L577",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_decreaseamount",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L592",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_주담대행추가",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L612",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_default_loan_rate_table",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L694",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savedrates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L701",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_parseageinputvalue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L710",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_baseincomeinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L717",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_hiddenincomeinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L718",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_ageinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L719",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_applyratecheck",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L720",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_ratedisplay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L721",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L723",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spouseincomeinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L831",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spousehiddenincomeinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L832",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spouseageinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L833",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spouseapplyratecheck",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L834",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spouseratedisplay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L835",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_updatespouseincomecalc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L837",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_default_declare_income_rates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L889",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_saveddeclarerates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L894",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_calcdeclareconvertedincome",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L906",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_memobasedeclareamounts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L915",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_memospousedeclareamounts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L920",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_baseincomemoderadios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L923",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_basedeclaretyperadios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L924",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_basedeclareamountinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L925",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_basedeclareconvertedoutput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L926",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_basedeclareinputgroup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L927",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spouseincomemoderadios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L929",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spousedeclaretyperadios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L930",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spousedeclareamountinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L931",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spousedeclareconvertedoutput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L932",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_spousedeclareinputgroup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L933",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_declare_amount_placeholders",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L936",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_declare_type_labels",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L937",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_refreshbasedeclareconverted",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L939",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_refreshspousedeclareconverted",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L948",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_applybaseincomemode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L960",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_applyspouseincomemode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L979",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_populatedeclarerateeditfields",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1079",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savedeclareincomerates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1089",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_ltvmarketpriceinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1114",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_ltvminorleaseinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1123",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_refreshradiotogglestyles",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1135",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_bindradiotogglegroup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1148",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_ltvrateradios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1157",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_dsrlimitrateradios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1160",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_선택초기화",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1163",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1274",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_savemortgagerows",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1294",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_loaddsrinputs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1316",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_loadmortgagerows",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1371",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_setupdsrautosave",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1424",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_splitincomesettingsintocells",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1445",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_init",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1474",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_대출정보텍스트생성",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1506",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_fallbackcopytext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1646",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_내용복사",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1663",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_화면캡쳐",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1677",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjusttablefontsize",
+      "target": "dsr_calculator_ui_getmeasureghost",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjusttablefontsize",
+      "target": "dsr_calculator_ui_shrinkfontsizetofit",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_fitnumericinputfontsize",
+      "target": "dsr_calculator_ui_getmeasureghost",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L107",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_fitnumericinputfontsize",
+      "target": "dsr_calculator_ui_shrinkfontsizetofit",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L112",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "target": "dsr_calculator_ui_fitnumericinputfontsize",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L117",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openschedulemodal",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L148",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openschedulemodal",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openimagemodal",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L158",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openimagemodal",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L160",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L171",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L172",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_populaterateeditfields",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L176",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_populatedefaultfirstrowfields",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_populatedeclarerateeditfields",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L178",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opentextmodal",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L186",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openrateeditmodal",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L197",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openrateeditmodal",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L198",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openrateeditmodal",
+      "target": "dsr_calculator_ui_populaterateeditfields",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L200",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_openrateeditmodal",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L208",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_populatedefaultfirstrowfields",
+      "target": "dsr_calculator_ui_getstoredjson",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L215",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "target": "dsr_calculator_ui_getmodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L232",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "target": "dsr_calculator_ui_hideothermodalpanels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L233",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "target": "dsr_calculator_ui_populatedefaultfirstrowfields",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L235",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L243",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedefaultfirstrowdata",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L270",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedefaultfirstrowdata",
+      "target": "dsr_calculator_ui_closemodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L271",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedefaultfirstrowdata",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L279",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savecustomrates",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L296",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savecustomrates",
+      "target": "dsr_calculator_ui_closemodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L297",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savecustomrates",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L298",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_setmortgagerepaymenttype",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L315",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_toggleloancategory",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L329",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_setfirstrowrepaymenttype",
+      "target": "dsr_calculator_ui_setmortgagerepaymenttype",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L344",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_handledsrmaxblockclick",
+      "target": "dsr_calculator_ui_setfirstrowrepaymenttype",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L359",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_handledsrmaxblockclick",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L368",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_handledsrmaxblockclick",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L370",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_전달dsr한도금액",
+      "target": "dsr_calculator_ui_setfirstrowrepaymenttype",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L387",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_전달dsr한도금액",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L395",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_전달dsr한도금액",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L397",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjustdsrmaxfontsize",
+      "target": "dsr_calculator_ui_getmeasureghost",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L403",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjustdsrmaxfontsize",
+      "target": "dsr_calculator_ui_shrinkfontsizetofit",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L418",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "target": "dsr_calculator_ui_getmeasureghost",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L424",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "target": "dsr_calculator_ui_shrinkfontsizetofit",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L434",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applydefaultprofiletorow",
+      "target": "dsr_calculator_ui_getstoredjson",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L456",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applydefaultprofiletorow",
+      "target": "dsr_calculator_ui_getdefaultprofilevalues",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L457",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applydefaultprofiletorow",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L481",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_applydefaultprofiletorow",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L529",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L530",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_bindlongpress",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L535",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_opendefaultfirstrowmodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L537",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L543",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindmortgagerowevents",
+      "target": "dsr_calculator_ui_updatemortgageplaceholders",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L553",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_increaseamount",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L588",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_decreaseamount",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L607",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_주담대행추가",
+      "target": "dsr_calculator_ui_bindmortgagerowevents",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L684",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_주담대행추가",
+      "target": "dsr_calculator_ui_applydefaultprofiletorow",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L686",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_주담대행추가",
+      "target": "dsr_calculator_ui_updatemortgageplaceholders",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L688",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_주담대행추가",
+      "target": "dsr_calculator_ui_adjusttablefontsize",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L689",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_주담대행추가",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L690",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_updateincomecalc",
+      "target": "dsr_calculator_ui_parseageinputvalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L738",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_updatespouseincomecalc",
+      "target": "dsr_calculator_ui_parseageinputvalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L840",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_refreshbasedeclareconverted",
+      "target": "dsr_calculator_ui_calcdeclareconvertedincome",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L941",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_refreshspousedeclareconverted",
+      "target": "dsr_calculator_ui_calcdeclareconvertedincome",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L950",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applybaseincomemode",
+      "target": "dsr_calculator_ui_refreshbasedeclareconverted",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L975",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applybaseincomemode",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L976",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applyspouseincomemode",
+      "target": "dsr_calculator_ui_refreshspousedeclareconverted",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L994",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_applyspouseincomemode",
+      "target": "dsr_calculator_ui_updatespouseincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L995",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1108",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_closemodal",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1109",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_refreshbasedeclareconverted",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1110",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1110",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_refreshspousedeclareconverted",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1111",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedeclareincomerates",
+      "target": "dsr_calculator_ui_updatespouseincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1111",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_bindradiotogglegroup",
+      "target": "dsr_calculator_ui_refreshradiotogglestyles",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1151",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_getstoredjson",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1164",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_refreshradiotogglestyles",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1200",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_applybaseincomemode",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1204",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_applyspouseincomemode",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1205",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1270",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_선택초기화",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1271",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_savedsrinputs",
+      "target": "dsr_calculator_ui_savemortgagerows",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1291",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_loaddsrinputs",
+      "target": "dsr_calculator_ui_loadmortgagerows",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1368",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_loadmortgagerows",
+      "target": "dsr_calculator_ui_getstoredjson",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1372",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_loadmortgagerows",
+      "target": "dsr_calculator_ui_주담대행추가",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1383",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_setupdsrautosave",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1426",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_setupdsrautosave",
+      "target": "dsr_calculator_ui_savedsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1434",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_splitincomesettingsintocells",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1475",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_주담대행추가",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1477",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_loaddsrinputs",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1479",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_setupdsrautosave",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1480",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_refreshradiotogglestyles",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1481",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_applybaseincomemode",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1485",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_applyspouseincomemode",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1486",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1487",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_updatespouseincomecalc",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1488",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_adjusttablefontsize",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1492",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_adjustdsrmaxfontsize",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1493",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1494",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_init",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1495",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_fallbackcopytext",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1656",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_내용복사",
+      "target": "dsr_calculator_ui_대출정보텍스트생성",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1664",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_내용복사",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1667",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_내용복사",
+      "target": "dsr_calculator_ui_fallbackcopytext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1669",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui_화면캡쳐",
+      "target": "dsr_calculator_ui_showbubble",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1680",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_updateincomecalc",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L785",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_updatespouseincomecalc",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L859",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_ui",
+      "target": "dsr_calculator_ui_init",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "DSR_calculator_ui.js",
+      "source_location": "L1794",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "ref_javascript_obfuscator",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_javascriptobfuscator",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "ref_fs",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_fs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "ref_path",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_path",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_targetpath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_outputpath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_code",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "obfuscate",
+      "target": "obfuscate_obfuscationresult",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "obfuscate.js",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "package",
+      "target": "package_devdependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_javascript_obfuscator",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "package_devdependencies_javascript_obfuscator",
+      "target": "javascript_obfuscator",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "context": "import",
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_ui_adjusttablefontsize",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_ui_adjustdsrtogglefontsize",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    },
+    {
+      "source": "dsr_calculator_logic_min_자동계산",
+      "target": "dsr_calculator_ui_fitallnumericinputfontsizes",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "DSR_calculator_logic.min.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "failed_sources": [
+    "D:\\dodo32\\.claude\\settings.json",
+    "D:\\dodo32\\.vscode\\launch.json"
+  ]
+}

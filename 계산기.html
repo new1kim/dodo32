@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프리미엄 계산기</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 1px 1px, rgba(27,42,74,0.06) 1px, transparent 0) 0 0/22px 22px,
+                linear-gradient(160deg, #f7f2e6 0%, #f2ece0 55%, #eee7d9 100%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            color: #f1f1f4;
+            padding: 24px 20px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            background: rgba(40, 40, 58, 0.88);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(18, 18, 28, 0.4);
+        }
+
+        /* ═══════════════ 히스토리 섹션 (위쪽) ═══════════════ */
+        .history-section {
+            padding: 20px 24px;
+            background: linear-gradient(180deg, rgba(36, 36, 52, 0.7) 0%, rgba(30, 30, 44, 0.6) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            max-height: auto;
+            overflow: visible;
+        }
+
+        .history-section.active {
+            max-height: none;
+        }
+
+        .history-toggle-btn {
+            width: 100%;
+            padding: 0 0 12px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #8b8b9a;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+
+        .history-toggle-btn:hover {
+            color: #a0a0aa;
+        }
+
+        .history-toggle-btn.active {
+            color: #ff7b00;
+        }
+
+        .toggle-icon {
+            display: none;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .history-action-btn {
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #9a9aac;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .history-action-btn:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.18);
+            color: #c0c0ca;
+        }
+
+        .history-action-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* 기록 숨김 토글 - 활성(숨김 상태) 시 블루 */
+        .history-action-btn.toggle-hide.active {
+            background: rgba(90, 140, 255, 0.16);
+            border-color: rgba(90, 140, 255, 0.35);
+            color: #7fa8ff;
+        }
+
+        .history-action-btn.toggle-hide.active:hover {
+            background: rgba(90, 140, 255, 0.22);
+            border-color: rgba(90, 140, 255, 0.5);
+            color: #96b8ff;
+        }
+
+        /* 기록 누적 토글 - 활성(ON) 시 틸 */
+        .history-action-btn.toggle-accumulate.active {
+            background: rgba(0, 200, 180, 0.16);
+            border-color: rgba(0, 200, 180, 0.35);
+            color: #4fd8c4;
+        }
+
+        .history-action-btn.toggle-accumulate.active:hover {
+            background: rgba(0, 200, 180, 0.22);
+            border-color: rgba(0, 200, 180, 0.5);
+            color: #6be8d6;
+        }
+
+        /* 기록 삭제 - 레드 */
+        .history-action-btn.action-delete {
+            background: rgba(255, 59, 48, 0.12);
+            border-color: rgba(255, 59, 48, 0.25);
+            color: #ff6b5b;
+        }
+
+        .history-action-btn.action-delete:hover {
+            background: rgba(255, 59, 48, 0.18);
+            border-color: rgba(255, 59, 48, 0.4);
+            color: #ff7b6f;
+        }
+
+        .history-content.hidden {
+            display: none;
+        }
+
+        .history-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            max-height: none;
+            overflow: visible;
+        }
+
+        .history-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .history-empty {
+            grid-column: 1 / -1;
+            padding: 16px;
+            text-align: center;
+            color: #5a5a6a;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(255, 123, 0, 0.12) 0%, rgba(255, 150, 0, 0.06) 100%);
+            border: 1px solid rgba(255, 123, 0, 0.2);
+            border-radius: 12px;
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: linear-gradient(135deg, rgba(255, 123, 0, 0.18) 0%, rgba(255, 150, 0, 0.1) 100%);
+            border-color: rgba(255, 123, 0, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .history-item-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .history-item-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item-exp {
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: #a0a0aa;
+            word-break: break-word;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .history-item-res {
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 600;
+            color: #ff7b00;
+            word-break: break-word;
+        }
+
+        .delete-item-btn {
+            padding: 4px 4px;
+            background: rgba(255, 59, 48, 0.08);
+            border: 1px solid rgba(255, 59, 48, 0.15);
+            border-radius: 6px;
+            color: #ff6b5b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .delete-item-btn:hover {
+            background: rgba(255, 59, 48, 0.15);
+            border-color: rgba(255, 59, 48, 0.35);
+            color: #ff7b6f;
+        }
+
+        .delete-item-btn:active {
+            transform: scale(0.92);
+        }
+
+        .delete-item-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .history-item-memo {
+            width: 100%;
+            padding: 6px 8px;
+            background: rgba(16, 16, 26, 0.5);
+            border: 1px solid rgba(255, 123, 0, 0.1);
+            border-radius: 6px;
+            color: #c0c0ca;
+            font-size: 10px;
+            outline: none;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .history-item-memo:focus {
+            background: rgba(255, 123, 0, 0.1);
+            border-color: rgba(255, 123, 0, 0.4);
+            color: #e4e4e7;
+        }
+
+        .history-item-memo::placeholder {
+            color: #6b6b7b;
+        }
+
+        .clear-history-btn {
+            display: none;
+        }
+
+        /* ═══════════════ 계산기 섹션 ═══════════════ */
+        .calculator-section {
+            padding: 32px 24px 24px;
+            background: linear-gradient(180deg, rgba(42, 42, 60, 0.85) 0%, rgba(34, 34, 48, 0.75) 100%);
+        }
+
+        .calc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calc-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #8b8b9a;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, #ff7b00, #ff9933);
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(255, 123, 0, 0.6);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-100%) scale(0.9);
+            }
+        }
+
+        .display-area {
+            margin-bottom: 28px;
+            text-align: right;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .expression-display {
+            font-size: 14px;
+            color: #6b6b7b;
+            min-height: 20px;
+            letter-spacing: 0.3px;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .result-display {
+            font-size: clamp(28px, 12vw, 52px);
+            font-weight: 300;
+            color: #ffffff;
+            overflow-x: auto;
+            white-space: nowrap;
+            overflow-y: hidden;
+            line-height: 1.2;
+        }
+
+        .result-display::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .result-display::-webkit-scrollbar-thumb {
+            background: rgba(255, 123, 0, 0.4);
+            border-radius: 2px;
+        }
+
+        /* ═══════════════ 퀵 퍼센트 버튼 ═══════════════ */
+        .quick-percent {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn-quick {
+            height: 44px;
+            background: linear-gradient(135deg, rgba(0, 200, 180, 0.14) 0%, rgba(0, 160, 200, 0.10) 100%);
+            border: 1px solid rgba(0, 200, 180, 0.28);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4fd8c4;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .btn-quick:hover {
+            background: linear-gradient(135deg, rgba(0, 200, 180, 0.22) 0%, rgba(0, 160, 200, 0.16) 100%);
+            border-color: rgba(0, 200, 180, 0.45);
+            color: #6be8d6;
+            transform: translateY(-2px);
+        }
+
+        .btn-quick:active {
+            transform: scale(0.94) translateY(0);
+            background: linear-gradient(135deg, rgba(0, 200, 180, 0.3), rgba(0, 160, 200, 0.22));
+        }
+
+        /* ═══════════════ 키패드 ═══════════════ */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .keypad .btn-equals {
+            grid-column: span 2;
+        }
+
+        .btn {
+            height: 60px;
+            background: linear-gradient(135deg, #38384f 0%, #313144 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #e4e4e7;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #46466a, #3e3e5c);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: scale(0.95) translateY(0);
+            background: linear-gradient(135deg, #26263a, #212132);
+        }
+
+        .btn-operator {
+            background: linear-gradient(135deg, #ff8533, #ff7b00);
+            color: #ffffff;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 6px 20px rgba(255, 123, 0, 0.2);
+        }
+
+        .btn-operator:hover {
+            background: linear-gradient(135deg, #ff9544, #ff8a20);
+            box-shadow: 0 8px 24px rgba(255, 123, 0, 0.35);
+            transform: translateY(-3px);
+        }
+
+        .btn-operator:active {
+            transform: scale(0.95) translateY(0);
+            background: linear-gradient(135deg, #e66e00, #d66a00);
+        }
+
+        .btn-equals {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #ff7b00, #ff6b00);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 20px;
+            border: none;
+            box-shadow: 0 8px 28px rgba(255, 123, 0, 0.35);
+        }
+
+        .btn-equals:hover {
+            background: linear-gradient(135deg, #ff8f24, #ff7d12);
+            box-shadow: 0 12px 36px rgba(255, 123, 0, 0.45);
+            transform: translateY(-3px);
+        }
+
+        .btn-equals:active {
+            transform: scale(0.95) translateY(0);
+            background: linear-gradient(135deg, #e55f00, #d55700);
+        }
+
+
+
+        /* ═══════════════ 반응형 디자인 ═══════════════ */
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 24px;
+            }
+
+            .history-section {
+                padding: 16px 16px;
+            }
+
+            .history-content {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+            }
+
+            .history-toggle-btn {
+                padding: 0 0 10px 0;
+                font-size: 10px;
+                margin-bottom: 10px;
+            }
+
+            .clear-all-history-btn {
+                padding: 5px 10px;
+                font-size: 9px;
+                gap: 3px;
+            }
+
+            .clear-all-history-btn svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            .history-action-btn {
+                padding: 5px 8px;
+                font-size: 9px;
+                gap: 3px;
+            }
+
+            .history-action-btn svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            .calculator-section {
+                padding: 24px 16px 20px;
+            }
+
+            .display-area {
+                min-height: 100px;
+            }
+
+            .result-display {
+                font-size: clamp(24px, 10vw, 44px);
+            }
+
+            .keypad {
+                gap: 8px;
+            }
+
+            .btn {
+                height: 54px;
+                font-size: 16px;
+                border-radius: 12px;
+            }
+
+            .quick-percent {
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+
+            .btn-quick {
+                height: 38px;
+                font-size: 11px;
+                border-radius: 10px;
+            }
+
+            .history-item-exp {
+                font-size: 10px;
+            }
+
+            .history-item-res {
+                font-size: 14px;
+            }
+
+            .history-item-memo {
+                font-size: 9px;
+                padding: 4px 6px;
+            }
+
+            .delete-item-btn {
+                min-width: 26px;
+                height: 26px;
+            }
+
+            .delete-item-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 히스토리 섹션 (위쪽) -->
+    <div class="history-section" id="historySection">
+        <div class="history-header">
+            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #8b8b9a;">History</span>
+            <div class="history-actions">
+                <button class="history-action-btn toggle-hide" id="hideHistoryBtn" onclick="toggleHideHistory()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="hideHistoryLabel">기록 숨김</span>
+                </button>
+
+                <button class="history-action-btn action-delete" onclick="clearHistory()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    기록 삭제
+                </button>
+            </div>
+        </div>
+        <div class="history-content" id="historyContent">
+            <div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>
+        </div>
+    </div>
+
+    <!-- 계산기 섹션 -->
+    <div class="calculator-section">
+        <div class="calc-header">
+            <div class="calc-title">
+                <div class="status-indicator"></div>
+                <span>Calculator</span>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <div class="expression-display" id="expression"></div>
+            <div class="result-display" id="display">0</div>
+        </div>
+
+        <div class="quick-percent">
+            <button class="btn-quick" onclick="quickPercent(90)">90%</button>
+            <button class="btn-quick" onclick="quickPercent(80)">80%</button>
+            <button class="btn-quick" onclick="quickPercent(70)">70%</button>
+            <button class="btn-quick" onclick="quickPercent(60)">60%</button>
+            <button class="btn-quick" onclick="quickPercent(40)">40%</button>
+        </div>
+
+        <div class="keypad">
+            <button class="btn btn-operator" onclick="clearAll()">C</button>
+            <button class="btn btn-operator" onclick="backspace()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0 -2-2z"></path>
+                    <line x1="18" y1="9" x2="12" y2="15"></line>
+                    <line x1="12" y1="9" x2="18" y2="15"></line>
+                </svg>
+            </button>
+            <button class="btn btn-operator" onclick="handlePercentage()">%</button>
+            <button class="btn btn-operator" onclick="appendOperator('÷')">÷</button>
+
+            <button class="btn" onclick="appendNumber('7')">7</button>
+            <button class="btn" onclick="appendNumber('8')">8</button>
+            <button class="btn" onclick="appendNumber('9')">9</button>
+            <button class="btn btn-operator" onclick="appendOperator('×')">×</button>
+
+            <button class="btn" onclick="appendNumber('4')">4</button>
+            <button class="btn" onclick="appendNumber('5')">5</button>
+            <button class="btn" onclick="appendNumber('6')">6</button>
+            <button class="btn btn-operator" onclick="appendOperator('-')">-</button>
+
+            <button class="btn" onclick="appendNumber('1')">1</button>
+            <button class="btn" onclick="appendNumber('2')">2</button>
+            <button class="btn" onclick="appendNumber('3')">3</button>
+            <button class="btn btn-operator" onclick="appendOperator('+')">+</button>
+
+            <button class="btn" onclick="appendNumber('0')">0</button>
+            <button class="btn" onclick="appendDot('.')">.</button>
+            <button class="btn btn-equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentInput = '0';
+    let prevInput = '';
+    let operator = '';
+    let shouldResetDisplay = false;
+
+    const displayElement = document.getElementById('display');
+    const expressionElement = document.getElementById('expression');
+    const historyContent = document.getElementById('historyContent');
+    const emptyMessageElement = document.getElementById('emptyMessage');
+    const historySection = document.getElementById('historySection');
+    const historyToggleBtn = document.querySelector('.history-toggle-btn');
+    const hideHistoryBtn = document.getElementById('hideHistoryBtn');
+    const hideHistoryLabel = document.getElementById('hideHistoryLabel');
+    const accumulateHistoryBtn = document.getElementById('accumulateHistoryBtn');
+
+    let accumulateHistory = localStorage.getItem('calcAccumulateHistory') === 'true';
+
+    function updateDisplay() {
+        if (currentInput === 'Error') {
+            displayElement.innerText = 'Error';
+            return;
+        }
+        const parts = currentInput.split('.');
+        parts[0] = Number(parts[0]).toLocaleString('ko-KR');
+        displayElement.innerText = parts.join('.');
+    }
+
+    function appendNumber(num) {
+        if (currentInput === '0' || shouldResetDisplay) {
+            currentInput = (num === '00') ? '0' : num;
+            shouldResetDisplay = false;
+        } else {
+            if (currentInput.length < 15) {
+                currentInput += num;
+            }
+        }
+        updateDisplay();
+    }
+
+    function appendDot() {
+        if (shouldResetDisplay) {
+            currentInput = '0.';
+            shouldResetDisplay = false;
+            updateDisplay();
+            return;
+        }
+        if (!currentInput.includes('.')) {
+            currentInput += '.';
+        }
+        updateDisplay();
+    }
+
+    function appendOperator(op) {
+        if (currentInput === 'Error') return;
+
+        if (operator && !shouldResetDisplay) {
+            calculateInline();
+        }
+
+        prevInput = currentInput;
+        operator = op;
+        expressionElement.innerText = prevInput + ' ' + operator + ' ';
+        shouldResetDisplay = true;
+    }
+
+    // 부동소수점 오차 보정 (예: 0.999999999999 → 1, 12.000000000001 → 12)
+    function fixFloat(num) {
+        if (!isFinite(num)) return num;
+        return parseFloat(num.toPrecision(12));
+    }
+
+    function handlePercentage() {
+        if (currentInput === 'Error') return;
+        let current = parseFloat(currentInput);
+        if (isNaN(current)) return;
+
+        let result;
+        let expText = '';
+
+        if (prevInput && (operator === '+' || operator === '-')) {
+            let prev = parseFloat(prevInput);
+            result = prev * (current / 100);
+            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
+            currentInput = String(fixFloat(result));
+            expressionElement.innerText = expText;
+        } 
+        else if (prevInput && (operator === '×' || operator === '÷')) {
+            result = current / 100;
+            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
+            currentInput = String(fixFloat(result));
+            expressionElement.innerText = expText;
+        } 
+        else {
+            result = current / 100;
+            expText = currentInput + '%';
+            currentInput = String(fixFloat(result));
+            expressionElement.innerText = expText + ' =';
+            addHistoryItem(expText, currentInput);
+            shouldResetDisplay = true;
+        }
+        updateDisplay();
+    }
+
+    function quickPercent(pct) {
+        if (currentInput === 'Error') return;
+        const current = parseFloat(currentInput);
+        if (isNaN(current)) return;
+
+        const result = current * (pct / 100);
+        const expText = currentInput + ' × ' + pct + '%';
+
+        currentInput = String(fixFloat(result));
+        expressionElement.innerText = expText + ' =';
+        addHistoryItem(expText, currentInput);
+        shouldResetDisplay = true;
+        updateDisplay();
+    }
+
+    function calculateInline() {
+        let result = 0;
+        const prev = parseFloat(prevInput);
+        const current = parseFloat(currentInput);
+
+        if (isNaN(prev) || isNaN(current)) return;
+
+        switch (operator) {
+            case '+': result = prev + current; break;
+            case '-': result = prev - current; break;
+            case '×': result = prev * current; break;
+            case '÷': 
+                if (current === 0) {
+                    currentInput = 'Error';
+                    updateDisplay();
+                    return;
+                }
+                result = prev / current; 
+                break;
+            default: return;
+        }
+        currentInput = String(fixFloat(result));
+        prevInput = currentInput;
+    }
+
+    function calculate() {
+        if (!operator || shouldResetDisplay) return;
+
+        const prev = prevInput;
+        const current = currentInput;
+        const currentOp = operator;
+
+        calculateInline();
+
+        if (currentInput === 'Error') {
+            expressionElement.innerText = '';
+            operator = '';
+            return;
+        }
+
+        let finalExp = expressionElement.innerText.includes('%') 
+            ? expressionElement.innerText + ' =' 
+            : prev + ' ' + currentOp + ' ' + current + ' =';
+
+        expressionElement.innerText = finalExp;
+        addHistoryItem(finalExp.replace(' =', ''), currentInput);
+
+        operator = '';
+        shouldResetDisplay = true;
+        updateDisplay();
+    }
+
+    function clearAll() {
+        currentInput = '0';
+        prevInput = '';
+        operator = '';
+        shouldResetDisplay = false;
+        displayElement.innerText = '0';
+        expressionElement.innerText = '';
+    }
+
+    function backspace() {
+        if (shouldResetDisplay || currentInput === 'Error') {
+            clearAll();
+            return;
+        }
+        if (currentInput.length > 1) {
+            currentInput = currentInput.slice(0, -1);
+        } else {
+            currentInput = '0';
+        }
+        updateDisplay();
+    }
+
+    function addHistoryItem(exp, res, memo = '') {
+        // 빈 메시지 제거
+        const emptyMsg = historyContent.querySelector('.history-empty');
+        if (emptyMsg) {
+            emptyMsg.remove();
+        }
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'history-item';
+        const formattedRes = Number(res).toLocaleString('ko-KR');
+
+        itemDiv.innerHTML = `
+            <div class="history-item-content">
+                <div class="history-item-left">
+                    <div class="history-item-exp">${exp}</div>
+                    <div class="history-item-res">= ${formattedRes}</div>
+                </div>
+                <button class="delete-item-btn" onclick="deleteHistoryItem(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+            <input type="text" class="history-item-memo" placeholder="메모..." oninput="saveHistoryToStorage()" />
+        `;
+
+        itemDiv.querySelector('.history-item-memo').value = memo;
+        historyContent.insertBefore(itemDiv, historyContent.firstChild);
+        saveHistoryToStorage();
+    }
+
+    function deleteHistoryItem(btn) {
+        const item = btn.closest('.history-item');
+        item.style.animation = 'none';
+        item.offsetHeight; // 리플로우 강제 실행
+        item.style.animation = 'slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+        
+        setTimeout(() => {
+            item.remove();
+            
+            // 모든 항목이 삭제되면 빈 메시지 표시
+            if (historyContent.children.length === 0) {
+                historyContent.innerHTML = '<div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>';
+            }
+            saveHistoryToStorage();
+        }, 300);
+    }
+
+    function clearHistory() {
+        if (historyContent.querySelector('.history-empty')) {
+            return; // 이미 비어있으면 실행 안 함
+        }
+        
+        const items = historyContent.querySelectorAll('.history-item');
+        items.forEach((item, index) => {
+            setTimeout(() => {
+                item.style.animation = 'slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
+                setTimeout(() => {
+                    item.remove();
+                    if (historyContent.children.length === 0) {
+                        historyContent.innerHTML = '<div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>';
+                    }
+                    saveHistoryToStorage();
+                }, 300);
+            }, index * 50);
+        });
+    }
+
+    // ═══════════════ 기록 숨김 ═══════════════
+    function toggleHideHistory() {
+        const isHidden = historyContent.classList.toggle('hidden');
+        hideHistoryBtn.classList.toggle('active', isHidden);
+        hideHistoryLabel.innerText = isHidden ? '기록 표시' : '기록 숨김';
+    }
+
+    // ═══════════════ 기록 누적 (새로고침해도 유지) ═══════════════
+    function toggleAccumulateHistory() {
+        accumulateHistory = !accumulateHistory;
+        localStorage.setItem('calcAccumulateHistory', accumulateHistory);
+        accumulateHistoryBtn.classList.toggle('active', accumulateHistory);
+
+        if (accumulateHistory) {
+            saveHistoryToStorage();
+        } else {
+            localStorage.removeItem('calcHistoryData');
+        }
+    }
+
+    function saveHistoryToStorage() {
+        if (!accumulateHistory) return;
+        const items = [...historyContent.querySelectorAll('.history-item')].map(item => ({
+            exp: item.querySelector('.history-item-exp').innerText,
+            res: item.querySelector('.history-item-res').innerText.replace(/^=\s*/, '').replace(/,/g, ''),
+            memo: item.querySelector('.history-item-memo').value
+        }));
+        localStorage.setItem('calcHistoryData', JSON.stringify(items));
+    }
+
+    function loadHistoryFromStorage() {
+        const raw = localStorage.getItem('calcHistoryData');
+        if (!raw) return;
+        try {
+            const items = JSON.parse(raw);
+            if (!items || !items.length) return;
+            // 저장된 순서(최신순)를 그대로 유지하기 위해 뒤에서부터 addHistoryItem으로 쌓는다
+            [...items].reverse().forEach(it => addHistoryItem(it.exp, it.res, it.memo || ''));
+        } catch (e) {
+            // 손상된 데이터는 무시
+        }
+    }
+
+    // 페이지 로드시 누적 모드였다면 저장된 기록 복원
+    if (accumulateHistory) {
+        accumulateHistoryBtn.classList.add('active');
+        loadHistoryFromStorage();
+    }
+
+    // 키보드 이벤트
+    window.addEventListener('keydown', function(event) {
+        if (document.activeElement.tagName === 'INPUT') {
+            return; 
+        }
+
+        const key = event.key;
+        if (key >= '0' && key <= '9') {
+            appendNumber(key);
+        } else if (key === '.') {
+            appendDot();
+        } else if (key === '+' || key === '-') {
+            appendOperator(key);
+        } else if (key === '*') {
+            appendOperator('×');
+        } else if (key === '/') {
+            event.preventDefault(); 
+            appendOperator('÷');
+        } else if (key === '%') {
+            handlePercentage();
+        } else if (key === 'Enter' || key === '=') {
+            event.preventDefault(); 
+            calculate();
+        } else if (key === 'Backspace') {
+            backspace();
+        } else if (key === 'Escape') {
+            clearAll();
+        }
+    });
+</script>
+
+</body>
+</html>

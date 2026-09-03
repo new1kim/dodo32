@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>시세 조회</title>
+<link rel="stylesheet" href="DSR_style.css">
+<style>
+  html { overflow: hidden; }
+  body {
+    overflow: hidden;
+    padding: 0;
+    background: var(--c-canvas);
+  }
+  .mp-page {
+    max-width: 600px;
+    min-width: 0;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Header ---------- */
+  .mp-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px;
+    background: var(--c-surface);
+    border-bottom: 1px solid var(--c-line);
+  }
+  .mp-icon-btn {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--c-surface-muted);
+    color: var(--c-text-body);
+    border-radius: var(--r-pill);
+    font-size: 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-icon-btn:active { transform: scale(0.92); }
+  .mp-header h1 {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--c-text);
+    text-align: left;
+  }
+
+  /* ---------- Body scroll area ---------- */
+  .mp-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 14px 28px;
+  }
+
+  /* ---------- Search bar ---------- */
+  .mp-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .mp-search-bar input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-pill);
+    background: var(--c-surface);
+    box-sizing: border-box;
+  }
+  .mp-search-bar input:focus {
+    outline: none;
+    border-color: var(--c-primary-light);
+    box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.15);
+  }
+  .mp-search-bar button {
+    width: auto;
+    flex: 0 0 auto;
+    border: none;
+    border-radius: var(--r-pill);
+    padding: 11px 16px;
+    background: var(--c-primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-search-bar button:active { background: var(--c-primary-dark); transform: scale(0.97); }
+
+  /* ---------- Empty / loading state ---------- */
+  .mp-hint {
+    text-align: center;
+    color: var(--c-text-faint);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 60px 20px;
+  }
+
+  /* ---------- Search result cards ---------- */
+  .mp-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    text-align: left;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    background: var(--c-surface);
+    box-shadow: var(--sh-card);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-result-card:active { background: var(--c-surface-muted); transform: scale(0.99); }
+  .mp-result-name { font-size: 15px; font-weight: 800; color: var(--c-text); }
+  .mp-result-addr { font-size: 12.5px; font-weight: 600; color: var(--c-text-muted); }
+
+  /* ---------- Detail view ---------- */
+  .mp-back-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+    color: var(--c-primary);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-back-row:active { opacity: 0.6; }
+
+  .mp-complex-card {
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border-radius: var(--r-lg);
+    background: var(--c-primary-soft);
+    border: 1px solid var(--c-primary-soft-border);
+  }
+  .mp-complex-name { font-size: 16px; font-weight: 800; color: var(--c-primary-dark); margin-bottom: 8px; }
+  .mp-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .mp-badge-danger { background: var(--c-danger-soft); color: var(--c-danger-text); }
+  .mp-badge-warning { background: #fdf3e2; color: var(--c-warning-text); }
+  .mp-dongho-badge { background: var(--c-primary); color: #fff; }
+
+  .mp-dongho-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    background: var(--c-primary-soft);
+    border: 1px solid var(--c-primary-soft-border);
+    color: var(--c-primary-dark);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .mp-dongho-status::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--c-primary-soft-border);
+    border-top-color: var(--c-primary);
+    animation: mpDongHoSpin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes mpDongHoSpin { to { transform: rotate(360deg); } }
+
+  .mp-type-card {
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    background: var(--c-surface);
+    box-shadow: var(--sh-card);
+  }
+  .mp-type-card.mp-type-card-highlight {
+    border: 2px solid var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.28);
+  }
+  .mp-type-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .mp-type-name { font-size: 14.5px; font-weight: 800; color: var(--c-text); }
+  .mp-type-area { font-size: 12.5px; font-weight: 600; color: var(--c-text-muted); }
+
+  .mp-price-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .mp-price-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    background: var(--c-surface-muted);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-price-chip:active { transform: scale(0.96); }
+  .mp-price-chip-label { font-size: 10.5px; font-weight: 700; color: var(--c-text-muted); }
+  .mp-price-chip-value { font-size: 13px; font-weight: 800; color: var(--c-text-body); }
+  .mp-price-chip.mp-emphasis {
+    background: var(--c-primary-soft);
+    border-color: var(--c-primary-soft-border);
+  }
+  .mp-price-chip.mp-emphasis .mp-price-chip-label { color: var(--c-primary-dark); }
+  .mp-price-chip.mp-emphasis .mp-price-chip-value { color: var(--c-primary-dark); }
+
+  .mp-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    background: rgba(21, 27, 38, 0.92);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: var(--r-pill);
+    box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+  }
+  .mp-toast.show { opacity: 1; }
+
+  /* ---------- 최근 조회 히스토리 ---------- */
+  .mp-history-section { margin-bottom: 16px; }
+  .mp-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .mp-history-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--c-text-muted);
+    letter-spacing: 0.3px;
+  }
+  .mp-history-clear {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--c-text-faint);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-clear:active { opacity: 0.6; }
+  .mp-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    background: var(--c-surface);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-item:active { background: var(--c-surface-muted); transform: scale(0.99); }
+  .mp-history-info { min-width: 0; overflow: hidden; text-align: left; }
+  .mp-history-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mp-history-meta { font-size: 11px; font-weight: 600; color: var(--c-text-muted); margin-top: 1px; }
+  .mp-history-price {
+    flex: 0 0 auto;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--c-primary-dark);
+  }
+  .mp-history-remove {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-pill);
+    background: var(--c-surface-muted);
+    color: var(--c-text-faint);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .mp-history-remove:active { background: var(--c-danger-soft); color: var(--c-danger-text); transform: scale(0.9); }
+</style>
+</head>
+<body>
+<div class="mp-page">
+  <div class="mp-header">
+    <button class="mp-icon-btn" onclick="closeOverlay()" aria-label="닫기">✕</button>
+    <h1>KB 시세 조회</h1>
+  </div>
+
+  <div class="mp-body">
+    <div id="searchView">
+      <div class="mp-search-bar">
+        <input type="text" id="searchInput" inputmode="search" placeholder="아파트명 (예: 수원 팰루시드, 역북 골드클래스 103 2002)" autocomplete="off">
+        <button onclick="searchApartment()">검색</button>
+      </div>
+
+      <div id="resultList"></div>
+      <div id="searchHint" class="mp-hint">단지명 또는 단지명 1005 1203 이런식으로 검색 해보세요</div>
+
+      <div id="historySection" class="mp-history-section" style="display:none;">
+        <div class="mp-history-head">
+          <span class="mp-history-title">최근 조회</span>
+          <span class="mp-history-clear" onclick="clearHistory()">지우기</span>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div id="detailView" style="display:none;">
+      <div class="mp-back-row" onclick="backToSearch()">‹ 검색 결과로(이전화면)</div>
+      <div id="dongHoStatusEl" class="mp-dongho-status" style="display:none;">동호수 확인중...</div>
+      <div class="mp-complex-card">
+        <div class="mp-complex-name" id="complexNameEl"></div>
+        <div class="mp-badges" id="badgesEl"></div>
+      </div>
+      <div id="typeList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mp-toast" id="toastEl"></div>
+
+<script>
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxIB_jOSdlZNLWpMdsX4j_fpOalfUnC1UI0ysIY7IblKNb9zo--Q2D58WcbTkA-1lOf/exec';
+const hasParent = window.parent && window.parent !== window;
+
+// 83000(만원) -> "8억 3,000만"
+function formatWon(manwon) {
+  const value = Number(manwon) || 0;
+  const eok = Math.floor(value / 10000);
+  const rest = value % 10000;
+  if (eok > 0 && rest > 0) return `${eok}억 ${rest.toLocaleString()}만`;
+  if (eok > 0) return `${eok}억`;
+  return `${rest.toLocaleString()}만`;
+}
+
+function showToast(message) {
+  const el = document.getElementById('toastEl');
+  el.textContent = message;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function closeOverlay() {
+  if (hasParent) {
+    window.parent.postMessage({ type: 'kbMarketPriceClose' }, '*');
+  }
+}
+
+function backToSearch() {
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('searchView').style.display = 'block';
+}
+
+// 띄어쓰기 없이 붙여쓴 도로명/지번 주소를 표준 형식으로 보정
+// 예: "명지로60번길19-5" -> "명지로 60번길 19-5", "석우동53" -> "석우동 53"
+function normalizeAddress(raw) {
+  // 도로명/지번의 마지막 글자(로·길·동) 바로 뒤에 건물번호(숫자, 끝까지 숫자·하이픈만 이어짐)가
+  // 붙어있을 때만 그 앞에 공백을 넣는다. "번길" 같은 중간 토큰은 그대로 붙여 둔다.
+  // 예: "명지로60번길19-5" -> "명지로60번길 19-5" (X: "명지로 60번길 19-5")
+  return raw
+    .replace(/(로|길|동)(?=\d[\d-]*$)/, '$1 ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 검색어 끝에 붙은 "103 2002" / "103동 2002호" 형태를 단지명과 동/호로 분리한다.
+// 두 개의 숫자 토큰이 공백으로 구분되어 끝에 와야만 동/호로 인식하고,
+// 매칭되지 않으면 null을 반환해 기존 단지명 검색과 동일하게 동작한다.
+function parseDongHoQuery(raw) {
+  const m = raw.trim().match(/^(.+?)\s+(\d{1,4})\s*동?\s+(\d{1,5})\s*호?$/);
+  if (!m) return null;
+  return { keyword: m[1].trim(), dong: m[2], ho: m[3] };
+}
+
+// 검색 결과가 여러 단지일 때, 동 번호 맨 앞자리로 "N단지"를 추측해 자동으로 하나를 골라준다.
+// 예: "301동"/"3001동" -> 맨 앞자리 "3" -> 이름에 "3단지"가 들어간 단지가 후보 중 하나뿐이면 그걸 선택.
+// 후보가 없거나 둘 이상이면(이름이 비슷해 애매하면) null을 반환해 목록을 그대로 보여주고 직접 고르게 한다.
+function guessComplexByDong(aptList, dongStr) {
+  const danjiDigit = String(dongStr || '').trim().charAt(0);
+  if (!danjiDigit) return null;
+
+  const matches = aptList.filter(apt => {
+    const m = (apt.HSCM_NM || '').match(/(\d+)\s*단지/);
+    return m && m[1] === danjiDigit;
+  });
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+async function searchApartment() {
+  const searchInputEl = document.getElementById('searchInput');
+  const rawKeyword = searchInputEl.value.trim();
+  const dongHoParsed = parseDongHoQuery(rawKeyword);
+  const keyword = normalizeAddress(dongHoParsed ? dongHoParsed.keyword : rawKeyword);
+  const resultListEl = document.getElementById('resultList');
+  const hintEl = document.getElementById('searchHint');
+
+  if (!keyword) {
+    hintEl.textContent = '검색어를 입력해주세요.';
+    resultListEl.innerHTML = '';
+    return;
+  }
+
+  hintEl.textContent = '검색 중...';
+  resultListEl.innerHTML = '';
+
+  const gasUrl = `${GAS_BASE_URL}?keyword=${encodeURIComponent(keyword)}`;
+
+  try {
+    const response = await fetch(gasUrl);
+    const responseText = await response.text();
+
+    let json;
+    try {
+      json = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("❌ [JSON 파싱 실패]:", responseText);
+      hintEl.textContent = '서버 응답을 분석할 수 없습니다.';
+      return;
+    }
+
+    // 🌟 데이터 경로 (.data가 두 번 들어감에 유의)
+    const aptList = json.dataBody?.data?.data?.HSCM?.data;
+
+    if (!aptList || aptList.length === 0) {
+      hintEl.textContent = '검색 결과가 없습니다.';
+      return;
+    }
+
+    hintEl.textContent = '';
+    resultListEl.innerHTML = aptList.map((apt, i) => `
+      <div class="mp-result-card" data-idx="${i}">
+        <div class="mp-result-name">${apt.HSCM_NM || '이름없음'}</div>
+        <div class="mp-result-addr">${apt.NEWADDRESS || '주소없음'}</div>
+      </div>
+    `).join('');
+
+    resultListEl.querySelectorAll('.mp-result-card').forEach(card => {
+      const apt = aptList[Number(card.dataset.idx)];
+      card.addEventListener('click', () => selectComplex(apt.COMPLEX_NO, apt.HSCM_NM, apt.NEWADDRESS, dongHoParsed));
+    });
+
+    // 단지명이 1건으로 정확히 좁혀지고 동/호까지 함께 입력했다면, 목록 선택 없이 바로 상세로 넘어간다.
+    if (dongHoParsed && aptList.length === 1) {
+      selectComplex(aptList[0].COMPLEX_NO, aptList[0].HSCM_NM, aptList[0].NEWADDRESS, dongHoParsed);
+    } else if (dongHoParsed && aptList.length > 1) {
+      // 여러 단지가 검색되고 동 번호를 함께 입력한 경우: "301동"→3단지, "3001동"→3단지처럼
+      // 동 번호 맨 앞자리와 단지명의 "N단지" 숫자가 하나만 일치하면 그 단지로 바로 넘어간다.
+      // 일치하는 단지가 없거나 여러 개면(이름이 비슷해 애매하면) 목록을 그대로 보여줘서 직접 고르게 한다.
+      const guessed = guessComplexByDong(aptList, dongHoParsed.dong);
+      if (guessed) {
+        selectComplex(guessed.COMPLEX_NO, guessed.HSCM_NM, guessed.NEWADDRESS, dongHoParsed);
+        showToast(`${dongHoParsed.dong}동 번호로 "${guessed.HSCM_NM}"을(를) 자동 선택했어요`);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ [검색 통신 에러]:', error);
+    hintEl.textContent = '데이터를 가져오는 중 에러가 발생했습니다.';
+  }
+}
+
+document.getElementById('searchInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') searchApartment();
+});
+
+// 현재 상세화면에서 동/호수까지 특정된 경우의 정보 (동명/호명/층수) - applyPrice에서 이력·전달에 함께 씀
+let resolvedDongHo = null;
+// 현재 상세화면 단지의 규제지역 구분 - applyPrice에서 이력·전달에 함께 씀
+let currentRegulation = { 투기과열지구: false, 조정대상지역: false };
+
+// 단지 선택 -> 평형별 KB시세 + 투기과열/조정대상 여부 조회
+// dongHo가 주어지면(검색어에 "단지명 동 호" 형태로 동/호까지 입력한 경우) 해당 타입 카드를 자동으로 찾아 강조한다.
+async function selectComplex(complexNo, aptName, address, dongHo) {
+  resolvedDongHo = null;
+  document.getElementById('searchView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'block';
+  document.getElementById('complexNameEl').textContent = aptName || '';
+  document.getElementById('badgesEl').innerHTML = '';
+  document.getElementById('typeList').innerHTML = '<div class="mp-hint">불러오는 중...</div>';
+
+  const gasUrl = `${GAS_BASE_URL}?action=priceByType&complexNo=${encodeURIComponent(complexNo)}`;
+
+  try {
+    const response = await fetch(gasUrl);
+    const json = await response.json();
+
+    if (json.error) {
+      document.getElementById('typeList').innerHTML = `<div class="mp-hint">${json.error}</div>`;
+      return;
+    }
+
+    currentRegulation = { 투기과열지구: !!json.투기과열지구, 조정대상지역: !!json.조정대상지역 };
+
+    const badgesEl = document.getElementById('badgesEl');
+    const badges = [];
+    if (json.투기과열지구) badges.push('<span class="mp-badge mp-badge-danger">투기과열</span>');
+    if (json.조정대상지역) badges.push('<span class="mp-badge mp-badge-warning">조정지역</span>');
+    badgesEl.innerHTML = badges.join('');
+
+    const types = json.타입목록 || [];
+    const typeListEl = document.getElementById('typeList');
+
+    if (!types.length) {
+      typeListEl.innerHTML = '<div class="mp-hint">시세 정보가 없습니다.</div>';
+      return;
+    }
+
+    typeListEl.innerHTML = types.map((t, i) => `
+      <div class="mp-type-card" data-type-idx="${i}">
+        <div class="mp-type-head">
+          <span class="mp-type-name">${t.타입 ? t.타입 + '타입' : (i + 1) + '번째 타입'}</span>
+          <span class="mp-type-area">전용 ${t.전용면적평}평(${t.전용면적}㎡) · 공급 ${t.공급면적평}평(${t.공급면적}㎡)</span>
+        </div>
+        <div class="mp-price-row">
+          <div class="mp-price-chip" data-idx="${i}" data-field="매매하한가">
+            <span class="mp-price-chip-label">하한가</span>
+            <span class="mp-price-chip-value">${formatWon(t.매매하한가)}</span>
+          </div>
+          <div class="mp-price-chip mp-emphasis" data-idx="${i}" data-field="매매일반가">
+            <span class="mp-price-chip-label">일반가</span>
+            <span class="mp-price-chip-value">${formatWon(t.매매일반가)}</span>
+          </div>
+          <div class="mp-price-chip" data-idx="${i}" data-field="매매상한가">
+            <span class="mp-price-chip-label">상한가</span>
+            <span class="mp-price-chip-value">${formatWon(t.매매상한가)}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    typeListEl.querySelectorAll('.mp-price-chip').forEach(chip => {
+      const t = types[Number(chip.dataset.idx)];
+      const field = chip.dataset.field;
+      chip.addEventListener('click', () => applyPrice(aptName, address, t, field));
+    });
+
+    if (dongHo) {
+      resolveDongHo(complexNo, dongHo, types);
+    }
+
+  } catch (error) {
+    console.error('❌ [평형별 시세 통신 에러]:', error);
+    document.getElementById('typeList').innerHTML = '<div class="mp-hint">시세 정보를 가져오지 못했습니다.</div>';
+  }
+}
+
+// 검색어에 담긴 동/호("103", "2002")를 실제 동일련번호/호 정보로 찾아, 해당 평형 타입 카드를 강조한다.
+// KB 동호수 API는 동/호별로 별도 시세를 주지 않고 "그 동/호가 어떤 타입인지"만 알려주므로,
+// 결국 하는 일은 타입 목록 중 하나를 자동으로 짚어주는 것뿐이다.
+async function resolveDongHo(complexNo, dongHo, types) {
+  const badgesEl = document.getElementById('badgesEl');
+  const statusEl = document.getElementById('dongHoStatusEl');
+  if (statusEl) {
+    statusEl.textContent = `${dongHo.dong}동 ${dongHo.ho}호로 확인 중`;
+    statusEl.style.display = '';
+  }
+  try {
+    const dongRes = await fetch(`${GAS_BASE_URL}?action=dongList&complexNo=${encodeURIComponent(complexNo)}`);
+    const dongJson = await dongRes.json();
+    const dongList = dongJson.동목록 || [];
+    const dongMatch = dongList.find(d => Number(d.동명) === Number(dongHo.dong));
+
+    if (!dongMatch) {
+      showToast('입력하신 동을 찾지 못해 전체 타입을 보여드려요.');
+      return;
+    }
+
+    const hoRes = await fetch(`${GAS_BASE_URL}?action=dongHoList&complexNo=${encodeURIComponent(complexNo)}&dongNo=${encodeURIComponent(dongMatch.동일련번호)}`);
+    const hoJson = await hoRes.json();
+    const hoList = hoJson.호목록 || [];
+    const hoMatch = hoList.find(h => Number(h.호명) === Number(dongHo.ho));
+
+    if (!hoMatch) {
+      showToast('입력하신 호수를 찾지 못해 전체 타입을 보여드려요.');
+      return;
+    }
+
+    const typeIdx = types.findIndex(t => t.면적일련번호 === hoMatch.면적일련번호);
+    if (typeIdx === -1) {
+      showToast('해당 호수의 타입 시세를 찾지 못했어요.');
+      return;
+    }
+
+    resolvedDongHo = { 동명: dongMatch.동명, 호명: hoMatch.호명, 호층수: hoMatch.호층수, 면적일련번호: hoMatch.면적일련번호 };
+
+    const badge = document.createElement('span');
+    badge.className = 'mp-badge mp-dongho-badge';
+    badge.textContent = `${dongMatch.동명}동 ${hoMatch.호명}호 · ${hoMatch.호층수}층`;
+    badgesEl.appendChild(badge);
+
+    const card = document.querySelector(`.mp-type-card[data-type-idx="${typeIdx}"]`);
+    if (card) {
+      card.classList.add('mp-type-card-highlight');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  } catch (error) {
+    console.error('❌ [동/호 조회 에러]:', error);
+    showToast('동/호 정보를 가져오지 못해 전체 타입을 보여드려요.');
+  } finally {
+    if (statusEl) statusEl.style.display = 'none';
+  }
+}
+
+// 선택한 가격(만원)을 원 단위로 변환해 부모 화면(시세 입력칸)에 전달
+function applyPrice(aptName, address, typeInfo, field) {
+  const manwon = Number(typeInfo[field]) || 0;
+  const won = manwon * 10000;
+  const pyeong = typeInfo.전용면적평;
+  const typeLabel = typeInfo.타입;
+  // 검색어에 동/호까지 입력해 자동으로 짚어준 타입을 그대로 선택한 경우에만 동/호 정보를 함께 넘긴다.
+  const dongHo = (resolvedDongHo && resolvedDongHo.면적일련번호 === typeInfo.면적일련번호) ? resolvedDongHo : null;
+
+  addToHistory({
+    aptName,
+    address,
+    typeLabel,
+    pyeong, // 부모 화면(내용복사)에 그대로 넘길 때 쓰는 전용면적평 - 히스토리 표시에는 안 씀
+    exclusiveSqm: typeInfo.전용면적,
+    supplyPyeong: typeInfo.공급면적평,
+    priceField: field,
+    manwon,
+    dong: dongHo ? dongHo.동명 : '',
+    ho: dongHo ? dongHo.호명 : '',
+    투기과열지구: currentRegulation.투기과열지구,
+    조정대상지역: currentRegulation.조정대상지역
+  });
+
+  if (hasParent) {
+    window.parent.postMessage({
+      type: 'kbMarketPrice',
+      value: won,
+      aptName: aptName,
+      address: address,
+      typeLabel: typeLabel,
+      pyeong: pyeong,
+      exclusiveSqm: typeInfo.전용면적,
+      supplyPyeong: typeInfo.공급면적평,
+      priceField: field,
+      dong: dongHo ? dongHo.동명 : '',
+      ho: dongHo ? dongHo.호명 : '',
+      투기과열지구: currentRegulation.투기과열지구,
+      조정대상지역: currentRegulation.조정대상지역
+    }, '*');
+  } else {
+    showToast(`${formatWon(manwon)}원 (${won.toLocaleString()}원)`);
+  }
+}
+
+/* -------------------- 최근 조회 히스토리 --------------------
+   가격을 하나 선택할 때마다(applyPrice) 로컬에 남겨서, 검색 화면을 다시 열었을 때
+   최근 몇 건을 바로 볼 수 있게 한다. 항목을 탭하면 그 값을 다시 그대로 적용한다. */
+const HISTORY_STORAGE_KEY = 'kbSiseHistory';
+const HISTORY_MAX = 8;
+const PRICE_FIELD_LABELS = { '매매하한가': '하한가', '매매일반가': '일반가', '매매상한가': '상한가' };
+
+function loadHistory() {
+  try {
+    const list = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function addToHistory(entry) {
+  const list = loadHistory();
+  list.unshift(entry);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  renderHistory();
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  renderHistory();
+}
+
+function removeHistoryItem(index) {
+  const list = loadHistory();
+  list.splice(index, 1);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(list));
+  renderHistory();
+}
+
+function reapplyHistoryItem(h) {
+  const won = h.manwon * 10000;
+  if (hasParent) {
+    window.parent.postMessage({
+      type: 'kbMarketPrice',
+      value: won,
+      aptName: h.aptName,
+      address: h.address,
+      typeLabel: h.typeLabel,
+      pyeong: h.pyeong,
+      exclusiveSqm: h.exclusiveSqm,
+      supplyPyeong: h.supplyPyeong,
+      priceField: h.priceField,
+      dong: h.dong || '',
+      ho: h.ho || '',
+      투기과열지구: !!h.투기과열지구,
+      조정대상지역: !!h.조정대상지역
+    }, '*');
+  } else {
+    showToast(`${formatWon(h.manwon)}원 (${won.toLocaleString()}원)`);
+  }
+}
+
+function renderHistory() {
+  const section = document.getElementById('historySection');
+  const listEl = document.getElementById('historyList');
+  const list = loadHistory();
+
+  if (!list.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  listEl.innerHTML = list.map((h, i) => `
+    <div class="mp-history-item" data-idx="${i}">
+      <div class="mp-history-info">
+        <div class="mp-history-name">${h.aptName}${h.dong && h.ho ? ` (${h.dong}동 ${h.ho}호)` : ''}</div>
+        <div class="mp-history-meta">${h.typeLabel ? h.typeLabel + '타입 · ' : ''}전용 ${h.exclusiveSqm}㎡ · 공급 ${h.supplyPyeong}평 · ${PRICE_FIELD_LABELS[h.priceField] || ''}</div>
+      </div>
+      <div class="mp-history-price">${formatWon(h.manwon)}</div>
+      <button type="button" class="mp-history-remove" data-idx="${i}" aria-label="이 기록 삭제">✕</button>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('.mp-history-item').forEach(item => {
+    const h = list[Number(item.dataset.idx)];
+    item.addEventListener('click', () => reapplyHistoryItem(h));
+  });
+  listEl.querySelectorAll('.mp-history-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // 부모 항목의 재적용 클릭으로 안 번지게 막는다
+      removeHistoryItem(Number(btn.dataset.idx));
+    });
+  });
+}
+
+renderHistory();
+</script>
+</body>
+</html>

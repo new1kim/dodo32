@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대출 업무용 영업일 날짜 계산기</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            --ink: #1b2a4a;
+            --ink-soft: #4c5876;
+            --paper: #f4efe3;
+            --card: #fffdf8;
+            --gold: #a9812f;
+            --gold-soft: rgba(169, 129, 47, 0.14);
+            --stamp: #b23a2f;
+            --stamp-soft: rgba(178, 58, 47, 0.10);
+            --line: #ddd2b8;
+            --sat: #2f5fa8;
+            --receipt-blue: #3b6bb0;
+            --exec-red: #b97a72;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background:
+                radial-gradient(circle at 1px 1px, rgba(27,42,74,0.06) 1px, transparent 0) 0 0/22px 22px,
+                linear-gradient(160deg, #f7f2e6 0%, #f2ece0 55%, #eee7d9 100%);
+            color: var(--ink);
+            margin: 0;
+            padding: 32px 16px 40px;
+            min-height: 100vh;
+        }
+
+        .calculator-container {
+            background: var(--card);
+            border: 1px solid rgba(27, 42, 74, 0.08);
+            border-radius: 6px;
+            box-shadow: 0 24px 48px rgba(27, 42, 74, 0.12), 0 2px 0 var(--gold);
+            width: 100%;
+            max-width: 460px;
+            padding: 36px 32px 28px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .calculator-container::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border: 1px solid rgba(169, 129, 47, 0.25);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+
+        .calculator-header {
+            margin-bottom: 26px;
+            text-align: center;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            color: var(--gold);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-family: 'Noto Serif KR', serif;
+            margin: 0 0 10px;
+            font-size: 25px;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+        }
+
+        .rule {
+            width: 48px;
+            height: 3px;
+            background: var(--gold);
+            margin: 0 auto 14px;
+            border-radius: 2px;
+        }
+
+        .header-subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: var(--ink-soft);
+            line-height: 1.6;
+        }
+
+        .ledger {
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            padding: 4px 0;
+            margin-bottom: 26px;
+        }
+
+        .ledger-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 2px;
+        }
+
+        .ledger-row + .ledger-row {
+            border-top: 1px dashed var(--line);
+        }
+
+        .ledger-row label {
+            flex: 0 0 auto;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+        }
+
+        .ledger-row input[type="text"] {
+            flex: 1;
+            width: 100%;
+            text-align: right;
+            padding: 6px 4px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--ink);
+            border: none;
+            border-bottom: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .ledger-row input[type="text"]::placeholder {
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 400;
+            color: #b7ae9a;
+        }
+
+        .ledger-row input[type="text"]:focus {
+            outline: none;
+            border-bottom-color: var(--gold);
+        }
+
+        #startDate {
+            color: var(--receipt-blue);
+        }
+
+        #endDate {
+            color: var(--exec-red);
+        }
+
+        .result-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 8px 4px 4px;
+            width: 100%;
+        }
+
+        .ledger-result-row {
+            padding: 6px 2px;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .result-item.plain {
+            align-items: flex-start;
+            flex: 1;
+        }
+
+        .result-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.03em;
+        }
+
+        .result-label small {
+            font-weight: 500;
+            color: #9a9480;
+            font-size: 10px;
+        }
+
+        #totalDays {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- 실행일 기준 접수가능일 빠른 계산 (신규) --- */
+        .quick-calc {
+            margin-bottom: 26px;
+            padding: 18px 16px;
+            border: 1px dashed var(--line);
+            border-radius: 6px;
+            background: rgba(169, 129, 47, 0.05);
+        }
+
+        .quick-calc-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.02em;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        .quick-calc-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-calc-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .quick-calc-col label {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+
+        .quick-calc-date-display {
+            width: 100%;
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--exec-red);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--card);
+            cursor: pointer;
+            white-space: normal;
+            word-break: keep-all;
+            line-height: 1.3;
+        }
+
+        .quick-calc-date-display.placeholder {
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 400;
+            color: #b7ae9a;
+        }
+
+        .quick-calc-picker-wrap {
+            display: grid;
+            width: 100%;
+        }
+
+        /* 실제 flatpickr 입력과 보이는 텍스트(줄바꿈 포함)를 같은 grid 셀에 겹쳐서
+           position:absolute 없이 flatpickr의 위치 계산이 어긋나지 않도록 한다 */
+        .quick-calc-picker-wrap > * {
+            grid-area: 1 / 1;
+        }
+
+        .quick-calc-picker-wrap input[type="text"] {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .quick-calc-buttons {
+            flex: 1.2 1 0;
+            gap: 4px;
+        }
+
+        .day-select-btn {
+            width: 100%;
+            padding: 6px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: inherit;
+            color: var(--ink-soft);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .day-select-btn:hover {
+            border-color: var(--gold);
+        }
+
+        .day-select-btn.active {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #ffffff;
+        }
+
+        .quick-calc-result {
+            width: 100%;
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Noto Serif KR', serif;
+            color: var(--receipt-blue);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--card);
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 480px) {
+            .quick-calc-row {
+                flex-wrap: wrap;
+            }
+            .quick-calc-col {
+                flex: 1 1 100%;
+            }
+        }
+
+        /* --- 결재 스탬프 (signature element) --- */
+        .stamp {
+            position: relative;
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 2.5px solid var(--stamp);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--stamp);
+            mix-blend-mode: multiply;
+            opacity: 0;
+            transform: rotate(-10deg) scale(0.85);
+            transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.34,1.56,.64,1);
+        }
+
+        .stamp::after {
+            content: "";
+            position: absolute;
+            inset: 6px;
+            border: 1px solid var(--stamp);
+            border-radius: 50%;
+        }
+
+        .stamp.show {
+            opacity: 0.85;
+            transform: rotate(-8deg) scale(1);
+        }
+
+        .stamp-ring-text {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stamp-value {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 20px;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stamp-unit {
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 2px;
+            letter-spacing: 0.05em;
+        }
+
+        .notice {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            font-size: 11.5px;
+            color: #8b8570;
+            line-height: 1.7;
+        }
+
+        .notice strong {
+            color: var(--ink-soft);
+            font-weight: 700;
+        }
+
+        .notice-list {
+            margin-bottom: 12px;
+        }
+
+        .notice-row {
+            text-align: left;
+        }
+
+        .notice-row strong {
+            margin-right: 3px;
+        }
+
+        .notice-footnote {
+            margin: 0;
+            text-align: center;
+        }
+
+        /* --- 달력 스타일 커스텀 --- */
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            visibility: hidden !important;
+        }
+
+        .flatpickr-day.today,
+        .flatpickr-day.today:hover {
+            background: transparent !important;
+            border: none !important;
+            color: inherit !important;
+        }
+
+        .flatpickr-day:not(.selected):not(.startRange):not(.endRange):hover {
+            background: var(--gold-soft) !important;
+            border-color: var(--gold-soft) !important;
+        }
+
+        .flatpickr-day.selected,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange,
+        .flatpickr-day.selected:hover,
+        .flatpickr-day.startRange:hover,
+        .flatpickr-day.endRange:hover {
+            background: var(--ink) !important;
+            border-color: var(--ink) !important;
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+
+        .flatpickr-day {
+            position: relative;
+        }
+
+        .flatpickr-day.sat {
+            color: var(--sat) !important;
+        }
+        .flatpickr-day.sun,
+        .flatpickr-day.holiday {
+            color: var(--stamp) !important;
+        }
+
+        .flatpickr-day.sat.selected,
+        .flatpickr-day.sun.selected,
+        .flatpickr-day.holiday.selected {
+            color: #ffffff !important;
+        }
+
+        .flatpickr-day .holiday-label {
+            position: absolute;
+            left: 50%;
+            bottom: 1px;
+            transform: translateX(-50%);
+            width: 100%;
+            font-size: 10px;
+            line-height: 1.1;
+            color: var(--stamp);
+            font-weight: 600;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .flatpickr-calendar {
+            max-width: min(100vw - 24px, 360px);
+            border-radius: 8px !important;
+            box-shadow: 0 16px 32px rgba(27,42,74,0.18) !important;
+        }
+
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            font-weight: 700;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 20px 10px 28px; }
+
+            .calculator-container {
+                padding: 28px 20px 22px;
+            }
+
+            h2 { font-size: 21px; }
+
+            .result-box {
+                gap: 10px;
+            }
+
+            .stamp {
+                width: 76px;
+                height: 76px;
+            }
+
+            .stamp-value { font-size: 17px; }
+
+            #totalDays { font-size: 19px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .stamp { transition: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-container">
+        <div class="calculator-header">
+            <h2>영업일 계산기</h2>
+            <div class="rule"></div>
+            <p class="header-subtitle">접수일과 실행일을 선택하면<br>영업일수를 자동으로 계산합니다.</p>
+        </div>
+
+        <div class="ledger">
+            <div class="ledger-row">
+                <label for="startDate">접수일</label>
+                <input type="text" id="startDate" readonly placeholder="날짜 선택">
+            </div>
+            <div class="ledger-row ledger-result-row">
+                <div class="result-box">
+                    <div class="result-item plain">
+                        <span class="result-label">단순 일수</span>
+                        <span class="result-value" id="totalDays">-</span>
+                    </div>
+                    <div class="result-item">
+                        <div class="stamp" id="stampWrap">
+                            <span class="stamp-value" id="businessDays">-</span>
+                            <span class="stamp-unit">영업일</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ledger-row">
+                <label for="endDate">실행일</label>
+                <input type="text" id="endDate" readonly placeholder="날짜 선택">
+            </div>
+        </div>
+
+        <div class="quick-calc">
+            <div class="quick-calc-title">실행일 기준 접수가능일 계산</div>
+            <div class="quick-calc-row">
+                <div class="quick-calc-col">
+                    <label for="execDate">실행일</label>
+                    <div class="quick-calc-picker-wrap">
+                        <div class="quick-calc-date-display placeholder" id="execDateDisplay">날짜 선택</div>
+                        <input type="text" id="execDate" readonly>
+                    </div>
+                </div>
+                <div class="quick-calc-col quick-calc-buttons">
+                    <button type="button" class="day-select-btn" data-mode="biz10">영업10일 이상</button>
+                    <button type="button" class="day-select-btn" data-mode="biz30">영업30일 이상</button>
+                    <button type="button" class="day-select-btn" data-mode="simple45">45일 이하</button>
+                    <button type="button" class="day-select-btn" data-mode="simple60">60일 이하</button>
+                </div>
+                <div class="quick-calc-col">
+                    <div class="quick-calc-result" id="receiptDate">-</div>
+                    <label id="receiptDateLabel">까지 접수가능</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="notice">
+            <div class="notice-list">
+                <div class="notice-row"><strong>주택금융</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>도시보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
+                <div class="notice-row"><strong>서울보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 45일 ]</div>
+                <div class="notice-row"><strong>주 담 대</strong> 접수일 제외 ~ 실행일 포함 [ 영업 30일 ~ 단순 60일 ]</div>
+            </div>
+            <p class="notice-footnote">접수일자는 제외하고 계산합니다.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
+        </div>
+    </div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script>
+        const holidayData = {};
+
+        async function fetchHolidayData(startYear, endYear) {
+            const fetchPromises = [];
+            for (let year = startYear; year <= endYear; year++) {
+                const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/KR`;
+                fetchPromises.push(
+                    fetch(url)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Nager.Date API error: ${response.status} ${response.statusText}`);
+                            }
+                            return response.json();
+                        })
+                        .then(items => {
+                            if (Array.isArray(items)) {
+                                items.forEach(item => {
+                                    if (item && item.date) {
+                                        holidayData[item.date] = item.localName || item.name || '공휴일';
+                                    }
+                                });
+                            }
+                        })
+                );
+            }
+            await Promise.all(fetchPromises);
+        }
+
+        function getHolidayLabel(dateString) {
+            return holidayData[dateString] || '';
+        }
+
+        function isHoliday(dateStr) {
+            return !!holidayData[dateStr];
+        }
+
+        function toDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+        function toDateStringWithWeekday(date) {
+            return `${toDateString(date)} (${WEEKDAY_KO[date.getDay()]})`;
+        }
+
+        // 실행일부터 거꾸로 영업일을 count 개 채우는 접수가능일을 찾는다 (실행일 포함, 접수가능일 제외)
+        function findDateByBusinessDaysBack(endDate, count) {
+            let cur = new Date(endDate.getTime());
+            let remaining = count;
+            while (remaining > 0) {
+                const dayOfWeek = cur.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toDateString(cur))) {
+                    remaining--;
+                    if (remaining === 0) break;
+                }
+                cur.setDate(cur.getDate() - 1);
+            }
+            cur.setDate(cur.getDate() - 1);
+            return cur;
+        }
+
+        // 실행일부터 거꾸로 단순 일수(count)를 채우는 접수가능일을 찾는다 (실행일 포함, 접수가능일 제외)
+        function findDateBySimpleDaysBack(endDate, count) {
+            const cur = new Date(endDate.getTime());
+            cur.setDate(cur.getDate() - count);
+            return cur;
+        }
+
+        // 접수일자는 제외하고 계산 (start 다음 날 ~ end 구간을 카운트)
+        function calculateBusinessDays(startDate, endDate) {
+            let start = new Date(startDate);
+            let end = new Date(endDate);
+            if (start > end) return { total: 0, business: 0 };
+
+            let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            let businessDays = 0;
+            let curDate = new Date(start.getTime());
+            curDate.setDate(curDate.getDate() + 1);
+
+            while (curDate <= end) {
+                const dayOfWeek = curDate.getDay();
+                const year = curDate.getFullYear();
+                const month = String(curDate.getMonth() + 1).padStart(2, '0');
+                const day = String(curDate.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${day}`;
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(dateString)) {
+                    businessDays++;
+                }
+                curDate.setDate(curDate.getDate() + 1);
+            }
+            return { total: totalDays, business: businessDays };
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pickerConfig = {
+                locale: "ko",
+                dateFormat: "Y-m-d",
+                disableMobile: true,
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    const date = dayElem.dateObj;
+                    const dateString = fp.formatDate(date, "Y-m-d");
+                    const dayOfWeek = date.getDay();
+
+                    if (dayOfWeek === 6) dayElem.classList.add('sat');
+                    else if (dayOfWeek === 0) dayElem.classList.add('sun');
+
+                    if (isHoliday(dateString)) {
+                        dayElem.classList.add('holiday');
+                        const holidayLabel = getHolidayLabel(dateString);
+                        if (holidayLabel) {
+                            const labelElem = document.createElement('span');
+                            labelElem.className = 'holiday-label';
+                            labelElem.innerText = holidayLabel;
+                            dayElem.appendChild(labelElem);
+                        }
+                    }
+                },
+                onChange: function() {
+                    triggerCalculation();
+                }
+            };
+
+            async function initializeCalendar() {
+                const year = new Date().getFullYear();
+                try {
+                    await fetchHolidayData(year - 1, year + 2);
+                } catch (error) {
+                    console.warn('Holiday fetch failed:', error);
+                }
+
+                flatpickr("#startDate", {
+                    ...pickerConfig,
+                    defaultDate: "today"
+                });
+
+                flatpickr("#endDate", pickerConfig);
+
+                flatpickr("#execDate", {
+                    ...pickerConfig,
+                    onChange: function(selectedDates) {
+                        const displayEl = document.getElementById('execDateDisplay');
+                        if (selectedDates[0]) {
+                            displayEl.innerText = toDateStringWithWeekday(selectedDates[0]);
+                            displayEl.classList.remove('placeholder');
+                        }
+                        triggerReceiptCalculation();
+                    }
+                });
+            }
+
+            initializeCalendar();
+
+            function triggerCalculation() {
+                const startVal = document.getElementById('startDate').value;
+                const endVal = document.getElementById('endDate').value;
+                const stampEl = document.getElementById('stampWrap');
+                if (startVal && endVal) {
+                    const result = calculateBusinessDays(startVal, endVal);
+                    document.getElementById('totalDays').innerText = result.total + "일";
+                    document.getElementById('businessDays').innerText = result.business;
+                    stampEl.classList.add('show');
+                } else {
+                    stampEl.classList.remove('show');
+                }
+            }
+
+            let selectedMode = null;
+            const dayButtons = document.querySelectorAll('.day-select-btn');
+            dayButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    dayButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedMode = btn.dataset.mode;
+                    triggerReceiptCalculation();
+                });
+            });
+
+            function triggerReceiptCalculation() {
+                const execVal = document.getElementById('execDate').value;
+                const resultEl = document.getElementById('receiptDate');
+                const labelEl = document.getElementById('receiptDateLabel');
+                if (!execVal || !selectedMode) {
+                    resultEl.innerText = '-';
+                    return;
+                }
+                const execDate = new Date(execVal);
+                let receiptDate;
+                let labelText = '까지 접수가능';
+                if (selectedMode === 'biz30') {
+                    receiptDate = findDateByBusinessDaysBack(execDate, 30);
+                } else if (selectedMode === 'biz10') {
+                    receiptDate = findDateByBusinessDaysBack(execDate, 10);
+                } else if (selectedMode === 'simple45') {
+                    receiptDate = findDateBySimpleDaysBack(execDate, 45);
+                    labelText = '부터 접수가능';
+                } else if (selectedMode === 'simple60') {
+                    receiptDate = findDateBySimpleDaysBack(execDate, 60);
+                    labelText = '부터 접수가능';
+                }
+                resultEl.innerText = toDateStringWithWeekday(receiptDate);
+                labelEl.innerText = labelText;
+            }
+        });
+    </script>
+</body>
+</html>
