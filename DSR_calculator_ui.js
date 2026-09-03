@@ -193,21 +193,6 @@ function populateRateEditFields() {
   });
 }
 
-function openRateEditModal() {
-  const panels = getModalPanels();
-  hideOtherModalPanels(panels, 'textCard');
-
-  populateRateEditFields();
-
-  if (panels.textCard) panels.textCard.style.display = "block";
-  if (panels.imageModal) panels.imageModal.style.display = "flex";
-
-  const targetSection = document.getElementById("modal-rate-card");
-  if (targetSection) targetSection.scrollIntoView({ block: "start" });
-
-  fitAllNumericInputFontSizes();
-}
-
 /* 본건 대출 기본값(6M/5Y 금리·ST금리·개월) 입력창 id 목록 - 모달 열기/저장 양쪽에서 공용 */
 const DEFAULT_FIRST_ROW_FIELD_IDS = ['default-mort-rate', 'default-five-year-rate', 'default-mort-st-rate', 'default-five-year-st-rate', 'default-mort-term', 'default-five-year-term'];
 
@@ -375,34 +360,6 @@ function handleDsrMaxBlockClick(block) {
     showBubble(`${type || '최대값'} 방식 선택 및 본건 입력`);
     if (typeof 자동계산 === 'function') 자동계산();
     if (typeof saveDSRInputs === 'function') saveDSRInputs();
-  }
-}
-
-function 전달DSR한도금액(tdElement) {
-  const mainValEl = tdElement.querySelector('.dsr-main-val');
-  const text = mainValEl ? mainValEl.innerText.trim() : tdElement.innerText.trim();
-  if (!text || text === "-" || text.includes("대출 불가")) return;
-
-  let totalAmount = parseKoreanAmountText(text);
-  
-  if (totalAmount > 0) {
-    totalAmount = Math.floor(totalAmount / 1000000) * 1000000;
-  }
-
-  const type = tdElement.dataset.type;
-  if (type) {
-    setFirstRowRepaymentType(type);
-  }
-
-  const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
-  if (firstRow) {
-    const amtInput = firstRow.querySelector('.mort-amt');
-    if (amtInput && totalAmount > 0) {
-      amtInput.value = totalAmount.toLocaleString();
-      showBubble(`${type || '최대한도'} 및 최대한도가 본건에 입력되었습니다.`);
-      if (typeof 자동계산 === 'function') 자동계산();
-      if (typeof saveDSRInputs === 'function') saveDSRInputs();
-    }
   }
 }
 
