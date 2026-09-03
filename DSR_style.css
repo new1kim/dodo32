@@ -2,6 +2,23 @@
 
 /* =========================================================
    DSR/DTI 계산기 — Refined Design System (기능 동일, 시각만 개선)
+   사용 페이지: DSR_Main.html, 시세조회.html
+
+   [ 파일 구조 ] 아래 순서대로 4겹이 쌓인다. 뒤쪽이 앞쪽을 덮는다.
+     1) :root 토큰      - 색/반경/그림자 변수. 색을 바꿀 일이면 대부분 여기만 고치면 된다.
+     2) Base~Modals     - 구조와 레이아웃 (Tables, Inputs, Buttons, 각 카드별 섹션)
+     3) Card color tuning - 테이블별 색 톤을 !important 로 2)에 덮어씌우는 층
+     4) Modals / Schedule - 모달 전용
+
+   [ 색이 안 바뀔 때 확인할 것 ]
+   같은 요소의 배경색을 정하는 규칙이 여러 겹이라, 특이성이 높은 쪽이 조용히 이긴다.
+   특히 아래 규칙은 "표의 첫 번째 칸 전부"를 잡기 때문에 개별 테이블 규칙을 자주 이긴다:
+
+       td:first-child:not(.no-bg)     특이성 (0,2,1) + !important
+       .ltv-table .ltv-cell           특이성 (0,2,0) + !important   <- 이쪽이 진다
+
+   그래서 첫 칸의 배경을 개별로 지정하려면 특이성을 더 올리거나(.ltv-table .ltv-cell:first-child)
+   해당 td 에 .no-bg 클래스를 주어야 한다. 무작정 !important 를 더 붙이면 층이 하나 더 늘 뿐이다.
    ========================================================= */
 
 :root {
@@ -220,6 +237,10 @@ td, th {
   font-weight: 600;
 }
 
+/* 모든 표의 첫 칸을 라벨칸으로 취급해 회색 배경을 준다.
+   주의: 특이성 (0,2,1) + !important 라서 .어떤테이블 .어떤칸 (0,2,0) 형태의
+   개별 규칙을 이긴다. 특정 테이블의 첫 칸만 다르게 하려면 :first-child 를 붙여
+   특이성을 올리거나, 해당 td 에 .no-bg 를 주고 예외로 뺄 것. (파일 상단 안내 참고) */
 td:first-child:not(.no-bg) {
   background-color: var(--c-surface-muted) !important;
   font-weight: 600;
@@ -434,9 +455,9 @@ td:has(.type-btn-row) {
   display: none;
   position: fixed;
   transform: translateX(-50%);
-  gap: 10px;
+  gap: 7px;
   z-index: 999;
-  padding-top: 8px; /* 말풍선 꼬리 자리 */
+  padding-top: 6px; /* 말풍선 꼬리 자리 */
 }
 .copy-menu-list.open { display: flex; }
 .copy-menu-list::before {
@@ -444,8 +465,8 @@ td:has(.type-btn-row) {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 2px;
@@ -454,15 +475,16 @@ td:has(.type-btn-row) {
   z-index: -1;
 }
 .copy-menu-item {
-  width: 62px;
-  height: 62px;
+  width: 43px;
+  height: 43px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  box-sizing: border-box;
+  font-size: 13px;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.1;
   text-align: center;
   color: #ffffff;
   cursor: pointer;
@@ -475,6 +497,7 @@ td:has(.type-btn-row) {
 }
 .copy-menu-item:nth-child(1) { background: linear-gradient(135deg, #4f6fe4, #22c9c0); animation-delay: 0s; }
 .copy-menu-item:nth-child(2) { background: linear-gradient(135deg, #fb923c, #f43f5e); animation-delay: 0.05s; }
+.copy-menu-item:nth-child(3) { background: linear-gradient(135deg, #8b5cf6, #6366f1); animation-delay: 0.1s; font-size: 9.5px; letter-spacing: -0.3px; }
 .copy-menu-item:hover,
 .copy-menu-item:active { transform: scale(1.12); }
 
@@ -535,7 +558,7 @@ td:has(.type-btn-row) {
 }
 .mort-amount-row { display: flex; justify-content: flex-start; align-items: center; gap: 6px; width: 100%; }
 .mort-amt { flex: 1; min-width: 0; text-align: center; }
-.mortgage-row.first-row .mort-amt { flex: 1; min-width: 0; text-align: center; }
+/* 본건(첫 행) 금액칸만 강조 - flex/정렬은 위 .mort-amt 를 그대로 물려받는다 */
 .mortgage-row.first-row .mort-amt {
   font-size: 14px;
   background-color: var(--c-surface);
@@ -617,6 +640,16 @@ td:has(.type-btn-row) {
 .mort-amount-row--added { gap: 4px; }
 .mort-amount-row--added .mort-amt { flex: 2.5; }
 .mort-amount-row--added .mort-rate { flex: 1; min-width: 0; text-align: center; }
+
+/* 대출추가로 생기는 행의 금액/금리/개월수 입력 - 배경색 없이 행 배경이 그대로 보이도록 */
+.mortgage-row:not(.first-row) .mort-amt,
+.mortgage-row:not(.first-row) .mort-rate,
+.mortgage-row:not(.first-row) .mort-term,
+.mortgage-row:not(.first-row) .mort-amt:focus,
+.mortgage-row:not(.first-row) .mort-rate:focus,
+.mortgage-row:not(.first-row) .mort-term:focus {
+  background-color: transparent;
+}
 
 .mortgage-row.first-row .input-flex-row { align-items: center; gap: 4px; }
 
@@ -826,14 +859,6 @@ td:has(.type-btn-row) {
   box-sizing: border-box;
 }
 
-.dsr-toggle-caption {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--c-text-muted);
-  text-align: center;
-  margin-bottom: 3px;
-  white-space: nowrap;
-}
 #dsrLimitToggleGroup {
   border-radius: var(--toggle-radius);
   padding: 0.9px 3px;
@@ -866,6 +891,16 @@ td:has(.type-btn-row) {
   outline: none;
   font-weight: 700;
   text-align: center;
+}
+/* 소액임차금액 입력 - 배경색 없이 셀 배경이 그대로 보이도록 */
+#ltvMinorLeaseInput,
+#ltvMinorLeaseInput:focus {
+  background-color: transparent;
+}
+/* 시세 입력 - 본건 소득입력창(.income-input)과 같은 흰 바탕 */
+#ltvMarketPriceInput,
+#ltvMarketPriceInput:focus {
+  background-color: var(--c-surface);
 }
 .ltv-market-price-wrap {
   display: flex;
@@ -1020,8 +1055,7 @@ td:has(.type-btn-row) {
 .income-input-cell { vertical-align: middle; text-align: center; padding: 0 !important; container-type: inline-size; }
 .income-title { display: block; margin-right: 0; margin-bottom: 1px; vertical-align: middle; white-space: nowrap; text-align: center; font-size: clamp(10px, 17cqw, 15px); cursor: pointer; }
 .income-title:hover { text-decoration: underline; }
-.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 2px; vertical-align: middle; }
-.income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
+.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 2px; vertical-align: middle; font-size: clamp(7px, 12cqw, 10px); }
 /* 증빙 모드: 연소득 입력 + 장래예상을 한 칸 안에서 가로로 나란히 배치 */
 .income-cell-flex {
   display: flex;
@@ -1070,16 +1104,7 @@ td:has(.type-btn-row) {
   opacity: 0.5;
   pointer-events: none;
 }
-.income-settings-cell { vertical-align: middle; padding: 0 !important; border-left: 1px solid var(--c-border) !important; }
-.age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
-.age-cell, .toggle-cell { container-type: inline-size; }
-.toggle-cell .rate-toggle-row { margin: 0; transform: none; }
-.toggle-cell .rate-display { display: block; margin-top: 2px; }
-.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0px; width: 100%; }
-.income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
-.income-settings .rate-toggle-row,
 .future-income-row .rate-toggle-row { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; }
-.income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
 .future-income-row .rate-toggle-row label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
 .future-income-row .rate-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
 /* "장래예상" 라벨 아래에 예상효율을 줄바꿈해서 표시 (체크박스 옆에 세로로 쌓임) */
@@ -1120,11 +1145,14 @@ td:has(.type-btn-row) {
 }
 /* 예상효율 빨간색 표시 - 소득2 이후 동적 행도 동일하게 적용 (.rate-display 클래스는 공용) */
 .rate-display { display: block; text-align: left; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 0; font-size: 11px; }
-.income-settings .rate-display { font-size: 11px; }
-.age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
+/* 나이 입력칸 - 숫자 스핀 버튼(위/아래 화살표)은 칸이 좁아 숨긴다 */
+.age-input {
+  width: 100% !important; max-width: none; min-width: 0; max-height: none;
+  text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px);
+  -moz-appearance: textfield; appearance: textfield;
+}
 .age-input::-webkit-outer-spin-button,
 .age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.age-input { -moz-appearance: textfield; appearance: textfield; }
 /* 합산 소득 - 라벨과 값을 하나의 배지(chip)로 묶어 오른쪽 정렬 */
 .income-result-badge {
   display: inline-flex;
@@ -1297,11 +1325,6 @@ td:has(.type-btn-row) {
   padding: 1px;
   gap: 0px;
 }
-.age-slot, .toggle-slot {
-  flex: 1 1 0;
-  min-width: 0;
-  box-sizing: border-box;
-}
 .declare-input-group .declare-amount-input {
   width: 100%;
   box-sizing: border-box;
@@ -1379,7 +1402,8 @@ td:has(.type-btn-row) {
   background: #fffdf9;
 }
 .ltv-table .ltv-cell { background: #fffdf9 !important; }
-.ltv-table .ltv-cell:first-child { background: #f6e7c4 !important; color: #7a5814; font-weight: 800; }
+/* 첫 칸(시세 입력)은 배경색 없이 - 샌드색 배경이 깔리면 투명한 입력창이 묻혀서 구분이 안 됨 */
+.ltv-table .ltv-cell:first-child { background: transparent !important; color: #7a5814; font-weight: 800; }
 .ltv-table .ltv-cell + .ltv-cell { border-left-color: #ece2cf !important; }
 .ltv-table .ltv-output { background: #fdf3e0 !important; color: #93641b; border-color: #e6cf9f !important; }
 

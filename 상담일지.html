@@ -6,76 +6,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --primary: #2196f3;
-            --primary-hover: #1976d2;
-            --bg-table: #f9fcff;
-            --border-color: #7faac7;
-            --text-main: #333;
-            --shadow: 0 4px 20px rgba(0,0,0,0.08);
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
+            --primary: #3a52b8;
+            --primary-light: #4c66d0;
+            --primary-hover: #2b3f96;
+            --primary-soft: #f0f2fd;
+            --primary-soft-border: #d6dcf7;
+            --bg-table: #f7f8fc;
+            --border-color: #e1e4ef;
+            --text-main: #1b2333;
+            --text-muted: #77808f;
+            --shadow: 0 16px 36px -18px rgba(43, 63, 150, 0.32);
+            --danger: #cf5a4e;
+            --danger-hover: #b4453b;
         }
-        body { margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: var(--text-main); background: #f5f8fa; }
-        .table-wrap { max-width: 600px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: var(--shadow); }
-        .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+        body { margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; color: var(--text-main); background: #eef0f8; }
+        .table-wrap { max-width: 600px; margin: 30px auto; padding: 24px; background: #fff; border-radius: 20px; box-shadow: var(--shadow); border: 1px solid rgba(43, 63, 150, 0.06); }
+
+        .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
         .top-actions .left-actions { display:flex; align-items:center; gap:8px; }
         .top-actions .right-actions { display:flex; align-items:center; gap:8px; }
 
         /* 사용자 이름 인증 콘테이너 및 요소 스타일 */
         .user-auth-container { display: flex; align-items: center; gap: 4px; }
-        .user-code-input { width: 100px; padding: 8px 10px; font-size: 13px; font-weight: bold; border: 2px solid #cbd5e1; border-radius: 10px; box-sizing: border-box; text-align: center; color: #1e293b; background: #f8fafc; transition: all 0.2s; }
-        .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15); }
-        
+        .user-code-input { width: 100px; padding: 8px 10px; font-size: 13px; font-weight: bold; border: 2px solid #dfe3ee; border-radius: 10px; box-sizing: border-box; text-align: center; color: #1e293b; background: #f8fafc; transition: all 0.2s; }
+        .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.15); }
+
         .user-submit-btn { height: 35px; padding: 0 10px; font-size: 12px; font-weight: 600; color: #ffffff; background-color: #0f172a; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; font-family: inherit; }
         .user-submit-btn:hover { background-color: #334155; }
         .user-display-name { font-size: 14px; font-weight: 700; color: #334155; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
 
         button { font-size: 14px; padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: transform 0.14s ease, box-shadow 0.14s ease; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); white-space: nowrap; }
-        #copyBtn { background: linear-gradient(180deg,#4f95ff 0%,#357bea 100%); color: #fff; border: 1px solid rgba(59,130,246,0.12); padding: 5px 12px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 6px rgba(53, 123, 234, 0.2); }
-        #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(53, 123, 234, 0.3); }
-        #saveBtn { background: var(--primary); color: #fff; border: 1px solid rgba(33,150,243,0.12); }
-        #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(33,150,243,0.12); }
-        #loadBtn { background: #fff; color: #334155; border: 1px solid #e6eef9; padding: 8px 12px; border-radius: 10px; }
-        #loadBtn:hover { background: #f8fbff; transform: translateY(-1px); }
-        
-        table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-        th, td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 10px 8px; font-size: clamp(13px, 2.5vw, 15px); text-align: center; box-sizing: border-box; }
-        th:last-child, td:last-child { border-right: none; }
-        tr:last-child td { border-bottom: none; }
-        th, .label { background: #e3effa; font-weight: bold; color: #2c5270; }
-        td { background: var(--bg-table); }
-        .label { width: 33%; }
-        
-        .label-toggle { display: inline-flex; background: #cce0f5; border-radius: 8px; padding: 3px; gap: 2px; width: 100%; box-sizing: border-box; justify-content: space-between; border: 1px solid #b8d2eb; }
-        .label-toggle .toggle-btn { flex: 1; background: transparent; border: none; padding: 5px 0; font-size: 12px; font-weight: 700; color: #64748b; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; box-shadow: none; transform: none; white-space: nowrap; }
-        .label-toggle .toggle-btn:hover { color: #2c5270; box-shadow: none; transform: none; }
-        .label-toggle .toggle-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        #copyBtn { background: linear-gradient(135deg,#4f6fe4 0%,#6366f1 100%); color: #fff; border: 1px solid rgba(76,102,208,0.12); padding: 5px 12px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 6px rgba(58, 82, 184, 0.25); }
+        #copyBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(58, 82, 184, 0.35); }
+        #saveBtn { background: linear-gradient(135deg, #4f6fe4 0%, #3a52b8 100%); color: #fff; border: 1px solid rgba(58,82,184,0.12); }
+        #saveBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(58,82,184,0.25); }
+        #loadBtn { background: #fff; color: #334155; border: 1px solid #e6e8f5; padding: 8px 12px; border-radius: 10px; }
+        #loadBtn:hover { background: #f8f9ff; transform: translateY(-1px); }
 
-        .content-label-cell { 
-            background: #e3effa; 
-            font-weight: bold; 
-            color: #2c5270;
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 8px 14px; 
+        table { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; width: 100%; border: none; background: transparent; }
+        tbody, thead, tfoot { display: contents; } /* 브라우저가 암묵적으로 끼워넣는 tbody가 grid 체인을 끊는 것을 방지 */
+        tr { display: contents; }
+        th, td { border: none; background: transparent; padding: 0; font-size: clamp(13px, 2.5vw, 15px); text-align: center; box-sizing: border-box; }
+        th, .label { background: transparent; font-weight: 800; color: var(--primary-hover); font-size: 11px; letter-spacing: 0.3px; text-transform: uppercase; text-align: left; padding: 0 3px; }
+
+        /* 시세/매매/신청금액 라벨행과 값행을 거의 붙여서 표시 (테이블 기본 row-gap 8px를 값행에서만 음수 마진으로 상쇄) */
+        .price-row-value { margin-top: -8px; }
+        #needAmountLabel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 1px; }
+        .need-amount-pct-line { font-size: 10px; letter-spacing: 0; }
+
+        .label-toggle { display: inline-flex; background: var(--primary-soft); border-radius: 8px; padding: 3px; gap: 2px; width: 100%; box-sizing: border-box; justify-content: space-between; border: 1px solid var(--primary-soft-border); }
+        .label-toggle .toggle-btn { flex: 1; background: transparent; border: none; padding: 5px 0; font-size: 12px; font-weight: 700; color: #64748b; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; box-shadow: none; transform: none; white-space: nowrap; }
+        .label-toggle .toggle-btn:hover { color: var(--primary-hover); box-shadow: none; transform: none; }
+        .label-toggle .toggle-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 4px rgba(43, 63, 150, 0.15); }
+
+        .content-label-cell {
+            grid-column: 1 / -1;
+            background: var(--primary-soft);
+            font-weight: bold;
+            color: var(--primary-hover);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 14px;
+            border-radius: 12px;
             position: relative;
             width: 100%;
             box-sizing: border-box;
+            margin-top: 6px;
         }
         .content-label-cell #copyBtn { margin-left: 10px; }
-        .content-row { background: #fff; text-align: left; vertical-align: top; padding: 0; }
-        
-        textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 12px; box-sizing: border-box; outline: none; line-height: 1.5; }
-        input[type="text"] { width: 100%; height: 100%; box-sizing: border-box; font-size: clamp(13px, 2.5vw, 15px); padding: 6px 8px; border: 1px solid #b3c6d7; border-radius: 4px; background: #fff; transition: border 0.2s; text-align: center; }
-        /* 입력칸을 담고 있는 칸은 안쪽 여백을 없애서 입력창이 칸에 꽉 차게 한다.
-           height:1px 트릭 - 그냥 두면 셀 높이가 auto라 자식의 height:100%가 안 먹혀서 세로로는 꽉 안 참 */
-        td:has(> input[type="text"]) { padding: 0; height: 1px; }
-        input[type="text"]:focus { border-color: var(--primary); outline: none; background: #fff; }
+        .content-row { grid-column: 1 / -1; background: #fff; text-align: left; vertical-align: top; padding: 0; border: 1.5px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+
+        textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 14px; box-sizing: border-box; outline: none; line-height: 1.55; }
+        input[type="text"] { width: 100%; height: 100%; box-sizing: border-box; font-size: clamp(13px, 2.5vw, 15px); padding: 9px 10px; border: 1.5px solid var(--border-color); border-radius: 10px; background: var(--bg-table); transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; text-align: center; }
+        /* 입력칸 하나만 들어있는 칸은 세로 중앙 정렬로 필드처럼 보이게 한다 (물건정보처럼 여러 칸이 합쳐진 셀은 제외) */
+        td:has(> input[type="text"]) { display: flex; align-items: center; min-height: 40px; }
+        td:has(> #currentDateTime) { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 6px 4px; background: var(--bg-table); border: 1.5px solid var(--border-color); border-radius: 10px; }
+        .current-datetime-text { font-weight: 600; color: var(--text-main); white-space: normal; word-break: keep-all; line-height: 1.1; text-align: center; }
+        input[type="text"]:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
         textarea::placeholder, input::placeholder { color: #a0aec0; }
 
-        .date-picker-field { cursor: pointer; background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%); }
-        .date-picker-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.12); }
+        /* 물건정보: 라벨(밖) + 1번째 줄(단지명+타입+평수+동호수)/2번째 줄(주소+투기과열지구 배지)를 박스 하나 안에서 줄바꿈으로 표시 (개별 입력칸처럼 안 보이게 테두리/배경을 박스 하나로 통합) */
+        .property-field-wrap { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .property-compound-label { font-weight: 800; color: var(--primary-hover); font-size: 11px; letter-spacing: 0.3px; text-transform: uppercase; text-align: left; padding: 0 3px; }
+        .property-compound {
+            display: flex; flex-direction: column; gap: 2px; width: 100%; box-sizing: border-box;
+            border: 1.5px solid var(--border-color); border-radius: 10px; background: var(--bg-table);
+            padding: 8px 10px; transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+        .property-compound:focus-within { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
+        .property-compound input[type="text"] { min-width: 0; border: none; background: transparent; padding: 0; height: auto; text-align: left; }
+        .property-compound input[type="text"]:focus { border: none; box-shadow: none; background: transparent; }
+        .property-line2 { display: flex; align-items: center; gap: 6px; }
+        .property-address-input { flex: 1; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .apt-reg-badges { display: inline-flex; gap: 4px; flex-shrink: 0; }
+        .apt-reg-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800; white-space: nowrap; line-height: 1.4; }
+        .apt-reg-badge-danger { background: #fdeceb; color: #c0392b; }
+        .apt-reg-badge-warning { background: #fdf3e2; color: #b9762a; }
+        .field-span-2 { grid-column: 2 / -1; }
+        .field-span-full { grid-column: 1 / -1; }
+
+        .date-picker-field { cursor: pointer; background: linear-gradient(180deg, #ffffff 0%, #f5f7ff 100%); }
+        .date-picker-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
         .date-picker-popup { position: absolute; width: 310px; padding: 16px; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 40px rgba(0,0,0,0.12); border: 1px solid rgba(98, 146, 234, 0.18); z-index: 1010; display: none; }
         .date-picker-popup.open { display: block; }
         .date-picker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -86,37 +118,37 @@
         .date-picker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; color: #64748b; font-size: 12px; text-align: center; }
         .date-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
         .calendar-cell { width: 100%; padding: 10px 0; border: none; border-radius: 12px; background: transparent; color: #334155; cursor: pointer; font-weight: 600; transition: background 0.2s ease, color 0.2s ease; }
-        .calendar-cell:hover { background: #e7f0ff; }
-        .calendar-cell.selected { background: #2563eb; color: #fff; }
+        .calendar-cell:hover { background: var(--primary-soft); }
+        .calendar-cell.selected { background: var(--primary); color: #fff; }
         .calendar-cell.empty { cursor: default; background: transparent; }
-        .calendar-cell.today { border: 1px solid #60a5fa; }
+        .calendar-cell.today { border: 1px solid var(--primary-light); }
 
-        .history-modal { position: fixed; top: 0; right: -450px; width: 420px; height: 100vh; background: #fff; box-shadow: -5px 0 25px rgba(0,0,0,0.15); z-index: 1000; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
+        .history-modal { position: fixed; top: 0; right: -450px; width: 420px; height: 100vh; background: #fff; box-shadow: -12px 0 40px rgba(43, 63, 150, 0.18); z-index: 1000; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; }
         .history-modal.open { right: 0; }
-        .modal-header { padding: 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
-        .modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, var(--primary-soft) 0%, #fff 100%); }
+        .modal-header h3 { margin: 0; font-size: 18px; color: var(--primary-hover); font-weight: 800; }
         .close-btn { background: none; border: none; font-size: 26px; line-height: 1; cursor: pointer; color: #94a3b8; padding: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; box-shadow: none; }
-        .close-btn:hover { color: #64748b; background: #eef2f7; }
-        
-        .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
-        .search-input { width: 50%; padding: 10px 12px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
-        .search-input:focus { border-color: var(--primary); outline: none; }
+        .close-btn:hover { color: var(--primary-hover); background: var(--primary-soft); }
+
+        .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
+        .search-input { width: 50%; padding: 10px 12px; font-size: 14px; border: 1.5px solid var(--border-color); border-radius: 10px; box-sizing: border-box; background: var(--bg-table); transition: border 0.2s ease, box-shadow 0.2s ease; }
+        .search-input:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
         #historySearch { width: auto; flex: 1; } /* 버튼이 차지하는 만큼을 제외한 나머지를 검색창이 채움 */
-        #syncNowBtn { flex: 0 0 auto; background: #0f172a; color: #fff; padding: 10px 14px; font-size: 13px; white-space: nowrap; }
+        #syncNowBtn { flex: 0 0 auto; background: linear-gradient(135deg, #2b3f96 0%, #0f172a 100%); color: #fff; padding: 10px 14px; font-size: 13px; white-space: nowrap; border-radius: 10px; }
         #syncNowBtn:disabled { opacity: 0.6; cursor: default; }
-        
-        .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #f8fafc; }
-        
-        .history-card { position: relative; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease; }
-        .history-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.1); }
-        .call-log-item:hover { background: #f1f5f9; }
-        .card-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: #64748b; padding-right: 30px; }
+
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; background: #f4f5fb; }
+
+        .history-card { position: relative; background: #fff; border: 1px solid var(--border-color); border-left: 4px solid var(--primary-light); border-radius: 14px; padding: 14px 14px 14px 16px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 3px 10px -4px rgba(43, 63, 150, 0.12); transition: all 0.2s ease; }
+        .history-card:hover { border-color: var(--primary); border-left-color: var(--primary); transform: translateY(-2px); box-shadow: 0 10px 22px -8px rgba(58, 82, 184, 0.28); }
+        .call-log-item:hover { background: var(--primary-soft); }
+        .card-top { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); padding-right: 30px; }
         .card-user { font-size: 16px; font-weight: bold; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-        .card-phone { font-size: 14px; color: var(--primary); font-weight: 500; }
-        .card-details { font-size: 13px; color: #475569; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; }
-        .card-memo { font-size: 13px; color: #64748b; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
-        
-        .card-delete-btn { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 6px; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: pointer; border: 1px solid #fee2e2; transition: all 0.2s; }
+        .card-phone { font-size: 14px; color: var(--primary); font-weight: 700; }
+        .card-details { font-size: 13px; color: #475569; background: var(--primary-soft); padding: 6px 10px; border-radius: 8px; margin-bottom: 6px; }
+        .card-memo { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+
+        .card-delete-btn { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 8px; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: pointer; border: 1px solid #fee2e2; transition: all 0.2s; }
         .card-delete-btn:hover { background: #ef4444; color: #fff; border-color: #ef4444; transform: scale(1.05); }
 
         .loading-view { text-align: center; padding: 40px 0; color: #64748b; font-size: 14px; }
@@ -152,47 +184,62 @@
     </div>
     <table>
         <tr>
-            <th>최초상담일시</th>
+            <th>최근상담일시</th>
             <th>연락처</th>
             <th>고객명</th>
         </tr>
         <tr>
-            <td><span id="currentDateTime" style="font-weight: 500; color: #444;"></span></td>
+            <td><span id="currentDateTime" class="current-datetime-text"></span></td>
             <td><input type="text" placeholder="연락처 입력" inputmode="numeric"></td>
             <td><input type="text" placeholder="이름 입력" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
             <td class="label">필요일자</td>
-            <td class="label">물건정보</td>
-            <td class="label">중개업소</td>
+            <td class="label field-span-2">중개업소</td>
         </tr>
         <tr>
             <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
-            <td><input type="text" placeholder="단지명,평,층" inputmode="text" lang="ko"></td>
-            <td><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
+            <td class="field-span-2"><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
-            <td class="label" style="padding: 4px 8px;">
+            <td class="field-span-full">
+                <div class="property-field-wrap">
+                    <div class="property-compound-label">물건정보</div>
+                    <div class="property-compound">
+                        <input type="text" id="propertyLineInput" class="property-line-input" placeholder="단지명 타입, 평수, 동호수" inputmode="text" lang="ko" autocomplete="off">
+                        <div class="property-line2">
+                            <input type="text" id="propertyAddressInput" class="property-address-input" placeholder="주소" inputmode="text" lang="ko" autocomplete="off">
+                            <span id="propertyRegBadges" class="apt-reg-badges"></span>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="label price-row-label" style="padding: 4px 8px;">
                 <div class="label-toggle">
                     <button type="button" class="toggle-btn active">KB시세</button>
                     <button type="button" class="toggle-btn">감정가</button>
                 </div>
             </td>
-            <td class="label" style="padding: 4px 8px;">
+            <td class="label price-row-label" style="padding: 4px 8px;">
                 <div class="label-toggle">
                     <button type="button" class="toggle-btn active">매매가</button>
                     <button type="button" class="toggle-btn">보증금</button>
                 </div>
             </td>
-            <td class="label" id="needAmountLabel">필요금액</td>
+            <td class="label price-row-label" id="needAmountLabel">
+                <span id="needAmountLabelMain">신청금액</span>
+                <span id="needAmountLabelPct" class="need-amount-pct-line" style="display:none;"></span>
+            </td>
         </tr>
         <tr>
-            <td><input type="text" placeholder="예: 500,000,000" inputmode="numeric"></td>
-            <td><input type="text" placeholder="예: 400,000,000" inputmode="numeric"></td>
-            <td><input type="text" placeholder="예: 250,000,000" inputmode="numeric"></td>
+            <td class="price-row-value"><input type="text" placeholder="예: 500,000,000" inputmode="numeric"></td>
+            <td class="price-row-value"><input type="text" placeholder="예: 400,000,000" inputmode="numeric"></td>
+            <td class="price-row-value"><input type="text" placeholder="예: 250,000,000" inputmode="numeric"></td>
         </tr>
         <tr>
-            <td colspan="3" style="padding: 0;">
+            <td colspan="3" class="field-span-full" style="padding: 0;">
                 <div class="content-label-cell">
                     <button type="button" id="resetBtn" style="background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);" onclick="resetAllFields()">초기화</button>
                     <span>상담내용</span>
@@ -279,10 +326,88 @@ window.addEventListener('DOMContentLoaded', function() {
     const dateInput    = document.getElementById('needDateInput');
     const moneyInput   = $('input[placeholder="예: 250,000,000"]');
     
-    const typeInput    = $('input[placeholder="단지명,평,층"]');
-    
+    // 물건정보: 1줄(단지명 평형 동호수) + 2줄(주소 + 투기과열지구 배지) 한 칸으로 합성
+    // (서버/로컬저장에는 "1번째줄,주소" 형태 문자열 하나로 합쳐서 보관 - 배지는 DSR에서 전달받은 세션에만 표시, 저장 대상 아님)
+    const propertyLineInput    = document.getElementById('propertyLineInput');
+    const propertyAddressInput = document.getElementById('propertyAddressInput');
+    const propertyRegBadges    = document.getElementById('propertyRegBadges');
+    // 1번째 줄 자체에 쉼표가 들어가므로(예: "단지명 84A, 34평, 806동 702호"), 줄 구분자는 쉼표 대신 개행으로 사용한다
+    // (텍스트 입력칸 값에는 실제 개행이 들어갈 수 없으므로 충돌 없이 안전하게 분리 가능).
+    function getPropertyInfoText() {
+      const line = propertyLineInput ? propertyLineInput.value.trim() : '';
+      const address = propertyAddressInput ? propertyAddressInput.value.trim() : '';
+      return [line, address].filter(Boolean).join('\n');
+    }
+    function setPropertyInfoText(str) {
+      const idx = (str || '').indexOf('\n');
+      if (propertyLineInput) propertyLineInput.value = idx === -1 ? (str || '') : str.slice(0, idx).trim();
+      if (propertyAddressInput) propertyAddressInput.value = idx === -1 ? '' : str.slice(idx + 1).trim();
+      if (propertyRegBadges) propertyRegBadges.innerHTML = '';
+    }
+
     const contentInput = $('textarea[placeholder="상담내용을 입력해 주세요."]');
-    
+
+    // 입력칸에 값을 채운 뒤 잠깐 파란빛으로 깜빡여서 어디에 들어갔는지 표시
+    function flashField(el) {
+      if (!el) return;
+      el.style.transition = 'background-color 0.3s ease';
+      el.style.backgroundColor = '#eaf2ff';
+      setTimeout(() => { el.style.backgroundColor = ''; }, 700);
+    }
+
+    // DSR 계산기에서 "상담일지 전달"로 보낸 값을 상담일지의 각 입력칸에 나눠 받는다.
+    // - text(요약 전체) → 상담내용 메모 / kbPrice → KB시세 / neededAmount → 필요금액
+    // - aptName·typeLabel·pyeong·exclusiveSqm → 물건정보 1번째 줄("단지명 공급 평수+타입  전용 ㎡,")
+    // - address·dongHo·투기과열지구·조정대상지역 → 물건정보 2번째 줄("주소, 동호수" + 배지)
+    window.addEventListener('message', function(e) {
+      if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
+      const { text, kbPrice, neededAmount, aptName, typeLabel, pyeong, exclusiveSqm, dongHo, address, 투기과열지구, 조정대상지역 } = e.data;
+
+      if (text && contentInput) {
+        contentInput.value = contentInput.value.trim()
+          ? contentInput.value.replace(/\s+$/, '') + '\n\n' + text
+          : text;
+        flashField(contentInput);
+      }
+      if (kbPrice && kbPriceInput) {
+        kbPriceInput.value = kbPrice;
+        flashField(kbPriceInput);
+      }
+      if (neededAmount && moneyInput) {
+        moneyInput.value = neededAmount;
+        flashField(moneyInput);
+      }
+      if ((aptName || typeLabel || pyeong || exclusiveSqm) && propertyLineInput) {
+        const supplyPart = [pyeong, typeLabel].filter(Boolean).join('');
+        const parts = [aptName, supplyPart ? `공급 ${supplyPart}` : ''].filter(Boolean);
+        let line1 = parts.join(' ');
+        if (exclusiveSqm) line1 += (line1 ? '  ' : '') + `전용 ${exclusiveSqm}㎡,`;
+        propertyLineInput.value = line1;
+        flashField(propertyLineInput);
+      }
+      // 배지를 먼저 넣어 폭을 확정한 뒤 주소 값을 넣어야, 주소 입력칸의 "칸 폭에 맞춰 글자 크기 줄이기"가
+      // 배지 때문에 좁아진 실제 폭을 기준으로 계산된다 (순서가 바뀌면 배지 넣기 전 넓은 폭 기준으로 잘못 계산되어 글자가 잘려 보임).
+      if (propertyRegBadges) {
+        const badges = [];
+        if (투기과열지구) badges.push('<span class="apt-reg-badge apt-reg-badge-danger">투기과열</span>');
+        if (조정대상지역) badges.push('<span class="apt-reg-badge apt-reg-badge-warning">조정지역</span>');
+        if (badges.length) propertyRegBadges.innerHTML = badges.join('');
+      }
+      if ((address || dongHo) && propertyAddressInput) {
+        propertyAddressInput.value = [address, dongHo].filter(Boolean).join(', ');
+        flashField(propertyAddressInput);
+      }
+      // KB시세/신청금액을 값 설정만으로 바꾸면 input 이벤트가 안 터져서 "신청금액(%)" 표시가 안 갱신되므로 직접 호출
+      if ((kbPrice || neededAmount) && typeof updateAmountPercentage === 'function') {
+        updateAmountPercentage();
+      }
+
+      if (contentInput) {
+        contentInput.focus();
+        contentInput.scrollTop = contentInput.scrollHeight;
+      }
+    });
+
     const brokerInput     = $('input[placeholder="중개업소 입력"]');
     const kbPriceInput    = $('input[placeholder="예: 500,000,000"]');
     const salePriceInput  = $('input[placeholder="예: 400,000,000"]');
@@ -293,6 +418,7 @@ window.addEventListener('DOMContentLoaded', function() {
     const navPrev = datePickerPopup.querySelector('.nav-prev');
     const navNext = datePickerPopup.querySelector('.nav-next');
     const needAmountLabel = document.getElementById('needAmountLabel');
+    const needAmountLabelPct = document.getElementById('needAmountLabelPct');
 
     let currentPickerYear = new Date().getFullYear();
     let currentPickerMonth = new Date().getMonth();
@@ -371,10 +497,15 @@ window.addEventListener('DOMContentLoaded', function() {
         if (!str) return '';
         let digits = str.replace(/\D/g, '');
         if (digits.length > 6) digits = digits.slice(0, 6);
-        
+
         let formatted = digits;
         if (digits.length >= 6) {
             formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1/$2/$3');
+            const parsed = parseCustomDate(formatted);
+            if (parsed) {
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                formatted += ` (${dayNames[parsed.getDay()]})`;
+            }
         } else if (digits.length >= 4) {
             formatted = digits.replace(/(\d{2})(\d{2})/, '$1/$2/');
         } else if (digits.length >= 2) {
@@ -403,7 +534,8 @@ window.addEventListener('DOMContentLoaded', function() {
         const yy = String(date.getFullYear()).slice(-2);
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
-        return `${yy}/${mm}/${dd}`;
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        return `${yy}/${mm}/${dd} (${dayNames[date.getDay()]})`;
     }
 
     dateInput.addEventListener('input', function(e) {
@@ -494,21 +626,26 @@ window.addEventListener('DOMContentLoaded', function() {
         const toggles = document.querySelectorAll('.label-toggle');
         if (toggles.length < 2) return;
 
+        const kbStatus = toggles[0].querySelector('.toggle-btn.active').textContent.trim();
         const secondToggleActive = toggles[1].querySelector('.toggle-btn.active').textContent.trim();
-        
+
         let baseValue = 0;
+        let baseLabel = '';
         if (secondToggleActive === '매매가') {
             baseValue = Number(kbPriceInput.value.replace(/\D/g, ''));
+            baseLabel = kbStatus; // "KB시세" 또는 "감정가"
         } else {
             baseValue = Number(salePriceInput.value.replace(/\D/g, ''));
+            baseLabel = secondToggleActive; // "보증금"
         }
-        
+
         if (baseValue && needValue) {
             const pct = (needValue / baseValue) * 100;
             const formattedPct = pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(1);
-            needAmountLabel.textContent = `필요금액(${formattedPct}%)`;
+            needAmountLabelPct.textContent = `(${baseLabel} ${formattedPct}%)`;
+            needAmountLabelPct.style.display = '';
         } else {
-            needAmountLabel.textContent = '필요금액';
+            needAmountLabelPct.style.display = 'none';
         }
     }
 
@@ -547,8 +684,10 @@ window.addEventListener('DOMContentLoaded', function() {
         phoneInput.value = ''; 
         nameInput.value = ''; 
         dateInput.value = '';
-        moneyInput.value = ''; 
-        typeInput.value = ''; 
+        moneyInput.value = '';
+        propertyLineInput.value = '';
+        propertyAddressInput.value = '';
+        if (propertyRegBadges) propertyRegBadges.innerHTML = '';
         contentInput.value = '';
         
         brokerInput.value = '';
@@ -572,7 +711,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const name       = nameInput.value.trim();
         const needDate   = dateInput.value.trim();
         const needAmount = moneyInput.value.trim();
-        const loanType   = typeInput.value.trim();
+        const loanType   = getPropertyInfoText();
         const memo       = contentInput.value.trim();
         
         const broker     = brokerInput.value.trim();
@@ -583,10 +722,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
         let formattedAmount = needAmount || '';
         if (needAmount) {
+            // needAmountLabel엔 이미 "KB시세 80%"처럼 기준값 이름과 %가 함께 들어있으므로 그대로 갖다 쓴다.
             const matchPct = needAmountLabel.textContent.match(/\(([^)]+)\)/);
             if (matchPct && matchPct[1]) {
-                const baseStatus = saleStatus === '매매가' ? kbStatus : saleStatus;
-                formattedAmount = `(${baseStatus} 대비 ${matchPct[1]}) ${needAmount}`;
+                formattedAmount = `(${matchPct[1]} 대비) ${needAmount}`;
             }
         }
 
@@ -598,7 +737,7 @@ window.addEventListener('DOMContentLoaded', function() {
             `중개업소 : ${broker || ''}`,
             `${kbStatus} : ${kbPrice || ''}`,
             `${saleStatus} : ${salePrice || ''}`,
-            `필요금액 : ${formattedAmount}`,
+            `신청금액 : ${formattedAmount}`,
             `상담내용 : ${memo || ''}`
         ];
         const textToCopy = lines.join('\n');
@@ -655,12 +794,14 @@ window.addEventListener('DOMContentLoaded', function() {
         const minClick = String(nowClick.getMinutes()).padStart(2, '0');
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const dateTime = `${yyClick}/${mmClick}/${ddClick} (${dayNames[nowClick.getDay()]}) ${hhClick}:${minClick}`;
-        
+        document.getElementById('currentDateTime').textContent = dateTime; // 화면에 보이는 최근상담일시도 저장 시점으로 갱신
+
+
         const phone      = phoneInput.value.trim();
         const name       = nameInput.value.trim();
         let needDate     = dateInput.value.trim();
         const needAmount = moneyInput.value.trim();
-        const loanType   = typeInput.value.trim();
+        const loanType   = getPropertyInfoText();
         const memo       = contentInput.value.trim();
         
         const broker     = brokerInput.value.trim();
@@ -946,7 +1087,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 let numericAmount = selectData.needAmount ? selectData.needAmount.replace(/\D/g, '') : '';
                 moneyInput.value = numericAmount ? Number(numericAmount).toLocaleString('ko-KR') : '';
 
-                typeInput.value = selectData.loanType;
+                setPropertyInfoText(selectData.loanType);
                 contentInput.value = selectData.memo;
                 
                 brokerInput.value = selectData.broker || '';
@@ -1013,7 +1154,7 @@ window.addEventListener('DOMContentLoaded', function() {
             name: nameInput.value,
             needDate: dateInput.value,
             needAmount: moneyInput.value,
-            loanType: typeInput.value,
+            loanType: getPropertyInfoText(),
             content: contentInput.value,
             broker: brokerInput.value,
             kbPrice: kbPriceInput.value,
@@ -1033,11 +1174,12 @@ window.addEventListener('DOMContentLoaded', function() {
                 if (data.name) nameInput.value = data.name;
                 if (data.needDate) dateInput.value = data.needDate;
                 if (data.needAmount) moneyInput.value = data.needAmount;
-                if (data.loanType) typeInput.value = data.loanType;
+                if (data.loanType) setPropertyInfoText(data.loanType);
                 if (data.content) contentInput.value = data.content;
                 if (data.broker) brokerInput.value = data.broker;
                 if (data.kbPrice) kbPriceInput.value = data.kbPrice;
                 if (data.salePrice) salePriceInput.value = data.salePrice;
+                updateAmountPercentage();
             } catch (e) {
                 console.warn('Failed to load consulting data:', e);
             }
@@ -1046,7 +1188,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // 자동 저장 설정
     function setupConsultingAutoSave() {
-        [userCodeInput, phoneInput, nameInput, dateInput, moneyInput, typeInput, 
+        [userCodeInput, phoneInput, nameInput, dateInput, moneyInput,
+         propertyLineInput, propertyAddressInput,
          contentInput, brokerInput, kbPriceInput, salePriceInput].forEach(input => {
             if (input) {
                 input.addEventListener('change', saveConsultingInputs);
@@ -1108,10 +1251,15 @@ window.addEventListener('DOMContentLoaded', function() {
         checkbox.checked = false;
       });
 
+      // 물건정보 투기과열지구/조정대상지역 배지 초기화
+      const regBadges = document.getElementById('propertyRegBadges');
+      if (regBadges) regBadges.innerHTML = '';
+
       // 주요 필드들 초기화 (사용자 이름은 유지)
       const mainFields = [
         'phoneInput', 'nameInput', 'dateInput',
-        'needDateInput', 'moneyInput', 'typeInput', 'contentInput',
+        'needDateInput', 'moneyInput', 'contentInput',
+        'propertyLineInput', 'propertyAddressInput',
         'brokerInput', 'kbPriceInput', 'salePriceInput'
       ];
       

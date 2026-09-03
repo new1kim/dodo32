@@ -166,6 +166,31 @@
   .mp-badge-warning { background: #fdf3e2; color: var(--c-warning-text); }
   .mp-dongho-badge { background: var(--c-primary); color: #fff; }
 
+  .mp-dongho-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    background: var(--c-primary-soft);
+    border: 1px solid var(--c-primary-soft-border);
+    color: var(--c-primary-dark);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .mp-dongho-status::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--c-primary-soft-border);
+    border-top-color: var(--c-primary);
+    animation: mpDongHoSpin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes mpDongHoSpin { to { transform: rotate(360deg); } }
+
   .mp-type-card {
     padding: 14px 16px;
     margin-bottom: 10px;
@@ -318,7 +343,7 @@
       </div>
 
       <div id="resultList"></div>
-      <div id="searchHint" class="mp-hint">아파트 단지명을 검색해보세요</div>
+      <div id="searchHint" class="mp-hint">단지명 또는 단지명 1005 1203 이런식으로 검색 해보세요</div>
 
       <div id="historySection" class="mp-history-section" style="display:none;">
         <div class="mp-history-head">
@@ -331,6 +356,7 @@
 
     <div id="detailView" style="display:none;">
       <div class="mp-back-row" onclick="backToSearch()">‹ 검색 결과로(이전화면)</div>
+      <div id="dongHoStatusEl" class="mp-dongho-status" style="display:none;">동호수 확인중...</div>
       <div class="mp-complex-card">
         <div class="mp-complex-name" id="complexNameEl"></div>
         <div class="mp-badges" id="badgesEl"></div>
@@ -395,6 +421,21 @@ function parseDongHoQuery(raw) {
   return { keyword: m[1].trim(), dong: m[2], ho: m[3] };
 }
 
+// 검색 결과가 여러 단지일 때, 동 번호 맨 앞자리로 "N단지"를 추측해 자동으로 하나를 골라준다.
+// 예: "301동"/"3001동" -> 맨 앞자리 "3" -> 이름에 "3단지"가 들어간 단지가 후보 중 하나뿐이면 그걸 선택.
+// 후보가 없거나 둘 이상이면(이름이 비슷해 애매하면) null을 반환해 목록을 그대로 보여주고 직접 고르게 한다.
+function guessComplexByDong(aptList, dongStr) {
+  const danjiDigit = String(dongStr || '').trim().charAt(0);
+  if (!danjiDigit) return null;
+
+  const matches = aptList.filter(apt => {
+    const m = (apt.HSCM_NM || '').match(/(\d+)\s*단지/);
+    return m && m[1] === danjiDigit;
+  });
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
 async function searchApartment() {
   const searchInputEl = document.getElementById('searchInput');
   const rawKeyword = searchInputEl.value.trim();
@@ -451,6 +492,15 @@ async function searchApartment() {
     // 단지명이 1건으로 정확히 좁혀지고 동/호까지 함께 입력했다면, 목록 선택 없이 바로 상세로 넘어간다.
     if (dongHoParsed && aptList.length === 1) {
       selectComplex(aptList[0].COMPLEX_NO, aptList[0].HSCM_NM, aptList[0].NEWADDRESS, dongHoParsed);
+    } else if (dongHoParsed && aptList.length > 1) {
+      // 여러 단지가 검색되고 동 번호를 함께 입력한 경우: "301동"→3단지, "3001동"→3단지처럼
+      // 동 번호 맨 앞자리와 단지명의 "N단지" 숫자가 하나만 일치하면 그 단지로 바로 넘어간다.
+      // 일치하는 단지가 없거나 여러 개면(이름이 비슷해 애매하면) 목록을 그대로 보여줘서 직접 고르게 한다.
+      const guessed = guessComplexByDong(aptList, dongHoParsed.dong);
+      if (guessed) {
+        selectComplex(guessed.COMPLEX_NO, guessed.HSCM_NM, guessed.NEWADDRESS, dongHoParsed);
+        showToast(`${dongHoParsed.dong}동 번호로 "${guessed.HSCM_NM}"을(를) 자동 선택했어요`);
+      }
     }
 
   } catch (error) {
@@ -493,8 +543,8 @@ async function selectComplex(complexNo, aptName, address, dongHo) {
 
     const badgesEl = document.getElementById('badgesEl');
     const badges = [];
-    if (json.투기과열지구) badges.push('<span class="mp-badge mp-badge-danger">투기과열지구</span>');
-    if (json.조정대상지역) badges.push('<span class="mp-badge mp-badge-warning">조정대상지역</span>');
+    if (json.투기과열지구) badges.push('<span class="mp-badge mp-badge-danger">투기과열</span>');
+    if (json.조정대상지역) badges.push('<span class="mp-badge mp-badge-warning">조정지역</span>');
     badgesEl.innerHTML = badges.join('');
 
     const types = json.타입목록 || [];
@@ -549,6 +599,11 @@ async function selectComplex(complexNo, aptName, address, dongHo) {
 // 결국 하는 일은 타입 목록 중 하나를 자동으로 짚어주는 것뿐이다.
 async function resolveDongHo(complexNo, dongHo, types) {
   const badgesEl = document.getElementById('badgesEl');
+  const statusEl = document.getElementById('dongHoStatusEl');
+  if (statusEl) {
+    statusEl.textContent = `${dongHo.dong}동 ${dongHo.ho}호로 확인 중`;
+    statusEl.style.display = '';
+  }
   try {
     const dongRes = await fetch(`${GAS_BASE_URL}?action=dongList&complexNo=${encodeURIComponent(complexNo)}`);
     const dongJson = await dongRes.json();
@@ -591,6 +646,8 @@ async function resolveDongHo(complexNo, dongHo, types) {
   } catch (error) {
     console.error('❌ [동/호 조회 에러]:', error);
     showToast('동/호 정보를 가져오지 못해 전체 타입을 보여드려요.');
+  } finally {
+    if (statusEl) statusEl.style.display = 'none';
   }
 }
 

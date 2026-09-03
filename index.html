@@ -402,6 +402,34 @@
       }
     }
 
+    // DSR 계산기(content-frame)에서 "상담일지 전달" 클릭 시 보내는 메시지를 받아
+    // 상담일지가 있는 프레임(모바일: content-frame 재사용 / PC: 항상 떠있는 consulting-frame)으로 중계한다.
+    window.addEventListener('message', function(e) {
+      if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
+      const payload = e.data; // text/kbPrice/neededAmount/propertyInfo 등을 그대로 통째로 중계
+
+      if (window.innerWidth < 768) {
+        // 모바일: content-frame이 지금 DSR 화면이므로 상담일지로 전환한 뒤, 로드가 끝나면 전달
+        const contentFrame = document.getElementById('content-frame');
+        if (!contentFrame) return;
+        const navBtn = document.querySelector('.button-container button.nav-btn[onclick*="상담일지.html"]');
+        const forwardWhenReady = () => {
+          contentFrame.removeEventListener('load', forwardWhenReady);
+          if (contentFrame.contentWindow) {
+            contentFrame.contentWindow.postMessage(payload, '*');
+          }
+        };
+        contentFrame.addEventListener('load', forwardWhenReady);
+        loadPage('상담일지.html', navBtn);
+      } else {
+        // PC/태블릿: consulting-frame이 항상 로드되어 있으므로 바로 전달
+        const consultingFrame = document.getElementById('consulting-frame');
+        if (consultingFrame && consultingFrame.contentWindow) {
+          consultingFrame.contentWindow.postMessage(payload, '*');
+        }
+      }
+    }, false);
+
     function initPages() {
       const savedName = localStorage.getItem('calc_user_name');
       
