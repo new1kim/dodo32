@@ -243,6 +243,23 @@
     }
     .readout-value.empty { color: var(--c-text-muted); font-weight: 500; }
 
+    /* 금액이 실제로 들어 있을 때만 누를 수 있음을 표시.
+       '입력대기'·'-'처럼 숫자가 없는 칸은 눌러도 할 일이 없으므로 표시하지 않는다. */
+    .readout.is-clickable {
+      cursor: pointer;
+      border-color: var(--c-primary-soft-border);
+      background: var(--c-primary-soft);
+    }
+    .readout.is-clickable:hover { border-color: var(--c-primary); }
+    .readout.is-clickable:active { transform: scale(0.97); }
+    .readout.is-clickable .readout-value { color: var(--c-primary); }
+
+    .card-hint {
+      font-weight: 500;
+      color: var(--c-text-faint, #a2aab7);
+      letter-spacing: 0;
+    }
+
     /* 35% 초과 경고 - 칸 전체를 붉게 */
     .readout.is-over { background: var(--c-danger); border-color: var(--c-danger); }
     .readout.is-over .readout-label,
@@ -370,11 +387,11 @@
         </div>
         <div class="field">
           <label for="주택가격">주택가격</label>
-          <input type="tel" inputmode="numeric" id="주택가격" placeholder="예: 500,000,000">
+          <input type="tel" inputmode="numeric" id="주택가격" placeholder="예: 500,000,000" autocomplete="off">
         </div>
         <div class="field">
           <label for="필요금액">필요금액</label>
-          <input type="tel" inputmode="numeric" id="필요금액" placeholder="예: 400,000,000">
+          <input type="tel" inputmode="numeric" id="필요금액" placeholder="예: 400,000,000" autocomplete="off">
         </div>
         <div class="field">
           <label for="LTV">신청 LTV</label>
@@ -384,21 +401,21 @@
     </section>
 
     <section class="card">
-      <h2 class="card-title">LTV 구간</h2>
+      <h2 class="card-title">LTV 구간 <span class="card-hint">금액을 누르면 필요금액에 들어갑니다</span></h2>
       <div class="readout-grid readout-4">
-        <div class="readout">
+        <div class="readout" title="누르면 필요금액에 넣습니다">
           <span class="readout-label">LTV 80%</span>
           <span class="readout-value empty" id="ltv80per">입력대기</span>
         </div>
-        <div class="readout">
+        <div class="readout" title="누르면 필요금액에 넣습니다">
           <span class="readout-label">LTV 70%</span>
           <span class="readout-value empty" id="ltv70per">입력대기</span>
         </div>
-        <div class="readout">
+        <div class="readout" title="누르면 필요금액에 넣습니다">
           <span class="readout-label" id="담보인정비">LTV 인정비</span>
           <span class="readout-value empty" id="담보인정비율">선택대기</span>
         </div>
-        <div class="readout">
+        <div class="readout" title="누르면 필요금액에 넣습니다">
           <span class="readout-label">최대가능금액</span>
           <span class="readout-value empty" id="최대가능금액">자동계산</span>
         </div>
@@ -428,7 +445,7 @@
         <h2 class="card-title">안내 메모</h2>
         <button type="button" id="메모초기화" class="link-btn">기본 안내문 복원</button>
       </div>
-      <textarea id="메모" rows="8" aria-label="안내 메모"></textarea>
+      <textarea id="메모" rows="8" aria-label="안내 메모" autocomplete="off"></textarea>
     </section>
   </div>
 
@@ -627,12 +644,18 @@
     /* 계산식과 최대가능금액 탐색 루프는 기존 동작을 그대로 유지한다.
        (달라진 점은 필요금액이 비었을 때 'NaN 원'이 아니라 '입력대기'를 보여주는 것뿐) */
 
+    // 눌러서 필요금액으로 보낼 수 있는 칸들 (LTV 구간)
+    const 클릭가능_ID = new Set(['ltv80per', 'ltv70per', '담보인정비율', '최대가능금액']);
+
     function 셀(id, text, 상태) {
       const el = $(id);
       el.textContent = text;
       el.className = 'readout-value' + (상태 ? ' ' + 상태 : '');
+      const box = el.closest('.readout');
       // 35% 초과 경고는 글자만이 아니라 칸 전체를 붉게 칠한다
-      el.closest('.readout').classList.toggle('is-over', 상태 === 'is-over');
+      box.classList.toggle('is-over', 상태 === 'is-over');
+      // 0이 아닌 숫자가 들어 있을 때만 누를 수 있게 표시한다
+      if (클릭가능_ID.has(id)) box.classList.toggle('is-clickable', /[1-9]/.test(text));
     }
 
     function calculate() {
@@ -804,6 +827,18 @@
       updateLtvField();
       전체그리기(); // 선택 해제 상태로 다시 그린다 - 안에서 updateRatio→calculate까지 이어진다
     });
+
+    /* LTV 구간의 금액을 누르면 그대로 필요금액에 넣는다.
+       값을 넣은 뒤 input 이벤트를 흘려보내 기존 금액입력() 경로(콤마·계산·저장)를 재사용한다. */
+    for (const id of 클릭가능_ID) {
+      $(id).closest('.readout').addEventListener('click', () => {
+        const 숫자만 = $(id).textContent.replace(/[^0-9]/g, '');
+        if (!숫자만 || Number(숫자만) === 0) return; // '입력대기'·'-'·'계산 불가'처럼 금액이 없는 칸
+        const 필요금액 = $('필요금액');
+        필요금액.value = Number(숫자만).toLocaleString();
+        필요금액.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
 
     $('메모').addEventListener('input', (e) => {
       localStorage.setItem(KEY.메모, e.target.value);

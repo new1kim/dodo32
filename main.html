@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>전세 DTI 계산</title>
   <style>
-    /* 기본 글로벌 스타일 리셋 및 세련된 폰트 적용 */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -21,7 +20,6 @@
       justify-content: center;
     }
 
-    /* 메인 컨테이너 디자인 */
     .container {
       width: 100%;
       max-width: 400px; /* S24+ 뷰포트에 맞춘 최적화 크기 */
@@ -31,225 +29,205 @@
       box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 12px -6px rgba(15, 23, 42, 0.08);
     }
 
-    /* 상단 헤더/타이틀 영역 */
-    /* 버튼 3개와 제목을 한 줄에 놓는다.
-       예전에는 버튼을 position:absolute로 띄워놨는데, 버튼이 하나 늘자
-       가운데 제목 글자를 덮어버렸다("전세 DTI 계산" → "세 DTI 계산").
-       flex로 자리를 나눠 가지면 버튼 개수가 바뀌어도 겹치지 않는다. */
+    /* -------------------- 상단 타이틀 -------------------- */
     .title {
       background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
       color: #0369a1;
-      padding: 12px 12px;
+      padding: 12px;
       border-radius: 11px;
       font-weight: 800;
       border: 1px solid #bae6fd;
       transition: transform 0.2s;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
-    .title:active {
-      transform: scale(0.98);
-    }
-    .title-left {
-      display: flex;
-      gap: 5px;
-      flex-shrink: 0;
-    }
+    .title:active { transform: scale(0.98); }
     .title-text {
       flex: 1;
       text-align: center;
-      /* 좁은 화면에서 버튼에 밀려 잘리지 않도록 글자를 살짝 줄인다 */
-      font-size: clamp(14px, 4.2vw, 18px);
+      font-size: clamp(15px, 4.4vw, 18px);
       white-space: nowrap;
     }
 
-    /* 초기화 버튼 스타일 (빨간색 테마로 변경) */
-    .reset-btn-left {
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      border: 1px solid rgba(220, 38, 38, 0.5);
-      background: rgba(254, 226, 226, 0.8);
-      color: #dc2626;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      outline: none;
-    }
-    .reset-btn-left:active {
-      transform: scale(0.95);
-      background: rgba(254, 226, 226, 1);
-    }
-    .reset-btn-left:hover {
-      background: rgba(254, 226, 226, 1);
-      border-color: #dc2626;
-    }
-
-    /* 전환비율 설정 열기.
-       기존에는 이 버튼이 없어서 설정 팝업(카드/건보/연금/전월세 비율)에
-       들어갈 방법이 아예 없었다 - 기능은 살아있는데 UI만 빠져 있었다. */
-    .settings-btn {
-      padding: 6px 9px;
-      font-size: 11px;
-      font-weight: 600;
-      line-height: 1.2;
-      border: 1px solid rgba(3, 105, 161, 0.5);
-      background: rgba(224, 242, 254, 0.8);
-      color: #0369a1;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      outline: none;
-    }
-    .settings-btn:active {
-      transform: scale(0.95);
-      background: rgba(224, 242, 254, 1);
-    }
-    .settings-btn:hover {
-      background: rgba(224, 242, 254, 1);
-      border-color: #0369a1;
-    }
-
-    /* 신용점수 버튼 스타일 (오른쪽 아래) */
+    .reset-btn-left,
     .credit-score-btn {
       flex-shrink: 0;
       padding: 6px 10px;
       font-size: 11px;
       font-weight: 600;
-      border: 1px solid rgba(3, 105, 161, 0.5);
-      background: rgba(224, 242, 254, 0.8);
-      color: #0369a1;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
       outline: none;
     }
-    .credit-score-btn:active {
-      transform: scale(0.95);
-      background: rgba(224, 242, 254, 1);
+    .reset-btn-left {
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      background: rgba(254, 226, 226, 0.8);
+      color: #dc2626;
     }
-    .credit-score-btn:hover {
-      background: rgba(224, 242, 254, 1);
-      border-color: #0369a1;
+    .reset-btn-left:hover { background: rgba(254, 226, 226, 1); border-color: #dc2626; }
+    .credit-score-btn {
+      border: 1px solid rgba(3, 105, 161, 0.5);
+      background: rgba(224, 242, 254, 0.8);
+      color: #0369a1;
+    }
+    .credit-score-btn:hover { background: rgba(224, 242, 254, 1); border-color: #0369a1; }
+    .reset-btn-left:active, .credit-score-btn:active { transform: scale(0.95); }
+
+    /* -------------------- 입력 필드 (한 줄에 2칸) -------------------- */
+    /* 예전에는 라벨과 입력칸이 가로로 붙은 한 줄짜리 행이었다. 한 줄에 2칸을 넣으면
+       칸 너비가 약 148px밖에 안 돼서, 84px짜리 라벨을 빼면 아홉 자리 금액이 들어갈
+       자리가 없다. 그래서 라벨을 입력칸 위로 올렸다. */
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
     }
 
-    /* 입력 폼 필드 스타일 - 구분을 더 선명하게 보정 */
-    .input-box {
+    .field {
       display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #94a3b8; /* 흐릿한 선에서 확실하고 선명한 테두리로 변경 */
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .input-box:focus-within {
-      border-color: #2563eb; /* 포커스 시 더 짙고 명확한 블루 */
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
     }
 
-    .input-box label {
-      background: #e2e8f0; /* 배경을 좀 더 어둡게 하여 흰색 입력창과 완벽 분리 */
-      color: #334155;
+    .field > label {
+      font-size: 11px;
       font-weight: 700;
-      font-size: 13px;
-      width: 84px;
-      padding: 12px 10px;
-      text-align: center;
-      cursor: pointer;
+      color: #475569;
+      padding-left: 3px;
       user-select: none;
-      border-right: 1px solid #94a3b8; /* 라벨과 인풋창 사이의 수직 구분선 추가 */
-      transition: background 0.2s;
-    }
-    .input-box label:active {
-      background: #cbd5e1;
-    }
-
-    /* 라벨을 누르면 값이 지워진다는 힌트.
-       글자 흐름에 넣으면 '대출 금액 ×'가 84px 라벨을 넘겨 두 줄로 접히므로,
-       글자와 무관한 모서리에 띄워 배치한다. */
-    .input-box label[onclick] {
-      position: relative;
       white-space: nowrap;
     }
-    .input-box label[onclick]::after {
-      content: "×";
-      position: absolute;
-      top: 3px;
-      right: 5px;
-      font-size: 11px;
+    .field > label[onclick] { cursor: pointer; }
+    .field > label[onclick]:active { color: #1e293b; }
+
+    /* 라벨을 누르면 값이 지워진다는 힌트 - 값이 있을 때만 보인다 */
+    .field > label[onclick]::after {
+      content: " ×";
       font-weight: 800;
-      line-height: 1;
       opacity: 0;
       transition: opacity 0.15s;
     }
-    .input-box.has-value label[onclick]::after {
-      opacity: 0.5;
+    .field.has-value > label[onclick]::after { opacity: 0.5; }
+
+    .field > label .sub {
+      font-weight: 600;
+      color: #94a3b8;
+      font-size: 10px;
     }
 
-    .input-box input {
-      flex: 1;
-      padding: 12px 10px;
+    .field > input {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 9px;
       text-align: right;
-      border: none;
+      border: 1px solid #94a3b8;
+      border-radius: 8px;
       outline: none;
+      font-family: inherit;
       font-size: 14px;
       font-weight: 600;
       color: #0f172a;
       background: #ffffff;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    /* 자동 계산창(Readonly)의 구분감 확실하게 변경 */
-    .input-box input[readonly] {
-      background: #f1f5f9; /* 어두운 톤으로 변경하여 입력 불가함을 명시 */
+    .field > input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    .field > input[readonly] {
+      background: #f1f5f9; /* 입력 불가임을 배경으로 명시 */
       color: #334155;
+      cursor: default;
+    }
+    .field > input[readonly]:focus { border-color: #94a3b8; box-shadow: none; }
+    .field > input::placeholder { color: #b6bcc7; font-weight: 400; }
+
+    /* 금리 칸의 % 표시.
+       예전에는 입력값 안에 '%'를 같이 넣어뒀다. 그러면 백스페이스를 눌렀을 때 숫자가 아니라
+       '%'가 먼저 지워지고 곧바로 다시 붙어서, 한 글자 지우는 데 두 번을 눌러야 했다.
+       값에는 숫자만 두고 %는 화면에만 얹는다. */
+    .field.unit { position: relative; }
+    .field.unit > input { padding-right: 24px; }
+    .field.unit .unit-mark {
+      position: absolute;
+      right: 10px;
+      bottom: 11px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      pointer-events: none; /* %를 눌러도 입력칸이 포커스되게 */
     }
 
-    /* 하단 연사용액/환산금액 커스텀 디자인 (블루 영역 테두리 극대화) */
-    .input-box.blue {
-      border-color: #0284c7; /* 테두리 자체를 블루로 둘러서 확실히 구분 */
+    /* 연 사용액 / 환산 금액 - 소득 환산 영역임을 블루로 구분 */
+    .field.blue > label { color: #0369a1; }
+    .field.blue > input {
+      border-color: #0284c7;
       border-width: 1.5px;
-    }
-    .input-box.blue label {
-      background: #e0f2fe;
-      color: #0369a1;
-      border-right: 1px solid #0284c7;
-    }
-    .input-box.blue input {
       color: #0284c7;
       font-weight: 700;
     }
 
-    /* 탭/버튼 그룹 스타일 */
+    /* DTI 40% 이상 경고 */
+    .field > input.dti-over {
+      background: #fef2f2;
+      border-color: #ef4444;
+      border-width: 1.5px;
+      color: #ef4444;
+      font-weight: 800;
+    }
+
+    /* 최대 가능금액 - 누르면 대출 금액에 채워지므로 눌릴 수 있음을 표시 */
+    .field > input.max-loan {
+      color: #0369a1;
+      font-weight: 700;
+      background: #f0f9ff;
+      border-color: #7dd3fc;
+    }
+    .field > input.max-loan:not(:placeholder-shown) { cursor: pointer; }
+    .field > input.max-loan:not(:placeholder-shown):hover {
+      background: #e0f2fe;
+      border-color: #0284c7;
+    }
+
+    /* 환산 수식 - 한 줄 전체 */
+    .field.wide { margin-bottom: 8px; }
+    .field.wide > input {
+      text-align: center;
+      font-weight: 700;
+      font-size: min(13px, 3.2vw);
+      overflow: auto;
+    }
+
+    /* -------------------- 소득 환산 방식 버튼 -------------------- */
     .button-group {
       display: flex;
       justify-content: space-between;
       gap: 5px;
-      margin: 15px 0;
+      margin: 14px 0 10px;
     }
-
     .button-group button {
       flex: 1;
       padding: 10px 2px;
       font-weight: 700;
       font-size: clamp(10px, 3.2vw, 13px);
       white-space: nowrap;
-      border: 1px solid rgba(15, 23, 42, 0.08); /* 버튼 윤곽선 추가 */
+      border: 1px solid rgba(15, 23, 42, 0.08);
       border-radius: 7px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
-
-    /* 각 버튼별 컬러 셋 */
     .카드버튼 { background: #e0e7ff; color: #4338ca; }
     .건보버튼 { background: #f1f5f9; color: #475569; }
     .연금버튼 { background: #d1fae5; color: #065f46; }
     .전월세버튼 { background: #f3e8ff; color: #6b21a8; }
     .주신보 { background: #fef9c3; color: #854d0e; }
 
-    /* 활성화 / 비활성화 애니메이션 효과 */
     .activeButton {
       transform: translateY(-1px) scale(1.03);
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -257,13 +235,33 @@
       opacity: 1 !important;
       z-index: 2;
     }
-
     .inactiveButton {
       opacity: 0.35;
       transform: scale(0.96);
     }
 
-    /* 팝업 모달창 스타일 */
+    /* -------------------- 하단 설정 -------------------- */
+    .footer {
+      display: flex;
+      justify-content: flex-start; /* 화면 맨 좌측 아래 */
+      margin-top: 14px;
+    }
+    .settings-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #64748b;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .settings-btn:hover { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
+    .settings-btn:active { transform: scale(0.95); }
+
+    /* -------------------- 팝업 -------------------- */
     .popup-container {
       display: none;
       position: fixed;
@@ -278,32 +276,25 @@
       align-items: center;
       padding: 14px;
     }
-
     .popup-content {
       background-color: #ffffff;
       padding: 15px;
-      border: none;
       width: 100%;
       max-width: 400px;
       border-radius: 14px;
-      box-sizing: border-box;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
       animation: popIn 0.25s ease-out;
     }
-
     @keyframes popIn {
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-
     .popup-content img {
       width: 100%;
       height: auto;
       border-radius: 10px;
       display: block;
     }
-
-    /* 설정 테이블 디자인 선명도 대폭 향상 */
     .popup-content table {
       width: 100%;
       border-collapse: separate;
@@ -312,34 +303,29 @@
       table-layout: fixed;
       border-radius: 8px;
       overflow: hidden;
-      border: 1px solid #94a3b8; /* 외부 마감선 선명화 */
+      border: 1px solid #94a3b8;
     }
-
     .popup-content td {
-      border-bottom: 1px solid #cbd5e1; /* 그리드 라인 선명화 */
+      border-bottom: 1px solid #cbd5e1;
       border-right: 1px solid #cbd5e1;
       padding: 8px 5px;
       font-size: 13px;
     }
     .popup-content tr:first-child td {
-      background: #e2e8f0; /* 헤더 대비 확실하게 어둡게 변경 */
+      background: #e2e8f0;
       font-weight: 800;
       color: #1e293b;
-      border-bottom: 1px solid #94a3b8; /* 헤더 하단 굵은 구분선 */
+      border-bottom: 1px solid #94a3b8;
     }
-    .popup-content tr:last-child td {
-      border-bottom: none;
-    }
-    .popup-content td:last-child {
-      border-right: none;
-    }
-
+    .popup-content tr:last-child td { border-bottom: none; }
+    .popup-content td:last-child { border-right: none; }
     .popup-content input {
       width: 100%;
       padding: 6px 4px;
-      border: 1px solid #94a3b8; /* 내부 인풋창 테두리 선명화 */
+      border: 1px solid #94a3b8;
       border-radius: 5px;
       text-align: center;
+      font-family: inherit;
       font-size: 13px;
       font-weight: 600;
       outline: none;
@@ -349,7 +335,6 @@
       border-color: #2563eb;
       box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
     }
-
     .popup-hint {
       margin-top: 9px;
       font-size: 11px;
@@ -367,7 +352,7 @@
   const $ = (id) => document.getElementById(id);
 
   /* 소득 환산 방식별 설정을 한 곳에 모았다.
-     기존에는 updateFields()와 updateConversionAmount() 두 함수에 똑같은 5갈래 분기가
+     예전에는 updateFields()와 updateConversionAmount() 두 함수에 똑같은 5갈래 분기가
      각각 들어 있어서, 비율 하나를 고치려면 양쪽을 같이 손봐야 했다. */
   const 방식설정 = {
     카드사용액: {
@@ -398,7 +383,9 @@
   };
 
   const 설정_IDS = ["카드전환비율", "건보전환비율", "연금전환비율", "전월세전환비율"];
-  const 소득상한 = 50000000; // 환산소득으로 인정하는 최대 연소득
+  const 소득상한 = 50000000;     // 환산소득으로 인정하는 최대 연소득
+  const DTI기준 = 40;            // 최대 가능금액을 뽑는 기준 DTI(%)
+  const 대출한도 = 500000000;    // DTI로 아무리 여유가 있어도 넘기지 않는 대출 상한(5억)
 
   // 설정 팝업에 값을 넣지 않았으면 기본비율을 쓴다(빈칸·0·문자 모두 기본값으로 떨어짐)
   function 비율읽기(type) {
@@ -408,8 +395,22 @@
     return parseFloat(el && el.value) || cfg.기본비율;
   }
 
+  // 콤마와 % 기호를 걷어낸 숫자. 비었거나 숫자가 아니면 0
+  function 숫자(id) {
+    const n = parseFloat($(id).value.replace(/,/g, '').replace('%', ''));
+    return isNaN(n) ? 0 : n;
+  }
+
   function 저장(key, value) {
     localStorage.setItem(`main_${key}`, value);
+  }
+
+  /* 연 사용액은 방식마다 뜻이 달라서(카드=연 사용액, 건보=3개월 평균, 전월세=1년 월세)
+     한 칸을 공유하면 탭을 옮길 때마다 값이 엉킨다. 방식별로 키를 나눠 따로 보관한다. */
+  const 연사용액키 = (type) => `annualUsage_${type}`;
+
+  function 연사용액읽기(type) {
+    return localStorage.getItem(`main_${연사용액키(type)}`) ?? "";
   }
 
   function formatNumber(input) {
@@ -419,28 +420,16 @@
     }
   }
 
+  /* 금리 입력값 검증만 한다. %는 화면에만 얹으므로 값에는 숫자만 남긴다.
+     (replace('%')는 %를 값에 같이 저장하던 예전 버전의 값을 복원할 때를 위한 것) */
   function formatPercentage(input) {
-    let value = input.value.replace('%', '');
-    const regex = /^\d{0,2}(\.\d{0,2})?$/;
+    const value = input.value.replace('%', '');
+    const regex = /^\d{0,2}(\.\d{0,2})?$/; // 정수 2자리 + 소수점 이하 2자리까지
     if (value === '' || regex.test(value)) {
-      input.value = value + '%';
-      input.dataset.previousValidValue = input.value;
+      input.value = value;
+      input.dataset.previousValidValue = value;
     } else {
       input.value = input.dataset.previousValidValue || '';
-    }
-    if (input.value === '%') input.value = '';
-  }
-
-  function handlePercentageBackspace(input, event) {
-    if (event.keyCode === 8) {
-      let value = input.value;
-      let caretPosition = input.selectionStart;
-      if (caretPosition > 0 && caretPosition === value.length && value.endsWith('%')) {
-        input.value = value.slice(0, -1);
-        input.selectionStart = caretPosition - 1;
-        input.selectionEnd = caretPosition - 1;
-        event.preventDefault();
-      }
     }
   }
 
@@ -458,6 +447,27 @@
     }
   }
 
+  /* DTI 40%를 넘지 않는 최대 대출금액.
+       0.40 = (대출금액 × 금리/100/12 + 부채금액 × 부채금리/1200) ÷ (연소득/12)
+     을 대출금액에 대해 풀면 아래 식이 된다.
+       최대 대출금액 = (40 × 연소득 − 부채금액 × 부채금리) ÷ 대출금리
+     연소득과 대출금리가 있어야 계산되고, 부채는 없으면 0으로 본다. */
+  function updateMaxLoan() {
+    const el = $("최대가능금액");
+    const 연소득 = 숫자("연소득");
+    const 대출금리 = 숫자("대출금리");
+
+    if (연소득 <= 0 || 대출금리 <= 0) {
+      el.value = "";
+      return;
+    }
+    const 여유 = DTI기준 * 연소득 - 숫자("부채금액") * 숫자("부채금리");
+    // 기존 부채만으로 이미 기준 DTI에 닿았으면 더 받을 수 있는 금액이 없다
+    if (여유 <= 0) { el.value = "0"; return; }
+    // DTI상 여유가 더 있어도 대출 상한(5억)을 넘겨 안내하지 않는다
+    el.value = Math.min(Math.floor(여유 / 대출금리), 대출한도).toLocaleString();
+  }
+
   function calculateDTI() {
     let 월상환액 = $("월상환액").value.replace(/,/g, '') || 0;
     let 부채금액 = $("부채금액").value.replace(/,/g, '') || 0;
@@ -468,42 +478,23 @@
     let 월소득 = parseFloat(연소득) / 12;
 
     /* 연소득이 비었거나 0이면 월소득이 0이 되어 DTI가 Infinity가 된다.
-       Infinity는 isNaN을 통과해버려서, 예전에는 화면에 'Infinity%'가 붉게 찍혔다.
-       0으로 나누는 경우를 먼저 걸러내고, 유한한 값일 때만 표시한다. */
+       Infinity는 isNaN을 통과해버려서, 예전에는 화면에 'Infinity%'가 붉게 찍혔다. */
     let DTI = 월소득 > 0 ? (총월부채상환액 / 월소득) * 100 : NaN;
 
-    let dtiField = $("DTI");
-    let dtiContainer = dtiField.parentElement;
-
+    const dtiField = $("DTI");
     if (Number.isFinite(DTI)) {
       dtiField.value = DTI.toFixed(2) + "%";
-      if (DTI >= 40) {
-        dtiField.style.color = "#ef4444";
-        dtiField.style.fontWeight = "bold";
-        dtiContainer.style.backgroundColor = "#fef2f2";
-        dtiContainer.style.borderColor = "#ef4444";
-        dtiContainer.style.borderWidth = "1.5px";
-      } else {
-        dtiField.style.color = "#1e293b";
-        dtiField.style.fontWeight = "600";
-        dtiContainer.style.backgroundColor = "#ffffff";
-        dtiContainer.style.borderColor = "#94a3b8";
-        dtiContainer.style.borderWidth = "1px";
-      }
+      dtiField.classList.toggle("dti-over", DTI >= DTI기준);
     } else {
       dtiField.value = "";
-      dtiField.style.color = "#1e293b";
-      dtiField.style.fontWeight = "normal";
-      dtiContainer.style.backgroundColor = "#ffffff";
-      dtiContainer.style.borderColor = "#94a3b8";
-      dtiContainer.style.borderWidth = "1px";
+      dtiField.classList.remove("dti-over");
     }
+
+    updateMaxLoan();
   }
 
   /* 화면 표시(라벨·수식·버튼 강조)만 바꾸고 입력값은 건드리지 않는다.
-     재방문 복원에서 이 함수만 따로 부르기 위해 updateFields에서 떼어냈다.
-     예전에는 이 둘이 붙어 있어서, 복원 때 부르면 입력값이 지워지고
-     안 부르면 라벨·수식·버튼 강조가 통째로 빠지는 문제가 있었다. */
+     재방문 복원과 탭 전환 양쪽에서 재사용한다. */
   function applyTypeUI(type) {
     const cfg = 방식설정[type];
     if (!cfg) return;
@@ -522,13 +513,22 @@
     저장("selectedType", type);
   }
 
-  // 버튼을 눌러 방식을 새로 고를 때: 이전 방식의 입력/결과를 비우고 UI를 갱신한다
+  /* 방식 버튼을 눌렀을 때. 탭마다 입력값을 따로 들고 있다가 서로 바꿔 끼운다.
+     나가는 탭의 값을 그 탭 이름으로 저장하고, 들어가는 탭에 저장돼 있던 값을 꺼내 온다.
+     (예전에는 한 칸을 공유해서, 카드에 넣어둔 금액이 건보로 옮기면 그대로 따라왔다) */
   function updateFields(type) {
-    $("annualUsage").value = "";
-    $("conversionAmount").value = "";
-    저장("annualUsage", "");
+    if (selectedType) 저장(연사용액키(selectedType), $("annualUsage").value);
+
     applyTypeUI(type);
-    updateConversionAmount();
+    $("annualUsage").value = 연사용액읽기(type);
+
+    if ($("annualUsage").value.trim()) {
+      updateConversionAmount();
+    } else {
+      /* 이 탭엔 저장된 값이 없다. 환산 금액만 비우고 연소득은 건드리지 않는다.
+         updateConversionAmount()를 그냥 부르면 직접 입력해둔 연소득까지 지워진다. */
+      $("conversionAmount").value = "";
+    }
     삭제힌트_전체갱신();
   }
 
@@ -541,7 +541,7 @@
       conversionAmount.value = "";
       incomeField.value = "";
       저장("연소득", "");
-      calculateDTI(); // 연소득을 지웠으니 DTI도 같이 정리 (예전에는 옛 DTI가 남아 있었다)
+      calculateDTI(); // 연소득을 지웠으니 DTI도 같이 정리
       삭제힌트_전체갱신();
       return;
     }
@@ -570,23 +570,24 @@
   }
 
   function resetFields() {
-    ["conversionAmount", "conversionFormula", "월상환액", "대출금액", "대출금리", "연소득", "부채금액", "부채금리", "DTI", "annualUsage"].forEach(id => {
+    ["conversionAmount", "conversionFormula", "월상환액", "최대가능금액", "대출금액",
+     "대출금리", "연소득", "부채금액", "부채금리", "DTI", "annualUsage"].forEach(id => {
       $(id).value = "";
     });
     $("conversionFormula").value = "계산할 방법 선택하세요";
+    $("DTI").classList.remove("dti-over");
     selectedType = "";
-    document.querySelectorAll(".button-group button").forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
-
-    let dtiContainer = $("DTI").parentElement;
-    dtiContainer.style.backgroundColor = "#ffffff";
-    dtiContainer.style.borderColor = "#94a3b8";
-    dtiContainer.style.borderWidth = "1px";
+    document.querySelectorAll(".button-group button")
+      .forEach(btn => btn.classList.remove("activeButton", "inactiveButton"));
 
     /* 저장된 값도 같이 비운다. 예전에는 화면만 지우고 localStorage는 그대로 둬서,
        초기화한 뒤 새로고침하면 지웠던 값이 되살아났다.
        전환비율 설정은 '입력값'이 아니라 사용자 설정이라 남긴다. */
     clearSessionStorageData();
     삭제힌트_전체갱신();
+
+    // 초기화 뒤에는 아무 방식도 안 골라진 상태로 두지 않고 카드를 기본으로 세운다
+    updateFields("카드사용액");
   }
 
   function clearInputField(inputId) {
@@ -594,6 +595,16 @@
     저장(inputId, "");
     if (inputId === "대출금액" || inputId === "대출금리") 월납부액계산();
     else calculateDTI();
+    삭제힌트_전체갱신();
+  }
+
+  // 최대 가능금액을 눌러 대출 금액에 그대로 넣는다
+  function applyMaxLoan() {
+    const raw = $("최대가능금액").value.replace(/,/g, '');
+    if (!raw || raw === "0") return;
+    $("대출금액").value = Number(raw).toLocaleString();
+    저장("대출금액", $("대출금액").value);
+    월납부액계산();
     삭제힌트_전체갱신();
   }
 
@@ -619,7 +630,7 @@
 
   /* -------------------- 저장 / 복원 -------------------- */
 
-  // 저장 대상: id가 있고 읽기전용이 아닌 입력창. 계산 결과(DTI/월상환액/환산금액)는
+  // 저장 대상: id가 있고 읽기전용이 아닌 입력창. 계산 결과(DTI/월상환액/환산금액/최대가능금액)는
   // 저장하지 않고 복원 시 다시 계산한다.
   function 저장대상() {
     return [...document.querySelectorAll('input[type="text"], input[type="number"], textarea')]
@@ -635,9 +646,25 @@
         localStorage.removeItem(id);
       }
     }
+    // 방식별로 나누기 전에 한 칸에 몰아 저장하던 값이 남아 있으면, 그때 쓰던 방식 쪽으로 옮긴다
+    const 옛연사용액 = localStorage.getItem('main_annualUsage');
+    if (옛연사용액 !== null) {
+      const 쓰던방식 = localStorage.getItem('main_selectedType');
+      if (쓰던방식 && localStorage.getItem(`main_${연사용액키(쓰던방식)}`) === null) {
+        저장(연사용액키(쓰던방식), 옛연사용액);
+      }
+      localStorage.removeItem('main_annualUsage');
+    }
+
     for (const input of 저장대상()) {
+      if (input.id === 'annualUsage') continue; // 방식이 정해진 뒤 따로 복원한다
       const saved = localStorage.getItem(`main_${input.id}`);
       if (saved !== null) input.value = saved;
+    }
+
+    // 예전에는 금리를 '3.5%'처럼 %까지 붙여 저장했다. 이제 값에는 숫자만 두므로 떼어낸다.
+    for (const id of ['대출금리', '부채금리']) {
+      $(id).value = $(id).value.replace('%', '');
     }
   }
 
@@ -661,24 +688,27 @@
   function setupAutoSave() {
     for (const input of 저장대상()) {
       input.addEventListener('input', () => {
-        저장(input.id, input.value);
+        // 연 사용액만 지금 선택된 방식 이름을 붙여 따로 저장한다
+        if (input.id === 'annualUsage') {
+          if (selectedType) 저장(연사용액키(selectedType), input.value);
+        } else {
+          저장(input.id, input.value);
+        }
         삭제힌트(input);
       });
     }
   }
 
   /* -------------------- 라벨 클릭 삭제 힌트 -------------------- */
-  /* 라벨을 누르면 값이 지워지는데 예전에는 아무 표시가 없었다.
-     값이 들어있을 때만 라벨에 ×를 흐리게 띄워 지울 수 있음을 알린다. */
   function 삭제힌트(input) {
-    const box = input.closest('.input-box');
-    if (box && box.querySelector('label[onclick]')) {
-      box.classList.toggle('has-value', input.value.trim() !== '');
+    const field = input.closest('.field');
+    if (field && field.querySelector('label[onclick]')) {
+      field.classList.toggle('has-value', input.value.trim() !== '');
     }
   }
 
   function 삭제힌트_전체갱신() {
-    document.querySelectorAll('.input-box label[onclick]').forEach(label => {
+    document.querySelectorAll('.field > label[onclick]').forEach(label => {
       const input = label.parentElement.querySelector('input');
       if (input) 삭제힌트(input);
     });
@@ -692,20 +722,18 @@
     setupPopupButton();
     loadAllInputs();
     setupAutoSave();
+    $("최대가능금액").addEventListener("click", applyMaxLoan);
 
     if (savedType && 방식설정[savedType]) {
       // 재방문: 입력값은 그대로 두고 화면 상태(라벨/수식/버튼)만 되살린다
       applyTypeUI(savedType);
-      // 연 사용액이 있을 때만 환산을 다시 돌린다.
-      // 비어 있는데 부르면 직접 입력해둔 연소득까지 지워버린다.
+      $("annualUsage").value = 연사용액읽기(savedType); // 그 방식에 저장해둔 금액
       if ($("annualUsage").value.trim()) updateConversionAmount();
     } else {
-      resetFields();
-      updateFields("카드사용액");
+      resetFields(); // 안에서 카드 방식까지 세워준다
     }
 
-    // 계산 결과 칸(DTI/월상환액)은 저장하지 않으므로 여기서 다시 계산해 채운다.
-    // 예전에는 이 호출이 없어서 재방문 시 두 칸이 계속 비어 있었다.
+    // 계산 결과 칸(DTI/월상환액/최대가능금액)은 저장하지 않으므로 여기서 다시 계산해 채운다
     월납부액계산();
     삭제힌트_전체갱신();
   });
@@ -716,21 +744,56 @@
 <body>
   <div class="container">
     <div class="title">
-      <div class="title-left">
-        <button class="reset-btn-left" onclick="resetFields()">초기화</button>
-        <button class="settings-btn" id="showSettingsPopup" title="전환비율 설정">설정</button>
-      </div>
+      <button class="reset-btn-left" onclick="resetFields()">초기화</button>
       <span class="title-text">전세 DTI 계산</span>
       <button class="credit-score-btn" id="showPopup">신용점수</button>
     </div>
 
-    <div class="input-box"><label onclick="clearInputField('연소득')" title="눌러서 지우기">연 소득</label><input type="text" id="연소득" inputmode="numeric" oninput="formatNumber(this); calculateDTI();"></div>
-    <div class="input-box"><label onclick="clearInputField('대출금액')" title="눌러서 지우기">대출 금액</label><input type="text" id="대출금액" inputmode="numeric" oninput="formatNumber(this); 월납부액계산();"></div>
-    <div class="input-box"><label onclick="clearInputField('대출금리')" title="눌러서 지우기">대출 금리</label><input type="text" id="대출금리" inputmode="decimal" oninput="formatPercentage(this); 월납부액계산();" onkeydown="handlePercentageBackspace(this, event);"></div>
-    <div class="input-box"><label onclick="clearInputField('부채금액')" title="눌러서 지우기">부채 금액</label><input type="text" id="부채금액" inputmode="numeric" oninput="formatNumber(this); calculateDTI();"></div>
-    <div class="input-box"><label onclick="clearInputField('부채금리')" title="눌러서 지우기">부채 금리</label><input type="text" id="부채금리" inputmode="decimal" oninput="formatPercentage(this); calculateDTI();" onkeydown="handlePercentageBackspace(this, event);"></div>
-    <div class="input-box"><label>DTI</label><input type="text" id="DTI" readonly></div>
-    <div class="input-box"><label>월 상환액</label><input type="text" id="월상환액" readonly></div>
+    <div class="grid2">
+      <div class="field">
+        <label for="연소득" onclick="clearInputField('연소득')" title="눌러서 지우기">연 소득</label>
+        <input type="text" id="연소득" inputmode="numeric" autocomplete="off" oninput="formatNumber(this); calculateDTI();">
+      </div>
+      <div class="field">
+        <label for="대출금액" onclick="clearInputField('대출금액')" title="눌러서 지우기">대출 금액</label>
+        <input type="text" id="대출금액" inputmode="numeric" autocomplete="off" oninput="formatNumber(this); 월납부액계산();">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field unit">
+        <label for="대출금리" onclick="clearInputField('대출금리')" title="눌러서 지우기">대출 금리</label>
+        <input type="text" id="대출금리" inputmode="decimal" autocomplete="off" oninput="formatPercentage(this); 월납부액계산();">
+        <span class="unit-mark">%</span>
+      </div>
+      <div class="field">
+        <label for="최대가능금액">최대 가능금액 <span class="sub">DTI 40%</span></label>
+        <input type="text" id="최대가능금액" class="max-loan" readonly placeholder="자동" title="누르면 대출 금액에 넣습니다">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="부채금액" onclick="clearInputField('부채금액')" title="눌러서 지우기">부채 금액</label>
+        <input type="text" id="부채금액" inputmode="numeric" autocomplete="off" oninput="formatNumber(this); calculateDTI();">
+      </div>
+      <div class="field unit">
+        <label for="부채금리" onclick="clearInputField('부채금리')" title="눌러서 지우기">부채 금리</label>
+        <input type="text" id="부채금리" inputmode="decimal" autocomplete="off" oninput="formatPercentage(this); calculateDTI();">
+        <span class="unit-mark">%</span>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="DTI">DTI</label>
+        <input type="text" id="DTI" readonly placeholder="자동">
+      </div>
+      <div class="field">
+        <label for="월상환액">월 상환액</label>
+        <input type="text" id="월상환액" readonly placeholder="자동">
+      </div>
+    </div>
 
     <div class="button-group">
       <button class="카드버튼" onclick="updateFields('카드사용액')">카드</button>
@@ -740,17 +803,24 @@
       <button class="주신보" onclick="updateFields('주신보')">주신보</button>
     </div>
 
-    <div class="input-box blue"><label>연 사용액</label><input type="text" inputmode="numeric" id="annualUsage" oninput="formatNumber(this); updateConversionAmount();"></div>
-    <div class="input-box blue"><label>환산 금액</label><input type="text" id="conversionAmount" readonly></div>
-    <div class="input-box">
-      <label>환산 수식</label>
-      <input
-        type="text"
-        id="conversionFormula"
-        value="계산할 방법 선택하세요"
-        style="text-align:center;font-weight: bold; width:100%; font-size:min(13px,3.2vw); overflow:auto;"
-        readonly
-      >
+    <div class="grid2">
+      <div class="field blue">
+        <label for="annualUsage">연 사용액</label>
+        <input type="text" inputmode="numeric" id="annualUsage" autocomplete="off" oninput="formatNumber(this); updateConversionAmount();">
+      </div>
+      <div class="field blue">
+        <label for="conversionAmount">환산 금액</label>
+        <input type="text" id="conversionAmount" readonly placeholder="자동">
+      </div>
+    </div>
+
+    <div class="field wide">
+      <label for="conversionFormula">환산 수식</label>
+      <input type="text" id="conversionFormula" value="계산할 방법 선택하세요" readonly>
+    </div>
+
+    <div class="footer">
+      <button type="button" class="settings-btn" id="showSettingsPopup" title="전환비율 설정">설정</button>
     </div>
 
     <div id="imagePopup" class="popup-container">
@@ -772,10 +842,10 @@
             <tr>
               <!-- placeholder에 기본값을 그대로 적어둔다. 비워두면 어떤 비율이
                    적용 중인지 알 수 없어서, 예전에는 설정창을 열어도 '비율'이라고만 보였다. -->
-              <td><input id="카드전환비율" type="number" placeholder="40.9"></td>
-              <td><input id="건보전환비율" type="number" placeholder="3.595"></td>
-              <td><input id="연금전환비율" type="number" placeholder="9.5"></td>
-              <td><input id="전월세전환비율" type="number" placeholder="6.4"></td>
+              <td><input id="카드전환비율" type="number" autocomplete="off" placeholder="40.9"></td>
+              <td><input id="건보전환비율" type="number" autocomplete="off" placeholder="3.595"></td>
+              <td><input id="연금전환비율" type="number" autocomplete="off" placeholder="9.5"></td>
+              <td><input id="전월세전환비율" type="number" autocomplete="off" placeholder="6.4"></td>
             </tr>
           </tbody>
         </table>
@@ -787,13 +857,13 @@
     // 부모(index.html)에서 iframe 안의 이 화면을 통째로 초기화할 때 호출한다.
     // index.html:729 에서 frame.contentWindow.resetAllFields() 로 부르고 있으므로 지우면 안 된다.
     function resetAllFields() {
-      resetFields();                 // 입력값·버튼 상태·저장값 초기화
+      resetFields();                 // 입력값·저장값 초기화 (카드 방식으로 세워짐)
       ['카드전환비율', '건보전환비율', '연금전환비율', '전월세전환비율'].forEach(id => {
         const field = document.getElementById(id);
         if (field) field.value = '';
       });
       clearAllStorageData();         // 전환비율 설정까지 전부 비운다
-      updateConversionAmount();
+      updateFields("카드사용액");    // 위에서 selectedType 저장까지 지워졌으므로 다시 세운다
     }
   </script>
 </body>
