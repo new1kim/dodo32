@@ -5,26 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>프리미엄 계산기</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        /* ═══════════════ 색 토큰 ═══════════════
+           DSR_style.css의 :root 값을 그대로 옮겨왔다. DSR_style.css를 <link>로 직접
+           불러오지 않는 이유는 그 파일의 전역 규칙(button { width:100% } 등)이
+           이 페이지의 키패드 격자를 무너뜨리기 때문이다. 색을 바꿀 일이면 여기만 고치면 된다. */
+        :root {
+            --c-primary: #3a52b8;
+            --c-primary-dark: #2b3f96;
+            --c-primary-soft: #f0f2fd;
+            --c-primary-soft-border: #d6dcf7;
 
+            --c-success-soft: #eff8f5;
+            --c-success-text: #1f6455;
+            --c-danger: #cf5a4e;
+            --c-danger-dark: #b4453b;
+
+            --c-neutral: #7b8493;
+            --c-neutral-dark: #656d7b;
+
+            --c-text: #151b26;
+            /* DSR 원본은 #77808f지만, 카드 바탕을 낮추면서 대비가 3.65:1로 떨어져
+               작은 글자 기준(4.5:1)에 못 미쳤다. 같은 색조로 한 단계만 어둡게 조정. */
+            --c-text-muted: #656e7d;
+            --c-text-faint: #a2aab7;
+            --c-border: #e4e7ee;
+            --c-surface: #ffffff;
+            --c-surface-muted: #f7f8fb;
+            --c-canvas: #eceef3;
+
+            /* 카드 바탕. 순백(#fff)은 이 화면처럼 면적이 넓으면 눈이 부셔서
+               캔버스(#eceef3)와 흰색 사이의 톤으로 낮췄다. 대신 숫자 버튼을
+               흰색으로 올려 버튼이 바탕 위에 떠 보이게 한다. */
+            --c-card: #f3f5fa;
+            --c-card-line: #e0e5ef;
+
+            /* 연산 버튼 - 진한 인디고 대신 옅게 깐 바탕 + 진한 글자 */
+            --c-op-bg: #e3e9fa;
+            --c-op-bg-hover: #d5ddf6;
+            --c-op-border: #c6d1f1;
+            --c-op-text: #2b3f96;
+
+            /* C - 옅은 붉은 톤 */
+            --c-clear-bg: #fbe9e6;
+            --c-clear-bg-hover: #f6dad5;
+            --c-clear-border: #eecbc5;
+            --c-clear-text: #a8443a;
+
+            /* 백스페이스 - 옅은 무채색 */
+            --c-back-bg: #e8ebf1;
+            --c-back-bg-hover: #dde1ea;
+            --c-back-border: #d3d9e4;
+            --c-back-text: #5b6472;
+
+            --r-md: 12px;
+            --r-lg: 18px;
+
+            /* DSR의 선택된 토글과 같은 강조 그라데이션 */
+            --accent-gradient: linear-gradient(135deg, #4f6fe4 0%, #22c9c0 100%);
+            --accent-shadow: 0 3px 8px rgba(34, 100, 200, 0.28);
+            --sh-card: 0 1px 2px rgba(21, 27, 38, 0.04), 0 8px 20px -12px rgba(21, 27, 38, 0.18);
+        }
+
+        /* 폰트는 시스템 것만 쓴다. 예전엔 Google Fonts에서 Inter를 @import 했는데,
+           Inter에는 한글 글리프가 없어서 화면의 한글은 어차피 시스템 폰트로 그려졌다.
+           숫자 몇 글자 때문에 렌더링을 막는 네트워크 요청 2개를 치를 이유가 없고,
+           이 파일은 앱에 번들되어 오프라인에서도 열리므로 그 요청은 대기 시간만 늘린다.
+           (DSR은 Pretendard를 CDN에서 받지만, 같은 이유로 여기서는 따라가지 않는다.) */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
         body {
-            background:
-                radial-gradient(circle at 1px 1px, rgba(27,42,74,0.06) 1px, transparent 0) 0 0/22px 22px,
-                linear-gradient(160deg, #f7f2e6 0%, #f2ece0 55%, #eee7d9 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+            /* DSR_Main.html 본문과 같은 배경 */
+            background-color: var(--c-canvas);
+            background-image: radial-gradient(120% 60% at 50% 0%, #f4f6fa 0%, var(--c-canvas) 70%);
+            background-attachment: fixed;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             min-height: 100vh;
-            color: #f1f1f4;
+            color: var(--c-text);
+            letter-spacing: -0.2px;
             padding: 24px 20px 20px;
         }
 
@@ -33,280 +100,20 @@
             max-width: 480px;
             display: flex;
             flex-direction: column;
-            gap: 0;
-            background: rgba(40, 40, 58, 0.88);
-            backdrop-filter: blur(20px);
-            border-radius: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--c-card);
+            border-radius: var(--r-lg);
+            border: 1px solid var(--c-card-line);
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(18, 18, 28, 0.4);
+            box-shadow: var(--sh-card);
         }
 
-        /* ═══════════════ 히스토리 섹션 (위쪽) ═══════════════ */
-        .history-section {
-            padding: 20px 24px;
-            background: linear-gradient(180deg, rgba(36, 36, 52, 0.7) 0%, rgba(30, 30, 44, 0.6) 100%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            max-height: auto;
-            overflow: visible;
-        }
-
-        .history-section.active {
-            max-height: none;
-        }
-
-        .history-toggle-btn {
-            width: 100%;
-            padding: 0 0 12px 0;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: #8b8b9a;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-            margin-bottom: 12px;
-        }
-
-        .history-toggle-btn:hover {
-            color: #a0a0aa;
-        }
-
-        .history-toggle-btn.active {
-            color: #ff7b00;
-        }
-
-        .toggle-icon {
-            display: none;
-        }
-
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .history-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .history-action-btn {
-            padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: #9a9aac;
-            font-size: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
-        }
-
-        .history-action-btn:hover {
-            background: rgba(255, 255, 255, 0.09);
-            border-color: rgba(255, 255, 255, 0.18);
-            color: #c0c0ca;
-        }
-
-        .history-action-btn:active {
-            transform: scale(0.96);
-        }
-
-        /* 기록 숨김 토글 - 활성(숨김 상태) 시 블루 */
-        .history-action-btn.toggle-hide.active {
-            background: rgba(90, 140, 255, 0.16);
-            border-color: rgba(90, 140, 255, 0.35);
-            color: #7fa8ff;
-        }
-
-        .history-action-btn.toggle-hide.active:hover {
-            background: rgba(90, 140, 255, 0.22);
-            border-color: rgba(90, 140, 255, 0.5);
-            color: #96b8ff;
-        }
-
-        /* 기록 누적 토글 - 활성(ON) 시 틸 */
-        .history-action-btn.toggle-accumulate.active {
-            background: rgba(0, 200, 180, 0.16);
-            border-color: rgba(0, 200, 180, 0.35);
-            color: #4fd8c4;
-        }
-
-        .history-action-btn.toggle-accumulate.active:hover {
-            background: rgba(0, 200, 180, 0.22);
-            border-color: rgba(0, 200, 180, 0.5);
-            color: #6be8d6;
-        }
-
-        /* 기록 삭제 - 레드 */
-        .history-action-btn.action-delete {
-            background: rgba(255, 59, 48, 0.12);
-            border-color: rgba(255, 59, 48, 0.25);
-            color: #ff6b5b;
-        }
-
-        .history-action-btn.action-delete:hover {
-            background: rgba(255, 59, 48, 0.18);
-            border-color: rgba(255, 59, 48, 0.4);
-            color: #ff7b6f;
-        }
-
-        .history-content.hidden {
-            display: none;
-        }
-
-        .history-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 10px;
-            max-height: none;
-            overflow: visible;
-        }
-
-        .history-content::-webkit-scrollbar {
-            display: none;
-        }
-
-        .history-empty {
-            grid-column: 1 / -1;
-            padding: 16px;
-            text-align: center;
-            color: #5a5a6a;
-            font-size: 12px;
-            font-style: italic;
-        }
-
-        .history-item {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 12px;
-            background: linear-gradient(135deg, rgba(255, 123, 0, 0.12) 0%, rgba(255, 150, 0, 0.06) 100%);
-            border: 1px solid rgba(255, 123, 0, 0.2);
-            border-radius: 12px;
-            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .history-item:hover {
-            background: linear-gradient(135deg, rgba(255, 123, 0, 0.18) 0%, rgba(255, 150, 0, 0.1) 100%);
-            border-color: rgba(255, 123, 0, 0.35);
-            transform: translateY(-2px);
-        }
-
-        .history-item-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .history-item-left {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .history-item-exp {
-            font-size: clamp(10px, 2.5vw, 12px);
-            color: #a0a0aa;
-            word-break: break-word;
-            line-height: 1.2;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-
-        .history-item-res {
-            font-size: clamp(12px, 3vw, 16px);
-            font-weight: 600;
-            color: #ff7b00;
-            word-break: break-word;
-        }
-
-        .delete-item-btn {
-            padding: 4px 4px;
-            background: rgba(255, 59, 48, 0.08);
-            border: 1px solid rgba(255, 59, 48, 0.15);
-            border-radius: 6px;
-            color: #ff6b5b;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 28px;
-            height: 28px;
-            flex-shrink: 0;
-        }
-
-        .delete-item-btn:hover {
-            background: rgba(255, 59, 48, 0.15);
-            border-color: rgba(255, 59, 48, 0.35);
-            color: #ff7b6f;
-        }
-
-        .delete-item-btn:active {
-            transform: scale(0.92);
-        }
-
-        .delete-item-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .history-item-memo {
-            width: 100%;
-            padding: 6px 8px;
-            background: rgba(16, 16, 26, 0.5);
-            border: 1px solid rgba(255, 123, 0, 0.1);
-            border-radius: 6px;
-            color: #c0c0ca;
-            font-size: 10px;
-            outline: none;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .history-item-memo:focus {
-            background: rgba(255, 123, 0, 0.1);
-            border-color: rgba(255, 123, 0, 0.4);
-            color: #e4e4e7;
-        }
-
-        .history-item-memo::placeholder {
-            color: #6b6b7b;
-        }
-
-        .clear-history-btn {
-            display: none;
-        }
-
-        /* ═══════════════ 계산기 섹션 ═══════════════ */
+        /* ═══════════════ 계산기 섹션 (위쪽) ═══════════════ */
+        /* 계산기를 위에 둔다. 예전엔 기록이 위에 있었는데, 기록에 높이 제한이 없어서
+           항목이 20개쯤 쌓이면 기록만 1000px을 넘어가고 결과창과 키패드가 통째로
+           화면 밖으로 밀려났다(375x812 기준). 계산하려면 매번 스크롤해야 했다. */
         .calculator-section {
             padding: 32px 24px 24px;
-            background: linear-gradient(180deg, rgba(42, 42, 60, 0.85) 0%, rgba(34, 34, 48, 0.75) 100%);
+            background: var(--c-card);
         }
 
         .calc-header {
@@ -324,15 +131,15 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: #8b8b9a;
+            color: var(--c-text-muted);
         }
 
         .status-indicator {
             width: 8px;
             height: 8px;
-            background: linear-gradient(135deg, #ff7b00, #ff9933);
+            background: var(--accent-gradient);
             border-radius: 50%;
-            box-shadow: 0 0 12px rgba(255, 123, 0, 0.6);
+            box-shadow: 0 0 10px rgba(79, 111, 228, 0.45);
             animation: pulse 2s ease-in-out infinite;
         }
 
@@ -374,30 +181,22 @@
 
         .expression-display {
             font-size: 14px;
-            color: #6b6b7b;
+            color: var(--c-text-muted);
             min-height: 20px;
             letter-spacing: 0.3px;
             margin-bottom: 8px;
             word-break: break-all;
         }
 
+        /* 긴 금액은 가로 스크롤 대신 글자를 줄여서 한 줄에 맞춘다(fitDisplayFont).
+           스크롤은 폰에서 전체를 보려면 손가락으로 밀어야 해서 불편했다. */
         .result-display {
             font-size: clamp(28px, 12vw, 52px);
-            font-weight: 300;
-            color: #ffffff;
-            overflow-x: auto;
+            font-weight: 400;
+            color: var(--c-text);
             white-space: nowrap;
-            overflow-y: hidden;
+            overflow: hidden;
             line-height: 1.2;
-        }
-
-        .result-display::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .result-display::-webkit-scrollbar-thumb {
-            background: rgba(255, 123, 0, 0.4);
-            border-radius: 2px;
         }
 
         /* ═══════════════ 퀵 퍼센트 버튼 ═══════════════ */
@@ -408,33 +207,38 @@
             margin-bottom: 12px;
         }
 
+        /* 퍼센트 버튼은 "90%"처럼 세 글자라 높이보다 가로 폭이 먼저 꽉 찬다.
+           그래서 버튼 높이(44px)에 비해 글자를 조금 작게 잡는다. */
         .btn-quick {
             height: 44px;
-            background: linear-gradient(135deg, rgba(0, 200, 180, 0.14) 0%, rgba(0, 160, 200, 0.10) 100%);
-            border: 1px solid rgba(0, 200, 180, 0.28);
+            padding: 0;
+            background: var(--c-success-soft);
+            border: 1px solid #c6e3d9;
             border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #4fd8c4;
+            font: inherit;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: 700;
+            color: var(--c-success-text);
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
             touch-action: manipulation;
         }
 
         .btn-quick:hover {
-            background: linear-gradient(135deg, rgba(0, 200, 180, 0.22) 0%, rgba(0, 160, 200, 0.16) 100%);
-            border-color: rgba(0, 200, 180, 0.45);
-            color: #6be8d6;
+            background: #e2f2ec;
+            border-color: #a8d4c6;
             transform: translateY(-2px);
         }
 
         .btn-quick:active {
             transform: scale(0.94) translateY(0);
-            background: linear-gradient(135deg, rgba(0, 200, 180, 0.3), rgba(0, 160, 200, 0.22));
+            background: #d4ebe2;
         }
 
         /* ═══════════════ 키패드 ═══════════════ */
@@ -442,82 +246,356 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            margin-bottom: 4px;
         }
 
-        .keypad .btn-equals {
-            grid-column: span 2;
-        }
-
+        /* 글자를 버튼에 꽉 채운다. 안쪽 여백을 0으로 두고 line-height를 1로 낮춰야
+           글자 위아래에 생기는 기본 여백(보통 글자 크기의 20%)까지 없어져서
+           같은 높이에서 글자를 최대한 키울 수 있다. */
         .btn {
             height: 60px;
-            background: linear-gradient(135deg, #38384f 0%, #313144 100%);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: 500;
-            color: #e4e4e7;
+            padding: 0;
+            background: var(--c-surface);
+            border: 1px solid var(--c-card-line);
+            border-radius: var(--r-md);
+            font: inherit;
+            /* 숫자의 실제 잉크 높이는 글자 크기의 약 0.71배다(나머지는 글꼴이 위아래로
+               갖고 있는 빈 공간). 그래서 버튼 안높이 58px를 약 70% 채우려면
+               58 × 0.7 ÷ 0.71 ≈ 56px가 된다. line-height:1 + padding:0으로
+               그 빈 공간을 없애야 이 크기가 버튼 밖으로 안 밀린다. */
+            font-size: 56px;
+            line-height: 1;
+            font-weight: 600;
+            color: var(--c-text);
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             user-select: none;
             touch-action: manipulation;
         }
 
+        /* 백스페이스는 글자가 아니라 아이콘이라 버튼 높이에 맞춰 따로 키운다.
+           옆 글자들의 잉크 높이(약 40px)와 눈높이를 맞춘 값. */
+        .btn svg {
+            width: 44px;
+            height: 44px;
+        }
+
         .btn:hover {
-            background: linear-gradient(135deg, #46466a, #3e3e5c);
-            border-color: rgba(255, 255, 255, 0.12);
+            background: var(--c-primary-soft);
+            border-color: var(--c-primary-soft-border);
             transform: translateY(-2px);
         }
 
         .btn:active {
             transform: scale(0.95) translateY(0);
-            background: linear-gradient(135deg, #26263a, #212132);
+            background: #e5e9fa;
         }
 
+        /* 연산자 - 꽉 찬 인디고 대신 옅은 바탕에 진한 인디고 글자.
+           바탕이 연해도 글자가 진해서 숫자 버튼과는 확실히 구분된다. */
         .btn-operator {
-            background: linear-gradient(135deg, #ff8533, #ff7b00);
-            color: #ffffff;
-            font-weight: 600;
-            border: none;
-            box-shadow: 0 6px 20px rgba(255, 123, 0, 0.2);
+            background: var(--c-op-bg);
+            color: var(--c-op-text);
+            font-weight: 700;
+            border: 1px solid var(--c-op-border);
         }
 
         .btn-operator:hover {
-            background: linear-gradient(135deg, #ff9544, #ff8a20);
-            box-shadow: 0 8px 24px rgba(255, 123, 0, 0.35);
+            background: var(--c-op-bg-hover);
             transform: translateY(-3px);
         }
 
         .btn-operator:active {
             transform: scale(0.95) translateY(0);
-            background: linear-gradient(135deg, #e66e00, #d66a00);
+            background: var(--c-op-bg-hover);
         }
 
+        /* C(전체 지우기) - 옅은 붉은 톤 */
+        .btn-danger {
+            background: var(--c-clear-bg);
+            color: var(--c-clear-text);
+            font-weight: 700;
+            border: 1px solid var(--c-clear-border);
+        }
+
+        .btn-danger:hover {
+            background: var(--c-clear-bg-hover);
+            transform: translateY(-3px);
+        }
+
+        .btn-danger:active {
+            transform: scale(0.95) translateY(0);
+            background: var(--c-clear-bg-hover);
+        }
+
+        /* 백스페이스 - 옅은 무채색 */
+        .btn-neutral {
+            background: var(--c-back-bg);
+            color: var(--c-back-text);
+            border: 1px solid var(--c-back-border);
+        }
+
+        .btn-neutral:hover {
+            background: var(--c-back-bg-hover);
+            transform: translateY(-3px);
+        }
+
+        .btn-neutral:active {
+            transform: scale(0.95) translateY(0);
+            background: var(--c-back-bg-hover);
+        }
+
+        /* = 는 주 버튼이라 DSR의 강조 그라데이션(파랑→청록)을 쓰되,
+           다른 버튼과 톤을 맞추려고 옅게 깔고 글자를 진하게 뒤집었다. */
         .btn-equals {
             grid-column: span 2;
-            background: linear-gradient(135deg, #ff7b00, #ff6b00);
-            color: #ffffff;
+            background: linear-gradient(135deg, #ccd8f8 0%, #c1ebe6 100%);
+            color: var(--c-op-text);
+            /* 크기는 .btn과 같다(높이가 같으니 한계도 같다). 강조는 굵기로만 준다. */
             font-weight: 700;
-            font-size: 20px;
-            border: none;
-            box-shadow: 0 8px 28px rgba(255, 123, 0, 0.35);
+            border: 1px solid #bacdee;
+            box-shadow: 0 2px 6px rgba(34, 100, 200, 0.12);
         }
 
         .btn-equals:hover {
-            background: linear-gradient(135deg, #ff8f24, #ff7d12);
-            box-shadow: 0 12px 36px rgba(255, 123, 0, 0.45);
+            background: linear-gradient(135deg, #bccdf5 0%, #b0e5df 100%);
             transform: translateY(-3px);
         }
 
         .btn-equals:active {
             transform: scale(0.95) translateY(0);
-            background: linear-gradient(135deg, #e55f00, #d55700);
+            background: linear-gradient(135deg, #b0c4f2 0%, #a2dfd8 100%);
         }
 
+        /* ═══════════════ 히스토리 섹션 (아래쪽) ═══════════════ */
+        .history-section {
+            padding: 20px 24px;
+            background: #eceff6;   /* 카드 바탕(--c-card)보다 한 톤 낮춰 계산기와 구분 */
+            border-top: 1px solid var(--c-card-line);
+        }
 
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--c-text-muted);
+        }
+
+        .history-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .history-action-btn {
+            padding: 6px 10px;
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: 6px;
+            font: inherit;
+            color: var(--c-text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .history-action-btn:hover {
+            background: var(--c-primary-soft);
+            border-color: var(--c-primary-soft-border);
+            color: var(--c-primary);
+        }
+
+        .history-action-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* 기록 숨김 토글 - 활성(숨김 상태) 시 인디고 */
+        .history-action-btn.toggle-hide.active {
+            background: var(--c-primary-soft);
+            border-color: var(--c-primary-soft-border);
+            color: var(--c-primary);
+        }
+
+        .history-action-btn.toggle-hide.active:hover {
+            background: #e5e9fa;
+            border-color: #c3ccf2;
+        }
+
+        /* 기록 삭제 - 레드 */
+        .history-action-btn.action-delete {
+            background: #fdf1ef;
+            border-color: #f3d5d0;
+            color: #8f3a31;
+        }
+
+        .history-action-btn.action-delete:hover {
+            background: #fae4e0;
+            border-color: #e9bcb5;
+            color: #8f3a31;
+        }
+
+        .history-content.hidden {
+            display: none;
+        }
+
+        /* 높이를 화면의 38%로 묶고 안에서만 스크롤시킨다.
+           이래야 기록이 몇 개든 계산기는 늘 같은 자리에 있다. */
+        .history-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            max-height: 38vh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--c-primary-soft-border) transparent;
+        }
+
+        .history-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .history-content::-webkit-scrollbar-thumb {
+            background: var(--c-primary-soft-border);
+            border-radius: 2px;
+        }
+
+        .history-empty {
+            grid-column: 1 / -1;
+            padding: 16px;
+            text-align: center;
+            color: var(--c-text-faint);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px;
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: 12px;
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background: var(--c-primary-soft);
+            border-color: var(--c-primary-soft-border);
+            transform: translateY(-2px);
+        }
+
+        .history-item-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .history-item-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item-exp {
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: var(--c-text-muted);
+            word-break: break-word;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .history-item-res {
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 700;
+            color: var(--c-primary);
+            word-break: break-word;
+        }
+
+        .delete-item-btn {
+            padding: 4px 4px;
+            background: #fdf1ef;
+            border: 1px solid #f3d5d0;
+            border-radius: 6px;
+            color: var(--c-danger);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .delete-item-btn:hover {
+            background: #fae4e0;
+            border-color: #e9bcb5;
+            color: var(--c-danger-dark);
+        }
+
+        .delete-item-btn:active {
+            transform: scale(0.92);
+        }
+
+        .delete-item-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .history-item-memo {
+            width: 100%;
+            padding: 6px 8px;
+            background: var(--c-surface-muted);
+            border: 1px solid var(--c-border);
+            border-radius: 6px;
+            font: inherit;
+            color: var(--c-text);
+            font-size: 10px;
+            outline: none;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        /* DSR 입력칸과 같은 포커스 표시 */
+        .history-item-memo:focus {
+            background: var(--c-surface);
+            border-color: #4c66d0;
+            box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
+        }
+
+        .history-item-memo::placeholder {
+            color: var(--c-text-faint);
+        }
 
         /* ═══════════════ 반응형 디자인 ═══════════════ */
         @media (max-width: 480px) {
@@ -532,23 +610,6 @@
             .history-content {
                 grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
                 gap: 8px;
-            }
-
-            .history-toggle-btn {
-                padding: 0 0 10px 0;
-                font-size: 10px;
-                margin-bottom: 10px;
-            }
-
-            .clear-all-history-btn {
-                padding: 5px 10px;
-                font-size: 9px;
-                gap: 3px;
-            }
-
-            .clear-all-history-btn svg {
-                width: 12px;
-                height: 12px;
             }
 
             .history-action-btn {
@@ -580,8 +641,13 @@
 
             .btn {
                 height: 54px;
-                font-size: 16px;
+                font-size: 50px;
                 border-radius: 12px;
+            }
+
+            .btn svg {
+                width: 40px;
+                height: 40px;
             }
 
             .quick-percent {
@@ -591,7 +657,7 @@
 
             .btn-quick {
                 height: 38px;
-                font-size: 11px;
+                font-size: 25px;   /* "90%"는 세로보다 가로가 먼저 찬다 */
                 border-radius: 10px;
             }
 
@@ -623,36 +689,7 @@
 <body>
 
 <div class="container">
-    <!-- 히스토리 섹션 (위쪽) -->
-    <div class="history-section" id="historySection">
-        <div class="history-header">
-            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #8b8b9a;">History</span>
-            <div class="history-actions">
-                <button class="history-action-btn toggle-hide" id="hideHistoryBtn" onclick="toggleHideHistory()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    <span id="hideHistoryLabel">기록 숨김</span>
-                </button>
-
-                <button class="history-action-btn action-delete" onclick="clearHistory()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                    기록 삭제
-                </button>
-            </div>
-        </div>
-        <div class="history-content" id="historyContent">
-            <div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>
-        </div>
-    </div>
-
-    <!-- 계산기 섹션 -->
+    <!-- 계산기 섹션 (위쪽) -->
     <div class="calculator-section">
         <div class="calc-header">
             <div class="calc-title">
@@ -666,46 +703,81 @@
             <div class="result-display" id="display">0</div>
         </div>
 
-        <div class="quick-percent">
-            <button class="btn-quick" onclick="quickPercent(90)">90%</button>
-            <button class="btn-quick" onclick="quickPercent(80)">80%</button>
-            <button class="btn-quick" onclick="quickPercent(70)">70%</button>
-            <button class="btn-quick" onclick="quickPercent(60)">60%</button>
-            <button class="btn-quick" onclick="quickPercent(40)">40%</button>
+        <div class="quick-percent" id="quickPercent">
+            <button type="button" class="btn-quick" data-pct="90">90%</button>
+            <button type="button" class="btn-quick" data-pct="80">80%</button>
+            <button type="button" class="btn-quick" data-pct="70">70%</button>
+            <button type="button" class="btn-quick" data-pct="60">60%</button>
+            <button type="button" class="btn-quick" data-pct="40">40%</button>
         </div>
 
-        <div class="keypad">
-            <button class="btn btn-operator" onclick="clearAll()">C</button>
-            <button class="btn btn-operator" onclick="backspace()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <!-- 버튼마다 onclick을 다는 대신 data-action을 읽어 한 곳에서 처리한다(아래 위임 리스너) -->
+        <div class="keypad" id="keypad">
+            <button type="button" class="btn btn-danger" data-action="clear" aria-label="전체 지우기">C</button>
+            <button type="button" class="btn btn-neutral" data-action="backspace" aria-label="한 글자 지우기">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0 -2-2z"></path>
                     <line x1="18" y1="9" x2="12" y2="15"></line>
                     <line x1="12" y1="9" x2="18" y2="15"></line>
                 </svg>
             </button>
-            <button class="btn btn-operator" onclick="handlePercentage()">%</button>
-            <button class="btn btn-operator" onclick="appendOperator('÷')">÷</button>
+            <button type="button" class="btn btn-operator" data-action="percent" aria-label="퍼센트">%</button>
+            <button type="button" class="btn btn-operator" data-action="operator" data-value="÷" aria-label="나누기">÷</button>
 
-            <button class="btn" onclick="appendNumber('7')">7</button>
-            <button class="btn" onclick="appendNumber('8')">8</button>
-            <button class="btn" onclick="appendNumber('9')">9</button>
-            <button class="btn btn-operator" onclick="appendOperator('×')">×</button>
+            <button type="button" class="btn" data-action="number" data-value="7">7</button>
+            <button type="button" class="btn" data-action="number" data-value="8">8</button>
+            <button type="button" class="btn" data-action="number" data-value="9">9</button>
+            <button type="button" class="btn btn-operator" data-action="operator" data-value="×" aria-label="곱하기">×</button>
 
-            <button class="btn" onclick="appendNumber('4')">4</button>
-            <button class="btn" onclick="appendNumber('5')">5</button>
-            <button class="btn" onclick="appendNumber('6')">6</button>
-            <button class="btn btn-operator" onclick="appendOperator('-')">-</button>
+            <button type="button" class="btn" data-action="number" data-value="4">4</button>
+            <button type="button" class="btn" data-action="number" data-value="5">5</button>
+            <button type="button" class="btn" data-action="number" data-value="6">6</button>
+            <button type="button" class="btn btn-operator" data-action="operator" data-value="-" aria-label="빼기">-</button>
 
-            <button class="btn" onclick="appendNumber('1')">1</button>
-            <button class="btn" onclick="appendNumber('2')">2</button>
-            <button class="btn" onclick="appendNumber('3')">3</button>
-            <button class="btn btn-operator" onclick="appendOperator('+')">+</button>
+            <button type="button" class="btn" data-action="number" data-value="1">1</button>
+            <button type="button" class="btn" data-action="number" data-value="2">2</button>
+            <button type="button" class="btn" data-action="number" data-value="3">3</button>
+            <button type="button" class="btn btn-operator" data-action="operator" data-value="+" aria-label="더하기">+</button>
 
-            <button class="btn" onclick="appendNumber('0')">0</button>
-            <button class="btn" onclick="appendDot('.')">.</button>
-            <button class="btn btn-equals" onclick="calculate()">=</button>
+            <button type="button" class="btn" data-action="number" data-value="0">0</button>
+            <button type="button" class="btn" data-action="dot" aria-label="소수점">.</button>
+            <button type="button" class="btn btn-equals" data-action="equals" aria-label="계산">=</button>
         </div>
     </div>
+
+    <!-- ═══════════════ 히스토리 섹션 - 지금은 숨김 ═══════════════
+         다시 켜려면 (1) 아래 주석을 풀고 (2) <script> 안의 HISTORY_ON 을 true 로 바꾼다.
+         두 곳이 짝이므로 한쪽만 되살리면 안 된다.
+
+    <div class="history-section">
+        <div class="history-header">
+            <span class="history-title">History</span>
+            <div class="history-actions">
+                <button type="button" class="history-action-btn toggle-hide" id="hideHistoryBtn">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="hideHistoryLabel">기록 숨김</span>
+                </button>
+
+                <button type="button" class="history-action-btn action-delete" id="clearHistoryBtn">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    기록 삭제
+                </button>
+            </div>
+        </div>
+        <div class="history-content" id="historyContent">
+            <div class="history-empty">아직 계산 기록이 없습니다</div>
+        </div>
+    </div>
+
+         ═══════════════ 히스토리 섹션 끝 ═══════════════ -->
 </div>
 
 <script>
@@ -714,48 +786,96 @@
     let operator = '';
     let shouldResetDisplay = false;
 
+    /* handlePercentage가 "100 + 10%" 같은 식을 화면에 써 둔 상태에서 사용자가 숫자를
+       더 누르면 currentInput만 바뀌고 식은 그대로였다. 그래서 실제로는 100+105를
+       계산하고도 기록에는 "100 + 10% = 205"라고 남았다. 이 플래그로 그 상태를 추적해
+       숫자가 다시 들어오는 순간 식을 새로 쓴다. */
+    let percentApplied = false;
+
+    /* ═══ 기록(히스토리) 스위치 ═══
+       false면 기록 기능 전체가 꺼진다. 다시 켜려면 여기를 true로 바꾸고
+       HTML 아래쪽의 history-section 주석(<!-- -->)도 함께 풀어야 한다.
+
+       JS를 통째로 주석 처리하지 않고 스위치로 둔 이유: addHistoryItem을 부르는 곳이
+       세 군데(handlePercentage / quickPercent / calculate)라, 나중에 일부만 되살리면
+       없는 요소를 건드리다 스크립트 전체가 멈춘다. 실제로 예전 "기록 누적" 버튼이
+       그렇게 사라져서 키보드 입력이 통째로 죽었던 적이 있다. */
+    const HISTORY_ON = false;
+
     const displayElement = document.getElementById('display');
     const expressionElement = document.getElementById('expression');
     const historyContent = document.getElementById('historyContent');
-    const emptyMessageElement = document.getElementById('emptyMessage');
-    const historySection = document.getElementById('historySection');
-    const historyToggleBtn = document.querySelector('.history-toggle-btn');
     const hideHistoryBtn = document.getElementById('hideHistoryBtn');
     const hideHistoryLabel = document.getElementById('hideHistoryLabel');
-    const accumulateHistoryBtn = document.getElementById('accumulateHistoryBtn');
 
-    let accumulateHistory = localStorage.getItem('calcAccumulateHistory') === 'true';
+    const HISTORY_KEY = 'calcHistoryData';
+    const MAX_INPUT_LENGTH = 15;
+    const MIN_DISPLAY_FONT = 16;
 
-    function updateDisplay() {
-        if (currentInput === 'Error') {
-            displayElement.innerText = 'Error';
-            return;
-        }
-        const parts = currentInput.split('.');
-        parts[0] = Number(parts[0]).toLocaleString('ko-KR');
-        displayElement.innerText = parts.join('.');
+    /* fixFloat가 toPrecision(12)로 다듬으므로 표시도 소수점 12자리까지 살린다.
+       toLocaleString 기본값은 소수점 3자리에서 잘라서, 1÷3의 결과가 화면엔
+       0.333333333333, 기록엔 0.333으로 서로 다르게 찍히는 문제가 있었다. */
+    const NUM_FMT = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 12 });
+
+    // ═══════════════ 표시 ═══════════════
+
+    /* 입력 중인 "0." "0.10" 같은 형태를 그대로 살려야 하므로 정수부에만 자릿수 구분을
+       넣고 소수부는 문자열 그대로 붙인다. 화면과 기록이 같은 함수를 쓰므로 값이 어긋날 수 없다. */
+    function formatNumber(raw) {
+        const str = String(raw);
+        if (str === 'Error') return 'Error';
+        const dot = str.indexOf('.');
+        if (dot === -1) return NUM_FMT.format(Number(str));
+        return NUM_FMT.format(Number(str.slice(0, dot))) + '.' + str.slice(dot + 1);
     }
 
+    /* 긴 숫자를 가로 스크롤 대신 글자 크기로 맞춘다. 넘치는 비율만큼 한 번에 줄여서
+       반복 측정(리플로우)을 피한다. */
+    function fitDisplayFont() {
+        displayElement.style.fontSize = '';   // CSS의 clamp() 기본값으로 되돌리고 시작
+        const available = displayElement.clientWidth;
+        if (!available || displayElement.scrollWidth <= available) return;
+        const base = parseFloat(getComputedStyle(displayElement).fontSize);
+        const scaled = Math.max(MIN_DISPLAY_FONT, Math.floor(base * available / displayElement.scrollWidth));
+        displayElement.style.fontSize = scaled + 'px';
+    }
+
+    function updateDisplay() {
+        displayElement.textContent = formatNumber(currentInput);
+        fitDisplayFont();
+    }
+
+    // ═══════════════ 입력 ═══════════════
+
     function appendNumber(num) {
-        if (currentInput === '0' || shouldResetDisplay) {
-            currentInput = (num === '00') ? '0' : num;
+        if (currentInput === 'Error') return;
+        // 퍼센트가 적용된 직후 숫자를 누르면 새 피연산자를 시작하고 식을 다시 쓴다
+        if (percentApplied) {
+            percentApplied = false;
+            currentInput = num;
+            expressionElement.textContent = prevInput + ' ' + operator + ' ';
+        } else if (currentInput === '0' || shouldResetDisplay) {
+            currentInput = num;
             shouldResetDisplay = false;
-        } else {
-            if (currentInput.length < 15) {
-                currentInput += num;
-            }
+        } else if (currentInput.length < MAX_INPUT_LENGTH) {
+            currentInput += num;
         }
         updateDisplay();
     }
 
     function appendDot() {
-        if (shouldResetDisplay) {
+        if (currentInput === 'Error') return;
+        if (percentApplied) {
+            percentApplied = false;
             currentInput = '0.';
-            shouldResetDisplay = false;
+            expressionElement.textContent = prevInput + ' ' + operator + ' ';
             updateDisplay();
             return;
         }
-        if (!currentInput.includes('.')) {
+        if (shouldResetDisplay) {
+            currentInput = '0.';
+            shouldResetDisplay = false;
+        } else if (!currentInput.includes('.')) {
             currentInput += '.';
         }
         updateDisplay();
@@ -764,13 +884,14 @@
     function appendOperator(op) {
         if (currentInput === 'Error') return;
 
-        if (operator && !shouldResetDisplay) {
-            calculateInline();
-        }
+        // 앞선 계산이 0으로 나누기로 실패하면 여기서 멈춘다. 예전엔 그대로 진행해서
+        // prevInput이 'Error'가 되고 "Error + 3 = 3" 같은 기록이 남았다.
+        if (operator && !shouldResetDisplay && !calculateInline()) return;
 
+        percentApplied = false;
         prevInput = currentInput;
         operator = op;
-        expressionElement.innerText = prevInput + ' ' + operator + ' ';
+        expressionElement.textContent = prevInput + ' ' + operator + ' ';
         shouldResetDisplay = true;
     }
 
@@ -782,30 +903,22 @@
 
     function handlePercentage() {
         if (currentInput === 'Error') return;
-        let current = parseFloat(currentInput);
+        const current = parseFloat(currentInput);
         if (isNaN(current)) return;
 
-        let result;
-        let expText = '';
-
         if (prevInput && (operator === '+' || operator === '-')) {
-            let prev = parseFloat(prevInput);
-            result = prev * (current / 100);
-            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
-            currentInput = String(fixFloat(result));
-            expressionElement.innerText = expText;
-        } 
-        else if (prevInput && (operator === '×' || operator === '÷')) {
-            result = current / 100;
-            expText = prevInput + ' ' + operator + ' ' + currentInput + '%';
-            currentInput = String(fixFloat(result));
-            expressionElement.innerText = expText;
-        } 
-        else {
-            result = current / 100;
-            expText = currentInput + '%';
-            currentInput = String(fixFloat(result));
-            expressionElement.innerText = expText + ' =';
+            // 100 + 10% → 100의 10%를 더한다
+            currentInput = String(fixFloat(parseFloat(prevInput) * (current / 100)));
+            expressionElement.textContent = prevInput + ' ' + operator + ' ' + current + '%';
+            percentApplied = true;
+        } else if (prevInput && (operator === '×' || operator === '÷')) {
+            currentInput = String(fixFloat(current / 100));
+            expressionElement.textContent = prevInput + ' ' + operator + ' ' + current + '%';
+            percentApplied = true;
+        } else {
+            const expText = current + '%';
+            currentInput = String(fixFloat(current / 100));
+            expressionElement.textContent = expText + ' =';
             addHistoryItem(expText, currentInput);
             shouldResetDisplay = true;
         }
@@ -817,64 +930,61 @@
         const current = parseFloat(currentInput);
         if (isNaN(current)) return;
 
-        const result = current * (pct / 100);
         const expText = currentInput + ' × ' + pct + '%';
-
-        currentInput = String(fixFloat(result));
-        expressionElement.innerText = expText + ' =';
+        currentInput = String(fixFloat(current * (pct / 100)));
+        expressionElement.textContent = expText + ' =';
         addHistoryItem(expText, currentInput);
+        percentApplied = false;
         shouldResetDisplay = true;
         updateDisplay();
     }
 
+    // ═══════════════ 계산 ═══════════════
+
+    // 성공하면 true, 0으로 나누기 등으로 실패하면 false를 돌려준다
     function calculateInline() {
-        let result = 0;
         const prev = parseFloat(prevInput);
         const current = parseFloat(currentInput);
+        if (isNaN(prev) || isNaN(current)) return false;
 
-        if (isNaN(prev) || isNaN(current)) return;
-
+        let result;
         switch (operator) {
             case '+': result = prev + current; break;
             case '-': result = prev - current; break;
             case '×': result = prev * current; break;
-            case '÷': 
+            case '÷':
                 if (current === 0) {
                     currentInput = 'Error';
+                    prevInput = '';
+                    operator = '';
+                    expressionElement.textContent = '';
                     updateDisplay();
-                    return;
+                    return false;
                 }
-                result = prev / current; 
+                result = prev / current;
                 break;
-            default: return;
+            default: return false;
         }
         currentInput = String(fixFloat(result));
         prevInput = currentInput;
+        return true;
     }
 
     function calculate() {
         if (!operator || shouldResetDisplay) return;
 
-        const prev = prevInput;
-        const current = currentInput;
-        const currentOp = operator;
+        // 식 문구는 계산 전 값으로 만들어야 한다(calculateInline이 prevInput을 덮어씀)
+        const finalExp = percentApplied
+            ? expressionElement.textContent
+            : prevInput + ' ' + operator + ' ' + currentInput;
 
-        calculateInline();
+        if (!calculateInline()) return;
 
-        if (currentInput === 'Error') {
-            expressionElement.innerText = '';
-            operator = '';
-            return;
-        }
-
-        let finalExp = expressionElement.innerText.includes('%') 
-            ? expressionElement.innerText + ' =' 
-            : prev + ' ' + currentOp + ' ' + current + ' =';
-
-        expressionElement.innerText = finalExp;
-        addHistoryItem(finalExp.replace(' =', ''), currentInput);
+        expressionElement.textContent = finalExp + ' =';
+        addHistoryItem(finalExp, currentInput);
 
         operator = '';
+        percentApplied = false;
         shouldResetDisplay = true;
         updateDisplay();
     }
@@ -883,149 +993,179 @@
         currentInput = '0';
         prevInput = '';
         operator = '';
+        percentApplied = false;
         shouldResetDisplay = false;
-        displayElement.innerText = '0';
-        expressionElement.innerText = '';
-    }
-
-    function backspace() {
-        if (shouldResetDisplay || currentInput === 'Error') {
-            clearAll();
-            return;
-        }
-        if (currentInput.length > 1) {
-            currentInput = currentInput.slice(0, -1);
-        } else {
-            currentInput = '0';
-        }
+        expressionElement.textContent = '';
         updateDisplay();
     }
 
-    function addHistoryItem(exp, res, memo = '') {
-        // 빈 메시지 제거
-        const emptyMsg = historyContent.querySelector('.history-empty');
-        if (emptyMsg) {
-            emptyMsg.remove();
+    function backspace() {
+        if (shouldResetDisplay || percentApplied || currentInput === 'Error') {
+            clearAll();
+            return;
         }
+        currentInput = currentInput.length > 1 ? currentInput.slice(0, -1) : '0';
+        updateDisplay();
+    }
 
+    // ═══════════════ 기록 ═══════════════
+
+    /* 저장은 항상 켜져 있다. 예전엔 "기록 누적" 토글이 있었는데 버튼만 HTML에서
+       사라지고 JS가 남아, accumulateHistoryBtn(null)을 건드리다 스크립트가 중단되고
+       바로 아래에서 등록하던 키보드 리스너가 통째로 죽는 문제가 있었다.
+       토글이 꺼져 있으면 메모를 적어도 새로고침하면 날아가서 기능 자체가 무의미했다. */
+    let restoring = false;
+    let saveTimer = null;
+
+    function refreshEmptyMessage() {
+        const hasItem = historyContent.querySelector('.history-item');
+        const emptyMsg = historyContent.querySelector('.history-empty');
+        if (hasItem && emptyMsg) {
+            emptyMsg.remove();
+        } else if (!hasItem && !emptyMsg) {
+            const div = document.createElement('div');
+            div.className = 'history-empty';
+            div.textContent = '아직 계산 기록이 없습니다';
+            historyContent.appendChild(div);
+        }
+    }
+
+    function addHistoryItem(exp, res, memo = '') {
+        if (!HISTORY_ON) return;
         const itemDiv = document.createElement('div');
         itemDiv.className = 'history-item';
-        const formattedRes = Number(res).toLocaleString('ko-KR');
 
-        itemDiv.innerHTML = `
-            <div class="history-item-content">
-                <div class="history-item-left">
-                    <div class="history-item-exp">${exp}</div>
-                    <div class="history-item-res">= ${formattedRes}</div>
-                </div>
-                <button class="delete-item-btn" onclick="deleteHistoryItem(this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                </button>
-            </div>
-            <input type="text" class="history-item-memo" placeholder="메모..." oninput="saveHistoryToStorage()" />
-        `;
+        // 식과 결과는 사용자 입력이 섞일 수 있으므로 innerHTML 대신 textContent로 넣는다
+        const content = document.createElement('div');
+        content.className = 'history-item-content';
 
-        itemDiv.querySelector('.history-item-memo').value = memo;
+        const left = document.createElement('div');
+        left.className = 'history-item-left';
+
+        const expDiv = document.createElement('div');
+        expDiv.className = 'history-item-exp';
+        expDiv.textContent = exp;
+
+        const resDiv = document.createElement('div');
+        resDiv.className = 'history-item-res';
+        resDiv.textContent = '= ' + formatNumber(res);
+        resDiv.dataset.raw = String(res);   // 저장/복원은 포맷된 문자열이 아니라 원본 값으로
+
+        left.append(expDiv, resDiv);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'delete-item-btn';
+        delBtn.setAttribute('aria-label', '이 기록 삭제');
+        delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+
+        content.append(left, delBtn);
+
+        const memoInput = document.createElement('input');
+        memoInput.type = 'text';
+        memoInput.className = 'history-item-memo';
+        memoInput.placeholder = '메모...';
+        memoInput.autocomplete = 'off';
+        memoInput.value = memo;
+
+        itemDiv.append(content, memoInput);
         historyContent.insertBefore(itemDiv, historyContent.firstChild);
+        refreshEmptyMessage();
         saveHistoryToStorage();
     }
 
-    function deleteHistoryItem(btn) {
-        const item = btn.closest('.history-item');
-        item.style.animation = 'none';
-        item.offsetHeight; // 리플로우 강제 실행
+    function removeHistoryItem(item) {
         item.style.animation = 'slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
-        
         setTimeout(() => {
             item.remove();
-            
-            // 모든 항목이 삭제되면 빈 메시지 표시
-            if (historyContent.children.length === 0) {
-                historyContent.innerHTML = '<div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>';
-            }
+            refreshEmptyMessage();
             saveHistoryToStorage();
         }, 300);
     }
 
     function clearHistory() {
-        if (historyContent.querySelector('.history-empty')) {
-            return; // 이미 비어있으면 실행 안 함
-        }
-        
         const items = historyContent.querySelectorAll('.history-item');
+        if (!items.length) return;
         items.forEach((item, index) => {
-            setTimeout(() => {
-                item.style.animation = 'slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards';
-                setTimeout(() => {
-                    item.remove();
-                    if (historyContent.children.length === 0) {
-                        historyContent.innerHTML = '<div class="history-empty" id="emptyMessage">아직 계산 기록이 없습니다</div>';
-                    }
-                    saveHistoryToStorage();
-                }, 300);
-            }, index * 50);
+            setTimeout(() => removeHistoryItem(item), index * 50);
         });
     }
 
-    // ═══════════════ 기록 숨김 ═══════════════
     function toggleHideHistory() {
         const isHidden = historyContent.classList.toggle('hidden');
         hideHistoryBtn.classList.toggle('active', isHidden);
-        hideHistoryLabel.innerText = isHidden ? '기록 표시' : '기록 숨김';
-    }
-
-    // ═══════════════ 기록 누적 (새로고침해도 유지) ═══════════════
-    function toggleAccumulateHistory() {
-        accumulateHistory = !accumulateHistory;
-        localStorage.setItem('calcAccumulateHistory', accumulateHistory);
-        accumulateHistoryBtn.classList.toggle('active', accumulateHistory);
-
-        if (accumulateHistory) {
-            saveHistoryToStorage();
-        } else {
-            localStorage.removeItem('calcHistoryData');
-        }
+        hideHistoryLabel.textContent = isHidden ? '기록 표시' : '기록 숨김';
     }
 
     function saveHistoryToStorage() {
-        if (!accumulateHistory) return;
-        const items = [...historyContent.querySelectorAll('.history-item')].map(item => ({
-            exp: item.querySelector('.history-item-exp').innerText,
-            res: item.querySelector('.history-item-res').innerText.replace(/^=\s*/, '').replace(/,/g, ''),
-            memo: item.querySelector('.history-item-memo').value
-        }));
-        localStorage.setItem('calcHistoryData', JSON.stringify(items));
+        if (!HISTORY_ON || restoring) return;   // 복원 중에는 항목마다 다시 저장하지 않는다
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            const items = [...historyContent.querySelectorAll('.history-item')].map(item => ({
+                exp: item.querySelector('.history-item-exp').textContent,
+                res: item.querySelector('.history-item-res').dataset.raw,
+                memo: item.querySelector('.history-item-memo').value
+            }));
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+        }, 200);
     }
 
     function loadHistoryFromStorage() {
-        const raw = localStorage.getItem('calcHistoryData');
+        if (!HISTORY_ON) return;
+        const raw = localStorage.getItem(HISTORY_KEY);
         if (!raw) return;
         try {
             const items = JSON.parse(raw);
-            if (!items || !items.length) return;
-            // 저장된 순서(최신순)를 그대로 유지하기 위해 뒤에서부터 addHistoryItem으로 쌓는다
+            if (!Array.isArray(items) || !items.length) return;
+            restoring = true;
+            // 저장된 순서(최신순)를 유지하려면 뒤에서부터 쌓아야 한다
             [...items].reverse().forEach(it => addHistoryItem(it.exp, it.res, it.memo || ''));
         } catch (e) {
-            // 손상된 데이터는 무시
+            // 손상된 데이터는 버린다
+            localStorage.removeItem(HISTORY_KEY);
+        } finally {
+            restoring = false;
         }
     }
 
-    // 페이지 로드시 누적 모드였다면 저장된 기록 복원
-    if (accumulateHistory) {
-        accumulateHistoryBtn.classList.add('active');
-        loadHistoryFromStorage();
+    // ═══════════════ 이벤트 ═══════════════
+
+    document.getElementById('keypad').addEventListener('click', event => {
+        const btn = event.target.closest('button[data-action]');
+        if (!btn) return;
+        switch (btn.dataset.action) {
+            case 'number':    appendNumber(btn.dataset.value); break;
+            case 'dot':       appendDot(); break;
+            case 'operator':  appendOperator(btn.dataset.value); break;
+            case 'percent':   handlePercentage(); break;
+            case 'equals':    calculate(); break;
+            case 'clear':     clearAll(); break;
+            case 'backspace': backspace(); break;
+        }
+    });
+
+    document.getElementById('quickPercent').addEventListener('click', event => {
+        const btn = event.target.closest('button[data-pct]');
+        if (btn) quickPercent(Number(btn.dataset.pct));
+    });
+
+    // 기록 UI가 꺼져 있으면 해당 요소들이 아예 없으므로 리스너도 달지 않는다
+    if (HISTORY_ON) {
+        historyContent.addEventListener('click', event => {
+            const btn = event.target.closest('.delete-item-btn');
+            if (btn) removeHistoryItem(btn.closest('.history-item'));
+        });
+
+        historyContent.addEventListener('input', event => {
+            if (event.target.classList.contains('history-item-memo')) saveHistoryToStorage();
+        });
+
+        hideHistoryBtn.addEventListener('click', toggleHideHistory);
+        document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
     }
 
-    // 키보드 이벤트
-    window.addEventListener('keydown', function(event) {
-        if (document.activeElement.tagName === 'INPUT') {
-            return; 
-        }
+    window.addEventListener('keydown', event => {
+        if (document.activeElement.tagName === 'INPUT') return;
 
         const key = event.key;
         if (key >= '0' && key <= '9') {
@@ -1037,19 +1177,28 @@
         } else if (key === '*') {
             appendOperator('×');
         } else if (key === '/') {
-            event.preventDefault(); 
+            event.preventDefault();
             appendOperator('÷');
         } else if (key === '%') {
             handlePercentage();
         } else if (key === 'Enter' || key === '=') {
-            event.preventDefault(); 
+            event.preventDefault();
             calculate();
         } else if (key === 'Backspace') {
             backspace();
-        } else if (key === 'Escape') {
+        } else if (key === 'Escape' || key === 'Delete') {
             clearAll();
         }
     });
+
+    // 화면 폭이 바뀌면 결과 글자 크기를 다시 맞춘다
+    window.addEventListener('resize', fitDisplayFont);
+
+    // 더 이상 쓰지 않는 예전 키 정리 (이 값이 'true'로 남아 있으면 옛 버전이 멈췄었다)
+    localStorage.removeItem('calcAccumulateHistory');
+
+    loadHistoryFromStorage();
+    updateDisplay();
 </script>
 
 </body>
