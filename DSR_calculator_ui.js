@@ -2253,7 +2253,7 @@ function handleTableOrderBtnClick(key) {
 }
 
 function init() {
-  // 테이블 순서를 최종 배치(6,2,1,4,3,5)로 HTML에 직접 고정해서, 순서 선택기(테스트용)는
+  // 테이블 순서를 최종 배치(6,1,2,4,3,5)로 HTML에 직접 고정해서, 순서 선택기(테스트용)는
   // 지금은 꺼둔다 - 나중에 다시 실험하려면 이 두 줄만 살리면 된다 (선택기 HTML은 DSR_Main.html에 주석으로 남아있음).
   // applySavedTableLayoutOrder();
   // renderTableOrderButtons();
