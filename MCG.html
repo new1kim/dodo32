@@ -2,472 +2,647 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 이 태그가 없으면 모바일이 980px 데스크톱 폭으로 그린 뒤 축소해서, 글자가 작아지고
+       보이는 위치와 실제 터치 좌표가 어긋난다(안드로이드 앱에서 특히 심함) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>생애최초 특례보증 계산(MCG)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
+    /* Pretendard - 다른 화면(DSR/상담일지 등)과 같은 글꼴.
+       오프라인이면 이 요청만 실패하고 아래 fallback 글꼴로 표시된다 */
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 
-  /* 테이블 크기 제한 */
-      max-width: 600px; /* 테이블 최대 너비 설정 */
-      margin: 0 auto; /* 화면 중앙 정렬 */
+    /* DSR_style.css의 디자인 토큰 중 이 화면에 필요한 것만 옮겨왔다.
+       그 파일을 직접 링크하지 않는 이유: td:first-child 같은 전역 규칙이
+       이 화면의 표 배경을 덮어써서 레이아웃이 깨진다. */
+    :root {
+      --c-primary: #3a52b8;
+      --c-primary-soft: #f0f2fd;
+      --c-primary-soft-border: #d6dcf7;
+      --c-danger: #cf5a4e;
+      --c-success-text: #1f6455;
+      --c-text: #151b26;
+      --c-text-body: #3b4554;
+      --c-text-muted: #77808f;
+      --c-border: #e4e7ee;
+      --c-surface: #ffffff;
+      --c-surface-muted: #f7f8fb;
+      --c-canvas: #eceef3;
+      --c-header-bg: #e2e7f4;
+      --c-header-text: #2c3550;
+      --r-sm: 9px;
+      --r-md: 12px;
+      --sh-card: 0 1px 2px rgba(21, 27, 38, 0.04), 0 8px 20px -12px rgba(21, 27, 38, 0.18);
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+        "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     }
-    
-    td {
-      border: 1px solid #ccc;
-      padding: 10px;
-      vertical-align: middle;
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 12px 10px 24px;
+      font-family: var(--font-main);
+      background: var(--c-canvas);
+      color: var(--c-text);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "tnum" 1; /* 숫자 폭을 고정해 금액이 흔들리지 않게 */
+      letter-spacing: -0.2px;
     }
-    input[type="number"], input[type="text"], select, textarea {
+
+    .wrap { max-width: 640px; margin: 0 auto; }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
+      margin: 4px 0 14px;
+      color: var(--c-header-text);
+    }
+
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      box-shadow: var(--sh-card);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--c-text-muted);
+      margin: 0 0 9px;
+      letter-spacing: 0.2px;
+    }
+
+    /* -------------------- 입력 필드 -------------------- */
+    .grid { display: grid; gap: 8px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    @media (min-width: 600px) {
+      .grid-2 { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+    .field > label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-text-muted);
+      padding-left: 2px;
+    }
+
+    select, input {
       width: 100%;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    input[type="tel"] {
-      padding: 8px 8px; /* 위아래 12px, 좌우 10px */
-    }
-    select, input[type="number"] {
-      text-align: center; /* 글자 정렬 중앙 */
-    }
-    .bold {
-      font-weight: bold;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 10px;
-      }
-      table, td {
-        font-size: 12px;
-      }
-      input[type="number"], input[type="text"], select, textarea {
-        font-size: 12px;
-        padding: 8px;
-      }
-      button {
-        font-size: 14px;
-        padding: 8px;
-      }
-    }
-    h2 {
+      min-width: 0;
+      font-family: inherit;
+      font-size: 15px;
+      padding: 9px 8px;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      background: var(--c-surface);
+      color: var(--c-text);
       text-align: center;
     }
-    .금액입력폰트설정 {
-      font-size: 12px; /* 기본 폰트 크기 */
-    }
-    .비율폰트설정 {
-      font-size: 30px; /* 기본 폰트 크기 */
-    }
-    .설명박스폰트설정 {
-      font-size: 14px; /* 기본 폰트 크기 */
-      max-width: 600px; /* 테이블 최대 너비 설정 */
-      margin: 0 auto; /* 화면 중앙 정렬 */
-      display: block; /* 중앙 정렬을 위한 block 지정 */
+    select { appearance: none; -webkit-appearance: none; }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--c-primary);
+      box-shadow: 0 0 0 3px var(--c-primary-soft);
     }
 
+    /* 계산 결과가 들어가는 읽기전용 칸 - 입력칸과 시각적으로 구분 */
+    input[readonly] {
+      background: var(--c-surface-muted);
+      color: var(--c-primary);
+      font-weight: 700;
+      cursor: default;
+    }
+    input[readonly]:focus { box-shadow: none; border-color: var(--c-border); }
 
-/* 결과 텍스트 자동 맞춤 스타일 */
-.fit-text {
-      font-size: 13px;       /* 기본 PC 화면 폰트 크기 */
-      word-break: keep-all;  /* 단어 중간에서 줄바꿈 금지 (예: 입력대/기 방지) */
-      line-height: 1.2;      /* 줄 간격 좁힘 */
+    input::placeholder { color: #b6bcc7; font-weight: 400; }
+
+    /* -------------------- 결과 표시 -------------------- */
+    /* 표(table) 대신 그리드를 쓴다. 4칸짜리 표를 폭 375px 화면에 밀어넣으면
+       칸당 80px밖에 안 남아서 '400,000,000 원'이 두 줄로 접힌다. */
+    .readout-grid { display: grid; gap: 8px; }
+    .readout-4 { grid-template-columns: repeat(2, 1fr); }
+    /* 좁은 화면에서는 2칸으로 두고, 경고인 마지막 칸(35% 초과여부)만 한 줄 전체를 쓴다.
+       3칸으로 쪼개면 칸당 110px밖에 안 돼서 금액이 두세 줄로 접힌다. */
+    .readout-3 { grid-template-columns: repeat(2, 1fr); }
+    .readout-3 > :last-child { grid-column: 1 / -1; }
+    @media (min-width: 600px) {
+      .readout-4 { grid-template-columns: repeat(4, 1fr); }
+      .readout-3 { grid-template-columns: repeat(3, 1fr); }
+      .readout-3 > :last-child { grid-column: auto; }
     }
 
-    @media (max-width: 600px) {
-      .fit-text {
-        /* 화면 너비의 3% 크기로 자동 조절 (화면이 작을수록 글자도 작아짐) */
-        font-size: 3vw; 
-        padding: 5px 2px; /* 좌우 여백을 줄여서 공간 확보 */
-      }
+    .readout {
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      background: var(--c-surface-muted);
+      padding: 7px 6px;
+      text-align: center;
+      min-width: 0;
+    }
+    .readout-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--c-text-muted);
+      margin-bottom: 3px;
+    }
+    .readout-value {
+      display: block;
+      font-size: clamp(12px, 3.4vw, 15px);
+      font-weight: 700;
+      color: var(--c-text);
+      word-break: keep-all; /* '입력대기'가 '입력대/기'로 쪼개지지 않게 */
+      line-height: 1.3;
+    }
+    .readout-value.empty { color: var(--c-text-muted); font-weight: 500; }
+
+    /* 35% 초과 경고 - 칸 전체를 붉게 */
+    .readout.is-over { background: var(--c-danger); border-color: var(--c-danger); }
+    .readout.is-over .readout-label,
+    .readout.is-over .readout-value { color: #fff; }
+
+    /* -------------------- 안내 메모 -------------------- */
+    .note-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 10px;
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-sm);
+      background: var(--c-surface-muted);
+      color: var(--c-text-body);
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      background: var(--c-surface);
+      border-color: var(--c-primary);
     }
 
+    .link-btn {
+      border: none;
+      background: none;
+      padding: 2px 4px;
+      font-family: inherit;
+      font-size: 11px;
+      color: var(--c-text-muted);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .link-btn:hover { color: var(--c-primary); }
 
-
+    /* -------------------- 상태 알림 -------------------- */
+    /* 지역 데이터를 못 받았을 때 - alert()로 화면을 막는 대신 여기에 조용히 표시 */
+    #status {
+      display: none;
+      margin: 0 0 10px;
+      padding: 9px 11px;
+      border-radius: var(--r-sm);
+      background: #fdf1ef;
+      border: 1px solid #f3d5d0;
+      color: #8f3a31;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    #status.show { display: block; }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>생애최초 특례보증 계산(MCG)</h1>
 
-  <h2>생애최초 특례보증 계산(MCG)</h2>
+    <p id="status" role="status"></p>
 
-  <table>
-    <tr>
-      <td style="width: 27%;">
-        <select id="city" onchange="updateDistricts(); updateRatio();">
-          <option value="">지역</option>
-        </select>
-      </td>
-      <td style="width: 27%;">
-        <select id="district" onchange="updateRatio();">
-          <option value="">시군구</option>
-        </select>
-      </td>
-      <td style="width: 27%;">
-        <select id="property" onchange="updateRatio();">
-          <option value="">물건</option>
-        </select>
-      </td>
-      <td style="width: 19%;">
-        <input type="number" id="ratio" placeholder="자동" readonly>
-      </td>
-    </tr>
-  </table>
+    <section class="card">
+      <h2 class="card-title">물건지 조건</h2>
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="city">지역</label>
+          <select id="city"><option value="">지역</option></select>
+        </div>
+        <div class="field">
+          <label for="district">시군구</label>
+          <select id="district"><option value="">시군구</option></select>
+        </div>
+        <div class="field">
+          <label for="property">물건</label>
+          <select id="property"><option value="">물건</option></select>
+        </div>
+        <div class="field">
+          <label for="ratio">인정비율</label>
+          <input type="text" id="ratio" readonly placeholder="자동">
+        </div>
+      </div>
+    </section>
 
-  <table style="text-align: center; width: 100%;">
-    <tr>
-      <td class="bold" style="width: 27%;">
-        <input type="tel" id="소액임차금액" class="금액입력폰트설정" placeholder="예: 소액임차금액" style="width: 85%;" oninput="handleInput(event);">
-      </td>
-      <td class="bold" style="width: 27%;">
-        <input type="tel" id="주택가격" class="금액입력폰트설정" placeholder="예: 주택가격입력" style="width: 85%;" oninput="handleInput(event);">
-      </td>
-      <td class="bold" style="width: 27%;">
-        <input type="tel" id="필요금액" class="금액입력폰트설정" placeholder="예: 필요금액입력" style="width: 85%;" oninput="handleInput(event);">
-      </td>
-      <td class="bold" style="width: 19%;">
-        <input type="text" id="LTV" class="비율폰트설정" readonly placeholder="자동" style="width: 90%;">
-      </td>
-    </tr>
-  </table>
+    <section class="card">
+      <h2 class="card-title">금액 입력</h2>
+      <div class="grid grid-2">
+        <div class="field">
+          <label for="소액임차금액">소액임차금액</label>
+          <input type="tel" inputmode="numeric" id="소액임차금액" placeholder="예: 55,000,000">
+        </div>
+        <div class="field">
+          <label for="주택가격">주택가격</label>
+          <input type="tel" inputmode="numeric" id="주택가격" placeholder="예: 500,000,000">
+        </div>
+        <div class="field">
+          <label for="필요금액">필요금액</label>
+          <input type="tel" inputmode="numeric" id="필요금액" placeholder="예: 400,000,000">
+        </div>
+        <div class="field">
+          <label for="LTV">신청 LTV</label>
+          <input type="text" id="LTV" readonly placeholder="자동">
+        </div>
+      </div>
+    </section>
 
-  <table style="text-align: center;">
-    <tr>
-      <td style="width: 25%;">LTV 80%</td>
-      <td style="width: 25%;">LTV 70%</td>
-      <td id="담보인정비" style="width: 25%;">LTV 인정비</td>
-      <td style="width: 25%;">최대가능금액</td>
-    </tr>
-    <tr>
-      <td id="ltv80per" class="fit-text">주택가격 입력대기</td>
-      <td id="ltv70per" class="fit-text">주택가격 입력대기</td>
-      <td id="담보인정비율" class="fit-text">물건지 선택대기</td>
-      <td id="최대가능금액" class="fit-text">자동계산</td>
-    </tr>
-  </table>
+    <section class="card">
+      <h2 class="card-title">LTV 구간</h2>
+      <div class="readout-grid readout-4">
+        <div class="readout">
+          <span class="readout-label">LTV 80%</span>
+          <span class="readout-value empty" id="ltv80per">입력대기</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">LTV 70%</span>
+          <span class="readout-value empty" id="ltv70per">입력대기</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label" id="담보인정비">LTV 인정비</span>
+          <span class="readout-value empty" id="담보인정비율">선택대기</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">최대가능금액</span>
+          <span class="readout-value empty" id="최대가능금액">자동계산</span>
+        </div>
+      </div>
+    </section>
 
-  <br>
+    <section class="card">
+      <h2 class="card-title">보증 결과</h2>
+      <div class="readout-grid readout-3">
+        <div class="readout">
+          <span class="readout-label">보증가입금액</span>
+          <span class="readout-value empty" id="보증가입금액">-</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">보증료</span>
+          <span class="readout-value empty" id="보증료">-</span>
+        </div>
+        <div class="readout">
+          <span class="readout-label">35% 초과여부</span>
+          <span class="readout-value empty" id="초과여부">-</span>
+        </div>
+      </div>
+    </section>
 
-  <table border="1" style="text-align: center;">
-    <tr>
-      <td>보증가입금액</td>
-      <td>보증료</td>
-      <td>35% 초과여부</td>
-    </tr>
-    <tr>
-      <td id="보증가입금액">-</td>
-      <td id="보증료">-</td>
-      <td id="초과여부">미만</td>
-    </tr>
-  </table>
-
-  <br>
+    <section class="card">
+      <div class="note-head">
+        <h2 class="card-title" style="margin-bottom:9px;">안내 메모</h2>
+        <button type="button" id="메모초기화" class="link-btn">기본 안내문 복원</button>
+      </div>
+      <textarea id="메모" rows="8" aria-label="안내 메모"></textarea>
+    </section>
   </div>
 
-  <textarea id="additionalTextBox" class="설명박스폰트설정" placeholder="추가 텍스트 입력" rows="9">
-- 보증가입금액 :
-    ㄴ필요금액-주택가x인정비율-소액임차 
-- 보  증  료  : 보증가입금액 x 0.2% 
-- 보증가입금액 : 주택가 x 35% 초과 체크
-- 신청금액이 담보인정비율보다 높을 것.
-- 인정비율 이하 신청할 경우 MCI 사용.
-- 주택가 9억이하 / 대출 최대 가능 금액은 6억
-  </textarea>
-<br>
-
-  </div>
   <script>
+    "use strict";
 
-    
     const apiUrl = "https://script.google.com/macros/s/AKfycbz5owwe6LrljbuK0ZjvpBR0WdOG2GXNzcI0zQKmdRitbVefN8VQJrEkkheN6mdB2EUA/exec";
+
+    /* localStorage 키는 전부 MCG_ 접두사로 통일한다.
+       접두사 없는 키를 쓰면 같은 출처(앱에서는 모든 화면이 같은 출처)를 쓰는
+       다른 화면과 값이 섞일 수 있다. */
+    const KEY = {
+      ratioCache: 'MCG_ratioCache',
+      메모: 'MCG_메모',
+      city: 'MCG_city',
+      district: 'MCG_district',
+      property: 'MCG_property'
+    };
+    /* 사용자가 실제로 입력하는 칸만 저장한다.
+       (기존에는 자동 계산되는 LTV/인정비율이 저장되고 정작 금액칸은 저장되지 않았다) */
+    const AMOUNT_IDS = ['소액임차금액', '주택가격', '필요금액'];
+
+    const 기본메모 = [
+      '- 보증가입금액 :',
+      '    ㄴ필요금액-주택가x인정비율-소액임차 ',
+      '- 보  증  료  : 보증가입금액 x 0.2% ',
+      '- 보증가입금액 : 주택가 x 35% 초과 체크',
+      '- 신청금액이 담보인정비율보다 높을 것.',
+      '- 인정비율 이하 신청할 경우 MCI 사용.',
+      '- 주택가 9억이하 / 대출 최대 가능 금액은 6억'
+    ].join('\n');
+
+    const $ = (id) => document.getElementById(id);
+    const cityEl = $('city'), districtEl = $('district'), propertyEl = $('property');
+
     let ratioData = [];
+    /* 복원해야 할 선택값. 지역 목록은 네트워크로 늦게 도착하므로,
+       <option>이 만들어진 뒤에 이 값을 적용해야 한다.
+       (기존 코드는 loadRatios()를 기다리지 않고 복원해서 항상 실패했다) */
+    let 선택값 = { city: '', district: '', property: '' };
 
-    async function loadRatios() {
-      try {
-        const res = await fetch(apiUrl);
-        ratioData = await res.json();
+    /* -------------------- 저장 / 복원 -------------------- */
 
-        const uniqueCities = [...new Set(ratioData.map(d => d.city))];
-        document.getElementById("city").innerHTML = `<option value="">지역</option>` +
-          uniqueCities.map(city => `<option value="${city}">${city}</option>`).join('');
-        updateTypes();
-      } catch (error) {
-        alert("데이터를 불러오는 데 실패했습니다.");
+    /* 바뀐 칸 하나만 쓴다. 예전에는 글자 하나 칠 때마다 모든 입력창을 순회하며
+       6번씩 저장해서, 정작 필요한 금액칸은 빠뜨리면서 불필요한 쓰기만 하고 있었다. */
+    function 저장(key, value) { localStorage.setItem(key, value); }
+
+    function 복원() {
+      // 예전 버전은 소액임차금액을 접두사 없는 키에도 중복 저장했다. 한 번만 옮기고 지운다.
+      const 옛키 = localStorage.getItem('소액임차금액');
+      if (옛키 !== null) {
+        if (localStorage.getItem('MCG_소액임차금액') === null) {
+          localStorage.setItem('MCG_소액임차금액', 옛키);
+        }
+        localStorage.removeItem('소액임차금액');
       }
+      // 계산 결과라 저장할 필요가 없는데 저장되던 값들도 정리
+      localStorage.removeItem('MCG_LTV');
+      localStorage.removeItem('MCG_ratio');
+
+      for (const id of AMOUNT_IDS) {
+        const v = localStorage.getItem(`MCG_${id}`);
+        if (v) $(id).value = 콤마붙이기(v);
+      }
+      선택값 = {
+        city: localStorage.getItem(KEY.city) || '',
+        district: localStorage.getItem(KEY.district) || '',
+        property: localStorage.getItem(KEY.property) || ''
+      };
+      $('메모').value = localStorage.getItem(KEY.메모) ?? 기본메모;
     }
 
-    function updateDistricts() {
-      const selectedCity = document.getElementById("city").value;
-      const filtered = ratioData.filter(d => d.city === selectedCity);
-      const districts = [...new Set(filtered.map(d => d.district))];
+    /* -------------------- 숫자 입력 -------------------- */
 
-      document.getElementById("district").innerHTML = `<option value="">시군구</option>` +
-        districts.map(d => `<option value="${d}">${d}</option>`).join('');
-      document.getElementById("ratio").value = '';
+    function 숫자만(text) { return String(text).replace(/[^0-9]/g, ''); }
+
+    function 콤마붙이기(text) {
+      const d = 숫자만(text);
+      return d ? Number(d).toLocaleString() : '';
     }
 
-    function updateTypes() {
-      const propertyTypes = [...new Set(ratioData.map(d => d.type))];
-      document.getElementById("property").innerHTML = `<option value="">물건</option>` +
-        propertyTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+    function 금액읽기(id) {
+      const d = 숫자만($(id).value);
+      return d ? Number(d) : NaN;
+    }
+
+    /* 한 번의 입력에 리스너 하나만 붙인다.
+       기존에는 inline oninput + 콤마처리 + LTV갱신 + 자동저장 4개가 겹쳐 있어서
+       글자 하나 칠 때마다 calculate()가 두 번 돌고 콤마를 지웠다 붙이기를 반복했다. */
+    function 금액입력(e) {
+      const input = e.target;
+      const 이전 = input.value;
+      const 다음 = 콤마붙이기(이전);
+      if (다음 !== 이전) {
+        // 콤마가 늘거나 줄어든 만큼 커서를 밀어줘야 글자가 튀지 않는다
+        const caret = input.selectionStart ?? 다음.length;
+        input.value = 다음;
+        const pos = Math.max(0, Math.min(다음.length, caret + (다음.length - 이전.length)));
+        input.setSelectionRange(pos, pos);
+      }
+      updateLtvField();
+      calculate();
+      저장(`MCG_${input.id}`, input.value);
+    }
+
+    function updateLtvField() {
+      const price = 금액읽기('주택가격');
+      const required = 금액읽기('필요금액');
+      $('LTV').value = (!isNaN(price) && !isNaN(required) && price > 0)
+        ? ((required / price) * 100).toFixed(2) + '%'
+        : '';
+    }
+
+    /* -------------------- 지역 데이터 -------------------- */
+
+    function 셀렉트채우기(el, placeholder, values, 원하는값) {
+      el.textContent = '';
+      el.appendChild(new Option(placeholder, ''));
+      for (const v of values) el.appendChild(new Option(v, v));
+      el.value = values.includes(원하는값) ? 원하는값 : '';
+    }
+
+    function 시군구그리기() {
+      const districts = [...new Set(
+        ratioData.filter(d => d.city === cityEl.value).map(d => d.district)
+      )];
+      셀렉트채우기(districtEl, '시군구', districts, 선택값.district);
+    }
+
+    function 전체그리기() {
+      셀렉트채우기(cityEl, '지역', [...new Set(ratioData.map(d => d.city))], 선택값.city);
+      시군구그리기();
+      셀렉트채우기(propertyEl, '물건', [...new Set(ratioData.map(d => d.type))], 선택값.property);
+      updateRatio();
+    }
+
+    function 알림(msg) {
+      const el = $('status');
+      el.textContent = msg;
+      el.classList.toggle('show', Boolean(msg));
+    }
+
+    /* 캐시를 먼저 그리고 네트워크는 뒤에서 갱신한다.
+       Apps Script는 응답이 1~3초씩 걸려서, 이게 없으면 그동안 드롭다운이 비어 있어
+       화면을 아예 쓸 수 없다. 캐시가 있으면 체감 대기 시간이 0이 되고 오프라인에서도 동작한다. */
+    async function loadRatios() {
+      const cached = localStorage.getItem(KEY.ratioCache);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length) {
+            ratioData = parsed;
+            전체그리기();
+          }
+        } catch (e) {
+          localStorage.removeItem(KEY.ratioCache); // 깨진 캐시는 버린다
+        }
+      }
+
+      try {
+        const res = await fetch(apiUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const fresh = await res.json();
+        if (!Array.isArray(fresh) || fresh.length === 0) throw new Error('빈 응답');
+
+        const 새캐시 = JSON.stringify(fresh);
+        ratioData = fresh;
+        localStorage.setItem(KEY.ratioCache, 새캐시);
+        // 내용이 그대로면 다시 그리지 않는다(선택 중이던 값이 흔들리지 않게)
+        if (새캐시 !== cached) 전체그리기();
+        알림('');
+      } catch (e) {
+        // 캐시로 이미 쓸 수 있으면 굳이 알리지 않는다
+        if (ratioData.length === 0) {
+          알림('지역 데이터를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해주세요.');
+        }
+      }
     }
 
     function updateRatio() {
-      const city = document.getElementById("city").value;
-      const district = document.getElementById("district").value;
-      const property = document.getElementById("property").value;
-
-      const match = ratioData.find(d => d.city === city && d.district === district && d.type === property);
-      const ratioField = document.getElementById("ratio");
-      const 담보인정비 = document.getElementById("담보인정비");
+      const match = ratioData.find(d =>
+        d.city === cityEl.value && d.district === districtEl.value && d.type === propertyEl.value);
 
       if (match) {
-        ratioField.value = match.ratio;
-        담보인정비.textContent = `LTV ${match.ratio}%`;
+        // '%'를 붙여도 계산 쪽 parseFloat('85%')는 85로 읽으므로 값에는 영향이 없다
+        $('ratio').value = match.ratio + '%';
+        $('담보인정비').textContent = `LTV ${match.ratio}%`;
       } else {
-        ratioField.value = '';
-        담보인정비.textContent = '담보인정비';
+        $('ratio').value = '';
+        $('담보인정비').textContent = 'LTV 인정비';
       }
-
-      calculate(); // ratio 변경 시 담보인정비 값 갱신
-    }
-
-    function calculate() {
-      const price = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
-      const ratio = parseFloat(document.getElementById('ratio').value);
-      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
-      const smallLeaseAmount = parseFloat(document.getElementById('소액임차금액').value.replace(/,/g, '')) || 0; // 소액임차금액 기본값 0
-
-      // LTV 80% 및 70% 계산 로직 수정
-      if (!isNaN(price)) {
-        const ltv80per = price * 0.8;
-        document.getElementById('ltv80per').textContent = ltv80per.toLocaleString() + ' 원';
-        
-        // [추가됨] LTV 70% 계산
-        const ltv70per = price * 0.7;
-        document.getElementById('ltv70per').textContent = ltv70per.toLocaleString() + ' 원';
-      } else {
-        document.getElementById('ltv80per').textContent = '입력대기';
-        document.getElementById('ltv70per').textContent = '입력대기'; // [추가됨]
-      }
-
-      if (!isNaN(price) && !isNaN(ratio)) {
-        const 인정비값 = Math.floor(price * (ratio / 100));
-        document.getElementById('담보인정비').textContent = `LTV ${ratio}% `;
-        document.getElementById('담보인정비율').textContent = 인정비값.toLocaleString() + ' 원';
-
-        // 추가된 조건: 필요금액이 담보인정비율보다 낮을 경우
-        if (requiredAmount < 인정비값) {
-          document.getElementById('보증가입금액').textContent = '일반대출로 진행';
-          document.getElementById('보증료').textContent = '-';
-          document.getElementById('초과여부').textContent = '-';
-          document.getElementById('초과여부').style.backgroundColor = 'white'; // 기본 배경색
-          document.getElementById('초과여부').style.color = ''; // 기본 글자색
-          document.getElementById('최대가능금액').textContent = '-';
-          return; // 조건 만족 시 계산 종료
-        }
-
-        const 기준값 = price * 0.35;
-        const 보증가입금액 = Math.floor(requiredAmount - (인정비값 - smallLeaseAmount));
-
-        if (보증가입금액 <= 0) {
-          document.getElementById('보증가입금액').textContent = '일반대출로 진행';
-          document.getElementById('보증료').textContent = '-';
-          document.getElementById('초과여부').textContent = '-';
-          document.getElementById('초과여부').style.backgroundColor = 'white'; // 기본 배경색
-          document.getElementById('초과여부').style.color = ''; // 기본 글자색
-        } else {
-          document.getElementById('보증가입금액').textContent = 보증가입금액.toLocaleString() + ' 원';
-
-          const 보증료 = Math.floor(보증가입금액 * 0.002); // 보증가입금액의 0.2%
-          document.getElementById('보증료').textContent = 보증료.toLocaleString() + ' 원';
-          const 초과여부Cell = document.getElementById('초과여부');
-          if (보증가입금액 > 기준값) {
-            const 초과차액 = 보증가입금액 - 기준값;
-            초과여부Cell.textContent = `초과 (${초과차액.toLocaleString()} 원)`;
-            초과여부Cell.style.backgroundColor = 'red'; // 배경색 빨간색
-            초과여부Cell.style.color = 'white'; // 글자색 흰색
-          } else {
-            초과여부Cell.textContent = '미만';
-            초과여부Cell.style.backgroundColor = 'white'; // 기본 배경색
-            초과여부Cell.style.color = ''; // 기본 글자색
-          }
-        }
-
-        // 최대가능금액 계산: 조건에 따라 탐색
-        const ltv80per = price * 0.8;
-        let 최대가능금액 = ltv80per;
-
-        while (최대가능금액 > 0) {
-          const 보증가입금액 = Math.floor(최대가능금액 - (인정비값 - smallLeaseAmount));
-          if (보증가입금액 <= 기준값) {
-            break; // 조건을 만족하면 탐색 종료
-          }
-          최대가능금액 -= 100000; // 100,000원 단위로 감소
-        }
-
-        // 최대가능금액이 6억을 초과할 경우 6억으로 제한
-        최대가능금액 = Math.min(최대가능금액, 600000000);
-
-        document.getElementById('최대가능금액').textContent = 최대가능금액 > 0 ? 최대가능금액.toLocaleString() + ' 원' : '계산 불가';
-      } else {
-        resetResults();
-        document.getElementById('담보인정비율').textContent = '-';
-        document.getElementById('최대가능금액').textContent = '-';
-      }
-    }
-
-    function resetResults() {
-      document.getElementById('보증가입금액').textContent = '-';
-      document.getElementById('보증료').textContent = '-';
-      document.getElementById('초과여부').textContent = '-';
-    }
-
-    function formatWithCommas(inputId) {
-      const input = document.getElementById(inputId);
-      input.addEventListener('input', () => {
-        const caret = input.selectionStart;
-        const original = input.value.replace(/,/g, '');
-        if (!isNaN(original) && original !== '') {
-          const formatted = parseFloat(original).toLocaleString();
-          input.value = formatted;
-          const diff = formatted.length - original.length;
-          input.setSelectionRange(caret + diff, caret + diff);
-        }
-      });
-    }
-
-    function restrictToNumbers(inputId) {
-      const input = document.getElementById(inputId);
-      input.value = input.value.replace(/[^0-9]/g, ''); // 숫자가 아닌 문자는 제거
-    }
-
-    function handleInput(event) {
-      const inputId = event.target.id;
-      restrictToNumbers(inputId);
       calculate();
     }
 
-    // 소액임차금액 저장 및 로드 함수 추가
-    function saveSmallLeaseAmount() {
-      const value = document.getElementById('소액임차금액').value;
-      localStorage.setItem('소액임차금액', value);
+    /* -------------------- 계산 -------------------- */
+    /* 계산식과 최대가능금액 탐색 루프는 기존 동작을 그대로 유지한다.
+       (달라진 점은 필요금액이 비었을 때 'NaN 원'이 아니라 '입력대기'를 보여주는 것뿐) */
+
+    function 셀(id, text, 상태) {
+      const el = $(id);
+      el.textContent = text;
+      el.className = 'readout-value' + (상태 ? ' ' + 상태 : '');
+      // 35% 초과 경고는 글자만이 아니라 칸 전체를 붉게 칠한다
+      el.closest('.readout').classList.toggle('is-over', 상태 === 'is-over');
     }
 
-    // [수정됨] 소액임차금액 로드 함수 (NaN 방지)
-    function loadSmallLeaseAmount() {
-      const savedValue = localStorage.getItem('소액임차금액');
-      // 저장된 값이 null이 아니고, 빈 문자열이 아니며, "NaN"도 아닐 때만 실행
-      if (savedValue !== null && savedValue.trim() !== "" && savedValue !== "NaN") {
-        const num = parseFloat(savedValue.replace(/,/g, ''));
-        if (!isNaN(num)) {
-            const input = document.getElementById('소액임차금액');
-            input.value = num.toLocaleString(); // 콤마 적용
-        }
-      }
-    }
+    function calculate() {
+      const price = 금액읽기('주택가격');
+      const ratio = parseFloat($('ratio').value);
+      const requiredAmount = 금액읽기('필요금액');
+      const smallLeaseAmount = 금액읽기('소액임차금액') || 0;
 
-    // 소액임차금액 입력 이벤트에 저장 함수 연결
-    document.getElementById('소액임차금액').addEventListener('input', saveSmallLeaseAmount);
-
-    document.getElementById('필요금액').addEventListener('input', () => {
-      const housePrice = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
-      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
-      if (!isNaN(housePrice) && !isNaN(requiredAmount) && housePrice > 0) {
-        const ltv = ((requiredAmount / housePrice) * 100).toFixed(2);
-        document.getElementById('LTV').value = ltv + '%';
-        calculate();
+      if (!isNaN(price)) {
+        셀('ltv80per', (price * 0.8).toLocaleString() + ' 원');
+        셀('ltv70per', (price * 0.7).toLocaleString() + ' 원');
       } else {
-        document.getElementById('LTV').value = '';
+        셀('ltv80per', '입력대기', 'empty');
+        셀('ltv70per', '입력대기', 'empty');
       }
-    });
 
-    document.getElementById('주택가격').addEventListener('input', () => {
-      const housePrice = parseFloat(document.getElementById('주택가격').value.replace(/,/g, ''));
-      const requiredAmount = parseFloat(document.getElementById('필요금액').value.replace(/,/g, ''));
-      if (!isNaN(housePrice) && !isNaN(requiredAmount) && housePrice > 0) {
-        const ltv = ((requiredAmount / housePrice) * 100).toFixed(2);
-        document.getElementById('LTV').value = ltv + '%';
-        calculate();
+      if (isNaN(price) || isNaN(ratio)) {
+        셀('보증가입금액', '-', 'empty');
+        셀('보증료', '-', 'empty');
+        셀('초과여부', '-', 'empty');
+        셀('담보인정비율', '-', 'empty');
+        셀('최대가능금액', '-', 'empty');
+        return;
+      }
+
+      const 인정비값 = Math.floor(price * (ratio / 100));
+      $('담보인정비').textContent = `LTV ${ratio}%`;
+      셀('담보인정비율', 인정비값.toLocaleString() + ' 원');
+
+      // 필요금액이 인정비율보다 낮으면 보증 없이 일반대출로 가능하다
+      if (requiredAmount < 인정비값) {
+        셀('보증가입금액', '일반대출로 진행');
+        셀('보증료', '-', 'empty');
+        셀('초과여부', '-', 'empty');
+        셀('최대가능금액', '-', 'empty');
+        return;
+      }
+
+      const 기준값 = price * 0.35;
+
+      if (isNaN(requiredAmount)) {
+        // 필요금액을 아직 안 넣은 상태 - 보증 계산은 못 하지만 최대가능금액은 낼 수 있다
+        셀('보증가입금액', '입력대기', 'empty');
+        셀('보증료', '-', 'empty');
+        셀('초과여부', '-', 'empty');
       } else {
-        document.getElementById('LTV').value = '';
-      }
-    });
+        const 보증가입금액 = Math.floor(requiredAmount - (인정비값 - smallLeaseAmount));
 
-    // MCG 페이지 LocalStorage 관련 함수들
-    function saveMCGInputs() {
-      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select');
-      inputs.forEach(input => {
-        if (input.id) {
-          localStorage.setItem(`MCG_${input.id}`, input.value);
-        }
-      });
-      
-      // 체크박스 저장
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        if (checkbox.id) {
-          localStorage.setItem(`MCG_${checkbox.id}`, checkbox.checked);
-        }
-      });
-    }
+        if (보증가입금액 <= 0) {
+          셀('보증가입금액', '일반대출로 진행');
+          셀('보증료', '-', 'empty');
+          셀('초과여부', '-', 'empty');
+        } else {
+          셀('보증가입금액', 보증가입금액.toLocaleString() + ' 원');
+          셀('보증료', Math.floor(보증가입금액 * 0.002).toLocaleString() + ' 원');
 
-    function loadMCGInputs() {
-      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select');
-      inputs.forEach(input => {
-        if (input.id) {
-          const savedValue = localStorage.getItem(`MCG_${input.id}`);
-          if (savedValue !== null && savedValue !== '') {
-            input.value = savedValue;
+          if (보증가입금액 > 기준값) {
+            셀('초과여부', `초과 (${(보증가입금액 - 기준값).toLocaleString()} 원)`, 'is-over');
+          } else {
+            셀('초과여부', '미만');
           }
         }
-      });
-      
-      // 체크박스 복원
-      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        if (checkbox.id) {
-          const savedValue = localStorage.getItem(`MCG_${checkbox.id}`);
-          if (savedValue !== null) {
-            checkbox.checked = savedValue === 'true';
-          }
-        }
-      });
+      }
+
+      // 최대가능금액: 10만원씩 낮추며 35% 기준을 만족하는 지점을 찾는다 (기존 로직 유지)
+      let 최대가능금액 = price * 0.8;
+      while (최대가능금액 > 0) {
+        const 보증가입금액 = Math.floor(최대가능금액 - (인정비값 - smallLeaseAmount));
+        if (보증가입금액 <= 기준값) break;
+        최대가능금액 -= 100000;
+      }
+      최대가능금액 = Math.min(최대가능금액, 600000000); // 대출 최대 6억
+
+      if (최대가능금액 > 0) {
+        셀('최대가능금액', 최대가능금액.toLocaleString() + ' 원');
+      } else {
+        셀('최대가능금액', '계산 불가', 'empty');
+      }
     }
 
-    function setupMCGAutoSave() {
-      const inputs = document.querySelectorAll('input[type="text"], input[type="number"], select, input[type="checkbox"]');
-      inputs.forEach(input => {
-        input.addEventListener('change', saveMCGInputs);
-        if (input.type !== 'checkbox') {
-          input.addEventListener('input', saveMCGInputs);
-        }
-      });
+    /* -------------------- 초기화 -------------------- */
+
+    for (const id of AMOUNT_IDS) {
+      $(id).addEventListener('input', 금액입력);
     }
 
-    window.onload = () => {
-      loadRatios();
-      loadMCGInputs(); // 저장된 입력값 로드
-      formatWithCommas('주택가격');
-      formatWithCommas('필요금액');
-      formatWithCommas('소액임차금액'); // 소액임차금액에 콤마 자동 추가
-      loadSmallLeaseAmount(); // 소액임차금액 로드
-      setupMCGAutoSave(); // 자동 저장 설정
-    };
+    cityEl.addEventListener('change', () => {
+      선택값.city = cityEl.value;
+      선택값.district = ''; // 지역이 바뀌면 이전 시군구는 의미가 없다
+      시군구그리기();
+      updateRatio();
+      저장(KEY.city, cityEl.value);
+      저장(KEY.district, districtEl.value); // 위에서 비워졌으므로 같이 반영
+    });
+
+    districtEl.addEventListener('change', () => {
+      선택값.district = districtEl.value;
+      updateRatio();
+      저장(KEY.district, districtEl.value);
+    });
+
+    propertyEl.addEventListener('change', () => {
+      선택값.property = propertyEl.value;
+      updateRatio();
+      저장(KEY.property, propertyEl.value);
+    });
+
+    $('메모').addEventListener('input', (e) => {
+      localStorage.setItem(KEY.메모, e.target.value);
+    });
+
+    $('메모초기화').addEventListener('click', () => {
+      $('메모').value = 기본메모;
+      localStorage.setItem(KEY.메모, 기본메모);
+    });
+
+    // 스크립트가 </body> 앞에 있어 DOM은 이미 준비된 상태다.
+    // window.onload는 모든 이미지·폰트까지 기다리므로 쓰지 않는다.
+    복원();
+    updateLtvField();
+    calculate();
+    loadRatios();
   </script>
 </body>
 </html>
