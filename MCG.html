@@ -123,6 +123,86 @@
 
     input::placeholder { color: #b6bcc7; font-weight: 400; }
 
+    /* -------------------- 소액임차금액 추천 버블 -------------------- */
+    /* 입력칸을 누르면 자주 쓰는 4개 금액만 말풍선으로 띄운다.
+       DSR 화면(.minor-lease-suggest-*)과 같은 방식·같은 색이라, 두 화면을 오가도
+       같은 금액이 같은 색으로 보인다. 색은 순서가 아니라 금액에 묶여 있다. */
+    .suggest-field { position: relative; }
+
+    .suggest-list {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      /* --tail-shift: 화면 밖으로 나갈 때 JS가 버블 전체를 밀어 넣는 양.
+         꼬리는 그만큼 반대로 움직여 계속 입력칸을 가리킨다. */
+      transform: translateX(calc(-50% + var(--tail-shift, 0px)));
+      gap: 8px;
+      padding-top: 8px; /* 말풍선 꼬리 자리 */
+      z-index: 50;
+    }
+    .suggest-list.open { display: flex; }
+
+    /* 말풍선 꼬리 - 입력칸을 가리키는 다이아몬드 */
+    .suggest-list::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: calc(50% - var(--tail-shift, 0px));
+      width: 10px;
+      height: 10px;
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 2px;
+      transform: translateX(-50%) rotate(45deg);
+      box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.1);
+      z-index: -1;
+    }
+
+    .suggest-item {
+      flex: 0 0 auto;
+      width: 54px;
+      height: 54px;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      animation: suggestPop 0.22s ease-out backwards;
+    }
+    /* 색을 순서가 아닌 금액에 묶어둔다 - 나중에 나열 순서를 바꿔도 색이 따라 바뀌지 않는다 */
+    .suggest-item[data-value="55000000"] { background: linear-gradient(135deg, #4f6fe4, #22c9c0); }
+    .suggest-item[data-value="48000000"] { background: linear-gradient(135deg, #fb923c, #f43f5e); }
+    .suggest-item[data-value="28000000"] { background: linear-gradient(135deg, #22c55e, #0d9488); }
+    .suggest-item[data-value="25000000"] { background: linear-gradient(135deg, #a855f7, #6366f1); }
+
+    .suggest-item:nth-child(1) { animation-delay: 0s; }
+    .suggest-item:nth-child(2) { animation-delay: 0.05s; }
+    .suggest-item:nth-child(3) { animation-delay: 0.1s; }
+    .suggest-item:nth-child(4) { animation-delay: 0.15s; }
+
+    .suggest-item:hover,
+    .suggest-item:focus-visible {
+      outline: none;
+      transform: scale(1.12);
+      box-shadow: 0 10px 20px -6px rgba(15, 23, 42, 0.5);
+    }
+
+    @keyframes suggestPop {
+      0% { transform: scale(0.3); opacity: 0; }
+      65% { transform: scale(1.18); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
     /* -------------------- 결과 표시 -------------------- */
     /* 표(table) 대신 그리드를 쓴다. 4칸짜리 표를 폭 375px 화면에 밀어넣으면
        칸당 80px밖에 안 남아서 '400,000,000 원'이 두 줄로 접힌다. */
@@ -168,13 +248,35 @@
     .readout.is-over .readout-label,
     .readout.is-over .readout-value { color: #fff; }
 
-    /* -------------------- 안내 메모 -------------------- */
-    .note-head {
+    /* -------------------- 카드 머리글 -------------------- */
+    /* 제목 왼쪽 / 버튼 오른쪽 끝. 물건지 조건(초기화)과 안내 메모(기본 안내문 복원)가 같이 쓴다 */
+    .card-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      margin-bottom: 9px;
     }
+    .card-head .card-title { margin-bottom: 0; }
+
+    /* 되돌릴 수 없는 동작이라 붉은 계열로 구분하되, 실수로 누르지 않게 크기는 작게 */
+    .reset-btn {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      border: 1px solid #e6cfcb;
+      border-radius: 6px;
+      background: #fdf1ef;
+      color: #8f3a31;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .reset-btn:hover { background: #f9e3df; border-color: #d9b6b0; }
+    .reset-btn:active { transform: scale(0.96); }
+
+    /* -------------------- 안내 메모 -------------------- */
     textarea {
       width: 100%;
       font-family: inherit;
@@ -228,7 +330,10 @@
     <p id="status" role="status"></p>
 
     <section class="card">
-      <h2 class="card-title">물건지 조건</h2>
+      <div class="card-head">
+        <h2 class="card-title">물건지 조건 ( 담보인정비율 )</h2>
+        <button type="button" id="초기화" class="reset-btn" title="입력한 값을 모두 지웁니다">초기화</button>
+      </div>
       <div class="grid grid-2">
         <div class="field">
           <label for="city">지역</label>
@@ -252,9 +357,16 @@
     <section class="card">
       <h2 class="card-title">금액 입력</h2>
       <div class="grid grid-2">
-        <div class="field">
+        <div class="field suggest-field">
           <label for="소액임차금액">소액임차금액</label>
-          <input type="tel" inputmode="numeric" id="소액임차금액" placeholder="예: 55,000,000">
+          <!-- autocomplete=off: 브라우저의 과거 입력 이력이 아래 추천 버블과 겹쳐 뜨는 걸 막는다 -->
+          <input type="tel" inputmode="numeric" id="소액임차금액" placeholder="예: 55,000,000" autocomplete="off">
+          <div class="suggest-list" id="소액임차추천">
+            <button type="button" class="suggest-item" data-value="25000000">2,500만</button>
+            <button type="button" class="suggest-item" data-value="28000000">2,800만</button>
+            <button type="button" class="suggest-item" data-value="48000000">4,800만</button>
+            <button type="button" class="suggest-item" data-value="55000000">5,500만</button>
+          </div>
         </div>
         <div class="field">
           <label for="주택가격">주택가격</label>
@@ -312,8 +424,8 @@
     </section>
 
     <section class="card">
-      <div class="note-head">
-        <h2 class="card-title" style="margin-bottom:9px;">안내 메모</h2>
+      <div class="card-head">
+        <h2 class="card-title">안내 메모</h2>
         <button type="button" id="메모초기화" class="link-btn">기본 안내문 복원</button>
       </div>
       <textarea id="메모" rows="8" aria-label="안내 메모"></textarea>
@@ -626,6 +738,71 @@
       선택값.property = propertyEl.value;
       updateRatio();
       저장(KEY.property, propertyEl.value);
+    });
+
+    /* 소액임차금액 추천 버블.
+       입력칸을 누르면 자주 쓰는 4개 금액을 띄우고, 고르면 그 값을 채운 뒤
+       'input' 이벤트를 흘려보내 기존 금액입력() 경로(콤마·계산·저장)를 그대로 태운다. */
+    (() => {
+      const input = $('소액임차금액');
+      const list = $('소액임차추천');
+
+      // 버블은 입력칸보다 넓어서 좁은 화면에선 왼쪽으로 삐져나간다.
+      // 화면 안으로 밀어 넣되, 꼬리는 반대로 움직여 계속 입력칸을 가리키게 한다.
+      const 위치보정 = () => {
+        list.style.setProperty('--tail-shift', '0px');
+        const box = list.getBoundingClientRect();
+        const 여백 = 8;
+        let 이동 = 0;
+        if (box.left < 여백) 이동 = 여백 - box.left;
+        else if (box.right > window.innerWidth - 여백) 이동 = (window.innerWidth - 여백) - box.right;
+        if (이동) list.style.setProperty('--tail-shift', Math.round(이동) + 'px');
+      };
+
+      const 열기 = () => { list.classList.add('open'); 위치보정(); };
+      const 닫기 = () => list.classList.remove('open');
+
+      // focus만으로는 이미 포커스된 칸을 다시 눌렀을 때 열리지 않아 click도 함께 건다
+      input.addEventListener('focus', 열기);
+      input.addEventListener('click', 열기);
+      // 직접 타이핑을 시작하면 추천은 필요 없다 (버블 선택도 이 경로로 들어와 같이 닫힌다)
+      input.addEventListener('input', 닫기);
+
+      for (const item of list.querySelectorAll('.suggest-item')) {
+        // mousedown을 막아 입력칸이 blur되지 않게 하고, 실제 처리는 click에서 한다
+        // (이렇게 해야 키보드 Enter 선택도 같은 경로로 동작한다)
+        item.addEventListener('mousedown', (e) => e.preventDefault());
+        item.addEventListener('click', () => {
+          input.value = item.dataset.value;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          닫기();
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (e.target !== input && !list.contains(e.target)) 닫기();
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') 닫기(); });
+      window.addEventListener('resize', 닫기);
+    })();
+
+    /* 입력한 값만 전부 지운다.
+       - 지우는 것: 지역·시군구·물건 선택, 금액 3칸, 그에 딸린 계산 결과
+       - 남기는 것: 안내 메모(자체 복원 버튼이 따로 있음),
+                    지역 데이터 캐시(사용자가 입력한 게 아니라 서버에서 받아온 참고 자료) */
+    $('초기화').addEventListener('click', () => {
+      for (const id of AMOUNT_IDS) {
+        $(id).value = '';
+        저장(`MCG_${id}`, '');
+      }
+      선택값 = { city: '', district: '', property: '' };
+      저장(KEY.city, '');
+      저장(KEY.district, '');
+      저장(KEY.property, '');
+
+      $('소액임차추천').classList.remove('open'); // 추천 버블이 열려 있으면 같이 닫는다
+      updateLtvField();
+      전체그리기(); // 선택 해제 상태로 다시 그린다 - 안에서 updateRatio→calculate까지 이어진다
     });
 
     $('메모').addEventListener('input', (e) => {
