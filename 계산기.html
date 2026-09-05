@@ -134,18 +134,16 @@
             color: var(--c-text-muted);
         }
 
+        /* 예전엔 pulse 애니메이션(2초 무한 반복)으로 깜빡였는데, 무한 반복 애니메이션은
+           화면에 아무 변화가 없어도 매 프레임 다시 그리게 만든다. 앱(WebView)에서는
+           onDraw가 초당 백 번 넘게 호출되며 로그가 계속 쌓이고 배터리도 그만큼 쓴다.
+           장식일 뿐 알려주는 정보가 없어서 고정 표시로 바꿨다. */
         .status-indicator {
             width: 8px;
             height: 8px;
             background: var(--accent-gradient);
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(79, 111, 228, 0.45);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
         }
 
         @keyframes slideUp {
