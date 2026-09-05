@@ -281,6 +281,12 @@
             height: 44px;
         }
 
+        /* "000"은 세 글자라 세로보다 가로가 먼저 찬다.
+           한 글자 버튼과 같은 크기로 두면 버튼 밖으로 넘치므로 가로 폭에 맞춰 따로 잡는다. */
+        .btn[data-value="000"] {
+            font-size: 42px;
+        }
+
         .btn:hover {
             background: var(--c-primary-soft);
             border-color: var(--c-primary-soft-border);
@@ -348,8 +354,10 @@
 
         /* = 는 주 버튼이라 DSR의 강조 그라데이션(파랑→청록)을 쓰되,
            다른 버튼과 톤을 맞추려고 옅게 깔고 글자를 진하게 뒤집었다. */
+        /* 000 버튼이 들어오면서 마지막 줄이 0 / 000 / . / = 네 칸으로 꽉 찬다.
+           그래서 예전처럼 두 칸을 차지하지 않고 한 칸만 쓴다. */
         .btn-equals {
-            grid-column: span 2;
+            grid-column: span 1;
             background: linear-gradient(135deg, #ccd8f8 0%, #c1ebe6 100%);
             color: var(--c-op-text);
             /* 크기는 .btn과 같다(높이가 같으니 한계도 같다). 강조는 굵기로만 준다. */
@@ -675,6 +683,10 @@
                 height: clamp(32px, 6.4vh, 50px);
             }
 
+            .btn[data-value="000"] {
+                font-size: clamp(22px, 5.2vh, 40px);
+            }
+
             .quick-percent {
                 gap: 6px;
                 margin-bottom: 10px;
@@ -765,6 +777,7 @@
             <button type="button" class="btn btn-operator" data-action="operator" data-value="+" aria-label="더하기">+</button>
 
             <button type="button" class="btn" data-action="number" data-value="0">0</button>
+            <button type="button" class="btn" data-action="number" data-value="000" aria-label="영 세 개">000</button>
             <button type="button" class="btn" data-action="dot" aria-label="소수점">.</button>
             <button type="button" class="btn btn-equals" data-action="equals" aria-label="계산">=</button>
         </div>
@@ -872,17 +885,22 @@
 
     // ═══════════════ 입력 ═══════════════
 
+    /* num은 '7' 같은 한 글자일 수도, '000'처럼 여러 글자일 수도 있다.
+       빈 칸에서 000을 누르면 "000"이 아니라 그냥 0이어야 하고,
+       자릿수 제한도 글자 수만큼 한 번에 따져야 한다(한 글자씩 검사하면 15자를 넘긴다). */
     function appendNumber(num) {
         if (currentInput === 'Error') return;
+        const 새로시작 = (값) => /^0+$/.test(값) ? '0' : 값;   // '000' → '0'
+
         // 퍼센트가 적용된 직후 숫자를 누르면 새 피연산자를 시작하고 식을 다시 쓴다
         if (percentApplied) {
             percentApplied = false;
-            currentInput = num;
+            currentInput = 새로시작(num);
             expressionElement.textContent = prevInput + ' ' + operator + ' ';
         } else if (currentInput === '0' || shouldResetDisplay) {
-            currentInput = num;
+            currentInput = 새로시작(num);
             shouldResetDisplay = false;
-        } else if (currentInput.length < MAX_INPUT_LENGTH) {
+        } else if (currentInput.length + num.length <= MAX_INPUT_LENGTH) {
             currentInput += num;
         }
         updateDisplay();
