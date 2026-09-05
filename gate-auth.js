@@ -74,7 +74,8 @@ function lockApp(reason) {
   alert(GATE_MESSAGES[reason] || "이용이 제한되었습니다.");
 
   document.getElementById('auth-section').style.display = 'flex';
-  document.querySelectorAll('.nav-btn, .main-wrapper').forEach(el => el.classList.add('locked-content'));
+  // .frame-toggle-group도 프레임과 함께 숨겨야 한다 - 안 그러면 잠긴 뒤에도 토글 칩만 남는다
+  document.querySelectorAll('.nav-btn, .main-wrapper, .frame-toggle-group').forEach(el => el.classList.add('locked-content'));
 
   const nameInput = document.getElementById('user-name-input');
   const counterEl = document.getElementById('today-count');

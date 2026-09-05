@@ -168,6 +168,77 @@
       background-color: #1d4ed8;
     }
 
+    /* ── 프레임 표시 토글 칩 (본문은 항상 표시, 계산기/상담일지만 켜고 끈다) ── */
+    /* 내비 버튼 바로 옆에 붙인다 (오른쪽 끝으로 밀면 눈에 잘 안 띈다) */
+    .frame-toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-left: 4px;
+      padding-left: 10px;
+      border-left: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .frame-toggle {
+      height: 32px;
+      padding: 0 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      font-family: inherit;
+      color: #94a3b8;
+      background-color: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 켜짐/꺼짐을 글자색만으로 구분하면 헷갈려서 앞에 점을 하나 둔다 */
+    .frame-toggle::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      transition: background-color 0.2s ease;
+    }
+
+    .frame-toggle:hover {
+      border-color: #cbd5e1;
+      color: #64748b;
+    }
+
+    /* 켜짐은 선택된 내비 버튼과 같은 파란 채움 - 멀리서도 바로 구분된다 */
+    .frame-toggle.active {
+      color: #ffffff;
+      background-color: #2563eb;
+      border-color: #2563eb;
+      box-shadow: 0 3px 8px rgba(37, 99, 235, 0.22);
+    }
+
+    .frame-toggle.active::before {
+      background-color: #ffffff;
+    }
+
+    .frame-toggle.active:hover {
+      background-color: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #ffffff;
+    }
+
+    /* 꺼진 프레임 숨기기. 남은 프레임들은 flex 비율대로 알아서 넓어진다. */
+    .frame-container.is-hidden {
+      display: none !important;
+    }
+
     /* 프레임들을 감싸는 메인 래퍼 */
     .main-wrapper {
       display: flex;
@@ -237,7 +308,11 @@
     .frame-resizer.is-resizing {
       background-color: rgba(37, 99, 235, 0.4);
     }
-    .frame-container:last-child .frame-resizer {
+    /* 맨 오른쪽 프레임에는 짝이 될 프레임이 없으므로 리사이저를 숨긴다.
+       프레임을 접을 수 있게 된 뒤로는 :last-child가 "화면상 마지막"과 어긋날 수 있어
+       (마지막 프레임이 접혀 있으면 그 앞이 실제 마지막) JS가 붙여주는 클래스도 함께 본다. */
+    .frame-container:last-child .frame-resizer,
+    .frame-container.is-last-visible .frame-resizer {
       display: none;
     }
 
@@ -266,10 +341,24 @@
         flex: 1 1 auto !important;
         width: 100% !important;
       }
-      /* 프레임이 1개뿐이므로 순서 변경 핸들/너비 조절 바는 의미가 없어 숨김 */
+      /* 프레임이 1개뿐이므로 순서 변경 핸들/너비 조절 바/표시 토글은 의미가 없어 숨김 */
       #content-container .drag-handle,
-      #content-container .frame-resizer {
+      #content-container .frame-resizer,
+      .frame-toggle-group {
         display: none !important;
+      }
+    }
+
+    /* 좁은 태블릿(768~900px)에서는 상단 바가 딱 1~2px 모자라 가로 스크롤이 생긴다.
+       칩 여백만 조금 줄여서 한 줄에 들어오게 한다. */
+    @media (min-width: 768px) and (max-width: 900px) {
+      .frame-toggle-group {
+        gap: 4px;
+        padding-left: 8px;
+      }
+      .frame-toggle {
+        padding: 0 9px;
+        gap: 5px;
       }
     }
 
@@ -281,44 +370,44 @@
     let lastLayoutMode = window.innerWidth >= 768 ? 'wide' : 'mobile';
     let isResizing = false;
 
+    /* 프레임이 지금 어느 화면을 띄우고 있는지 기록한다.
+
+       location.replace()로 이동하면 iframe의 src "속성"은 처음 값('') 그대로 남는다.
+       그래서 src만 보고 판단하면 MCG를 띄워놨어도 "아직 아무것도 안 띄웠다"고 오해해
+       DSR로 되돌려버린다(updateFramesSrc 참고). data-page에 따로 적어두고 그걸 본다.
+       src를 직접 바꾸면 화면이 다시 로드되므로 속성 대신 dataset을 쓴다. */
+    function 프레임이동(frame, page, version) {
+      if (!frame) return;
+      if (frame.contentWindow) {
+        frame.contentWindow.location.replace(`${page}?v=${version}`);
+      } else {
+        frame.setAttribute('src', `${page}?v=${version}`);
+      }
+      frame.dataset.page = page;
+    }
+
+    function 현재페이지(frame) {
+      return frame.dataset.page || frame.getAttribute('src') || '';
+    }
+
     function loadPage(page, element) {
       const version = '250605_1';
-      
-      // 상담일지는 별도 처리 (모바일/PC 모드에 따라 다른 프레임 사용)
+
+      // 상담일지는 별도 처리 (전용 프레임을 쓸 수 있으면 그쪽, 아니면 본문 프레임)
       if (page === '상담일지.html') {
-        if (window.innerWidth < 768) {
-          // 모바일: content-frame 사용
-          const contentFrame = document.getElementById('content-frame');
-          if (contentFrame) {
-            if (contentFrame.contentWindow) {
-              contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
-            } else {
-              contentFrame.setAttribute('src', `${page}?v=${version}`);
-            }
-          }
+        if (!isConsultingFrameAvailable()) {
+          // 모바일이거나 상담일지 프레임을 접어둔 상태: content-frame 사용
+          프레임이동(document.getElementById('content-frame'), page, version);
         } else {
-          // PC/태블릿: consulting-frame 사용
-          const consultingFrame = document.getElementById('consulting-frame');
-          if (consultingFrame) {
-            if (consultingFrame.contentWindow) {
-              consultingFrame.contentWindow.location.replace(`${page}?v=${version}`);
-            } else {
-              consultingFrame.setAttribute('src', `${page}?v=${version}`);
-            }
-          }
+          // 상담일지 프레임이 펼쳐져 있음: consulting-frame 사용
+          프레임이동(document.getElementById('consulting-frame'), page, version);
         }
       } else {
         // 다른 페이지들: content-frame 사용
-        const contentFrame = document.getElementById('content-frame');
-        if (contentFrame) {
-          if (contentFrame.contentWindow) {
-            contentFrame.contentWindow.location.replace(`${page}?v=${version}`);
-          } else {
-            contentFrame.setAttribute('src', `${page}?v=${version}`);
-          }
-        }
+        프레임이동(document.getElementById('content-frame'), page, version);
       }
-      
+
+
       if (element) {
         const buttons = document.querySelectorAll('.button-container button.nav-btn');
         buttons.forEach(btn => btn.classList.remove('active-nav'));
@@ -326,26 +415,144 @@
       }
     }
     
+    /* ── 프레임 표시 여부 ──────────────────────────────────────────
+       본문(content-container)은 항상 표시하고, 계산기/상담일지만 켜고 끈다.
+       처음 열었을 때 기본값은 창 너비로 정한다: DSR 화면이 최소 396px를 요구하는데
+       (DSR_style.css), 1200px 미만에서 3분할하면 한 칸이 400px 아래로 내려가
+       DSR이 가로로 잘린다. 그래서 태블릿 폭에서는 상담일지를 접은 2분할로 시작한다.
+       한 번이라도 사용자가 칩을 누르면 그 선택이 저장되어 기본값보다 우선한다. */
+    const FRAME_VISIBILITY_KEY = 'frame_visibility';
+    const TOGGLEABLE_FRAMES = ['calc-container', 'consulting-container'];
+    const THREE_FRAME_MIN_WIDTH = 1200;
+
+    function getFrameVisibility() {
+      const 기본값 = {
+        'calc-container': true,
+        'consulting-container': window.innerWidth >= THREE_FRAME_MIN_WIDTH
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(FRAME_VISIBILITY_KEY));
+        if (saved && typeof saved === 'object') {
+          TOGGLEABLE_FRAMES.forEach(id => {
+            if (typeof saved[id] === 'boolean') 기본값[id] = saved[id];
+          });
+        }
+      } catch (e) {
+        // 손상된 값은 무시하고 기본값을 쓴다
+      }
+      return 기본값;
+    }
+
+    function applyFrameVisibility(visibility, { 균등분배 = false } = {}) {
+      TOGGLEABLE_FRAMES.forEach(id => {
+        const container = document.getElementById(id);
+        if (container) container.classList.toggle('is-hidden', !visibility[id]);
+
+        const chip = document.querySelector(`.frame-toggle[data-target="${id}"]`);
+        if (chip) {
+          chip.classList.toggle('active', visibility[id]);
+          chip.setAttribute('aria-pressed', String(visibility[id]));
+        }
+      });
+      markLastVisibleFrame();
+      redistributeVisibleFrames(균등분배);
+    }
+
+    /* 프레임을 접으면 남은 프레임들의 flex-grow 합이 1보다 작아진다.
+       (예: 0.33/0.33/0.33 중 하나를 접으면 합이 0.67) flex는 grow 합이 1 미만이면
+       남는 공간을 "분배하지 않고 그대로 비워두기" 때문에, 접은 프레임 자리가 빈 채로
+       남는다. 그래서 접거나 펼칠 때마다 남은 프레임의 비율을 합이 1이 되도록 다시 맞춘다.
+
+       균등분배=true  → 개수에 맞춰 똑같이 나눈다 (2개면 5:5, 3개면 3:3:3). 사용자가 칩을 눌렀을 때.
+       균등분배=false → 지금 비율을 유지한 채 합만 1로 맞춘다. 새로고침 시 직접 조절한 폭을 살리려고. */
+    function redistributeVisibleFrames(균등분배) {
+      const 보이는프레임 = [...document.querySelectorAll('.frame-container')]
+        .filter(fc => !fc.classList.contains('is-hidden'));
+      if (!보이는프레임.length) return;
+
+      const 현재 = 보이는프레임.map(fc => parseFloat(fc.style.flexGrow) || 1);
+      const 합 = 현재.reduce((a, b) => a + b, 0) || 1;
+      const 비율들 = 균등분배
+        ? 보이는프레임.map(() => 1 / 보이는프레임.length)
+        : 현재.map(v => v / 합);
+
+      보이는프레임.forEach((fc, i) => {
+        fc.style.flex = `${비율들[i]} ${비율들[i]} 0%`;
+      });
+    }
+
+    // 화면상 마지막 프레임에 표시를 남겨 그 리사이저를 숨긴다(CSS 참고)
+    function markLastVisibleFrame() {
+      const 보이는프레임 = [...document.querySelectorAll('.frame-container')]
+        .filter(fc => !fc.classList.contains('is-hidden'));
+      document.querySelectorAll('.frame-container').forEach(fc => fc.classList.remove('is-last-visible'));
+      if (보이는프레임.length) 보이는프레임[보이는프레임.length - 1].classList.add('is-last-visible');
+    }
+
+    function initFrameToggles() {
+      applyFrameVisibility(getFrameVisibility());
+
+      document.querySelectorAll('.frame-toggle').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const id = chip.dataset.target;
+          const visibility = getFrameVisibility();
+          visibility[id] = !visibility[id];
+          localStorage.setItem(FRAME_VISIBILITY_KEY, JSON.stringify(visibility));
+          // 칩을 눌렀을 때는 개수에 맞춰 균등하게(2개면 5:5, 3개면 3:3:3) 바로 다시 나눈다
+          applyFrameVisibility(visibility, { 균등분배: true });
+          // 남은 프레임들이 새 폭을 차지했으므로 그 비율을 다시 저장해 둔다
+          updateFrameWidths();
+        });
+      });
+    }
+
+    // 상담일지 전용 프레임을 지금 쓸 수 있는가 (모바일이거나 사용자가 접었으면 못 쓴다)
+    function isConsultingFrameAvailable() {
+      if (window.innerWidth < 768) return false;
+      const container = document.getElementById('consulting-container');
+      return !!container && !container.classList.contains('is-hidden');
+    }
+
     // 프레임 순서 저장 함수
     function updateFrameOrder() {
       const containers = document.querySelectorAll('.frame-container');
       const order = Array.from(containers).map(container => container.id);
       localStorage.setItem('frame_order', JSON.stringify(order));
+      markLastVisibleFrame();   // 순서가 바뀌면 화면상 마지막 프레임도 바뀐다
     }
 
     // 프레임 너비 저장 함수 (창 너비 대비 "비율"로 저장 → 창 크기가 달라져도 항상 전체 너비를 채움)
     function updateFrameWidths() {
-      const containers = document.querySelectorAll('.frame-container');
-      const wrapper = document.querySelector('.main-wrapper');
-      const totalWidth = wrapper ? wrapper.clientWidth : 0;
-      if (!totalWidth) return;
+      const containers = [...document.querySelectorAll('.frame-container')];
 
-      const widths = Array.from(containers).map(container => {
-        return {
-          id: container.id,
-          ratio: container.offsetWidth / totalWidth
-        };
-      });
+      /* 접어둔 프레임은 폭이 0이라 그대로 저장하면 비율 0으로 굳어버린다.
+         (다시 펼쳤을 때 폭이 0인 채로 복원됨) 그래서 보이는 것만 새로 저장하고,
+         접힌 프레임은 접기 직전에 저장해 둔 비율을 그대로 유지한다. */
+      let 이전비율 = {};
+      try {
+        (JSON.parse(localStorage.getItem('frame_widths')) || []).forEach(item => {
+          이전비율[item.id] = item.ratio;
+        });
+      } catch (e) { /* 손상된 값은 무시 */ }
+
+      /* 비율은 리사이저와 똑같이 "테두리를 뺀 안쪽 폭" 기준으로 만든다.
+         바깥 폭으로 저장하면 복원할 때마다 테두리 1px만큼 배분이 밀려서,
+         새로고침할 때마다 프레임이 조금씩 이동한다. */
+      const 테두리 = (fc) => {
+        const cs = getComputedStyle(fc);
+        return (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+      };
+      const 보이는프레임 = containers.filter(fc => !fc.classList.contains('is-hidden') && fc.getBoundingClientRect().width > 0);
+      const 안쪽폭 = new Map(보이는프레임.map(fc => [fc.id, fc.getBoundingClientRect().width - 테두리(fc)]));
+      const 합 = [...안쪽폭.values()].reduce((a, b) => a + b, 0);
+      if (합 <= 0) return;
+
+      const widths = containers.map(container => ({
+        id: container.id,
+        ratio: 안쪽폭.has(container.id)
+          ? 안쪽폭.get(container.id) / 합
+          : (이전비율[container.id] ?? 1)
+      }));
       localStorage.setItem('frame_widths', JSON.stringify(widths));
     }
 
@@ -408,8 +615,8 @@
       if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
       const payload = e.data; // text/kbPrice/neededAmount/propertyInfo 등을 그대로 통째로 중계
 
-      if (window.innerWidth < 768) {
-        // 모바일: content-frame이 지금 DSR 화면이므로 상담일지로 전환한 뒤, 로드가 끝나면 전달
+      if (!isConsultingFrameAvailable()) {
+        // 상담일지 프레임이 없음(모바일이거나 접어둠): content-frame을 상담일지로 전환한 뒤 전달
         const contentFrame = document.getElementById('content-frame');
         if (!contentFrame) return;
         const navBtn = document.querySelector('.button-container button.nav-btn[onclick*="상담일지.html"]');
@@ -422,7 +629,7 @@
         contentFrame.addEventListener('load', forwardWhenReady);
         loadPage('상담일지.html', navBtn);
       } else {
-        // PC/태블릿: consulting-frame이 항상 로드되어 있으므로 바로 전달
+        // 상담일지 프레임이 펼쳐져 있고 이미 로드되어 있으므로 바로 전달
         const consultingFrame = document.getElementById('consulting-frame');
         if (consultingFrame && consultingFrame.contentWindow) {
           consultingFrame.contentWindow.postMessage(payload, '*');
@@ -453,10 +660,10 @@
       initDragAndDrop();
       initFrameResizers();
       initTouchFeedback();
-      initLongPressButtons();
-      
-      // 프레임 설정 불러오기
+
+      // 프레임 설정 불러오기 (순서·너비 복원 뒤에 표시 여부를 적용해야 한다)
       loadFrameSettings();
+      initFrameToggles();
       
       window.addEventListener('resize', () => {
         const savedName = localStorage.getItem('calc_user_name');
@@ -472,28 +679,28 @@
       }, false);
     }
 
+    /* 아직 아무것도 안 띄운 프레임에만 기본 화면을 채운다.
+       판단 기준은 src 속성이 아니라 data-page다 - loadPage는 location.replace로 옮기기
+       때문에 src 속성이 계속 ''로 남아, 그걸 보면 이미 띄워둔 MCG·날짜계산 같은 화면을
+       "비어 있다"고 착각해 DSR로 덮어써버린다. (창 폭이 768px 경계를 넘을 때마다 발생) */
     function updateFramesSrc() {
       const version = '250605_1';
-      
+
       const contentFrame = document.getElementById('content-frame');
       const calcFrame = document.getElementById('calc-frame');
       const consultingFrame = document.getElementById('consulting-frame');
 
-      const contentSrc = contentFrame.getAttribute('src') || '';
-      const calcSrc = calcFrame.getAttribute('src') || '';
-      const consultingSrc = consultingFrame.getAttribute('src') || '';
+      const contentPage = 현재페이지(contentFrame);
 
-      if (contentSrc === '' || contentSrc.includes('main.html')) {
-        if (contentFrame.contentWindow) contentFrame.contentWindow.location.replace(`DSR_Main.html?v=${version}`);
-        else contentFrame.setAttribute('src', `DSR_Main.html?v=${version}`);
+      // DTI는 좁은 화면에서 쓰기 불편해 넓은 화면으로 바뀔 때 DSR로 넘긴다(기존 동작 유지)
+      if (contentPage === '' || contentPage.includes('DTI.html')) {
+        프레임이동(contentFrame, 'DSR_Main.html', version);
       }
-      if (calcSrc === '') {
-        if (calcFrame.contentWindow) calcFrame.contentWindow.location.replace(`계산기.html?v=${version}`);
-        else calcFrame.setAttribute('src', `계산기.html?v=${version}`);
+      if (현재페이지(calcFrame) === '') {
+        프레임이동(calcFrame, '계산기.html', version);
       }
-      if (consultingSrc === '') {
-        if (consultingFrame.contentWindow) consultingFrame.contentWindow.location.replace(`상담일지.html?v=${version}`);
-        else consultingFrame.setAttribute('src', `상담일지.html?v=${version}`);
+      if (현재페이지(consultingFrame) === '') {
+        프레임이동(consultingFrame, '상담일지.html', version);
       }
     }
 
@@ -624,147 +831,6 @@
       });
     }
 
-    function initLongPressButtons() {
-      const navButtons = document.querySelectorAll('.button-container button.nav-btn');
-      
-      navButtons.forEach(button => {
-        let pressTimer = null;
-        let showPopupTimer = null;
-
-        const handlePressStart = () => {
-          showPopupTimer = setTimeout(() => {
-            showResetGuidePopup();
-          }, 1000);
-          
-          pressTimer = setTimeout(() => {
-            clearTimeout(showPopupTimer);
-            resetFrame(button);
-            pressTimer = null;
-          }, 2000);
-        };
-
-        const handlePressEnd = () => {
-          if (pressTimer) {
-            clearTimeout(pressTimer);
-            pressTimer = null;
-          }
-          if (showPopupTimer) {
-            clearTimeout(showPopupTimer);
-            showPopupTimer = null;
-          }
-        };
-
-        button.addEventListener('mousedown', handlePressStart);
-        button.addEventListener('touchstart', handlePressStart, { passive: true });
-        
-        button.addEventListener('mouseup', handlePressEnd);
-        button.addEventListener('mouseleave', handlePressEnd);
-        button.addEventListener('touchend', handlePressEnd);
-        button.addEventListener('touchcancel', handlePressEnd);
-      });
-    }
-
-    function showResetGuidePopup() {
-      const existingPopup = document.getElementById('resetGuidePopup');
-      if (existingPopup) existingPopup.remove();
-
-      const popup = document.createElement('div');
-      popup.id = 'resetGuidePopup';
-      popup.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px 24px;
-        border-radius: 12px;
-        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
-        z-index: 200;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        text-align: center;
-        animation: slideIn 0.2s ease-out;
-      `;
-      
-      popup.innerHTML = `
-        <div style="font-size: 14px; color: #475569; line-height: 1.6;">
-          <div style="margin-bottom: 8px; font-weight: 600;">2초간 누르면 초기화됩니다</div>
-          <div style="font-size: 12px; color: #94a3b8;">계속 누르고 있으면 입력된 내용이 모두 삭제됩니다</div>
-        </div>
-      `;
-
-      document.body.appendChild(popup);
-      
-      setTimeout(() => {
-        if (popup.parentElement) {
-          popup.style.opacity = '0';
-          popup.style.transition = 'opacity 0.3s ease';
-          setTimeout(() => popup.remove(), 300);
-        }
-      }, 1000);
-    }
-
-    function resetFrame(buttonElement) {
-      const frameId = getFrameIdFromButton(buttonElement);
-      if (!frameId) return;
-
-      const frame = document.getElementById(frameId);
-      if (!frame) return;
-
-      const pageNames = {
-        'content-frame': ['DSR', 'main', 'MCG', '상담'],
-        'calc-frame': ['calculator'],
-        'consulting-frame': ['consulting']
-      };
-
-      if (pageNames[frameId]) {
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-          if (pageNames[frameId].some(name => key.includes(name))) {
-            localStorage.removeItem(key);
-          }
-        });
-      }
-
-      try {
-        if (frame.contentWindow && frame.contentWindow.resetAllFields) {
-          frame.contentWindow.resetAllFields();
-        } else {
-          const version = '250605_1';
-          const src = frame.getAttribute('src');
-          if (src) {
-            const baseUrl = src.split('?')[0];
-            frame.setAttribute('src', `${baseUrl}?v=${version}&t=${Date.now()}`);
-          }
-        }
-      } catch (e) {
-        const version = '250605_1';
-        const src = frame.getAttribute('src');
-        if (src) {
-          const baseUrl = src.split('?')[0];
-          frame.setAttribute('src', `${baseUrl}?v=${version}&t=${Date.now()}`);
-        }
-      }
-    }
-
-    function getFrameIdFromButton(buttonElement) {
-      const btnText = buttonElement.textContent.trim();
-      
-      if (btnText === '상담일지') {
-        if (window.innerWidth < 768) {
-          return 'content-frame';
-        } else {
-          return 'consulting-frame';
-        }
-      }
-      
-      const buttonMap = {
-        'DTI 계산': 'content-frame',
-        'DSR 계산': 'content-frame',
-        'MCG 계산': 'content-frame',
-      };
-      return buttonMap[btnText] || null;
-    }
-
     // 모바일 터치 및 PC 마우스 공용 프레임 순서 드래그 앤 드롭
     function initDragAndDrop() {
       const handles = document.querySelectorAll('.drag-handle');
@@ -863,22 +929,17 @@
           if (e.button !== 0 && e.pointerType === 'mouse') return;
 
           leftContainer = resizer.closest('.frame-container');
+          // 접어둔 프레임은 폭이 0이라 짝이 될 수 없다. 보이는 다음 프레임을 찾는다.
           let next = leftContainer ? leftContainer.nextElementSibling : null;
-          while (next && !next.classList.contains('frame-container')) {
+          while (next && !(next.classList.contains('frame-container') && !next.classList.contains('is-hidden'))) {
             next = next.nextElementSibling;
           }
           rightContainer = next;
 
           if (!leftContainer || !rightContainer) return;
 
-          const wrapper = document.querySelector('.main-wrapper');
-          wrapperWidth = wrapper ? wrapper.clientWidth : 0;
-          if (!wrapperWidth) return;
-
           activeResizer = resizer;
           startX = e.clientX;
-          startLeftWidth = leftContainer.getBoundingClientRect().width;
-          startRightWidth = rightContainer.getBoundingClientRect().width;
 
           resizer.classList.add('is-resizing');
           resizer.setPointerCapture(e.pointerId);
@@ -886,12 +947,36 @@
           document.querySelectorAll('iframe').forEach(ifr => ifr.style.pointerEvents = 'none');
           document.body.style.cursor = 'col-resize';
 
-          // 드래그 시작 시점의 현재 폭을 "비율"로 고정 (px 고정 대신 flex-basis 0% + 비율 grow)
-          document.querySelectorAll('.frame-container').forEach(fc => {
-            const w = fc.getBoundingClientRect().width;
-            const ratio = w / wrapperWidth;
-            fc.style.flex = `${ratio} ${ratio} 0%`;
+          /* 드래그 시작 시점의 현재 폭을 "비율"로 고정 (px 고정 대신 flex-basis 0% + 비율 grow)
+
+             ① 반드시 "전부 측정한 뒤에 전부 기록"해야 한다. 측정과 기록을 한 프레임씩
+                번갈아 하면, 첫 프레임에 flex를 넣는 순간 레이아웃이 다시 계산되어 나머지
+                프레임이 넓어진 상태로 측정된다. 그러면 비율 합이 1을 넘고(예: 1.33) 첫
+                프레임만 계속 좁아져, 리사이저를 잡기만 해도 폭이 줄고 되돌릴 수 없게 된다.
+             ② 비율은 "테두리를 뺀 안쪽 폭"으로 계산해야 한다. flex-basis가 0%라 브라우저는
+                각 프레임의 테두리(border-right 1px)를 먼저 떼어놓고 남은 공간만 비율대로
+                나눈다. 그런데 getBoundingClientRect()의 폭에는 그 테두리가 포함되어 있어서,
+                그대로 비율을 만들면 테두리가 있는 프레임에는 1px이 매번 다시 더해지고
+                그만큼을 맨 끝 프레임이 잃는다(잡을 때마다 약 0.7px). 이게 쌓여서 마지막
+                프레임이 계속 줄고 되돌릴 수 없게 되던 원인이다.
+             ③ 접어둔 프레임은 폭이 0이므로 건드리지 않는다(비율 0으로 굳어버림). */
+          const 보이는프레임 = [...document.querySelectorAll('.frame-container')]
+            .filter(fc => !fc.classList.contains('is-hidden'));
+          const 테두리 = (fc) => {
+            const cs = getComputedStyle(fc);
+            return (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+          };
+          const 안쪽폭들 = 보이는프레임.map(fc => fc.getBoundingClientRect().width - 테두리(fc));
+          wrapperWidth = 안쪽폭들.reduce((합, w) => 합 + w, 0);
+          if (wrapperWidth <= 0) return;
+
+          const 비율들 = 안쪽폭들.map(w => w / wrapperWidth);   // 합이 정확히 1
+          보이는프레임.forEach((fc, i) => {
+            fc.style.flex = `${비율들[i]} ${비율들[i]} 0%`;
           });
+
+          startLeftWidth = 안쪽폭들[보이는프레임.indexOf(leftContainer)];
+          startRightWidth = 안쪽폭들[보이는프레임.indexOf(rightContainer)];
 
           e.preventDefault();
           e.stopPropagation();
@@ -955,11 +1040,16 @@
       <button type="button" class="user-submit-btn" onclick="submitUserName()">확인</button>
     </div>
 
-    <button type="button" class="nav-btn locked-content" onclick="loadPage('main.html', this)">DTI 계산</button>
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('DTI.html', this)">DTI 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('DSR_Main.html', this)">DSR 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('날짜계산기.html', this)">날짜계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
+
+    <div class="frame-toggle-group locked-content" id="frameToggleGroup">
+      <button type="button" class="frame-toggle" data-target="calc-container" aria-pressed="true">계산기</button>
+      <button type="button" class="frame-toggle" data-target="consulting-container" aria-pressed="true">상담일지</button>
+    </div>
   </div>
   
   <div class="main-wrapper locked-content">
