@@ -204,6 +204,52 @@
       overflow: auto;
     }
 
+    /* 라벨과 눈 버튼을 한 줄에. 버튼을 오른쪽 끝으로 밀지 않고 "환산 수식" 글자
+       바로 옆에 붙여, 무엇을 여닫는 버튼인지 눈으로 바로 이어지게 한다. */
+    .field.wide > .field-head {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+    }
+
+    /* 수식 접기/펼치기 - index.html의 "기록 숨김"과 같은 눈 아이콘을 써서
+       앱 안에서 같은 뜻은 같은 모양으로 보이게 한다. */
+    .formula-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #f8fafc;
+      color: #64748b;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+    .formula-toggle:hover { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+    .formula-toggle:active { transform: scale(0.94); }
+    .formula-toggle svg { width: 13px; height: 13px; }
+
+    /* 접힌 상태: 수식 칸을 감추고 버튼은 "다시 보기"로 바뀐다 */
+    .field.wide.is-collapsed > input { display: none; }
+    .field.wide.is-collapsed { margin-bottom: 2px; }
+    .field.wide.is-collapsed .formula-toggle {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #2563eb;
+    }
+    /* 눈에 사선을 그어 "지금 숨겨져 있다"를 한눈에 보여준다 */
+    .formula-toggle .eye-slash { display: none; }
+    .is-collapsed .formula-toggle .eye-slash { display: inline; }
+
     /* -------------------- 소득 환산 방식 버튼 -------------------- */
     .button-group {
       display: flex;
@@ -689,11 +735,15 @@
     }
   }
 
-  // 초기화 버튼용 - 입력값만 비우고 전환비율 설정은 남긴다
+  /* 초기화해도 남겨야 하는 키들 - 입력값이 아니라 사용자가 정해둔 설정·화면 취향이다.
+     (수식 접기 상태를 안 남기면 초기화할 때마다 접어둔 수식이 다시 펼쳐져 거슬린다) */
+  const 유지할_설정_키 = [...설정_IDS, 'formulaCollapsed'];
+
+  // 초기화 버튼용 - 입력값만 비우고 위 설정들은 남긴다
   function clearSessionStorageData() {
     Object.keys(localStorage)
       .filter(key => key.startsWith(키접두사))
-      .filter(key => !설정_IDS.includes(key.slice(키접두사.length)))
+      .filter(key => !유지할_설정_키.includes(key.slice(키접두사.length)))
       .forEach(key => localStorage.removeItem(key));
   }
 
@@ -735,6 +785,27 @@
     });
   }
 
+  /* -------------------- 환산 수식 접기 -------------------- */
+
+  /* 수식은 한 번 익히면 계속 볼 필요가 없어서 접어둘 수 있게 한다.
+     접힘 여부는 저장해서 다음에 열 때도 그대로 유지한다. */
+  function 수식접기적용(접힘) {
+    $('formulaField').classList.toggle('is-collapsed', 접힘);
+    const btn = $('formulaToggle');
+    btn.setAttribute('aria-expanded', String(!접힘));
+    btn.title = 접힘 ? '환산 수식 보기' : '환산 수식 숨기기';
+    $('formulaToggleLabel').textContent = 접힘 ? '보기' : '숨기기';
+  }
+
+  function setupFormulaToggle() {
+    수식접기적용(localStorage.getItem(키('formulaCollapsed')) === '1');
+    $('formulaToggle').addEventListener('click', () => {
+      const 접힘 = !$('formulaField').classList.contains('is-collapsed');
+      수식접기적용(접힘);
+      저장('formulaCollapsed', 접힘 ? '1' : '0');
+    });
+  }
+
   /* -------------------- 시작 -------------------- */
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -742,6 +813,7 @@
     const savedType = localStorage.getItem(키('selectedType'));
 
     setupPopupButton();
+    setupFormulaToggle();
     loadAllInputs();
     setupAutoSave();
     $("최대가능금액").addEventListener("click", applyMaxLoan);
@@ -836,8 +908,18 @@
       </div>
     </div>
 
-    <div class="field wide">
-      <label for="conversionFormula">환산 수식</label>
+    <div class="field wide" id="formulaField">
+      <div class="field-head">
+        <label for="conversionFormula">환산 수식</label>
+        <button type="button" class="formula-toggle" id="formulaToggle" aria-controls="conversionFormula" aria-expanded="true" title="환산 수식 숨기기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line class="eye-slash" x1="3" y1="21" x2="21" y2="3"></line>
+          </svg>
+          <span id="formulaToggleLabel">숨기기</span>
+        </button>
+      </div>
       <input type="text" id="conversionFormula" value="계산할 방법 선택하세요" readonly>
     </div>
 

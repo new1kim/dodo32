@@ -597,8 +597,23 @@
 
         /* ═══════════════ 반응형 디자인 ═══════════════ */
         @media (max-width: 480px) {
+            /* 폰에서는 카드 테두리를 없애고 화면을 꽉 채운다.
+               예전에는 바깥 여백 20px + 테두리 + 안쪽 여백 16px 때문에 버튼이
+               화면 가로의 74%밖에 쓰지 못했고, 키패드 아래로 228px가 비어 있었다. */
+            html, body { height: 100%; }
+
+            body {
+                padding: 0;
+                align-items: stretch;
+            }
+
             .container {
-                border-radius: 24px;
+                max-width: none;
+                min-height: 100vh;
+                min-height: 100dvh;   /* 주소창이 접혔다 펴져도 실제 보이는 높이에 맞춘다 */
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
             }
 
             .history-section {
@@ -621,31 +636,43 @@
                 height: 12px;
             }
 
+            /* 세로도 남는 공간 없이 채운다. 섹션을 세로 flex로 만들고 키패드가
+               남는 높이를 전부 가져가게 한다(그리드 행은 1fr로 균등 분배). */
             .calculator-section {
-                padding: 24px 16px 20px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                padding: 14px 10px 12px;
             }
 
             .display-area {
-                min-height: 100px;
+                flex: 0 0 auto;
+                min-height: 88px;
+                margin-bottom: 14px;
             }
 
             .result-display {
-                font-size: clamp(24px, 10vw, 44px);
+                font-size: clamp(28px, 11vw, 48px);
             }
 
             .keypad {
+                flex: 1;
+                grid-auto-rows: 1fr;   /* 다섯 줄이 남는 높이를 똑같이 나눠 가진다 */
                 gap: 8px;
+                min-height: 0;         /* flex 안에서 그리드가 넘치지 않게 */
             }
 
+            /* 높이는 그리드가 정하므로 고정하지 않는다.
+               글자는 행 높이에 맞춰 커지되, 너무 커지지 않도록 위쪽을 막아둔다. */
             .btn {
-                height: 54px;
-                font-size: 50px;
+                height: auto;
+                font-size: clamp(40px, 8.4vh, 64px);
                 border-radius: 12px;
             }
 
             .btn svg {
-                width: 40px;
-                height: 40px;
+                width: clamp(32px, 6.4vh, 50px);
+                height: clamp(32px, 6.4vh, 50px);
             }
 
             .quick-percent {
@@ -1126,6 +1153,41 @@
         }
     }
 
+    // ═══════════════ 촉각 피드백 ═══════════════
+
+    /* 물리 버튼과 달리 화면 버튼은 눌린 느낌이 없어서, 잘못 눌러도 손끝으로 알아채지 못한다.
+       짧게 한 번 울려 "입력됐다"를 알린다.
+
+       - click이 아니라 pointerdown에서 울린다. click은 손가락을 뗄 때 발생해서
+         진동이 한 박자 늦게 오고, 누르는 느낌과 어긋난다.
+       - 손가락일 때만 울린다. 마우스로 누를 땐 진동이 어색하고, 데스크톱엔 진동기도 없다.
+       - 앱에서는 AndroidManifest에 VIBRATE 권한이 있어야 동작한다.
+         권한이 없으면 오류 없이 조용히 무시되므로 눈치채기 어렵다. */
+    const 진동가능 = typeof navigator.vibrate === 'function';
+
+    function 햅틱(밀리초) {
+        if (!진동가능) return;
+        // 일부 기기·브라우저는 사용자 제스처 밖이거나 절전 상태에서 예외를 던진다
+        try { navigator.vibrate(밀리초); } catch (e) { /* 없어도 되는 기능이라 무시 */ }
+    }
+
+    /* 숫자는 짧게, = 는 "계산됐다"는 뜻이라 조금 길게 준다.
+       15ms를 넘기면 둔탁하게 느껴져서 짧게 잡았다. */
+    function 눌림진동(btn) {
+        const action = btn.dataset.action;
+        if (action === 'equals') 햅틱(18);
+        else if (action === 'clear' || action === 'backspace') 햅틱(14);
+        else 햅틱(8);
+    }
+
+    function 진동연결(컨테이너, 선택자) {
+        컨테이너.addEventListener('pointerdown', event => {
+            if (event.pointerType !== 'touch') return;   // 마우스·펜은 제외
+            const btn = event.target.closest(선택자);
+            if (btn) 눌림진동(btn);
+        });
+    }
+
     // ═══════════════ 이벤트 ═══════════════
 
     document.getElementById('keypad').addEventListener('click', event => {
@@ -1146,6 +1208,9 @@
         const btn = event.target.closest('button[data-pct]');
         if (btn) quickPercent(Number(btn.dataset.pct));
     });
+
+    진동연결(document.getElementById('keypad'), 'button[data-action]');
+    진동연결(document.getElementById('quickPercent'), 'button[data-pct]');
 
     // 기록 UI가 꺼져 있으면 해당 요소들이 아예 없으므로 리스너도 달지 않는다
     if (HISTORY_ON) {
