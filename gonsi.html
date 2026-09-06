@@ -394,31 +394,6 @@ select:focus {
 
 
 /* =========================================================
-   PRICE SEARCH BUTTON
-========================================================= */
-
-.price-btn {
-    width: 100%;
-    height: 48px;
-
-    border: 0;
-    border-radius: 9px;
-
-    background: #222;
-    color: #fff;
-
-    font-size: 14px;
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.price-btn:active {
-    transform: scale(0.98);
-}
-
-
-/* =========================================================
    PRICE RESULT
 ========================================================= */
 
@@ -618,8 +593,9 @@ select:focus {
 
         <div class="help-text">
 
-            예) 서울특별시 강남구 테헤란로 123<br>
-            예) 부산광역시 강서구 명지동 123-4
+            예) 도로명, 지번주소, 건물명칭<br>
+            예) 주소 검색이 제일정확함.
+        
 
         </div>
 
@@ -843,16 +819,6 @@ select:focus {
 
         </div>
 
-
-        <button
-            type="button"
-            class="price-btn"
-            onclick="searchPrice()">
-
-            공시가격 조회
-
-        </button>
-
     </div>
 
 
@@ -965,31 +931,6 @@ select:focus {
 
             </tr>
 
-
-            <tr>
-
-                <th>
-                    법정동코드
-                </th>
-
-                <td id="resultLegalDong">
-                    -
-                </td>
-
-            </tr>
-
-
-            <tr>
-
-                <th>
-                    필지고유번호(PNU)
-                </th>
-
-                <td id="resultBuildingNo">
-                    -
-                </td>
-
-            </tr>
 
         </table>
 
@@ -1137,7 +1078,9 @@ function resetResultAreas() {
     document.getElementById("unitArea").classList.remove("show");
     document.getElementById("yearArea").classList.remove("show");
 
-    document.getElementById("yearSelect").value = String(CURRENT_YEAR);
+    // 이전 검색에서 개별주택/오피스텔용으로 좁혀졌을 수 있는 연도 목록을
+    // 기본값(올해·작년·재작년)으로 되돌린다.
+    initYearSelect();
 
     hidePriceResult();
 }
@@ -1197,7 +1140,7 @@ function searchAddress() {
             }
 
             if (!data.results || data.results.length === 0) {
-                showStatus("검색 결과가 없습니다.", true);
+                searchByBuildingName(keyword);
                 return;
             }
 
@@ -1216,6 +1159,46 @@ function searchAddress() {
         })
         .catch(() => {
             showStatus("주소 검색 중 오류가 발생했습니다.", true);
+        });
+}
+
+
+/*
+ * 주소로 못 찾았을 때, 입력값을 오피스텔/빌라/아파트 등 건물명으로 보고
+ * 카카오 장소검색에서 다시 찾아본다.
+ */
+function searchByBuildingName(keyword) {
+
+    showStatus(
+        "건물명으로 검색하고 있습니다...",
+        false
+    );
+
+    fetch(GAS_BASE_URL + '?action=nameSearch&keyword=' + encodeURIComponent(keyword))
+        .then(res => res.json())
+        .then(data => {
+
+            if (data.error) {
+                showStatus(data.error, true);
+                return;
+            }
+
+            if (!data.results || data.results.length === 0) {
+                showStatus("검색 결과가 없습니다.", true);
+                return;
+            }
+
+            if (data.results.length === 1) {
+                hideStatus();
+                selectNameSearchResult(data.results[0]);
+                return;
+            }
+
+            displayNameSearchResults(data.results);
+            hideStatus();
+        })
+        .catch(() => {
+            showStatus("건물명 검색 중 오류가 발생했습니다.", true);
         });
 }
 
@@ -1299,6 +1282,117 @@ function displayAddressSearchResults(results) {
         behavior: "smooth",
         block: "start"
     });
+}
+
+
+/*
+ * 건물명 검색 결과 표시 (오피스텔/빌라/아파트 등)
+ */
+function displayNameSearchResults(results) {
+
+    const area =
+        document.getElementById("searchResults");
+
+    const list =
+        document.getElementById("addressList");
+
+    const count =
+        document.getElementById("resultCount");
+
+
+    list.innerHTML = "";
+
+
+    count.textContent =
+        "건물명 검색 결과 " +
+        results.length +
+        "건";
+
+
+    results.forEach(function(item) {
+
+        const div =
+            document.createElement("div");
+
+
+        div.className =
+            "address-item";
+
+
+        div.innerHTML = `
+
+            <div class="road">
+                ${escapeHtml(item.placeName)}
+                <span style="font-weight:400; color:#888;">(${escapeHtml(item.categoryName)})</span>
+            </div>
+
+            <div class="jibun">
+                ${escapeHtml(item.roadAddress)}
+            </div>
+
+        `;
+
+
+        div.addEventListener(
+            "click",
+            function() {
+
+                selectNameSearchResult(item);
+
+            }
+        );
+
+
+        list.appendChild(div);
+
+    });
+
+
+    area.classList.add("show");
+
+    area.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+
+/*
+ * 건물명 검색 결과를 클릭하면, 그 도로명주소로 주소검색을 한 번 더 호출해
+ * PNU 계산에 필요한 구조화된 정보(법정동코드/본번/부번 등)를 얻는다.
+ */
+function selectNameSearchResult(item) {
+
+    document
+        .getElementById("searchResults")
+        .classList.remove("show");
+
+    showStatus(
+        "주소 정보를 확인하고 있습니다...",
+        false
+    );
+
+    fetch(GAS_BASE_URL + '?action=addressSearch&keyword=' + encodeURIComponent(item.roadAddress))
+        .then(res => res.json())
+        .then(data => {
+
+            if (data.error || !data.results || data.results.length === 0) {
+                showStatus("건물의 상세 주소 정보를 찾을 수 없습니다.", true);
+                return;
+            }
+
+            const resolved = data.results[0];
+
+            if (!resolved.buildingName) {
+                resolved.buildingName = item.placeName;
+            }
+
+            hideStatus();
+            selectAddress(resolved);
+        })
+        .catch(() => {
+            showStatus("주소 확인 중 오류가 발생했습니다.", true);
+        });
 }
 
 
@@ -1433,6 +1527,29 @@ function selectYear(year) {
     document.getElementById("yearSelect").value = String(year);
 }
 
+// 기준연도 select를 실제로 자료가 있는 연도만으로 다시 구성한다.
+// (자료 없는 연도를 골라서 "자료가 없습니다" 안내를 보게 되는 상황 자체를 없앤다)
+function setYearOptions(years, selectedYear) {
+
+    const select =
+        document.getElementById("yearSelect");
+
+    select.innerHTML = "";
+
+    years.forEach(function(year) {
+
+        const option =
+            document.createElement("option");
+
+        option.value = String(year);
+        option.textContent = year + "년";
+
+        select.appendChild(option);
+    });
+
+    select.value = String(selectedYear);
+}
+
 function detectPropertyType(data) {
 
     showStatus("건물 유형을 확인하고 있습니다...", false);
@@ -1460,20 +1577,29 @@ function detectPropertyType(data) {
             if (houseItems.length > 0) {
                 houseRecords = houseItems;
 
-                const hasCurrentYear =
-                    houseItems.some(r => r.stdrYear === String(CURRENT_YEAR));
+                /*
+                 * 개별주택가격은 전체 연도치를 한 번에 다 받아오므로(housePrice는
+                 * numOfRows 제한에 걸릴 만큼 크지 않음), 실제로 있는 연도만
+                 * 기준연도로 고를 수 있게 제한한다.
+                 */
 
-                if (hasCurrentYear) {
-                    selectYear(CURRENT_YEAR);
-                } else {
-                    const latestYear =
-                        Math.max(...houseItems.map(r => Number(r.stdrYear)));
+                const availableYears =
+                    uniqueSorted(houseItems.map(r => Number(r.stdrYear)))
+                        .sort((a, b) => b - a);
 
-                    selectYear(latestYear);
-                }
+                const defaultYear =
+                    availableYears.includes(CURRENT_YEAR)
+                        ? CURRENT_YEAR
+                        : availableYears[0];
+
+                setYearOptions(availableYears, defaultYear);
 
                 hideStatus();
                 applyPropertyType("개별주택");
+
+                // 개별주택은 동·호 선택이 없어 사용자가 뭔가 더 고를 게 없으므로
+                // 유형이 정해지자마자 바로 조회한다.
+                searchPrice();
                 return;
             }
 
@@ -1496,7 +1622,8 @@ function detectPropertyType(data) {
 
                     if (building) {
                         officeBuilding = building;
-                        selectYear(OFFICE_DATA_YEAR);
+                        // 오피스텔은 고시연도가 하나뿐인 정적 자료라 그 연도만 고를 수 있게 한다.
+                        setYearOptions([OFFICE_DATA_YEAR], OFFICE_DATA_YEAR);
                         hideStatus();
                         applyPropertyType("오피스텔");
                     } else {
@@ -1697,12 +1824,7 @@ function setupUnitSelection(type) {
         populateHo(dong.value);
     };
 
-    ho.onchange = function() {
-
-        if (isChosen(dong) && isChosen(ho)) {
-            searchPrice();
-        }
-    };
+    ho.onchange = maybeSearchPrice;
 
 
     /*
@@ -1759,12 +1881,34 @@ function addOptions(select, items) {
    6. 공시가격 조회
 ========================================================= */
 
+// 동·호·연도 중 무엇이 바뀌든, 조회에 필요한 값이 이미 다 갖춰져 있으면
+// 버튼 없이 바로 다시 조회한다. (개별주택은 동·호가 없으므로 연도만 있으면 됨)
+function maybeSearchPrice() {
+
+    if (!selectedAddressData || !currentBuildingType) {
+        return;
+    }
+
+    if (currentBuildingType === "개별주택") {
+        searchPrice();
+        return;
+    }
+
+    const dong = document.getElementById("dongSelect");
+    const ho = document.getElementById("hoSelect");
+
+    if (isChosen(dong) && isChosen(ho)) {
+        searchPrice();
+    }
+}
+
 function searchPrice() {
 
     if (!selectedAddressData || !currentBuildingType) {
 
-        alert(
-            "먼저 주소를 선택해주세요."
+        showStatus(
+            "먼저 주소를 선택해주세요.",
+            true
         );
 
         return;
@@ -1804,8 +1948,9 @@ function searchPrice() {
 
         if (!isChosen(dong) || !isChosen(ho)) {
 
-            alert(
-                "동·호를 선택해주세요."
+            showStatus(
+                "동·호를 선택해주세요.",
+                true
             );
 
             return;
@@ -1835,6 +1980,8 @@ function searchPrice() {
 
         if (cached) {
 
+            hideStatus();
+
             displayPriceResult({
                 price: cached.price,
                 year: year,
@@ -1843,9 +1990,7 @@ function searchPrice() {
                 area: cached.prvuseAr + "㎡",
                 dong: dongVal,
                 floor: cached.floorNm,
-                ho: hoVal,
-                legalDongCode: selectedAddressData.legalDongCode,
-                buildingManagementNumber: selectedAddressData.pnu
+                ho: hoVal
             });
 
             return;
@@ -1871,9 +2016,11 @@ function searchPrice() {
                 );
 
                 if (!record) {
-                    alert(year + "년 자료가 없습니다. 다른 연도를 선택해주세요.");
+                    showStatus(year + "년 자료가 없습니다. 다른 연도를 선택해주세요.", true);
                     return;
                 }
+
+                hideStatus();
 
                 displayPriceResult({
                     price: record.price,
@@ -1883,13 +2030,11 @@ function searchPrice() {
                     area: record.prvuseAr + "㎡",
                     dong: dongVal,
                     floor: record.floorNm,
-                    ho: hoVal,
-                    legalDongCode: selectedAddressData.legalDongCode,
-                    buildingManagementNumber: selectedAddressData.pnu
+                    ho: hoVal
                 });
             })
             .catch(() => {
-                alert("공시가격 조회 중 오류가 발생했습니다.");
+                showStatus("공시가격 조회 중 오류가 발생했습니다.", true);
             });
 
         return;
@@ -1905,9 +2050,11 @@ function searchPrice() {
         const record = houseRecords.find(r => r.stdrYear === year);
 
         if (!record) {
-            alert(year + "년 자료가 없습니다. 다른 연도를 선택해주세요.");
+            showStatus(year + "년 자료가 없습니다. 다른 연도를 선택해주세요.", true);
             return;
         }
+
+        hideStatus();
 
         displayPriceResult({
             price: record.price,
@@ -1917,9 +2064,7 @@ function searchPrice() {
             area: record.buldCalcTotAr ? record.buldCalcTotAr + "㎡" : "-",
             dong: "",
             floor: "",
-            ho: "",
-            legalDongCode: selectedAddressData.legalDongCode,
-            buildingManagementNumber: selectedAddressData.pnu
+            ho: ""
         });
 
         return;
@@ -1933,7 +2078,7 @@ function searchPrice() {
     if (type === "오피스텔") {
 
         if (year !== OFFICE_DATA_YEAR) {
-            alert("오피스텔은 " + OFFICE_DATA_YEAR + "년 1월 1일 고시 자료만 제공됩니다.");
+            showStatus("오피스텔은 " + OFFICE_DATA_YEAR + "년 1월 1일 고시 자료만 제공됩니다.", true);
             return;
         }
 
@@ -1942,9 +2087,11 @@ function searchPrice() {
         );
 
         if (!unit) {
-            alert("선택한 동·호의 자료를 찾을 수 없습니다.");
+            showStatus("선택한 동·호의 자료를 찾을 수 없습니다.", true);
             return;
         }
+
+        hideStatus();
 
         const totalArea = unit[4] + unit[5];
         const price = Math.round(unit[3] * totalArea);
@@ -1957,9 +2104,7 @@ function searchPrice() {
             area: totalArea.toFixed(2) + "㎡ (전용 " + unit[4] + " + 공용 " + unit[5] + ")",
             dong: dongVal,
             floor: unit[1],
-            ho: hoVal,
-            legalDongCode: selectedAddressData.legalDongCode,
-            buildingManagementNumber: selectedAddressData.pnu
+            ho: hoVal
         });
     }
 }
@@ -2069,18 +2214,6 @@ function displayPriceResult(data) {
 
 
     document
-        .getElementById("resultLegalDong")
-        .textContent =
-        data.legalDongCode;
-
-
-    document
-        .getElementById("resultBuildingNo")
-        .textContent =
-        data.buildingManagementNumber;
-
-
-    document
         .getElementById("priceResult")
         .classList.add("show");
 
@@ -2172,6 +2305,11 @@ function escapeHtml(value) {
 ========================================================= */
 
 initYearSelect();
+
+// 기준연도를 바꾸면(조회 버튼 없이) 바로 그 연도로 다시 조회한다.
+document
+    .getElementById("yearSelect")
+    .onchange = maybeSearchPrice;
 
 
 /* =========================================================
