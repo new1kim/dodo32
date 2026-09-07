@@ -285,14 +285,6 @@ body {
    PROPERTY TYPE
 ========================================================= */
 
-.property-type-area {
-    display: none;
-}
-
-.property-type-area.show {
-    display: block;
-}
-
 .type-badge {
     display: inline-flex;
     align-items: center;
@@ -307,22 +299,6 @@ body {
     font-size: 12px;
     font-weight: 700;
 }
-
-.type-description {
-    margin-top: 12px;
-
-    padding: 12px;
-
-    border-radius: 8px;
-
-    background: #f7f8fa;
-
-    font-size: 12px;
-    color: #666;
-
-    line-height: 1.6;
-}
-
 
 /* =========================================================
    UNIT SELECT
@@ -403,6 +379,59 @@ select:focus {
 
 .price-result.show {
     display: block;
+}
+
+
+/* =========================================================
+   CALC RESULT (공시가격 기반 계산값)
+========================================================= */
+
+.calc-result {
+    display: none;
+}
+
+.calc-result.show {
+    display: block;
+}
+
+.calc-row {
+    padding: 11px 0;
+
+    border-bottom: 1px solid #eee;
+}
+
+.calc-row:last-child {
+    border-bottom: 0;
+}
+
+.calc-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.calc-formula {
+    font-size: 13px;
+    color: #888;
+}
+
+.calc-value {
+    font-size: 13px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.calc-note {
+    margin-top: 4px;
+
+    font-size: 11px;
+    font-weight: 400;
+    color: #aaa;
+
+    line-height: 1.5;
 }
 
 .price-box {
@@ -547,8 +576,7 @@ select:focus {
         </h1>
 
         <p>
-            주소를 검색하여 공동주택·개별주택·오피스텔의
-            가격 정보를 조회합니다.
+            공동주택·개별주택·오피스텔 공시가를 조회합니다.
         </p>
 
     </div>
@@ -593,8 +621,8 @@ select:focus {
 
         <div class="help-text">
 
-            예) 도로명, 지번주소, 건물명칭<br>
-            예) 주소 검색이 제일정확함.
+            예) 도로명, 지번, 지역+건물명칭<br>
+            예) 주소 검색이 제일 정확함.
         
 
         </div>
@@ -650,6 +678,11 @@ select:focus {
                 선택한 주소
             </strong>
 
+            <span
+                id="selectedAddressTypeBadge"
+                class="type-badge">
+            </span>
+
         </div>
 
 
@@ -674,6 +707,22 @@ select:focus {
                 class="address-value">
             </div>
 
+
+            <div
+                id="selectedBuildingNameRow"
+                style="display:none;">
+
+                <div class="address-label">
+                    건물명
+                </div>
+
+                <div
+                    id="selectedBuildingName"
+                    class="address-value">
+                </div>
+
+            </div>
+
         </div>
 
     </div>
@@ -681,38 +730,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 4. 부동산 유형
-    ====================================================== -->
-
-    <div
-        id="propertyTypeArea"
-        class="card property-type-area">
-
-        <div class="card-title">
-
-            <strong>
-                ③ 부동산 유형
-            </strong>
-
-            <span
-                id="propertyTypeBadge"
-                class="type-badge">
-            </span>
-
-        </div>
-
-
-        <div
-            id="propertyTypeDescription"
-            class="type-description">
-        </div>
-
-    </div>
-
-
-
-    <!-- =====================================================
-         STEP 5. 동 / 층 / 호
+         STEP 4. 동 / 층 / 호
     ====================================================== -->
 
     <div
@@ -722,7 +740,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ④ 동·호 선택
+                ③ 동·호 선택
             </strong>
 
         </div>
@@ -775,7 +793,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 6. 연도 + 조회
+         STEP 5. 연도 + 조회
     ====================================================== -->
 
     <div
@@ -785,7 +803,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ⑤ 조회 조건
+                ④ 기준연도
             </strong>
 
         </div>
@@ -794,10 +812,6 @@ select:focus {
         <div class="select-row">
 
             <div class="select-box">
-
-                <label>
-                    기준연도
-                </label>
 
                 <select id="yearSelect">
 
@@ -824,7 +838,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 7. 결과
+         STEP 6. 결과
     ====================================================== -->
 
     <div
@@ -834,7 +848,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ⑥ 조회 결과
+                ⑤ 조회 결과
             </strong>
 
         </div>
@@ -935,13 +949,81 @@ select:focus {
         </table>
 
 
-        <div class="notice">
 
-            ※ 공동주택은 국토교통부 공동주택가격,
-            개별주택은 국토교통부 개별주택가격(이상 VWorld API)을,
-            오피스텔은 국세청 기준시가(자체 보유 자료, 2026-01-01 고시)를 조회합니다.<br>
+    </div>
 
-            ※ 건물 유형은 공동주택 → 개별주택 → 오피스텔 순으로 자료 존재 여부를 확인하여 자동 판별합니다.
+
+
+    <!-- =====================================================
+         STEP 7. 계산값
+    ====================================================== -->
+
+    <div
+        id="calcResult"
+        class="card calc-result">
+
+        <div class="card-title">
+
+            <strong>
+                ⑥ 계산값
+            </strong>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130%</span>
+                <span id="calcHousePrice" class="calc-value">-</span>
+            </div>
+
+            <div class="calc-note">
+                서울보증 주택가격 - 아파트·오피스텔에 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130% × 90%</span>
+                <span id="calcSeoulGuarantee" class="calc-value">-</span>
+            </div>
+
+            <div class="calc-note">
+                서울보증 - 선순위(유) 모든 물건 적용<br>
+                선순위(무) APT·오피 제외 모두 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 140% × 90%</span>
+                <span id="calcJusinboDosi" class="calc-value">-</span>
+            </div>
+
+            <div class="calc-note">
+                주신보, 도시보증
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 100%</span>
+                <span id="calcJusinbo" class="calc-value">-</span>
+            </div>
+
+            <div class="calc-note">
+                단독주택(주신보)
+            </div>
 
         </div>
 
@@ -1074,7 +1156,8 @@ function resetResultAreas() {
     officeBuilding = null;
 
     document.getElementById("selectedAddress").classList.remove("show");
-    document.getElementById("propertyTypeArea").classList.remove("show");
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
     document.getElementById("unitArea").classList.remove("show");
     document.getElementById("yearArea").classList.remove("show");
 
@@ -1425,6 +1508,11 @@ function selectAddress(data) {
         data.jibunAddress;
 
 
+    // 유형·건물명은 아직 판별 전이므로 일단 비워둔다(applyPropertyType에서 채움)
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
+
+
     document
         .getElementById("selectedAddress")
         .classList.add("show");
@@ -1445,7 +1533,6 @@ function selectAddress(data) {
 
     hidePriceResult();
 
-    document.getElementById("propertyTypeArea").classList.remove("show");
     document.getElementById("unitArea").classList.remove("show");
     document.getElementById("yearArea").classList.remove("show");
 
@@ -1650,63 +1737,45 @@ function getTypeLabel(type) {
     return type;
 }
 
+// 카드 ②(선택한 주소)에 표시할 건물명을 유형별로 가져온다.
+// 유형 판별 단계(detectPropertyType)에서 이미 받아둔 데이터라 별도 조회 없이 바로 쓸 수 있다.
+function getBuildingName(type) {
+
+    if (type === "공동주택") {
+        return aptRecords.length > 0 ? aptRecords[0].aphusNm : "";
+    }
+
+    if (type === "오피스텔") {
+        return officeBuilding ? officeBuilding.name : "";
+    }
+
+    if (type === "개별주택") {
+        return selectedAddressData.buildingName || "";
+    }
+
+    return "";
+}
+
 function applyPropertyType(type) {
 
     currentBuildingType = type;
 
-    const area =
-        document.getElementById(
-            "propertyTypeArea"
-        );
-
-
-    const badge =
-        document.getElementById(
-            "propertyTypeBadge"
-        );
-
-
-    const description =
-        document.getElementById(
-            "propertyTypeDescription"
-        );
-
-
-    badge.textContent =
-        getTypeLabel(type);
-
-
     /*
-     * 유형별 설명
+     * 카드 ②(선택한 주소)에 유형·건물명을 표시한다
      */
 
-    if (type === "공동주택") {
+    document.getElementById("selectedAddressTypeBadge").textContent =
+        getTypeLabel(type);
 
-        description.textContent =
-            "아파트·연립주택·다세대주택 등 공동주택으로 확인되었습니다. " +
-            "동·호를 선택하여 공동주택 공시가격을 조회합니다.";
+    const buildingName = getBuildingName(type);
+    const buildingNameRow = document.getElementById("selectedBuildingNameRow");
 
+    if (buildingName) {
+        document.getElementById("selectedBuildingName").textContent = buildingName;
+        buildingNameRow.style.display = "";
+    } else {
+        buildingNameRow.style.display = "none";
     }
-
-    else if (type === "개별주택") {
-
-        description.textContent =
-            "단독주택·다가구주택 등 개별주택으로 확인되었습니다. " +
-            "해당 주소의 개별주택가격을 조회합니다.";
-
-    }
-
-    else if (type === "오피스텔") {
-
-        description.textContent =
-            "오피스텔로 확인되었습니다. " +
-            "동·호를 선택하여 국세청 기준시가를 조회합니다. " +
-            "(" + OFFICE_DATA_YEAR + "년 1월 1일 고시 자료 기준)";
-
-    }
-
-
-    area.classList.add("show");
 
 
     /*
@@ -2218,6 +2287,9 @@ function displayPriceResult(data) {
         .classList.add("show");
 
 
+    updateCalcResult(data.price);
+
+
     /*
      * 결과로 이동
      */
@@ -2232,6 +2304,36 @@ function displayPriceResult(data) {
 
 
 /* =========================================================
+   6. 계산값 (공시가격 기반 대출 관련 산식)
+========================================================= */
+
+function updateCalcResult(price) {
+
+    const base = Number(price);
+
+    function toWon(value) {
+        return Math.round(value).toLocaleString("ko-KR") + "원";
+    }
+
+    document.getElementById("calcHousePrice").textContent =
+        toWon(base * 1.30);
+
+    document.getElementById("calcSeoulGuarantee").textContent =
+        toWon(base * 1.30 * 0.90);
+
+    document.getElementById("calcJusinboDosi").textContent =
+        toWon(base * 1.40 * 0.90);
+
+    document.getElementById("calcJusinbo").textContent =
+        toWon(base * 1.00);
+
+    document
+        .getElementById("calcResult")
+        .classList.add("show");
+}
+
+
+/* =========================================================
    결과 숨기기
 ========================================================= */
 
@@ -2239,6 +2341,10 @@ function hidePriceResult() {
 
     document
         .getElementById("priceResult")
+        .classList.remove("show");
+
+    document
+        .getElementById("calcResult")
         .classList.remove("show");
 }
 
