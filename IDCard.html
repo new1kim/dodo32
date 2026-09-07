@@ -127,10 +127,6 @@ input[type=file]{display:none}
 .measure-h:before,.measure-h:after{content:"";position:absolute;width:8px;border-top:1px solid #9aa7bb;left:-4px}
 .measure-h:after{bottom:0}.measure-h span{position:absolute;left:3px;top:50%;transform:translateY(-50%);white-space:nowrap;background:#fff;padding:2px;font-size:9px;color:var(--muted)}
 
-.position-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}
-.position-buttons button{border:1px solid var(--line);background:#fff;border-radius:var(--r-sm);padding:10px 5px;font-size:11.5px;font-weight:600;color:var(--muted)}
-.position-buttons button.active{border-color:var(--primary);color:var(--primary);background:#eef1ff;font-weight:800}
-
 /* ===== BUTTONS ===== */
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .action{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:13px}
@@ -160,7 +156,6 @@ input[type=file]{display:none}
   /* A4 용지(.a4-wrap) 한 장만 인쇄되게, 미리보기 아래 버튼·안내문 등은 전부 숨긴다 */
   .a4-preview>*:not(.a4-wrap){display:none!important}
   .a4-wrap{padding:0;background:#fff}.a4{width:210mm;height:297mm;box-shadow:none;border-radius:0}
-  .id-output{width:85.6mm;height:53.98mm;left:62.2mm}
   .measure-w,.measure-h{display:none}
   @page{size:A4;margin:0}
 }
@@ -291,25 +286,25 @@ input[type=file]{display:none}
         <div class="id-output"><img id="outputImg" alt="인식된 신분증"></div>
       </div>
     </div>
-    <div class="tip">💡 신분증이 실제 크기(85.6 × 53.98mm)로 A4 용지에 배치되었습니다.</div>
-    <div class="position-buttons">
-      <button class="active" data-pos="top">상단</button><button data-pos="center">중앙</button><button data-pos="bottom">하단</button>
+    <div class="tip">💡 신분증이 실제 크기(85.6 × 53.98mm)로 A4 용지 중앙에 배치되었습니다.</div>
+    <div class="ctrl-row" style="margin:11px 0 0">
+      <span class="ctrl-label">방향</span>
+      <div class="segment">
+        <button type="button" id="orientLandscapeBtn" class="active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>가로
+        </button>
+        <button type="button" id="orientPortraitBtn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2"/></svg>세로
+        </button>
+      </div>
     </div>
     <div class="action-grid" style="margin-top:10px">
-      <button class="action" id="editAgain">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 11a9 9 0 0 1 15.5-6.4L21 7"/><path d="M21 3v5h-5"/>
-          <path d="M21 13a9 9 0 0 1-15.5 6.4L3 17"/><path d="M3 21v-5h5"/>
-        </svg>다시 편집
-      </button>
-      <button class="action primary" id="saveBtn">
+      <button class="action" id="saveBtn">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 3v12"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 20h15"/>
         </svg>저장하기
       </button>
-    </div>
-    <div class="action-grid" style="margin-top:9px">
-      <button class="action primary full" id="printBtn">
+      <button class="action primary" id="printBtn">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6.5 9V4h11v5"/><rect x="4" y="9" width="16" height="7.5" rx="1.6"/><path d="M6.5 15.5V20h11v-4.5"/>
         </svg>바로 인쇄
@@ -346,10 +341,18 @@ input[type=file]{display:none}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let originalImage=null, processedDataURL=null, mode='color';
-let corners=null, cvReady=false, currentPosition='top';
+let originalImage=null, processedDataURL=null, orientedDataURL=null, mode='color';
+let corners=null, cvReady=false, cardOrientation='landscape';
 let warpedCanvas=null, filterRAF=null;
 let manualDragIdx=null, zoomLevel=1;
+
+// ISO 신분증 실제 크기(mm)와 A4 용지 크기(mm). 세로 방향은 이 둘을 서로 바꿔서 쓴다.
+const CARD_W_MM=85.6, CARD_H_MM=53.98, PAGE_W_MM=210, PAGE_H_MM=297;
+function currentCardBoxMm(){
+  return cardOrientation==='landscape'
+    ? {w:CARD_W_MM, h:CARD_H_MM}
+    : {w:CARD_H_MM, h:CARD_W_MM};
+}
 
 function showToast(msg){
   const t=$('toast');t.textContent=msg;t.classList.add('show');
@@ -707,7 +710,66 @@ function applyFilterAndRender(){
   tc.drawImage(warpedCanvas, 0, 0);
 
   processedDataURL=tmp.toDataURL('image/jpeg',0.92);
-  $('outputImg').src=processedDataURL;
+  updateOrientedImage();
+}
+
+// 가로 모드면 processedDataURL을 그대로 쓰고, 세로 모드면 90도 회전한 이미지를
+// 만들어 orientedDataURL에 저장한다. 미리보기·이미지저장·PDF·인쇄가 전부
+// 이 값 하나만 보고 그리므로, 방향이 바뀌어도 어긋나는 곳 없이 항상 일치한다.
+function updateOrientedImage(){
+  if(!processedDataURL){ orientedDataURL=null; return; }
+
+  if(cardOrientation==='landscape'){
+    orientedDataURL=processedDataURL;
+    updateA4Layout();
+    return;
+  }
+
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');
+    c.width=img.height; c.height=img.width;
+    const ctx=c.getContext('2d');
+    ctx.translate(c.width/2, c.height/2);
+    ctx.rotate(Math.PI/2);
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+    orientedDataURL=c.toDataURL('image/jpeg', 0.92);
+    updateA4Layout();
+  };
+  img.src=processedDataURL;
+}
+
+// A4 미리보기(.id-output)의 크기·위치를 방향에 맞춰 다시 계산한다.
+// 가로/세로 어느 쪽이든 페이지 정중앙에 배치한다(상단/중앙/하단 선택 기능은 제거).
+function updateA4Layout(){
+  if(!orientedDataURL)return;
+
+  const {w,h}=currentCardBoxMm();
+  const leftPct=(PAGE_W_MM-w)/2/PAGE_W_MM*100;
+  const topPct=(PAGE_H_MM-h)/2/PAGE_H_MM*100;
+  const widthPct=w/PAGE_W_MM*100;
+  const heightPct=h/PAGE_H_MM*100;
+
+  const out=document.querySelector('.id-output');
+  out.style.left=leftPct+'%';
+  out.style.top=topPct+'%';
+  out.style.width=widthPct+'%';
+  out.style.height='auto';
+  out.style.aspectRatio=`${w}/${h}`;
+
+  const mw=document.querySelector('.measure-w');
+  mw.style.left=leftPct+'%';
+  mw.style.width=widthPct+'%';
+  mw.style.top=`calc(${topPct}% - 18px)`;
+  mw.querySelector('span').textContent=w+'mm';
+
+  const mh=document.querySelector('.measure-h');
+  mh.style.left=`calc(${leftPct+widthPct}% + 10px)`;
+  mh.style.top=topPct+'%';
+  mh.style.height=heightPct+'%';
+  mh.querySelector('span').textContent=h+'mm';
+
+  $('outputImg').src=orientedDataURL;
   $('a4Preview').style.display='block';
 }
 
@@ -726,7 +788,18 @@ $('nextBtn').onclick=()=>{if(!corners){showToast('신분증 영역을 먼저 인
 $('manualFullBtn').onclick=selectFullArea;
 $('zoomIn').onclick=()=>setZoom(zoomLevel+0.5);
 $('zoomOut').onclick=()=>setZoom(zoomLevel-0.5);
-$('editAgain').onclick=()=>{document.querySelector('.controls').scrollIntoView({behavior:'smooth'});};
+$('orientLandscapeBtn').onclick=()=>{
+  cardOrientation='landscape';
+  $('orientLandscapeBtn').classList.add('active');
+  $('orientPortraitBtn').classList.remove('active');
+  updateOrientedImage();
+};
+$('orientPortraitBtn').onclick=()=>{
+  cardOrientation='portrait';
+  $('orientPortraitBtn').classList.add('active');
+  $('orientLandscapeBtn').classList.remove('active');
+  updateOrientedImage();
+};
 
 /* =========================================================
    신분증 영역 조정 (항상 화면에 떠 있는 드래그 UI)
@@ -843,17 +916,6 @@ $('manualHandles').addEventListener('pointerup', ()=>{
 });
 $('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null});
 
-document.querySelectorAll('.position-buttons button').forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll('.position-buttons button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
-    currentPosition=btn.dataset.pos;
-    const out=document.querySelector('.id-output');
-    out.style.top=currentPosition==='top'?'13%':currentPosition==='center'?'40.91%':'68%';
-    document.querySelector('.measure-w').style.top=`calc(${out.style.top} - 18px)`;
-    document.querySelector('.measure-h').style.top=out.style.top;
-  };
-});
-
 /* =========================================================
    저장 (PDF / 이미지 선택) · 인쇄
 ========================================================= */
@@ -865,9 +927,14 @@ $('saveBtn').onclick=()=>{
 $('saveSheet').addEventListener('click', e=>{ if(e.target.id==='saveSheet') $('saveSheet').classList.remove('show'); });
 $('saveSheetCancel').onclick=()=>$('saveSheet').classList.remove('show');
 
-$('saveAsImageBtn').onclick=()=>{
+$('saveAsImageBtn').onclick=async ()=>{
   $('saveSheet').classList.remove('show');
-  const a=document.createElement('a');a.href=processedDataURL;a.download='신분증_자동보정.jpg';a.click();
+  const canvas=await renderA4Canvas();
+  if(!canvas)return;
+  const a=document.createElement('a');
+  a.href=canvas.toDataURL('image/jpeg', 0.92);
+  a.download='신분증_A4.jpg';
+  a.click();
 };
 
 $('saveAsPdfBtn').onclick=()=>{
@@ -875,20 +942,70 @@ $('saveAsPdfBtn').onclick=()=>{
   saveAsPdf();
 };
 
-// A4 미리보기(.id-output)와 완전히 동일한 위치 계산(mm 단위)으로 PDF에도 그대로 배치한다.
+// A4 페이지 크기의 흰 캔버스 정중앙(방향에 맞춰)에 신분증 이미지를 그려 넣는다.
+// "이미지로 저장"이 신분증만 잘린 사진이 아니라 A4 배치가 그대로 반영된 한 장이 되게 한다.
+function renderA4Canvas(){
+  if(!orientedDataURL){ showToast('먼저 신분증 사진을 선택해주세요.'); return Promise.resolve(null); }
+
+  const DPI=200, mmToPx=DPI/25.4;
+  const {w,h}=currentCardBoxMm();
+  const leftPx=(PAGE_W_MM-w)/2*mmToPx, topPx=(PAGE_H_MM-h)/2*mmToPx;
+
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(PAGE_W_MM*mmToPx);
+  canvas.height=Math.round(PAGE_H_MM*mmToPx);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      ctx.drawImage(img, leftPx, topPx, w*mmToPx, h*mmToPx);
+      resolve(canvas);
+    };
+    img.src=orientedDataURL;
+  });
+}
+
+// jsPDF로 A4 페이지를 만들고 신분증 이미지를 정중앙(방향에 맞춰)에 배치한다.
+// PDF 저장과 인쇄(새 탭으로 열기) 양쪽에서 이 함수를 그대로 재사용한다.
+function buildIdPdf(){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({ unit:'mm', format:'a4' });
+  const {w,h}=currentCardBoxMm();
+  const left=(PAGE_W_MM-w)/2, top=(PAGE_H_MM-h)/2;
+  doc.addImage(orientedDataURL, 'JPEG', left, top, w, h);
+  return doc;
+}
+
 function saveAsPdf(){
+  if(!orientedDataURL){ showToast('먼저 신분증 사진을 선택해주세요.'); return; }
   if(!window.jspdf){ showToast('PDF 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
   try{
-    const { jsPDF }=window.jspdf;
-    const doc=new jsPDF({ unit:'mm', format:'a4' });
-    const w=85.6, h=53.98, left=62.2, pageH=297;
-    const top=currentPosition==='top' ? pageH*0.13 : currentPosition==='center' ? pageH*0.4091 : pageH*0.68;
-    doc.addImage(processedDataURL, 'JPEG', left, top, w, h);
-    doc.save('신분증_A4.pdf');
+    buildIdPdf().save('신분증_A4.pdf');
   }catch(e){ console.error(e); showToast('PDF 생성에 실패했습니다.'); }
 }
 
-$('printBtn').onclick=()=>{if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}window.print()};
+// 모바일 브라우저는 window.print()가 아무 반응이 없거나 빈 화면만 뜨는 경우가 많아,
+// 대신 PDF를 만들어 새 탭(기기 기본 PDF 뷰어)으로 연다 - 뷰어 자체의 인쇄/공유 버튼이
+// 플랫폼을 가리지 않고 훨씬 안정적으로 동작한다.
+$('printBtn').onclick=()=>{
+  if(!orientedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  if(!window.jspdf){showToast('인쇄 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');return}
+  try{
+    const doc=buildIdPdf();
+    const blobUrl=doc.output('bloburl');
+    const win=window.open(blobUrl, '_blank');
+    if(!win){
+      doc.save('신분증_A4.pdf');
+      showToast('PDF로 저장했습니다. 파일을 열어 인쇄해주세요.');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('인쇄 준비 중 문제가 발생했습니다.');
+  }
+};
 </script>
 </body>
 </html>

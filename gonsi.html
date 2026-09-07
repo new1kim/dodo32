@@ -47,6 +47,13 @@ body {
     margin-bottom: 18px;
 }
 
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
 .header h1 {
     margin: 0;
     font-size: 24px;
@@ -58,6 +65,29 @@ body {
     margin: 7px 0 0;
     font-size: 13px;
     color: #777;
+}
+
+.direct-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 7px 13px 7px 7px;
+    border-radius: 999px;
+    border: 1px solid #dfe6ef;
+    background: #fff;
+    color: #333;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+}
+
+.direct-link-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
 
 
@@ -645,9 +675,28 @@ select:focus {
 
     <div class="header">
 
-        <h1>
-            부동산 공시가격 조회
-        </h1>
+        <div class="header-row">
+
+            <h1>
+                부동산 공시가격 조회
+            </h1>
+
+            <a
+                class="direct-link-btn"
+                href="https://www.realtyprice.kr/notice/main/main.do"
+                target="_blank"
+                rel="noopener noreferrer">
+
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="50" fill="#fff"/>
+                    <path d="M50 3A47 47 0 0 1 50 97A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 3Z" fill="#cd2e3a"/>
+                    <path d="M50 97A47 47 0 0 1 50 3A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 97Z" fill="#003478"/>
+                </svg>
+
+                직접조회
+            </a>
+
+        </div>
 
         <p>
             공동주택·개별주택·오피스텔 공시가를 조회합니다.
@@ -1991,12 +2040,18 @@ function setupUnitSelection(type) {
     /*
      * 동이 하나뿐이면(구분없음 포함) 바로 선택하고 호 목록까지 채워 둔다.
      * 검색어에 동·호를 함께 입력해 뒀다면 그 값으로 자동 선택한다.
+     * (API가 내려주는 값이 "103"/"103동"/"0103"처럼 표기가 다를 수 있어
+     * findMatchingUnitOption으로 느슨하게 비교한다)
      */
 
-    if (pendingUnitSelection && pendingUnitSelection.dong !== null &&
-        dongNames.includes(pendingUnitSelection.dong)) {
+    const matchedDong =
+        pendingUnitSelection
+            ? findMatchingUnitOption(dongNames, pendingUnitSelection.dong)
+            : null;
 
-        dong.value = pendingUnitSelection.dong;
+    if (matchedDong !== null) {
+
+        dong.value = matchedDong;
         populateHo(dong.value);
 
     } else if (autoSelectIfSingle(dong)) {
@@ -2004,14 +2059,52 @@ function setupUnitSelection(type) {
         populateHo(dong.value);
     }
 
-    if (pendingUnitSelection && isChosen(dong) &&
-        Array.from(ho.options).some(o => o.value === pendingUnitSelection.ho)) {
+    if (pendingUnitSelection && isChosen(dong)) {
 
-        ho.value = pendingUnitSelection.ho;
-        searchPrice();
+        const hoValues =
+            Array.from(ho.options).map(o => o.value);
+
+        const matchedHo =
+            findMatchingUnitOption(hoValues, pendingUnitSelection.ho);
+
+        if (matchedHo !== null) {
+
+            ho.value = matchedHo;
+            searchPrice();
+        }
     }
 
     pendingUnitSelection = null;
+}
+
+
+// 동/호 값을 느슨하게 비교하기 위해 앞뒤 공백, "동"/"호" 접미사, 앞자리 0을 없앤다.
+// (검색어에서 파싱한 값과 API가 실제로 내려주는 표기가 정확히 일치하지 않아도
+// 같은 동·호로 인식할 수 있게 하기 위함)
+function normalizeUnitToken(value) {
+
+    return String(value)
+        .trim()
+        .replace(/[동호]$/, "")
+        .replace(/^0+(?=\d)/, "");
+}
+
+// options(select의 실제 값 목록) 중에서 target과 느슨하게 일치하는 실제 값을 찾는다.
+// 반환값은 select에 그대로 대입할 수 있는 "실제 옵션 값"이어야 하므로,
+// 정규화한 문자열이 아니라 원본 옵션 값을 돌려준다.
+function findMatchingUnitOption(options, target) {
+
+    if (target === null || target === undefined) {
+        return null;
+    }
+
+    const normTarget = normalizeUnitToken(target);
+
+    const found = options.find(
+        v => normalizeUnitToken(v) === normTarget
+    );
+
+    return found !== undefined ? found : null;
 }
 
 
@@ -2450,7 +2543,15 @@ function hidePriceResult() {
    상태 메시지
 ========================================================= */
 
+// 검색 흐름이 여러 단계로 이어질 때(예: 주소 검색 → 건물 유형 확인) 각 단계가
+// 독립적으로 show/hide를 호출한다. 단순 on/off라면, 안쪽 단계가 막 띄운 팝업을
+// 바깥쪽 단계의 완료 처리가 곧바로 꺼버려서 화면이 깜빡이며 사라지는 문제가 있었다.
+// 그래서 몇 번 띄워졌는지 세어서, 그 횟수만큼 다 닫혀야 실제로 감추도록 한다.
+let loadingPopupDepth = 0;
+
 function showLoadingPopup(message) {
+
+    loadingPopupDepth++;
 
     const overlay =
         document.getElementById("loadingOverlay");
@@ -2467,9 +2568,15 @@ function showLoadingPopup(message) {
 
 function hideLoadingPopup() {
 
-    document
-        .getElementById("loadingOverlay")
-        .classList.remove("show");
+    loadingPopupDepth =
+        Math.max(0, loadingPopupDepth - 1);
+
+    if (loadingPopupDepth === 0) {
+
+        document
+            .getElementById("loadingOverlay")
+            .classList.remove("show");
+    }
 }
 
 
