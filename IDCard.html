@@ -119,7 +119,7 @@ input[type=file]{display:none}
   position:absolute;width:40.762%;height:auto;aspect-ratio:85.6/53.98;
   left:29.619%;top:13%;background:#eee;overflow:hidden
 }
-.id-output img{display:block;width:100%;height:100%;object-fit:fill}
+.id-output img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
 .measure-w{position:absolute;top:calc(13% - 18px);left:29.619%;width:40.762%;border-top:1px solid #9aa7bb}
 .measure-w:before,.measure-w:after{content:"";position:absolute;height:8px;border-left:1px solid #9aa7bb;top:-4px}
 .measure-w:after{right:0}.measure-w span{position:absolute;left:50%;transform:translateX(-50%);top:-17px;background:#fff;padding:0 4px;font-size:9px;color:var(--muted)}
@@ -379,6 +379,43 @@ function ensureCvReady(timeoutMs){
   });
 }
 
+function isAlreadyFullCardImage(canvas){
+  if(!canvas) return false;
+  const ratio = canvas.width / canvas.height;
+  const targetRatio = CARD_W_MM / CARD_H_MM;
+  return Math.abs(ratio - targetRatio) < 0.12;
+}
+
+function fitImageToCardAspect(sourceCanvas){
+  const cardRatio = CARD_W_MM / CARD_H_MM;
+  const targetWidth = 1200;
+  const targetHeight = Math.round(targetWidth / cardRatio);
+
+  const fitted = document.createElement('canvas');
+  fitted.width = targetWidth;
+  fitted.height = targetHeight;
+
+  const ctx = fitted.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, fitted.width, fitted.height);
+
+  const scale = Math.min(targetWidth / sourceCanvas.width, targetHeight / sourceCanvas.height);
+  const drawWidth = Math.round(sourceCanvas.width * scale);
+  const drawHeight = Math.round(sourceCanvas.height * scale);
+  const offsetX = (fitted.width - drawWidth) / 2;
+  const offsetY = (fitted.height - drawHeight) / 2;
+
+  ctx.drawImage(sourceCanvas, offsetX, offsetY, drawWidth, drawHeight);
+
+  return fitted;
+}
+
+function useDirectResizePath(){
+  const canvas = $('sourceCanvas');
+  warpedCanvas = fitImageToCardAspect(canvas);
+  applyFilterAndRender();
+}
+
 $('camera').onchange=e=>{loadFile(e.target.files[0]); e.target.value=''};
 $('gallery').onchange=e=>{loadFile(e.target.files[0]); e.target.value=''};
 
@@ -394,6 +431,21 @@ function loadFile(file){
       setZoom(1);
       $('workspace').style.display='block';
       drawSource(img);
+
+      const canvas=$('sourceCanvas');
+      if(isAlreadyFullCardImage(canvas)){
+        corners=[
+          {x:0, y:0}, {x:canvas.width, y:0},
+          {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
+        ];
+        showCornerOverlay();
+        $('resultBox').textContent='✓ 신분증이 카드 전체를 채우고 있어 원근 보정 없이 바로 사용합니다.';
+        setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
+        document.querySelector('.controls').style.display='block';
+        useDirectResizePath();
+        return;
+      }
+
       setStatus('신분증 영역을 자동으로 찾고 있습니다...');
       await new Promise(r=>setTimeout(r,50));
       detectCard();
@@ -574,51 +626,74 @@ function refineCornersInRoi(src, approxCorners, padRatio){
   }catch(e){ console.error(e); return null; }
 }
 
+// 원본 캔버스 전체를 대상으로 배경이 섞인 사진에서도 신분증 경계를 찾아내는
+// 3단계 탐지(고정 임계값 → 자동 임계값 → 강한 블러)를 한 번에 수행한다.
+// detectCard()와 redetectInSelection()(전체 영역에 가까운 상태에서 다시 인식할 때)이
+// 이 함수를 공유한다 - 배경이 섞인 경우에는 좁은 ROI 전용 로직보다 이쪽이 훨씬 잘 찾는다.
+function detectBestQuadInCanvas(origCanvas){
+  // 탐지 속도 극대화를 위해 600px 저해상도로 다운스케일하여 처리
+  const detectScale=Math.min(1, 600/Math.max(origCanvas.width, origCanvas.height));
+  const dw=Math.round(origCanvas.width*detectScale), dh=Math.round(origCanvas.height*detectScale);
+
+  const src=cv.imread(origCanvas);
+  const small=new cv.Mat();
+  cv.resize(src, small, new cv.Size(dw, dh), 0, 0, cv.INTER_AREA);
+
+  const gray=new cv.Mat();
+  cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
+
+  // 1차: 일반적인 조명/배경을 가정한 고정 임계값 (빠르고 대부분의 경우 충분)
+  let {best, bestScore}=detectPass(gray, dw, dh, detectScale, 40, 120, 3, 5);
+
+  // 1차 결과가 약하면(역광/저대비 등) 이미지 밝기에 맞춰 자동 계산한 임계값으로 재시도.
+  // (median 대신 평균 밝기를 사용 - 훨씬 가볍고 이 용도로는 충분히 정확함)
+  if(!best || bestScore<0.4){
+    const mean=cv.mean(gray)[0];
+    const autoLow=Math.max(10, Math.round(mean*0.5));
+    const autoHigh=Math.min(255, Math.round(mean*1.2));
+    const r2=detectPass(gray, dw, dh, detectScale, autoLow, autoHigh, 5, 5);
+    if(!best || r2.bestScore>bestScore){ best=r2.best; bestScore=r2.bestScore; }
+  }
+
+  // 3차: 나무결 책상처럼 배경 질감이 많아 위 두 번 다 자신 없는 결과일 때, 블러를
+  // 훨씬 크게 줘서 잔무늬를 지우고 신분증의 굵은 경계선만 남긴 뒤 다시 시도한다.
+  if(!best || bestScore<0.45){
+    const mean=cv.mean(gray)[0];
+    const r3=detectPass(gray, dw, dh, detectScale, Math.max(10, mean*0.5), Math.min(255, mean*1.2), 5, 9);
+    if(!best || r3.bestScore>bestScore){ best=r3.best; bestScore=r3.bestScore; }
+  }
+
+  small.delete(); gray.delete();
+
+  // 4차: 대략적인 위치 주변을 원본 해상도로 정밀 재검출 (테두리 틀어짐 보정)
+  if(best){
+    const refined=refineCornersInRoi(src, best);
+    if(refined) best=refined;
+  }
+
+  src.delete();
+
+  return {best, bestScore};
+}
+
 async function detectCard(){
+  const canvas=$('sourceCanvas');
+  if(isAlreadyFullCardImage(canvas)){
+    corners=[
+      {x:0, y:0}, {x:canvas.width, y:0},
+      {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
+    ];
+    showCornerOverlay();
+    $('resultBox').textContent='✓ 신분증이 카드 전체를 채우고 있어 원근 보정 없이 바로 사용합니다.';
+    setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
+    document.querySelector('.controls').style.display='block';
+    useDirectResizePath();
+    return;
+  }
+
   if(!(await ensureCvReady(8000))){manualFallback('OpenCV를 불러오지 못했습니다.');return}
   try{
-    const origCanvas=$('sourceCanvas');
-    // 탐지 속도 극대화를 위해 600px 저해상도로 다운스케일하여 처리
-    const detectScale=Math.min(1, 600/Math.max(origCanvas.width, origCanvas.height));
-    const dw=Math.round(origCanvas.width*detectScale), dh=Math.round(origCanvas.height*detectScale);
-
-    const src=cv.imread(origCanvas);
-    const small=new cv.Mat();
-    cv.resize(src, small, new cv.Size(dw, dh), 0, 0, cv.INTER_AREA);
-
-    const gray=new cv.Mat();
-    cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
-
-    // 1차: 일반적인 조명/배경을 가정한 고정 임계값 (빠르고 대부분의 경우 충분)
-    let {best, bestScore}=detectPass(gray, dw, dh, detectScale, 40, 120, 3, 5);
-
-    // 1차 결과가 약하면(역광/저대비 등) 이미지 밝기에 맞춰 자동 계산한 임계값으로 재시도.
-    // (median 대신 평균 밝기를 사용 - 훨씬 가볍고 이 용도로는 충분히 정확함)
-    if(!best || bestScore<0.4){
-      const mean=cv.mean(gray)[0];
-      const autoLow=Math.max(10, Math.round(mean*0.5));
-      const autoHigh=Math.min(255, Math.round(mean*1.2));
-      const r2=detectPass(gray, dw, dh, detectScale, autoLow, autoHigh, 5, 5);
-      if(!best || r2.bestScore>bestScore){ best=r2.best; bestScore=r2.bestScore; }
-    }
-
-    // 3차: 나무결 책상처럼 배경 질감이 많아 위 두 번 다 자신 없는 결과일 때, 블러를
-    // 훨씬 크게 줘서 잔무늬를 지우고 신분증의 굵은 경계선만 남긴 뒤 다시 시도한다.
-    if(!best || bestScore<0.45){
-      const mean=cv.mean(gray)[0];
-      const r3=detectPass(gray, dw, dh, detectScale, Math.max(10, mean*0.5), Math.min(255, mean*1.2), 5, 9);
-      if(!best || r3.bestScore>bestScore){ best=r3.best; bestScore=r3.bestScore; }
-    }
-
-    small.delete(); gray.delete();
-
-    // 4차: 대략적인 위치 주변을 원본 해상도로 정밀 재검출 (테두리 틀어짐 보정)
-    if(best){
-      const refined=refineCornersInRoi(src, best);
-      if(refined) best=refined;
-    }
-
-    src.delete();
+    const {best, bestScore}=detectBestQuadInCanvas(canvas);
 
     // 신뢰도가 너무 낮으면(배경 잡음을 잘못 짚었을 가능성) 억지로 보여주지 않고
     // 바로 드래그로 직접 지정할 수 있게 넘긴다 - 틀린 결과를 자신 있게 보여주는 것보다
@@ -669,12 +744,66 @@ function manualFallback(msg){
 // 원근 보정 + 컬러/흑백 변환(OpenCV 연산, 상대적으로 비용이 큼).
 // corners나 mode가 바뀔 때만 호출한다 - 결과는 warpedCanvas에 캐시해두고,
 // 밝기/대비 조절은 이 무거운 연산을 다시 타지 않도록 applyFilterAndRender()에서 따로 처리한다.
+function isNearlyWholeCardSelection(pts, canvas){
+  if(!pts || pts.length !== 4 || !canvas) return false;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const marginX = Math.max(w * 0.08, 16);
+  const marginY = Math.max(h * 0.08, 16);
+
+  const inside = pts.every((p, idx) => {
+    const nearLeft = (idx === 0 || idx === 3) ? p.x <= marginX : p.x >= w - marginX;
+    const nearTop = (idx === 0 || idx === 1) ? p.y <= marginY : p.y >= h - marginY;
+    return nearLeft && nearTop;
+  });
+
+  if(!inside) return false;
+
+  const ordered = orderPoints(pts);
+  const w1 = distance(ordered[0], ordered[1]);
+  const w2 = distance(ordered[3], ordered[2]);
+  const h1 = distance(ordered[0], ordered[3]);
+  const h2 = distance(ordered[1], ordered[2]);
+  const measuredRatio = ((w1 + w2) / 2) / ((h1 + h2) / 2 || 1);
+  const cardRatio = CARD_W_MM / CARD_H_MM;
+
+  return Math.abs(measuredRatio - cardRatio) < 0.28;
+}
+
 function warpAndColor(){
   if(!corners)return;
   try{
-    const src=cv.imread($('sourceCanvas'));
+    const sourceCanvas=$('sourceCanvas');
+
+    // 카드가 이미 사진 전체를 차지하는 경우에는 원근 보정을 전부 건너뜀.
+    // 이 경우에 perspective transform을 다시 적용하면 비율이 미세하게 밀려서
+    // 찌그러져 보이므로, 그대로 직사각형 한 장으로 리사이즈해 붙이는 방식이 맞다.
+    if(isAlreadyFullCardImage(sourceCanvas) || isNearlyWholeCardSelection(corners, sourceCanvas)){
+      useDirectResizePath();
+      return;
+    }
+
+    const src=cv.imread(sourceCanvas);
     const pts=cv.matFromArray(4,1,cv.CV_32FC2,corners.flatMap(p=>[p.x,p.y]));
-    const W=1000, H=Math.round(W/1.586);
+
+    // 목적지 비율은 실측값을 그대로 쓰지 않고 신분증 실제 비율(85.6:53.98=1.586)에
+    // "스냅"한다. 실측 비율을 그대로 쓰면(이전 버전) warpAndColor 단계 자체는
+    // 안 찌그러지지만, 이후 A4 배치·PDF·이미지저장이 전부 정확히 1.586(가로) 또는
+    // 0.630(세로, =1/1.586) 비율의 칸에 맞춰 그리기 때문에, 실측 비율이 그 값과
+    // 조금이라도 다르면(전체 선택 시 여백이 살짝 섞이는 등) 거기서 다시 늘어나
+    // 찌그러져 보였다. 선택한 사각형이 "가로로 넓은지 세로로 긴지"만 보고 어느
+    // 방향인지 판단한 뒤, 그 방향의 정확한 신분증 비율로 강제로 펴서 이후 어떤
+    // 단계를 거쳐도 더 이상 왜곡이 생기지 않게 한다.
+    const w1=distance(corners[0], corners[1]), w2=distance(corners[3], corners[2]);
+    const h1=distance(corners[0], corners[3]), h2=distance(corners[1], corners[2]);
+    const measuredRatio=((w1+w2)/2)/((h1+h2)/2);
+
+    const CARD_RATIO=85.6/53.98;
+    let W, H;
+    if(measuredRatio>=1){ W=1000; H=Math.round(W/CARD_RATIO); }
+    else{ H=1000; W=Math.round(H/CARD_RATIO); }
+
     const dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, W-1,0, W-1,H-1, 0,H-1]);
     const M=cv.getPerspectiveTransform(pts,dstPts), dst=new cv.Mat();
 
@@ -701,13 +830,26 @@ function warpAndColor(){
 // 매번 OpenCV 원근 보정을 다시 계산하던 이전 방식보다 훨씬 빠르게 반응한다.
 function applyFilterAndRender(){
   if(!warpedCanvas)return;
+
+  const cardRatio = CARD_W_MM / CARD_H_MM;
   const tmp=document.createElement('canvas');
-  tmp.width=warpedCanvas.width; tmp.height=warpedCanvas.height;
+  const targetWidth = 1200;
+  const targetHeight = Math.round(targetWidth / cardRatio);
+  tmp.width=targetWidth; tmp.height=targetHeight;
+
   const tc=tmp.getContext('2d');
+  tc.fillStyle='#fff';
+  tc.fillRect(0, 0, tmp.width, tmp.height);
+
   const b=$('brightness').value, c=$('contrast').value;
+  const scale = Math.min(tmp.width / warpedCanvas.width, tmp.height / warpedCanvas.height);
+  const drawWidth = Math.round(warpedCanvas.width * scale);
+  const drawHeight = Math.round(warpedCanvas.height * scale);
+  const dx=(tmp.width-drawWidth)/2;
+  const dy=(tmp.height-drawHeight)/2;
 
   tc.filter=`brightness(${b}%) contrast(${c}%)`;
-  tc.drawImage(warpedCanvas, 0, 0);
+  tc.drawImage(warpedCanvas, dx, dy, drawWidth, drawHeight);
 
   processedDataURL=tmp.toDataURL('image/jpeg',0.92);
   updateOrientedImage();
@@ -786,6 +928,7 @@ $('brightness').oninput=e=>{$('bv').textContent=Number(e.target.value)-100;sched
 $('contrast').oninput=e=>{$('cv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
 $('nextBtn').onclick=()=>{if(!corners){showToast('신분증 영역을 먼저 인식해주세요.');return} $('a4Preview').scrollIntoView({behavior:'smooth',block:'start'})};
 $('manualFullBtn').onclick=selectFullArea;
+$('redetectBtn').onclick=redetectInSelection;
 $('zoomIn').onclick=()=>setZoom(zoomLevel+0.5);
 $('zoomOut').onclick=()=>setZoom(zoomLevel-0.5);
 $('orientLandscapeBtn').onclick=()=>{
@@ -871,6 +1014,51 @@ function selectFullArea(){
   setStatus('사진 전체 영역을 신분증으로 지정했습니다.', true);
   document.querySelector('.controls').style.display='block';
   warpAndColor();
+}
+
+// 현재 선택 영역 안에서(혹은 그 근처에서) 신분증 테두리를 다시 찾는다.
+// 사용자가 손으로 대충 맞춰 놓은 뒤 "다시 인식"을 누르면, 그 영역을 30% 여유를 두고
+// 잘라내 원본 해상도로 정밀 재검출한다(refineCornersInRoi) - 배경 간섭이 거의 없는
+// 유리한 조건이라 첫 자동 인식보다 정확하다.
+// 다만 "전체 선택" 직후처럼 선택 영역이 사진 전체(또는 그에 가까움)라면, 이 좁은
+// ROI 전용 로직은 배경이 그대로 섞여 있어 잘 못 찾는다 - 이런 경우엔 배경이 섞인
+// 사진에도 강한 detectBestQuadInCanvas(3단계 탐지)로 전체를 다시 훑는다.
+async function redetectInSelection(){
+  if(!corners || !originalImage){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  if(!(await ensureCvReady(4000))){showToast('OpenCV를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');return}
+
+  const canvas=$('sourceCanvas');
+
+  try{
+    const xs=corners.map(p=>p.x), ys=corners.map(p=>p.y);
+    const boxW=Math.max(...xs)-Math.min(...xs), boxH=Math.max(...ys)-Math.min(...ys);
+    const coversWholePhoto = boxW>=canvas.width*0.9 && boxH>=canvas.height*0.9;
+
+    let refined=null, score=0;
+
+    if(coversWholePhoto){
+      const r=detectBestQuadInCanvas(canvas);
+      if(r.best && r.bestScore>=0.35){ refined=r.best; score=r.bestScore; }
+    }else{
+      const src=cv.imread(canvas);
+      refined=refineCornersInRoi(src, corners, 0.3);
+      src.delete();
+      score=refined ? 1 : 0; // refineCornersInRoi 내부에서 이미 신뢰도 기준으로 걸러줌
+    }
+
+    if(refined && score>0){
+      corners=refined;
+      renderManualOverlay();
+      $('resultBox').textContent='✓ 현재 영역에서 테두리를 다시 인식했습니다.';
+      setStatus('현재 영역에서 테두리를 다시 인식했습니다.', true);
+      warpAndColor();
+    }else{
+      showToast('현재 영역에서 더 정확한 경계를 찾지 못했습니다.');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('다시 인식 중 문제가 발생했습니다.');
+  }
 }
 
 document.querySelectorAll('#manualHandles .corner-dot').forEach(dot=>{
