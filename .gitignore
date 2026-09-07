@@ -4,3 +4,5 @@ desktop.ini
 .tmp.drive*/
 .tmp.driveupload/
 .tmp.drivedownload/
+OP_gongsi/
+__pycache__/

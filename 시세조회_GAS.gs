@@ -7,6 +7,17 @@ const FETCH_OPTIONS = {
   }
 };
 
+const SIMPLE_FETCH_OPTIONS = {
+  method: 'get',
+  muteHttpExceptions: true
+};
+
+// gonsi.html(공시가격 조회) 연동용 키
+const KAKAO_API_KEY = "40ff77c743e30864998d253cf262c62c";
+const VWORLD_API_KEY = "A22C5EF4-6A9B-38A4-82F9-ABCF8A3777D5";
+// VWorld 인증키 발급 시 등록한 서비스URL(http://127.0.0.1)과 반드시 일치해야 INCORRECT_KEY가 나지 않는다.
+const VWORLD_DOMAIN = "127.0.0.1";
+
 function doGet(e) {
   try {
     const action = e.parameter.action || 'search';
@@ -19,6 +30,18 @@ function doGet(e) {
     }
     if (action === 'dongHoList') {
       return handleDongHoList(e);
+    }
+    if (action === 'addressSearch') {
+      return handleAddressSearch(e);
+    }
+    if (action === 'aptPrice') {
+      return handleAptPrice(e);
+    }
+    if (action === 'housePrice') {
+      return handleHousePrice(e);
+    }
+    if (action === 'nameSearch') {
+      return handleNameSearch(e);
     }
 
     return handleSearch(e);
@@ -158,4 +181,193 @@ function handleDongHoList(e) {
       면적일련번호: h["면적일련번호"]
     }))
   });
+}
+
+// ============================================================
+// gonsi.html (부동산 공시가격 조회) 연동
+// ============================================================
+
+// 4자리 zero-pad (PNU의 본번/부번 규격)
+function pad4(v) {
+  const digits = String(v || '0').replace(/\D/g, '') || '0';
+  return ('0000' + digits).slice(-4);
+}
+
+// PNU(필지고유번호, 19자리) = 법정동코드(10) + 대장구분(1: 1=토지대장/일반, 2=임야대장/산) + 본번(4) + 부번(4)
+function buildPnu(bCode, mountainYn, mainNo, subNo) {
+  return bCode + (mountainYn === 'Y' ? '2' : '1') + pad4(mainNo) + pad4(subNo);
+}
+
+// 카카오 주소검색 API로 도로명/지번주소 + PNU 계산에 필요한 정보 조회
+function handleAddressSearch(e) {
+  const keyword = e.parameter.keyword;
+
+  if (!keyword) {
+    return jsonOutput({ error: "검색어가 없습니다." });
+  }
+
+  const url = buildUrl('https://dapi.kakao.com/v2/local/search/address.json', {
+    query: keyword
+  });
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'get',
+    muteHttpExceptions: true,
+    headers: {
+      "Authorization": "KakaoAK " + KAKAO_API_KEY,
+      // 카카오 로컬 API는 서버 호출에도 등록된 웹 플랫폼 도메인이 담긴 KA 헤더를 요구한다.
+      "KA": "sdk/1.0.0 os/javascript lang/ko-KR device/pc origin/https://new1kim.github.io"
+    }
+  });
+
+  const json = JSON.parse(response.getContentText());
+
+  if (json.errorType) {
+    return jsonOutput({ error: json.message || json.errorType, results: [] });
+  }
+
+  const documents = json.documents || [];
+
+  const results = documents
+    .filter(doc => doc.address)
+    .map(doc => {
+      const addr = doc.address;
+      const road = doc.road_address;
+
+      return {
+        roadAddress: road ? road.address_name : doc.address_name,
+        jibunAddress: addr.address_name,
+        buildingName: road ? (road.building_name || '') : '',
+        legalDongCode: addr.b_code,
+        pnu: buildPnu(addr.b_code, addr.mountain_yn, addr.main_address_no, addr.sub_address_no)
+      };
+    });
+
+  return jsonOutput({ results: results });
+}
+
+// 카카오 키워드(장소) 검색 API로 오피스텔/빌라/아파트 등 건물명 검색
+// 주소검색과 달리 b_code 등 구조화된 정보가 없어 PNU는 못 만든다 -
+// 결과 선택 시 클라이언트가 roadAddress로 addressSearch를 한 번 더 호출해 PNU를 얻는다.
+function handleNameSearch(e) {
+  const keyword = e.parameter.keyword;
+
+  if (!keyword) {
+    return jsonOutput({ error: "검색어가 없습니다." });
+  }
+
+  const url = buildUrl('https://dapi.kakao.com/v2/local/search/keyword.json', {
+    query: keyword,
+    size: 15
+  });
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'get',
+    muteHttpExceptions: true,
+    headers: {
+      "Authorization": "KakaoAK " + KAKAO_API_KEY,
+      "KA": "sdk/1.0.0 os/javascript lang/ko-KR device/pc origin/https://new1kim.github.io"
+    }
+  });
+
+  const json = JSON.parse(response.getContentText());
+
+  if (json.errorType) {
+    return jsonOutput({ error: json.message || json.errorType, results: [] });
+  }
+
+  const documents = json.documents || [];
+
+  // 상가/음식점 등 잡음을 빼고 아파트/오피스텔/빌라·주택 등 주거시설만 남긴다
+  const results = documents
+    .filter(doc => doc.category_name && doc.category_name.indexOf('주거시설') !== -1)
+    .map(doc => ({
+      placeName: doc.place_name,
+      roadAddress: doc.road_address_name || doc.address_name,
+      jibunAddress: doc.address_name,
+      categoryName: doc.category_name.split('>').pop().trim()
+    }));
+
+  return jsonOutput({ results: results });
+}
+
+// VWorld 공동주택가격속성조회
+function handleAptPrice(e) {
+  const pnu = e.parameter.pnu;
+  const stdrYear = e.parameter.stdrYear || '';
+
+  if (!pnu) {
+    return jsonOutput({ error: "pnu가 없습니다." });
+  }
+
+  const url = buildUrl('https://api.vworld.kr/ned/data/getApartHousingPriceAttr', {
+    pnu: pnu,
+    stdrYear: stdrYear,
+    format: 'json',
+    numOfRows: 1000,
+    pageNo: 1,
+    key: VWORLD_API_KEY,
+    domain: VWORLD_DOMAIN
+  });
+
+  const response = UrlFetchApp.fetch(url, SIMPLE_FETCH_OPTIONS);
+  const json = JSON.parse(response.getContentText());
+  const body = json.apartHousingPrices || {};
+
+  if (body.resultCode) {
+    return jsonOutput({ error: body.resultMsg || body.resultCode, items: [] });
+  }
+
+  const items = (body.field || []).map(f => ({
+    aphusNm: f.aphusNm,
+    dongNm: f.dongNm,
+    floorNm: f.floorNm,
+    hoNm: f.hoNm,
+    prvuseAr: Number(f.prvuseAr),
+    price: Number(f.pblntfPc),
+    stdrYear: f.stdrYear,
+    ldCodeNm: f.ldCodeNm,
+    mnnmSlno: f.mnnmSlno
+  }));
+
+  return jsonOutput({ items: items });
+}
+
+// VWorld 개별주택가격속성조회
+function handleHousePrice(e) {
+  const pnu = e.parameter.pnu;
+  const stdrYear = e.parameter.stdrYear || '';
+
+  if (!pnu) {
+    return jsonOutput({ error: "pnu가 없습니다." });
+  }
+
+  const url = buildUrl('https://api.vworld.kr/ned/data/getIndvdHousingPriceAttr', {
+    pnu: pnu,
+    stdrYear: stdrYear,
+    format: 'json',
+    numOfRows: 100,
+    pageNo: 1,
+    key: VWORLD_API_KEY,
+    domain: VWORLD_DOMAIN
+  });
+
+  const response = UrlFetchApp.fetch(url, SIMPLE_FETCH_OPTIONS);
+  const json = JSON.parse(response.getContentText());
+  const body = json.indvdHousingPrices || {};
+
+  if (body.resultCode) {
+    return jsonOutput({ error: body.resultMsg || body.resultCode, items: [] });
+  }
+
+  const items = (body.field || []).map(f => ({
+    price: Number(f.housePc),
+    stdrYear: f.stdrYear,
+    ldCodeNm: f.ldCodeNm,
+    mnnmSlno: f.mnnmSlno,
+    buldCalcTotAr: Number(f.buldCalcTotAr),
+    ladRegstrAr: Number(f.ladRegstrAr)
+  }));
+
+  return jsonOutput({ items: items });
 }

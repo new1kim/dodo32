@@ -2469,7 +2469,14 @@ function 내용복사() {
 }
 
 // 대출 정보 요약 텍스트(상담내용 메모용) + 시세/필요금액/단지명·평형·동호수·주소·규제지역배지(상담일지 물건정보 1칸용)를 상담일지 탭으로 전달한다.
-// index.html이 모바일/PC 여부에 따라 알맞은 프레임(content-frame 또는 consulting-frame)으로 중계한다.
+//
+// 전달 경로가 웹과 앱에서 다르다.
+//  - 웹: DSR이 index.html 안의 iframe이라 부모로 보내면 index.html이 모바일/PC 여부에 따라
+//        알맞은 프레임(content-frame 또는 consulting-frame)으로 중계한다.
+//  - 앱: 화면 하나를 웹뷰에 통째로 띄우는 구조라 부모 프레임이 없다. 예전에는 여기서도
+//        window.parent.postMessage를 불렀는데, 부모가 없으면 window.parent는 자기 자신이라
+//        메시지가 DSR 화면으로 되돌아왔고 이걸 받는 곳이 없어 버튼이 반응하지 않았다.
+//        그래서 네이티브(AndroidBridge)에 넘겨 상담일지 화면으로 전환한 뒤 주입하게 한다.
 function 상담일지로전달() {
   const text = 대출정보텍스트생성();
   const kbPrice = document.getElementById('ltvMarketPriceInput')?.value.trim() || '';
@@ -2480,7 +2487,7 @@ function 상담일지로전달() {
   const exclusiveSqm = (selectedAptInfo && selectedAptInfo.exclusiveSqm) || '';
   const dongHo = (selectedAptInfo && selectedAptInfo.dong && selectedAptInfo.ho) ? `${selectedAptInfo.dong}동 ${selectedAptInfo.ho}호` : '';
   const address = (selectedAptInfo && selectedAptInfo.address) || '';
-  window.parent.postMessage({
+  const payload = {
     type: 'dsrSendToConsulting',
     text,
     kbPrice,
@@ -2493,7 +2500,27 @@ function 상담일지로전달() {
     address,
     투기과열지구: !!(selectedAptInfo && selectedAptInfo.투기과열지구),
     조정대상지역: !!(selectedAptInfo && selectedAptInfo.조정대상지역)
-  }, '*');
+  };
+
+  // 웹: 부모(index.html)가 받아서 상담일지 프레임으로 중계한다.
+  if (window.parent !== window) {
+    window.parent.postMessage(payload, '*');
+    return;
+  }
+
+  // 앱: 네이티브가 상담일지 화면으로 바꾸고, 그 화면 로딩이 끝나면 같은 내용을 넣어준다.
+  // 상담일지.html은 웹과 똑같이 message 이벤트로 받으므로 받는 쪽 코드는 그대로 쓴다.
+  const bridge = window.AndroidBridge;
+  if (bridge && typeof bridge.openConsultingWith === 'function') {
+    try {
+      bridge.openConsultingWith(JSON.stringify(payload));
+      return;
+    } catch (e) {
+      console.error('상담일지 전달 실패:', e);
+    }
+  }
+
+  showBubble('상담일지로 전달할 수 없습니다');
 }
 
 /* -------------------- 화면캐치: 계산기 화면(월상환스케줄~대출정보입력) 이미지 캡쳐 후 클립보드 복사 -------------------- */

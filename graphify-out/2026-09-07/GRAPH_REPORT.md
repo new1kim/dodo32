@@ -1,11 +1,11 @@
-# Graph Report - dodo32  (2026-09-07)
+# Graph Report - dodo32  (2026-09-05)
 
 ## Corpus Check
-- 1951 files · ~106,880 words
+- 14 files · ~99,607 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 210 nodes · 409 edges · 15 communities (12 shown, 3 thin omitted)
+- 200 nodes · 394 edges · 14 communities (11 shown, 3 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -18,11 +18,10 @@
 - DSR_calculator_ui.js
 - What You Must Do When Invoked
 - applySlotSnapshot
-- build_office_price_data.py
 - DSR_calculator_logic.js
 - gate-auth.js
 - showBubble
-- 선택초기화
+- extraIncomeRowIndexes
 - manifest.json
 - obfuscate.js
 - init
@@ -32,7 +31,7 @@
 - .claude/CLAUDE.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `showBubble()` - 20 edges
+1. `showBubble()` - 19 edges
 2. `saveDSRInputs()` - 15 edges
 3. `init()` - 15 edges
 4. `applySlotSnapshot()` - 12 edges
@@ -44,21 +43,21 @@
 10. `extraIncomeRowIndexes()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `applyDefaultProfileToRow()` --calls--> `getStoredJson()`  [EXTRACTED]
+  DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 8 → community 11_
 - `populateDefaultFirstRowFields()` --calls--> `getStoredJson()`  [EXTRACTED]
   DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 8 → community 0_
-- `saveCurrentTableLayoutOrder()` --calls--> `setStoredJson()`  [EXTRACTED]
-  DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 7 → community 0_
+- `saveDeclareIncomeRates()` --calls--> `setStoredJson()`  [EXTRACTED]
+  DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 7 → community 2_
 - `소득행삭제()` --calls--> `adjustTableFontSize()`  [EXTRACTED]
   DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 11 → community 2_
-- `주담대행추가()` --calls--> `adjustTableFontSize()`  [EXTRACTED]
-  DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 11 → community 8_
 - `openDefaultFirstRowModal()` --calls--> `fitAllNumericInputFontSizes()`  [EXTRACTED]
   DSR_calculator_ui.js → DSR_calculator_ui.js  _Bridges community 11 → community 0_
 
 ## Import Cycles
 - None detected.
 
-## Communities (15 total, 3 thin omitted)
+## Communities (14 total, 3 thin omitted)
 
 ### Community 0 - "DSR_calculator_ui.js"
 Cohesion: 0.06
@@ -69,12 +68,8 @@ Cohesion: 0.07
 Nodes (26): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+18 more)
 
 ### Community 2 - "applySlotSnapshot"
-Cohesion: 0.23
-Nodes (19): applyBaseIncomeMode(), applyIncomeRowMode(), applyOtherRowsBlock(), applySlotSnapshot(), bindRadioToggleGroup(), buildIncomeRowHTML(), calcDeclareConvertedIncome(), getRowEls() (+11 more)
-
-### Community 3 - "build_office_price_data.py"
-Cohesion: 0.31
-Nodes (9): build_floor_label(), convert(), find_source_xlsx(), main(), OP_gongsi/ 폴더 안의 .xlsx 파일을 자동으로 찾는다. 매년 파일명이 "상업용건물 및 오피스텔 기준시가(2027년 1월 1일…, 건물층구분코드가 '지하층'이면 층 번호 앞에 'B'를 붙인다. (지상층/옥탑층은 원본 층 번호를 그대로 쓴다), gonsi.html의 `const OFFICE_DATA_YEAR = '2026';` 값을 새 연도로 자동 갱신한다. (매년 이 상수 갱신을…, update_gonsi_html_year() (+1 more)
+Cohesion: 0.21
+Nodes (22): applyBaseIncomeMode(), applyIncomeRowMode(), applyOtherRowsBlock(), applySlotSnapshot(), bindRadioToggleGroup(), buildIncomeRowHTML(), calcDeclareConvertedIncome(), getRowEls() (+14 more)
 
 ### Community 4 - "DSR_calculator_logic.js"
 Cohesion: 0.24
@@ -85,12 +80,12 @@ Cohesion: 0.27
 Nodes (10): backgroundVerifyGate(), callGateAPI(), clearGateSession(), GATE_MESSAGES, getDeviceId(), getEnvSummary(), lockApp(), logUsageBackground() (+2 more)
 
 ### Community 7 - "showBubble"
-Cohesion: 0.11
-Nodes (30): closeModal(), decreaseAmount(), extraIncomeRowIndexes(), fallbackCopyText(), formHasContent(), getMortgageRowMemo(), handleAddIncomeClick(), handleDsrMaxBlockClick() (+22 more)
+Cohesion: 0.12
+Nodes (24): closeModal(), decreaseAmount(), fallbackCopyText(), handleAddIncomeClick(), handleDsrMaxBlockClick(), handleTableOrderBtnClick(), increaseAmount(), initSlotButtons() (+16 more)
 
-### Community 8 - "선택초기화"
-Cohesion: 0.23
-Nodes (13): applyDefaultProfileToRow(), applySavedTableLayoutOrder(), bindLongPress(), bindMortgageRowEvents(), getDefaultProfileValues(), getStoredJson(), loadDSRInputs(), loadMortgageRows() (+5 more)
+### Community 8 - "extraIncomeRowIndexes"
+Cohesion: 0.27
+Nodes (10): applySavedTableLayoutOrder(), extraIncomeRowIndexes(), formHasContent(), getStoredJson(), loadDSRInputs(), loadFormFromSlot(), loadMortgageRows(), renderSelectedAptRow() (+2 more)
 
 ### Community 9 - "manifest.json"
 Cohesion: 0.25
@@ -101,8 +96,8 @@ Cohesion: 0.25
 Nodes (7): code, fs, JavaScriptObfuscator, obfuscationResult, outputPath, path, targetPath
 
 ### Community 11 - "init"
-Cohesion: 0.46
-Nodes (8): adjustDsrMaxFontSize(), adjustDsrToggleFontSize(), adjustTableFontSize(), fitAllNumericInputFontSizes(), fitNumericInputFontSize(), getMeasureGhost(), init(), shrinkFontSizeToFit()
+Cohesion: 0.25
+Nodes (14): adjustDsrMaxFontSize(), adjustDsrToggleFontSize(), adjustTableFontSize(), applyDefaultProfileToRow(), bindLongPress(), bindMortgageRowEvents(), fitAllNumericInputFontSizes(), fitNumericInputFontSize() (+6 more)
 
 ### Community 13 - "devDependencies"
 Cohesion: 0.50
@@ -116,8 +111,6 @@ Nodes (3): javascript-obfuscator, devDependencies, javascript-obfuscator
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `showBubble()` connect `showBubble` to `DSR_calculator_ui.js`, `선택초기화`, `applySlotSnapshot`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **What connects `DEFAULT_FIRST_ROW_FIELD_IDS`, `APT_PRICE_FIELD_LABELS`, `DEFAULT_LOAN_RATE_TABLE` to the rest of the system?**
   _73 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `DSR_calculator_ui.js` be split into smaller, more focused modules?**
@@ -125,4 +118,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `What You Must Do When Invoked` be split into smaller, more focused modules?**
   _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
 - **Should `showBubble` be split into smaller, more focused modules?**
-  _Cohesion score 0.10804597701149425 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12318840579710146 - nodes in this community are weakly interconnected._
