@@ -289,13 +289,19 @@ input[type=file]{display:none}
   </div>
 
   <div class="ctrl-row" style="margin-top:14px">
-    <span class="ctrl-label">색상</span>
+    <span class="ctrl-label">필터</span>
     <div class="segment">
-      <button id="colorBtn" class="active">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="12" r="6.5"/><circle cx="15" cy="12" r="6.5"/></svg>컬러 향상
+      <button id="colorBtn" class="active" data-mode="color">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="12" r="6.5"/><circle cx="15" cy="12" r="6.5"/></svg>컬러
       </button>
-      <button id="bwBtn">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg>흑백 문서
+      <button id="grayBtn" data-mode="gray">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>회색조
+      </button>
+      <button id="bwBtn" data-mode="bw">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg>흑백
+      </button>
+      <button id="originalBtn" data-mode="original">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5.2-5-6 6"/></svg>원본
       </button>
     </div>
   </div>
@@ -392,6 +398,10 @@ function showChromeHint(message, dismissible=true){
 let originalImage=null, processedDataURL=null, mode='color';
 let corners=null, cvReady=false;
 let warpedCanvas=null, filterRAF=null;
+// 배경정리(whitenBackground) 적용 전, 원근보정만 마친 진짜 원본 - "원본" 필터에서 쓴다.
+// whitenBackground는 배경뿐 아니라 이미지 전체 픽셀을 나눠서 재조정하므로, 이걸 따로
+// 안 남겨두면 "원본"도 사실은 배경정리를 거친 결과라 진짜 원본과 달라 보인다.
+let rawWarpedCanvas=null;
 let manualDragIdx=null, zoomLevel=1;
 let manualDragEdge=null, edgeDragStart=null;
 // corners[a]-corners[b]로 이어지는 네 변과 그 이름(구분바 data-edge 값과 매칭)
@@ -482,7 +492,11 @@ function loadFile(file){
     const img=new Image();
     img.onload=async()=>{
       originalImage=img;
-      corners=null; warpedCanvas=null; processedDataURL=null;
+      corners=null; warpedCanvas=null; rawWarpedCanvas=null; processedDataURL=null;
+      mode='color';
+      $('brightness').value=100; $('bv').textContent='0';
+      $('contrast').value=100; $('cv').textContent='0';
+      document.querySelectorAll('.segment button[data-mode]').forEach(b=>b.classList.toggle('active', b.dataset.mode==='color'));
       hideCornerOverlay();
       setZoom(1);
       setScreen('editing');
@@ -508,11 +522,11 @@ function loadFileAutoCommit(file){
       const img=new Image();
       img.onload=async()=>{
         originalImage=img;
-        corners=null; warpedCanvas=null; processedDataURL=null;
+        corners=null; warpedCanvas=null; rawWarpedCanvas=null; processedDataURL=null;
         mode='color';
         $('brightness').value=100; $('bv').textContent='0';
         $('contrast').value=100; $('cv').textContent='0';
-        $('colorBtn').classList.add('active'); $('bwBtn').classList.remove('active');
+        document.querySelectorAll('.segment button[data-mode]').forEach(b=>b.classList.toggle('active', b.dataset.mode==='color'));
         hideCornerOverlay();
         drawSource(img);
         currentEditSourceDataURL=$('sourceCanvas').toDataURL('image/jpeg', 0.9);
@@ -891,6 +905,7 @@ function warpAndColor(){
         const warped=document.createElement('canvas');
         warped.width=W; warped.height=H;
         cv.imshow(warped, dst);
+        rawWarpedCanvas=warped; // 배경정리 전 원본 - "원본" 필터용
 
         pts.delete(); dstPts.delete(); M.delete(); dst.delete(); src.delete();
 
@@ -952,18 +967,30 @@ function whitenColorBackground(canvas){
   ctx.putImageData(imgData,0,0);
 }
 
+// 4가지 필터:
+// - color(컬러): 원색 유지 + 배경만 순백 스냅(whitenColorBackground)
+// - gray(회색조): 그레이스케일로 바꾸되 흑백 문서 모드 같은 강제 임계값 없이 부드러운
+//   톤을 유지한다 - 사진·도장이 섞인 문서에서 흑백 문서 모드보다 자연스럽게 보인다.
+//   배경은 색상 모드와 동일하게 순백으로 스냅(회색조에서도 R=G=B라 같은 함수가 그대로 먹힌다).
+// - bw(흑백 문서): 기존 임계값 처리 - 배경은 무조건 순백(잉크 0%), 글자만 진하게.
+// - original(원본): 배경정리(whitenBackground)조차 거치지 않은, 원근보정만 마친 진짜
+//   원본(rawWarpedCanvas)에 밝기/대비만 얹는다 - IDCard.html의 "컬러"와 같은 개념.
 function applyFilterAndRender(){
-  if(!warpedCanvas)return;
+  const isOriginal = mode==='original';
+  const base = isOriginal ? rawWarpedCanvas : warpedCanvas;
+  if(!base)return;
   const tmp=document.createElement('canvas');
-  tmp.width=warpedCanvas.width; tmp.height=warpedCanvas.height;
+  tmp.width=base.width; tmp.height=base.height;
   const tc=tmp.getContext('2d');
 
   const b=$('brightness').value, c=$('contrast').value;
-  tc.filter=`brightness(${b}%) contrast(${c}%)`;
-  tc.drawImage(warpedCanvas, 0, 0);
+  const grayscaleFilter = mode==='gray' ? ' grayscale(100%)' : '';
+  tc.filter=`brightness(${b}%) contrast(${c}%)${grayscaleFilter}`;
+  tc.drawImage(base, 0, 0);
 
   if(mode==='bw') applyDocumentThreshold(tmp);
-  else whitenColorBackground(tmp);
+  else if(mode==='color' || mode==='gray') whitenColorBackground(tmp);
+  // mode==='original'은 추가 처리 없음
 
   processedDataURL=tmp.toDataURL('image/jpeg',0.92);
   $('pagePreview').src=processedDataURL;
@@ -974,8 +1001,13 @@ function scheduleFilterRender(){
   filterRAF=requestAnimationFrame(()=>{filterRAF=null; applyFilterAndRender();});
 }
 
-$('colorBtn').onclick=()=>{mode='color';$('colorBtn').classList.add('active');$('bwBtn').classList.remove('active');applyFilterAndRender()};
-$('bwBtn').onclick=()=>{mode='bw';$('bwBtn').classList.add('active');$('colorBtn').classList.remove('active');applyFilterAndRender()};
+document.querySelectorAll('.segment button[data-mode]').forEach(btn=>{
+  btn.onclick=()=>{
+    mode=btn.dataset.mode;
+    document.querySelectorAll('.segment button[data-mode]').forEach(b=>b.classList.toggle('active', b===btn));
+    applyFilterAndRender();
+  };
+});
 $('brightness').oninput=e=>{$('bv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
 $('contrast').oninput=e=>{$('cv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
 $('resetBrightness').onclick=()=>{$('brightness').value=100;$('bv').textContent='0';scheduleFilterRender()};
@@ -1164,7 +1196,7 @@ $('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null; ma
    페이지 목록 관리
 ========================================================= */
 function resetWorkspace(){
-  originalImage=null; corners=null; warpedCanvas=null; processedDataURL=null;
+  originalImage=null; corners=null; warpedCanvas=null; rawWarpedCanvas=null; processedDataURL=null;
   currentEditSourceDataURL=null;
   hideCornerOverlay(); setZoom(1);
 }
@@ -1225,12 +1257,11 @@ function openPageForEdit(index){
   img.onload=()=>{
     originalImage=img;
     corners=page.corners.map(p=>({...p}));
-    warpedCanvas=null; processedDataURL=null;
+    warpedCanvas=null; rawWarpedCanvas=null; processedDataURL=null;
     mode=page.mode;
     $('brightness').value=page.brightness; $('bv').textContent=page.brightness-100;
     $('contrast').value=page.contrast; $('cv').textContent=page.contrast-100;
-    $('colorBtn').classList.toggle('active', mode==='color');
-    $('bwBtn').classList.toggle('active', mode==='bw');
+    document.querySelectorAll('.segment button[data-mode]').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
     setZoom(1);
     setScreen('editing');
     drawSource(img);
