@@ -171,12 +171,20 @@ input[type=file]{display:none}
 
 @media(min-width:521px){body{padding:18px 0}.app{border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(20,30,60,.16)}}
 @media print{
-  body{background:#fff!important}.app{max-width:none}.top,main>.card:not(.printable),.toast{display:none!important}
+  /* (min-width:521px) 규칙이 screen 조건 없이 걸려 있어 인쇄 시에도 적용된다 - body의
+     상하 padding(18px×2 ≈ 9.5mm)이 A4 297mm에 더해지면서 그만큼이 2페이지로 밀려나가던
+     원인이었다. 인쇄에서는 반드시 0으로 되돌린다. */
+  body{background:#fff!important;padding:0!important}
+  .app{max-width:none;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  .top,main>.card:not(.printable),.toast{display:none!important}
   main{padding:0}.printable{display:block!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
   .a4-preview{display:block!important}
   /* A4 용지(.a4-wrap) 한 장만 인쇄되게, 미리보기 아래 버튼·안내문 등은 전부 숨긴다 */
   .a4-preview>*:not(.a4-wrap){display:none!important}
-  .a4-wrap{padding:0;background:#fff}.a4{width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none}
+  /* 화면 미리보기용 96% 폭 + aspect-ratio(210/148.5, 절반 높이로 잘라 보여주는 값)를
+     인쇄에서는 .a4의 실제 크기(210mm×297mm)와 정확히 맞춘다 */
+  .a4-wrap{width:210mm;margin:0;padding:0;background:#fff;aspect-ratio:auto;overflow:visible}
+  .a4{width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none}
   .measure-w,.measure-h{display:none}
   @page{size:A4;margin:0}
 }
