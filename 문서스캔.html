@@ -933,6 +933,25 @@ function applyDocumentThreshold(canvas){
   ctx.putImageData(imgData,0,0);
 }
 
+// "컬러 향상" 모드는 배경정리(whitenBackground)를 거치긴 하지만 흑백 모드 같은
+// 강제 순백 컷오프가 없어서, 조명이 살짝 안 고르거나 압축 잡음이 섞이면 배경이
+// 250~254 정도의 옅은 회색으로 남아 인쇄 시 미세하게 잉크가 나갈 수 있다.
+// 도장·색 잉크 등 진짜 색이 있는 부분은 절대 건드리면 안 되므로, R·G·B 중 가장
+// 어두운 채널을 기준으로 판단한다 - 셋 다 밝으면(=진짜 색이 없는 배경일 가능성이
+// 높으면) 순백으로 스냅하고, 하나라도 어두우면(=색이 있거나 글자) 그대로 둔다.
+function whitenColorBackground(canvas){
+  const ctx=canvas.getContext('2d');
+  const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const d=imgData.data;
+  for(let i=0;i<d.length;i+=4){
+    const minCh=Math.min(d[i],d[i+1],d[i+2]);
+    if(minCh>=DOC_WHITE_CUTOFF){
+      d[i]=255; d[i+1]=255; d[i+2]=255;
+    }
+  }
+  ctx.putImageData(imgData,0,0);
+}
+
 function applyFilterAndRender(){
   if(!warpedCanvas)return;
   const tmp=document.createElement('canvas');
@@ -944,6 +963,7 @@ function applyFilterAndRender(){
   tc.drawImage(warpedCanvas, 0, 0);
 
   if(mode==='bw') applyDocumentThreshold(tmp);
+  else whitenColorBackground(tmp);
 
   processedDataURL=tmp.toDataURL('image/jpeg',0.92);
   $('pagePreview').src=processedDataURL;
