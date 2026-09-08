@@ -217,7 +217,7 @@ input[type=file]{display:none}
           <circle cx="12" cy="13" r="3.4"/>
         </svg>
       </div>
-      <div><b>카메라로 촬영하기</b><span>신분증을 촬영하여 바로 사용하세요.</span></div>
+      <div><b>카메라로 촬영하기</b><span>가로 촬영을 권장합니다!!!</span></div>
       <input id="camera" type="file" accept="image/*" capture="environment">
     </label>
     <label class="upload">
@@ -281,7 +281,6 @@ input[type=file]{display:none}
     </div>
   </div>
   <div id="scanStatus" class="status"><div class="spinner"></div><span>신분증 영역을 자동으로 찾고 있습니다...</span></div>
-  <div class="small-note">사진 위 파란 점을 드래그하면 언제든 신분증 영역을 미세하게 조정할 수 있습니다. 사진 전체를 쓰려면 '전체 선택'을, 세밀하게 맞추려면 확대(+)를 사용하세요.</div>
 </section>
 
 <section class="card printable">
@@ -292,7 +291,7 @@ input[type=file]{display:none}
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v3M12 3v2M16 3v3M8 18v3M16 18v3"/>
       </svg>
-      실제 A4 용지 크기(210 × 297mm) 그대로 인쇄·저장됩니다
+      A4 용지에 신분증 실물 크기에 맞게 인쇄·저장됩니다
     </div>
 
     <div class="a4-wrap">
@@ -347,6 +346,13 @@ input[type=file]{display:none}
         </svg>PDF 공유
       </button>
     </div>
+    <!-- PC에는 공유 시트가 없어서 인쇄로 바로 갈 방법이 없었다 - 모바일에는 이미 공유
+         메뉴의 인쇄가 있으니 중복이라 평소엔 숨기고, PC로 접속이 확인된 경우에만 보여준다. -->
+    <button type="button" class="action full" id="printBtn" style="display:none;margin-top:9px">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/>
+      </svg>바로인쇄
+    </button>
     <div class="small-note">※ 공유 메뉴에서 <b>인쇄</b>를 선택하면 바로 인쇄할 수 있습니다. 인쇄 설정에서 배율을 <b>100%(실제 크기)</b>로 선택하세요 - '페이지에 맞춤'을 사용하면 크기가 달라질 수 있습니다.</div>
   </div>
 </section>
@@ -1178,6 +1184,16 @@ $('shareImageBtn').onclick=()=>{
 $('sharePdfBtn').onclick=()=>{
   if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
   shareAsPdf();
+};
+
+// PC는 공유 시트가 없어 인쇄로 갈 방법이 마땅치 않았다 - 모바일(공유 메뉴에 인쇄가 이미
+// 있음)에서는 숨기고, PC로 확인된 경우에만 버튼을 드러낸다.
+if(!IS_MOBILE){
+  $('printBtn').style.display='flex';
+}
+$('printBtn').onclick=()=>{
+  if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  window.print();
 };
 
 // A4 페이지 크기의 흰 캔버스 정중앙(방향에 맞춰)에 신분증 이미지를 그려 넣는다.
