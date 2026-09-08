@@ -118,13 +118,17 @@ input[type=file]{display:none}
 }
 .a4{
   position:relative;width:100%;aspect-ratio:210/297;background:#fff;
-  box-shadow:0 6px 22px rgba(15,23,42,.16);overflow:hidden;border-radius:2px
+  box-shadow:0 6px 22px rgba(15,23,42,.16);overflow:hidden;border-radius:2px;
+  transform:scale(1.9);transform-origin:50% 22.0875%;
 }
 .id-output{
   position:absolute;width:40.762%;height:auto;aspect-ratio:85.6/53.98;
   left:29.619%;top:13%;background:#eee;overflow:hidden
 }
 .id-output img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+/* 화면 미리보기는 카드 부분을 확대해서 보여주므로(transform:scale) 이 눈금선이
+   확대 배율만큼 같이 커지면서 잘리거나 흐릿해진다 - 화면에서는 숨기고 인쇄에서만 쓴다. */
+.measure-w,.measure-h{display:none}
 .measure-w{position:absolute;top:calc(13% - 18px);left:29.619%;width:40.762%;border-top:1px solid #9aa7bb}
 .measure-w:before,.measure-w:after{content:"";position:absolute;height:8px;border-left:1px solid #9aa7bb;top:-4px}
 .measure-w:after{right:0}.measure-w span{position:absolute;left:50%;transform:translateX(-50%);top:-17px;background:#fff;padding:0 4px;font-size:9px;color:var(--muted)}
@@ -156,6 +160,14 @@ input[type=file]{display:none}
 .sheet-format-toggle{margin-top:6px}
 .sheet-cancel{width:100%;margin-top:10px;padding:14px;border-radius:var(--r-md);border:0;background:var(--surface-2);font-weight:800;color:var(--muted);font-size:13.5px}
 
+/* ===== BROWSER HINT ===== */
+.browser-hint{display:none;align-items:center;gap:10px;background:#1f2a44;color:#fff;padding:10px 14px;font-size:12px;font-weight:600;line-height:1.4}
+.browser-hint b{color:#8fb4ff}
+.browser-hint-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
+.browser-hint-actions button{border:0;border-radius:8px;font-weight:800;cursor:pointer}
+#openInChromeBtn{background:var(--primary);color:#fff;padding:7px 12px;font-size:12px;white-space:nowrap}
+#dismissBrowserHint{background:transparent;color:#aab4c8;font-size:15px;padding:4px 6px}
+
 @media(min-width:521px){body{padding:18px 0}.app{border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(20,30,60,.16)}}
 @media print{
   body{background:#fff!important}.app{max-width:none}.top,main>.card:not(.printable),.toast,.sheet-backdrop{display:none!important}
@@ -163,7 +175,7 @@ input[type=file]{display:none}
   .a4-preview{display:block!important}
   /* A4 용지(.a4-wrap) 한 장만 인쇄되게, 미리보기 아래 버튼·안내문 등은 전부 숨긴다 */
   .a4-preview>*:not(.a4-wrap){display:none!important}
-  .a4-wrap{padding:0;background:#fff}.a4{width:210mm;height:297mm;box-shadow:none;border-radius:0}
+  .a4-wrap{padding:0;background:#fff}.a4{width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none}
   .measure-w,.measure-h{display:none}
   @page{size:A4;margin:0}
 }
@@ -171,6 +183,13 @@ input[type=file]{display:none}
 </head>
 <body>
 <div class="app">
+<div id="browserHintBar" class="browser-hint" style="display:none">
+  <span>원활한 공유 기능을 위해 <b>크롬</b> 사용을 권장합니다.</span>
+  <div class="browser-hint-actions">
+    <button type="button" id="openInChromeBtn">크롬으로 열기</button>
+    <button type="button" id="dismissBrowserHint" aria-label="닫기">✕</button>
+  </div>
+</div>
 <header class="top">
   <div class="topbar">
     <div class="logo">
@@ -355,6 +374,43 @@ input[type=file]{display:none}
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 const $=id=>document.getElementById(id);
+
+/* =========================================================
+   브라우저 권장 안내 (크롬 유도)
+   카카오톡/네이버 등 인앱 브라우저나 구형 웹뷰는 파일 공유(Web Share) 지원이
+   불안정해서, 정식 크롬이 아니면 배너로 권장하고 크롬 실행을 시도한다.
+   인텐트 URL(intent://...#Intent;package=com.android.chrome;end)은 안드로이드
+   OS가 처리하는 표준 방식이라 대부분의 인앱 브라우저에서도 동작하지만,
+   일부(인스타그램 등)는 앱 이탈을 막아 무시할 수 있다 - 그럴 땐 그냥 닫으면 된다.
+   iOS는 크롬을 강제로 열 방법이 없어서(강제 실행 가능한 URL 스킴이 없음, 크롬
+   미설치 시 조용히 실패) 대상에서 제외한다 - 사파리 자체가 이미 공유를 잘 지원한다. */
+(function initBrowserHint(){
+  const ua=navigator.userAgent;
+  const isAndroid=/Android/i.test(ua);
+  if(!isAndroid) return; // iOS는 강제 전환 수단이 없어 배너를 띄우지 않음
+
+  const isInApp=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
+  // 크롬 UA에는 "Chrome/"이 들어있지만, 삼성인터넷/웨일/오페라/UC브라우저 등도
+  // 크로미움 기반이라 호환성 목적으로 똑같이 "Chrome/" 토큰을 끼워 넣는다 -
+  // 그래서 다른 브라우저 고유 토큰이 없어야만 진짜 크롬으로 판단한다.
+  const otherBrowser=/SamsungBrowser|Whale|MiuiBrowser|HeyTapBrowser|UCBrowser|EdgA|OPR\/|; ?wv\)/i.test(ua);
+  const isRealChrome=/Chrome\//.test(ua) && !otherBrowser && !isInApp;
+  if(isRealChrome) return;
+  if(sessionStorage.getItem('browserHintDismissed')) return;
+
+  const bar=$('browserHintBar');
+  bar.style.display='flex';
+  $('openInChromeBtn').onclick=()=>{
+    const scheme=location.protocol.replace(':','');
+    const withoutScheme=location.href.slice(location.protocol.length+2);
+    location.href=`intent://${withoutScheme}#Intent;scheme=${scheme};package=com.android.chrome;end`;
+  };
+  $('dismissBrowserHint').onclick=()=>{
+    bar.style.display='none';
+    sessionStorage.setItem('browserHintDismissed','1');
+  };
+})();
+
 let originalImage=null, processedDataURL=null, orientedDataURL=null, mode='color';
 let corners=null, cvReady=false, cardOrientation='landscape';
 let warpedCanvas=null, filterRAF=null;
@@ -1168,6 +1224,10 @@ function renderA4Canvas(){
 }
 
 async function shareAsImage(){
+  // PDF는 이미 있는 원본 이미지를 그대로 삽입만 하면 돼서 즉시 끝나지만, 이미지 공유는
+  // A4 전체 페이지 크기(200DPI, 약 1654×2339px)의 새 캔버스를 매번 그려서 JPEG로 다시
+  // 인코딩해야 해서 시간이 걸린다 - 그동안 화면이 멈춘 것처럼 보이지 않도록 안내한다.
+  showToast('이미지를 준비하고 있습니다...');
   const canvas=await renderA4Canvas();
   if(!canvas)return;
   canvas.toBlob(blob=>{
@@ -1245,8 +1305,9 @@ async function shareOrDownload(blob, filename, mimeType){
     }
   }
 
-  // Web Share를 못 쓰는 환경(일반 데스크톱 브라우저, 미지원 형식 등)은 평범한 다운로드로 대체
-  showToast('이 브라우저는 공유를 지원하지 않아 파일을 다운로드했습니다.');
+  // Web Share를 못 쓰는 환경(일반 데스크톱 브라우저, 미지원 형식 등)은 평범한 다운로드로 대체.
+  // "공유가 안 됐다"에서 끝나지 않고 다음에 뭘 해야 하는지까지 안내한다.
+  showToast('공유가 지원되지 않아 다운로드했습니다. 다운로드 폴더에서 열어 공유 버튼을 눌러주세요.');
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url; a.download=filename; a.click();
