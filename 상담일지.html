@@ -59,8 +59,9 @@
             padding: 0; box-shadow: none; transition: all 0.15s ease;
         }
         .field-clear-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); transform: none; }
-        /* 토글(KB시세/감정가, 매매가/보증금) 옆에 버튼을 붙일 땐 토글 자체를 100%에서 내용만큼만 차지하게 줄인다 */
-        .label-with-clear .label-toggle { width: auto; flex: 0 1 auto; min-width: 0; }
+        /* 토글(KB시세/감정가, 매매가/보증금) 옆에 x 버튼을 나란히 두기 위해 width:100% 대신 flex-grow를
+           쓴다 - 이래야 x 버튼(고정 15px)은 그대로 두고 토글만 값 입력창처럼 창 너비에 맞춰 커진다 */
+        .label-with-clear .label-toggle { width: auto; flex: 1 1 auto; min-width: 0; }
         /* 신청금액은 라벨이 세로로 쌓이는(신청금액 / %표시) 구조라, 버튼은 첫 줄(신청금액) 옆에만 붙게 별도로 감싼다 */
         .need-amount-title-row { display: flex; align-items: center; gap: 4px; }
 
