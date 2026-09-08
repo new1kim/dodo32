@@ -81,6 +81,11 @@ input[type=file]{display:none}
 .manual-handles{position:absolute;inset:0;display:none}
 .corner-marker{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--primary);border:1.5px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.45);pointer-events:none}
 .corner-dot{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 3px 10px rgba(15,23,42,.35);touch-action:none;pointer-events:auto}
+/* 변 중간의 "구분바" - 모서리 하나씩이 아니라 변 전체(양쪽 모서리를 함께)를 밀어서
+   그 변만 넓히거나 좁힐 수 있게 해준다. 가로변은 눕힌 막대, 세로변은 세운 막대. */
+.edge-bar{position:absolute;background:#fff;border:3px solid var(--primary);box-shadow:0 3px 10px rgba(15,23,42,.35);touch-action:none;pointer-events:auto;border-radius:999px}
+.edge-bar-h{width:34px;height:14px;margin:-7px 0 0 -17px}
+.edge-bar-v{width:14px;height:34px;margin:-17px 0 0 -7px}
 
 .status{display:flex;align-items:center;gap:9px;background:#1c2740;color:#fff;padding:12px 13px;border-radius:var(--r-sm);margin-top:10px;font-size:12px}
 .spinner{width:17px;height:17px;flex:0 0 17px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
@@ -257,6 +262,10 @@ input[type=file]{display:none}
         <div class="corner-marker" data-idx="1"></div>
         <div class="corner-marker" data-idx="2"></div>
         <div class="corner-marker" data-idx="3"></div>
+        <div class="edge-bar edge-bar-h" data-edge="top"></div>
+        <div class="edge-bar edge-bar-v" data-edge="right"></div>
+        <div class="edge-bar edge-bar-h" data-edge="bottom"></div>
+        <div class="edge-bar edge-bar-v" data-edge="left"></div>
         <div class="corner-dot" data-idx="0"></div>
         <div class="corner-dot" data-idx="1"></div>
         <div class="corner-dot" data-idx="2"></div>
@@ -428,6 +437,9 @@ let originalImage=null, processedDataURL=null, orientedDataURL=null, mode='color
 let corners=null, cvReady=false, cardOrientation='landscape';
 let warpedCanvas=null, filterRAF=null;
 let manualDragIdx=null, zoomLevel=1;
+let manualDragEdge=null, edgeDragStart=null;
+// corners[a]-corners[b]로 이어지는 네 변과 그 이름(구분바 data-edge 값과 매칭)
+const EDGES=[{name:'top',a:0,b:1},{name:'right',a:1,b:2},{name:'bottom',a:2,b:3},{name:'left',a:3,b:0}];
 
 // ISO 신분증 실제 크기(mm)와 A4 용지 크기(mm). 세로 방향은 이 둘을 서로 바꿔서 쓴다.
 const CARD_W_MM=85.6, CARD_H_MM=53.98, PAGE_W_MM=210, PAGE_H_MM=297;
@@ -438,6 +450,24 @@ const CARD_CORNER_MM=3.18;
 // 신분증을 용지 중앙이 아니라 상단에 배치할 때 위쪽 여백(용지 높이 대비 비율).
 // 미리보기·이미지저장·PDF·인쇄가 전부 이 값 하나로 통일해서 항상 같은 위치에 나오게 한다.
 const CARD_TOP_MM = PAGE_H_MM * 0.13;
+
+// 모서리 "인식"은 화면 표시용으로 축소된 sourceCanvas(최대 1500px)에서 빠르게 하지만,
+// 실제 "원근보정" 결과물은 그보다 훨씬 큰 원본에서 다시 뽑아야 글자가 뭉개지지 않는다.
+// PROCESS_MAX: 원근보정에 쓸 고해상도 원본의 상한(너무 큰 사진에서 연산이 느려지는 것 방지).
+// CARD_TARGET_LONG_PX: 최종 신분증 이미지의 긴 변 픽셀 수(기존 1000px → 1400px로 상향).
+const PROCESS_MAX=2800;
+const CARD_TARGET_LONG_PX=1400;
+
+// 인식/드래그 UI는 원본 이미지 그대로 쓰기엔 느려서 sourceCanvas(축소본)에서 하지만,
+// 실제 보정은 이 함수로 만든 훨씬 큰 캔버스를 원본으로 삼는다.
+function buildHighResCanvas(img){
+  const scale=Math.min(1, PROCESS_MAX/img.naturalWidth, PROCESS_MAX/img.naturalHeight);
+  const c=document.createElement('canvas');
+  c.width=Math.round(img.naturalWidth*scale);
+  c.height=Math.round(img.naturalHeight*scale);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  return c;
+}
 
 function currentCardBoxMm(){
   return cardOrientation==='landscape'
@@ -479,7 +509,7 @@ function isAlreadyFullCardImage(canvas){
 
 function fitImageToCardAspect(sourceCanvas){
   const cardRatio = CARD_W_MM / CARD_H_MM;
-  const targetWidth = 1200;
+  const targetWidth = CARD_TARGET_LONG_PX;
   const targetHeight = Math.round(targetWidth / cardRatio);
 
   const fitted = document.createElement('canvas');
@@ -502,9 +532,15 @@ function fitImageToCardAspect(sourceCanvas){
 }
 
 function useDirectResizePath(){
-  const canvas = $('sourceCanvas');
-  warpedCanvas = fitImageToCardAspect(canvas);
-  applyFilterAndRender();
+  setStatus('고화질로 보정하는 중입니다...');
+  // 상태 문구가 먼저 화면에 그려지게 한 프레임 미룬 뒤 무거운 작업을 시작한다.
+  requestAnimationFrame(()=>{
+    // 인식용 축소 캔버스가 아니라 원본에서 직접 고해상도로 리사이즈한다.
+    const hiRes = buildHighResCanvas(originalImage);
+    warpedCanvas = fitImageToCardAspect(hiRes);
+    applyFilterAndRender();
+    setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
+  });
 }
 
 $('camera').onchange=e=>{loadFile(e.target.files[0]); e.target.value=''};
@@ -530,7 +566,6 @@ function loadFile(file){
           {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
         ];
         showCornerOverlay();
-        setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
         useDirectResizePath();
         return;
       }
@@ -773,7 +808,6 @@ async function detectCard(){
       {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
     ];
     showCornerOverlay();
-    setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
     useDirectResizePath();
     return;
   }
@@ -856,53 +890,64 @@ function isNearlyWholeCardSelection(pts, canvas){
 
 function warpAndColor(){
   if(!corners)return;
-  try{
-    const sourceCanvas=$('sourceCanvas');
+  const sourceCanvas=$('sourceCanvas');
 
-    // 카드가 이미 사진 전체를 차지하는 경우에는 원근 보정을 전부 건너뜀.
-    // 이 경우에 perspective transform을 다시 적용하면 비율이 미세하게 밀려서
-    // 찌그러져 보이므로, 그대로 직사각형 한 장으로 리사이즈해 붙이는 방식이 맞다.
-    if(isAlreadyFullCardImage(sourceCanvas) || isNearlyWholeCardSelection(corners, sourceCanvas)){
-      useDirectResizePath();
-      return;
-    }
+  // 카드가 이미 사진 전체를 차지하는 경우에는 원근 보정을 전부 건너뜀.
+  // 이 경우에 perspective transform을 다시 적용하면 비율이 미세하게 밀려서
+  // 찌그러져 보이므로, 그대로 직사각형 한 장으로 리사이즈해 붙이는 방식이 맞다.
+  if(isAlreadyFullCardImage(sourceCanvas) || isNearlyWholeCardSelection(corners, sourceCanvas)){
+    useDirectResizePath();
+    return;
+  }
 
-    const src=cv.imread(sourceCanvas);
-    const pts=cv.matFromArray(4,1,cv.CV_32FC2,corners.flatMap(p=>[p.x,p.y]));
+  setStatus('고화질로 보정하는 중입니다...');
+  // 상태 문구가 먼저 화면에 그려지게 한 프레임 미룬 뒤, 시간이 걸리는 원근보정을 시작한다.
+  requestAnimationFrame(()=>{
+    try{
+      // 모서리는 인식/드래그용 축소 캔버스(sourceCanvas) 기준 좌표다. 실제 보정은
+      // 원본에서 다시 뽑은 고해상도 캔버스로 하므로, 그 배율만큼 좌표를 함께 키운다.
+      const hiRes=buildHighResCanvas(originalImage);
+      const scaleUp=hiRes.width/sourceCanvas.width;
+      const hiResCorners=corners.map(p=>({x:p.x*scaleUp, y:p.y*scaleUp}));
 
-    // 목적지 비율은 실측값을 그대로 쓰지 않고 신분증 실제 비율(85.6:53.98=1.586)에
-    // "스냅"한다. 실측 비율을 그대로 쓰면(이전 버전) warpAndColor 단계 자체는
-    // 안 찌그러지지만, 이후 A4 배치·PDF·이미지저장이 전부 정확히 1.586(가로) 또는
-    // 0.630(세로, =1/1.586) 비율의 칸에 맞춰 그리기 때문에, 실측 비율이 그 값과
-    // 조금이라도 다르면(전체 선택 시 여백이 살짝 섞이는 등) 거기서 다시 늘어나
-    // 찌그러져 보였다. 선택한 사각형이 "가로로 넓은지 세로로 긴지"만 보고 어느
-    // 방향인지 판단한 뒤, 그 방향의 정확한 신분증 비율로 강제로 펴서 이후 어떤
-    // 단계를 거쳐도 더 이상 왜곡이 생기지 않게 한다.
-    const w1=distance(corners[0], corners[1]), w2=distance(corners[3], corners[2]);
-    const h1=distance(corners[0], corners[3]), h2=distance(corners[1], corners[2]);
-    const measuredRatio=((w1+w2)/2)/((h1+h2)/2);
+      const src=cv.imread(hiRes);
+      const pts=cv.matFromArray(4,1,cv.CV_32FC2,hiResCorners.flatMap(p=>[p.x,p.y]));
 
-    const CARD_RATIO=85.6/53.98;
-    let W, H;
-    if(measuredRatio>=1){ W=1000; H=Math.round(W/CARD_RATIO); }
-    else{ H=1000; W=Math.round(H/CARD_RATIO); }
+      // 목적지 비율은 실측값을 그대로 쓰지 않고 신분증 실제 비율(85.6:53.98=1.586)에
+      // "스냅"한다. 실측 비율을 그대로 쓰면(이전 버전) warpAndColor 단계 자체는
+      // 안 찌그러지지만, 이후 A4 배치·PDF·이미지저장이 전부 정확히 1.586(가로) 또는
+      // 0.630(세로, =1/1.586) 비율의 칸에 맞춰 그리기 때문에, 실측 비율이 그 값과
+      // 조금이라도 다르면(전체 선택 시 여백이 살짝 섞이는 등) 거기서 다시 늘어나
+      // 찌그러져 보였다. 선택한 사각형이 "가로로 넓은지 세로로 긴지"만 보고 어느
+      // 방향인지 판단한 뒤, 그 방향의 정확한 신분증 비율로 강제로 펴서 이후 어떤
+      // 단계를 거쳐도 더 이상 왜곡이 생기지 않게 한다.
+      const w1=distance(hiResCorners[0], hiResCorners[1]), w2=distance(hiResCorners[3], hiResCorners[2]);
+      const h1=distance(hiResCorners[0], hiResCorners[3]), h2=distance(hiResCorners[1], hiResCorners[2]);
+      const measuredRatio=((w1+w2)/2)/((h1+h2)/2);
 
-    const dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, W-1,0, W-1,H-1, 0,H-1]);
-    const M=cv.getPerspectiveTransform(pts,dstPts), dst=new cv.Mat();
+      const CARD_RATIO=85.6/53.98;
+      let W, H;
+      if(measuredRatio>=1){ W=CARD_TARGET_LONG_PX; H=Math.round(W/CARD_RATIO); }
+      else{ H=CARD_TARGET_LONG_PX; W=Math.round(H/CARD_RATIO); }
 
-    cv.warpPerspective(src, dst, M, new cv.Size(W,H), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+      const dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, W-1,0, W-1,H-1, 0,H-1]);
+      const M=cv.getPerspectiveTransform(pts,dstPts), dst=new cv.Mat();
 
-    // 컬러/흑백은 여기서 처리하지 않는다 - applyFilterAndRender()의 CSS 필터로 옮겼다
-    // (아래 참고: "카드가 이미 전체를 채움" 경로는 이 함수를 아예 안 타서 흑백이 안 먹혔었다).
+      cv.warpPerspective(src, dst, M, new cv.Size(W,H), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
 
-    if(!warpedCanvas) warpedCanvas=document.createElement('canvas');
-    warpedCanvas.width=W; warpedCanvas.height=H;
-    cv.imshow(warpedCanvas, dst);
+      // 컬러/흑백은 여기서 처리하지 않는다 - applyFilterAndRender()의 CSS 필터로 옮겼다
+      // (아래 참고: "카드가 이미 전체를 채움" 경로는 이 함수를 아예 안 타서 흑백이 안 먹혔었다).
 
-    pts.delete(); dstPts.delete(); M.delete(); dst.delete(); src.delete();
+      if(!warpedCanvas) warpedCanvas=document.createElement('canvas');
+      warpedCanvas.width=W; warpedCanvas.height=H;
+      cv.imshow(warpedCanvas, dst);
 
-    applyFilterAndRender();
-  }catch(e){console.error(e); showToast('이미지 보정에 실패했습니다. 다시 시도해주세요.')}
+      pts.delete(); dstPts.delete(); M.delete(); dst.delete(); src.delete();
+
+      applyFilterAndRender();
+      setStatus('보정이 완료되었습니다.', true);
+    }catch(e){console.error(e); showToast('이미지 보정에 실패했습니다. 다시 시도해주세요.')}
+  });
 }
 
 // 밝기/대비만 반영하는 가벼운 단계. 슬라이더를 움직일 때마다 이 함수만 다시 실행되므로
@@ -910,29 +955,20 @@ function warpAndColor(){
 function applyFilterAndRender(){
   if(!warpedCanvas)return;
 
-  const cardRatio = CARD_W_MM / CARD_H_MM;
+  // warpAndColor()/useDirectResizePath() 두 경로 모두 이미 정확한 신분증 비율·크기로
+  // warpedCanvas를 만들어주므로, 여기서 다시 고정 크기에 맞춰 축소·센터링할 필요가 없다
+  // (예전엔 1200px 고정 캔버스에 다시 맞춰 그렸는데, 그게 오히려 화질을 깎아먹고 있었다).
   const tmp=document.createElement('canvas');
-  const targetWidth = 1200;
-  const targetHeight = Math.round(targetWidth / cardRatio);
-  tmp.width=targetWidth; tmp.height=targetHeight;
-
+  tmp.width=warpedCanvas.width; tmp.height=warpedCanvas.height;
   const tc=tmp.getContext('2d');
-  tc.fillStyle='#fff';
-  tc.fillRect(0, 0, tmp.width, tmp.height);
-
-  const b=$('brightness').value, c=$('contrast').value;
-  const scale = Math.min(tmp.width / warpedCanvas.width, tmp.height / warpedCanvas.height);
-  const drawWidth = Math.round(warpedCanvas.width * scale);
-  const drawHeight = Math.round(warpedCanvas.height * scale);
-  const dx=(tmp.width-drawWidth)/2;
-  const dy=(tmp.height-drawHeight)/2;
 
   // 컬러/흑백은 warpedCanvas(원근보정 또는 "그대로 리사이즈" 두 경로 모두 공통으로
   // 거치는 지점)에서 여기 필터로 처리한다 - 두 경로 중 어느 쪽으로 만들어졌든
   // 컬러 버튼이 항상 그대로 반응한다.
+  const b=$('brightness').value, c=$('contrast').value;
   const grayscale = mode==='bw' ? ' grayscale(100%)' : '';
   tc.filter=`brightness(${b}%) contrast(${c}%)${grayscale}`;
-  tc.drawImage(warpedCanvas, dx, dy, drawWidth, drawHeight);
+  tc.drawImage(warpedCanvas, 0, 0);
 
   processedDataURL=tmp.toDataURL('image/jpeg',0.92);
   updateOrientedImage();
@@ -1084,6 +1120,16 @@ function renderManualOverlay(){
     dot.style.transform=`translate(${dir.x*HANDLE_OFFSET_PX}px, ${dir.y*HANDLE_OFFSET_PX}px)`;
   });
 
+  // 구분바는 변의 중점에 놓는다 - 변 자체가 이미 눈에 보이는 기준선이라
+  // 모서리 점처럼 바깥으로 띄울 필요 없이 그 위에 그대로 얹는다.
+  EDGES.forEach(edge=>{
+    const bar=document.querySelector(`#manualHandles .edge-bar[data-edge="${edge.name}"]`);
+    if(!bar)return;
+    const pA=corners[edge.a], pB=corners[edge.b];
+    const {xPct,yPct}=pointToPercent({x:(pA.x+pB.x)/2, y:(pA.y+pB.y)/2}, canvas);
+    bar.style.left=xPct+'%'; bar.style.top=yPct+'%';
+  });
+
   $('manualPolygon').setAttribute('points', pts.join(' '));
 }
 
@@ -1153,11 +1199,45 @@ document.querySelectorAll('#manualHandles .corner-dot').forEach(dot=>{
   });
 });
 
+// 구분바를 잡으면 그 변의 두 모서리를 함께, 손가락이 움직인 만큼 그대로 평행 이동시킨다
+// (모서리 각각을 따로 옮기는 게 아니라 변 전체를 밀어서 그 쪽 크기만 조절하는 느낌).
+document.querySelectorAll('#manualHandles .edge-bar').forEach(bar=>{
+  bar.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    bar.setPointerCapture(e.pointerId);
+    const canvas=$('sourceCanvas');
+    const rect=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+    manualDragEdge=EDGES.find(edge=>edge.name===bar.dataset.edge);
+    edgeDragStart={
+      pointerX:(e.clientX-rect.left)*scaleX, pointerY:(e.clientY-rect.top)*scaleY,
+      a:{...corners[manualDragEdge.a]}, b:{...corners[manualDragEdge.b]}
+    };
+  });
+});
+
 $('manualHandles').addEventListener('pointermove', e=>{
-  if(manualDragIdx===null || !corners)return;
+  if(!corners)return;
   const canvas=$('sourceCanvas');
   const rect=canvas.getBoundingClientRect();
   const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+
+  if(manualDragEdge){
+    const curX=(e.clientX-rect.left)*scaleX, curY=(e.clientY-rect.top)*scaleY;
+    const dx=curX-edgeDragStart.pointerX, dy=curY-edgeDragStart.pointerY;
+    corners[manualDragEdge.a]={
+      x: Math.min(canvas.width, Math.max(0, edgeDragStart.a.x+dx)),
+      y: Math.min(canvas.height, Math.max(0, edgeDragStart.a.y+dy))
+    };
+    corners[manualDragEdge.b]={
+      x: Math.min(canvas.width, Math.max(0, edgeDragStart.b.x+dx)),
+      y: Math.min(canvas.height, Math.max(0, edgeDragStart.b.y+dy))
+    };
+    renderManualOverlay();
+    return;
+  }
+
+  if(manualDragIdx===null)return;
 
   // 핸들은 모서리보다 바깥쪽에 떨어져 그려지므로, 손가락(핸들) 위치에서 그 오프셋만큼
   // 안쪽으로 당긴 지점을 실제 모서리 좌표로 삼는다 - 핸들이 아니라 모서리가 항상
@@ -1184,8 +1264,9 @@ function commitCornerDrag(){
 
 $('manualHandles').addEventListener('pointerup', ()=>{
   if(manualDragIdx!==null){ manualDragIdx=null; commitCornerDrag(); }
+  if(manualDragEdge){ manualDragEdge=null; edgeDragStart=null; commitCornerDrag(); }
 });
-$('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null});
+$('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null; manualDragEdge=null; edgeDragStart=null});
 
 /* =========================================================
    저장 (이미지 공유 / PDF 공유 - 형식별로 버튼을 바로 누르면 그 형식으로 공유)
