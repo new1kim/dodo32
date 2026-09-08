@@ -888,8 +888,19 @@
               const nextSibling = draggedContainer.nextSibling === targetContainer ? draggedContainer : draggedContainer.nextSibling;
               parent.insertBefore(draggedContainer, targetContainer);
               parent.insertBefore(targetContainer, nextSibling);
-              
-              // 드래그 후 프레임 순서가 변경되었으므로 iframe 내용을 다시 로드
+
+              // insertBefore로 컨테이너를 옮기면(재부착) 브라우저가 안에 든 iframe을 실제로
+              // 다시 불러오면서 화면이 하얗게 빈다 - src 속성은 원래부터 빈 값이라(프레임이동()
+              // 주석 참고) 저절로 복구되지 않는다. dataset.page는 이 재부착으로도 안 지워지고
+              // 남아있으므로(updateFramesSrc()는 그래서 "이미 채워진 프레임"으로 착각해 건너뜀),
+              // 옮겨진 두 프레임 모두 그 값으로 명시적으로 다시 이동시켜 복구한다.
+              const version = '250605_1';
+              [draggedContainer, targetContainer].forEach(container => {
+                const frame = container.querySelector('iframe');
+                if (frame && frame.dataset.page) {
+                  프레임이동(frame, frame.dataset.page, version);
+                }
+              });
               updateFramesSrc();
             }
 
