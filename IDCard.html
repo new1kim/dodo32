@@ -88,9 +88,17 @@ input[type=file]{display:none}
 .success{background:var(--success-bg);color:#0d8c56}
 
 /* ===== CONTROLS (색상/밝기/대비 - A4 미리보기 카드 안에 있음) ===== */
-.segment{display:flex;background:var(--surface-2);border-radius:12px;padding:3px}
-.segment button{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;border:0;background:transparent;padding:9px 10px;border-radius:9px;color:var(--muted);font-weight:700;font-size:12px}
-.segment button .icon{width:15px;height:15px}
+/* container-type:inline-size로 이 요소 자신의 너비를 기준 삼는다(뷰포트 vw는 두 칸짜리
+   .two-col 안에서는 실제 칸 너비와 안 맞아서 좁을 때 여전히 넘칠 수 있다 - cqw는 정확히
+   이 세그먼트의 너비 기준이라 항상 맞는다). cqw 미지원 구형 브라우저는 위 고정값(폴백)을 쓴다. */
+/* flex:1 필수 - 컨테이너 쿼리는 이 요소 자신의 너비가 콘텐츠(cqw로 크기가 정해지는
+   버튼들)에 좌우되면 순환 참조라 크기를 0으로 접어버린다. flex:1로 너비를 레이아웃이
+   먼저 정하게 해서 이 순환을 끊는다. */
+.segment{display:flex;flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:3px;container-type:inline-size}
+.segment button{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;border:0;background:transparent;padding:9px 10px;border-radius:9px;color:var(--muted);font-weight:700;font-size:12px;white-space:nowrap;min-width:0}
+.segment button{gap:clamp(3px,3.5cqw,6px);padding:clamp(6px,5cqw,9px) clamp(3px,5.6cqw,10px);font-size:clamp(9.5px,6.7cqw,12px)}
+.segment button .icon{width:15px;height:15px;flex-shrink:0}
+.segment button .icon{width:clamp(11px,8.5cqw,15px);height:clamp(11px,8.5cqw,15px)}
 .segment button.active{background:#fff;color:var(--primary);box-shadow:var(--sh-sm)}
 .ctrl-row{display:flex;align-items:center;gap:12px;margin:14px 0}
 .ctrl-label{width:45px;font-size:12px;font-weight:700;color:var(--muted)}
@@ -102,6 +110,9 @@ input[type=file]{display:none}
 .range::-moz-range-track{height:6px;border-radius:999px;background:var(--surface-2)}
 .range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 2px 6px rgba(15,23,42,.25);cursor:pointer}
 .value{width:30px;text-align:right;font-size:11.5px;font-weight:700;color:var(--muted)}
+.reset-btn{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0}
+.reset-btn .icon{width:12px;height:12px}
+.reset-btn:active{background:var(--surface-2)}
 
 /* ===== A4 PREVIEW ===== */
 .a4-preview{display:none}
@@ -137,9 +148,11 @@ input[type=file]{display:none}
 .measure-h:after{bottom:0}.measure-h span{position:absolute;left:3px;top:50%;transform:translateY(-50%);white-space:nowrap;background:#fff;padding:2px;font-size:9px;color:var(--muted)}
 
 /* ===== BUTTONS ===== */
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.action{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:13px}
-.action .icon{width:16px;height:16px}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;container-type:inline-size}
+.action{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:13px;white-space:nowrap;min-width:0}
+.action{gap:clamp(4px,3.5cqw,7px);padding:clamp(9px,6.5cqw,13px);font-size:clamp(10.5px,6.5cqw,13px)}
+.action .icon{width:16px;height:16px;flex-shrink:0}
+.action .icon{width:clamp(12px,8cqw,16px);height:clamp(12px,8cqw,16px)}
 .action.primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--sh-sm)}
 .action.full{grid-column:1/-1}
 
@@ -147,18 +160,6 @@ input[type=file]{display:none}
 .toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,20px);background:var(--ink);color:#fff;border-radius:12px;padding:11px 16px;font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:50;white-space:nowrap;box-shadow:var(--sh-lg)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .small-note{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin-top:10px}
-
-/* ===== SAVE SHEET ===== */
-.sheet-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:60;align-items:flex-end;justify-content:center}
-.sheet-backdrop.show{display:flex}
-.sheet{width:100%;max-width:520px;background:#fff;border-radius:22px 22px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom))}
-.sheet-title{text-align:center;font-size:12px;color:var(--muted);font-weight:700;padding:12px 0 4px}
-.sheet-option{width:100%;display:flex;align-items:center;gap:10px;padding:15px;border-radius:var(--r-md);border:1px solid var(--line);background:#fff;font-weight:800;font-size:14px;margin-top:8px;color:var(--ink)}
-.sheet-option .icon{width:19px;height:19px;color:var(--primary)}
-.sheet-option-primary{justify-content:center;background:var(--primary);color:#fff;border-color:var(--primary)}
-.sheet-option-primary .icon{color:#fff}
-.sheet-format-toggle{margin-top:6px}
-.sheet-cancel{width:100%;margin-top:10px;padding:14px;border-radius:var(--r-md);border:0;background:var(--surface-2);font-weight:800;color:var(--muted);font-size:13.5px}
 
 /* ===== BROWSER HINT ===== */
 .browser-hint{display:none;align-items:center;gap:10px;background:#1f2a44;color:#fff;padding:10px 14px;font-size:12px;font-weight:600;line-height:1.4}
@@ -170,7 +171,7 @@ input[type=file]{display:none}
 
 @media(min-width:521px){body{padding:18px 0}.app{border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(20,30,60,.16)}}
 @media print{
-  body{background:#fff!important}.app{max-width:none}.top,main>.card:not(.printable),.toast,.sheet-backdrop{display:none!important}
+  body{background:#fff!important}.app{max-width:none}.top,main>.card:not(.printable),.toast{display:none!important}
   main{padding:0}.printable{display:block!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
   .a4-preview{display:block!important}
   /* A4 용지(.a4-wrap) 한 장만 인쇄되게, 미리보기 아래 버튼·안내문 등은 전부 숨긴다 */
@@ -323,14 +324,27 @@ input[type=file]{display:none}
         </div>
       </div>
     </div>
-    <div class="ctrl-row"><span class="ctrl-label">밝기</span><input id="brightness" class="range" type="range" min="70" max="135" value="100"><span id="bv" class="value">0</span></div>
-    <div class="ctrl-row"><span class="ctrl-label">대비</span><input id="contrast" class="range" type="range" min="70" max="145" value="100"><span id="cv" class="value">0</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">밝기</span><input id="brightness" class="range" type="range" min="70" max="135" value="100"><span id="bv" class="value">0</span>
+      <button type="button" class="reset-btn" id="resetBrightness" aria-label="밝기 초기화" title="초기화">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 17v-5h5"/></svg>
+      </button>
+    </div>
+    <div class="ctrl-row"><span class="ctrl-label">대비</span><input id="contrast" class="range" type="range" min="70" max="145" value="100"><span id="cv" class="value">0</span>
+      <button type="button" class="reset-btn" id="resetContrast" aria-label="대비 초기화" title="초기화">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 17v-5h5"/></svg>
+      </button>
+    </div>
 
     <div class="action-grid" style="margin-top:10px">
-      <button class="action primary full" id="saveBtn">
+      <button class="action primary" id="shareImageBtn">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v12"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 20h15"/>
-        </svg>저장하기
+          <rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5.2-5-6 6"/>
+        </svg>이미지 공유
+      </button>
+      <button class="action primary" id="sharePdfBtn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/>
+        </svg>PDF 공유
       </button>
     </div>
     <div class="small-note">※ 공유 메뉴에서 <b>인쇄</b>를 선택하면 바로 인쇄할 수 있습니다. 인쇄 설정에서 배율을 <b>100%(실제 크기)</b>로 선택하세요 - '페이지에 맞춤'을 사용하면 크기가 달라질 수 있습니다.</div>
@@ -339,33 +353,6 @@ input[type=file]{display:none}
 </main>
 
 <div id="toast" class="toast"></div>
-
-<div id="saveSheet" class="sheet-backdrop">
-  <div class="sheet">
-    <div class="sheet-title">저장 형식을 선택하세요</div>
-
-    <div class="segment sheet-format-toggle">
-      <button type="button" id="formatPdfBtn" class="active" data-format="pdf">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/>
-        </svg>PDF
-      </button>
-      <button type="button" id="formatImageBtn" data-format="image">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5.2-5-6 6"/>
-        </svg>이미지
-      </button>
-    </div>
-
-    <button class="sheet-option sheet-option-primary" id="sheetShareBtn">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/>
-        <path d="M8.3 10.7l7.4-4.4M8.3 13.3l7.4 4.4"/>
-      </svg>공유하기
-    </button>
-    <button class="sheet-cancel" id="saveSheetCancel">취소</button>
-  </div>
-</div>
 </div>
 
 <!-- OpenCV.js: 자동 사각형 검출과 원근 보정 -->
@@ -387,6 +374,8 @@ const $=id=>document.getElementById(id);
 const IS_APP_WEBVIEW=!!window.AndroidBridge;
 const UA=navigator.userAgent;
 const IS_ANDROID=/Android/i.test(UA);
+const IS_IOS=/iPhone|iPad|iPod/i.test(UA);
+const IS_MOBILE=IS_ANDROID||IS_IOS;
 const IS_INAPP_BROWSER=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(UA);
 // 크롬 UA에는 "Chrome/"이 들어있지만, 삼성인터넷/웨일/오페라/UC브라우저 등도
 // 크로미움 기반이라 호환성 목적으로 똑같이 "Chrome/" 토큰을 끼워 넣는다 -
@@ -1003,6 +992,8 @@ $('colorBtn').onclick=()=>{mode='color';$('colorBtn').classList.add('active');$(
 $('bwBtn').onclick=()=>{mode='bw';$('bwBtn').classList.add('active');$('colorBtn').classList.remove('active');applyFilterAndRender()};
 $('brightness').oninput=e=>{$('bv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
 $('contrast').oninput=e=>{$('cv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
+$('resetBrightness').onclick=()=>{$('brightness').value=100;$('bv').textContent='0';scheduleFilterRender()};
+$('resetContrast').onclick=()=>{$('contrast').value=100;$('cv').textContent='0';scheduleFilterRender()};
 $('manualFullBtn').onclick=selectFullArea;
 $('redetectBtn').onclick=redetectInSelection;
 $('zoomIn').onclick=()=>setZoom(zoomLevel+0.5);
@@ -1177,34 +1168,16 @@ $('manualHandles').addEventListener('pointerup', ()=>{
 $('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null});
 
 /* =========================================================
-   저장 (PDF / 이미지 선택 후 공유)
+   저장 (이미지 공유 / PDF 공유 - 형식별로 버튼을 바로 누르면 그 형식으로 공유)
 ========================================================= */
 
-let selectedSaveFormat='pdf';
-
-$('saveBtn').onclick=()=>{
+$('shareImageBtn').onclick=()=>{
   if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
-  $('saveSheet').classList.add('show');
+  shareAsImage();
 };
-$('saveSheet').addEventListener('click', e=>{ if(e.target.id==='saveSheet') $('saveSheet').classList.remove('show'); });
-$('saveSheetCancel').onclick=()=>$('saveSheet').classList.remove('show');
-
-$('formatPdfBtn').onclick=()=>{
-  selectedSaveFormat='pdf';
-  $('formatPdfBtn').classList.add('active');
-  $('formatImageBtn').classList.remove('active');
-};
-$('formatImageBtn').onclick=()=>{
-  selectedSaveFormat='image';
-  $('formatImageBtn').classList.add('active');
-  $('formatPdfBtn').classList.remove('active');
-};
-
-// 시트에서 고른 형식(PDF/이미지)에 맞춰 파일을 만들고 공유한다.
-$('sheetShareBtn').onclick=()=>{
-  $('saveSheet').classList.remove('show');
-  if(selectedSaveFormat==='pdf') shareAsPdf();
-  else shareAsImage();
+$('sharePdfBtn').onclick=()=>{
+  if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  shareAsPdf();
 };
 
 // A4 페이지 크기의 흰 캔버스 정중앙(방향에 맞춰)에 신분증 이미지를 그려 넣는다.
@@ -1282,6 +1255,18 @@ function blobToBase64(blob){
 //    직접 실행해주는 다리(MainActivity.kt의 shareFile)를 새로 만들어 최우선으로 쓴다.
 // 2) 일반 브라우저의 표준 Web Share API
 // 3) 그마저도 안 되면 평범한 파일 다운로드로 대체
+// 앵커를 DOM에 잠깐 붙였다 클릭 후 제거한다 - 일부 브라우저는 DOM에 없는 앵커의
+// 프로그래매틱 클릭에서 download 속성을 무시하고 그냥 새 탭으로 열어버린다.
+function downloadBlob(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
 async function shareOrDownload(blob, filename, mimeType){
   if(window.AndroidBridge && window.AndroidBridge.shareFile){
     try{
@@ -1291,6 +1276,16 @@ async function shareOrDownload(blob, filename, mimeType){
       console.error(e);
       showToast('공유 준비 중 문제가 발생했습니다.');
     }
+    return;
+  }
+
+  // PC 웹은 공유 시트가 필요 없다 - 옆 사람에게 파일을 바로 건넬 방법이 애초에
+  // 없는 환경이라 navigator.share를 시도할 이유가 없고(지원하는 데스크톱 브라우저도
+  // 드물어서 오히려 다운로드가 안 되는 것처럼 보이는 원인이 되기도 했다), 그냥 바로
+  // 다운로드한다.
+  if(!IS_MOBILE){
+    downloadBlob(blob, filename);
+    showToast('파일을 다운로드했습니다.');
     return;
   }
 
@@ -1315,7 +1310,7 @@ async function shareOrDownload(blob, filename, mimeType){
     }
   }
 
-  // Web Share를 못 쓰는 환경(일반 데스크톱 브라우저, 미지원 형식 등)은 평범한 다운로드로 대체.
+  // Web Share를 못 쓰는 모바일 환경은 평범한 다운로드로 대체.
   // 카카오톡 등 인앱 브라우저는 보안 정책상 다운로드 자체도 조용히 막는 경우가 있는데,
   // 이건 브라우저가 의도적으로 막는 것이라 코드로 우회할 방법이 없다 - 그래서 다운로드는
   // 일단 시도하되(막히지 않는 경우도 있으므로), 동시에 확실히 되는 크롬으로 바로 갈아탈
@@ -1326,10 +1321,7 @@ async function shareOrDownload(blob, filename, mimeType){
   }else{
     showToast('공유가 지원되지 않아 다운로드했습니다. 다운로드 폴더에서 열어 공유 버튼을 눌러주세요.');
   }
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  downloadBlob(blob, filename);
 }
 </script>
 </body>
