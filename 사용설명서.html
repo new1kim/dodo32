@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MP dodo32 계산기 - 사용 설명서</title>
+<style>
+  :root{
+    --primary:#2563eb;
+    --primary-dark:#1d4ed8;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --surface:#ffffff;
+    --surface-2:#f8fafc;
+    --r:14px;
+    --sh:0 4px 14px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box}
+  body,html{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",Arial,sans-serif;
+    color:var(--ink);
+    background:var(--surface-2);
+    line-height:1.55;
+  }
+
+  header{
+    position:sticky; top:0; z-index:30;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    padding:14px 16px;
+  }
+  header h1{margin:0 0 2px; font-size:18px; font-weight:800}
+  header p{margin:0; font-size:12.5px; color:var(--muted)}
+
+  .search-box{
+    margin-top:10px; position:relative;
+  }
+  .search-box input{
+    width:100%; height:38px; border:1px solid var(--line); border-radius:10px;
+    padding:0 12px; font-size:14px; background:var(--surface-2);
+  }
+  .search-box input:focus{outline:2px solid var(--primary); outline-offset:-1px}
+
+  nav.toc{
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+  }
+  nav.toc a{
+    font-size:12.5px; font-weight:700; color:var(--muted);
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:999px; padding:6px 11px; text-decoration:none;
+    white-space:nowrap;
+  }
+  nav.toc a:hover{color:var(--primary); border-color:var(--primary)}
+
+  main{max-width:760px; margin:0 auto; padding:16px}
+
+  .intro{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+    padding:16px; margin-bottom:18px; box-shadow:var(--sh);
+    font-size:13.5px; color:var(--muted);
+  }
+  .intro b{color:var(--ink)}
+
+  section.app{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+    margin-bottom:14px; box-shadow:var(--sh); overflow:hidden; scroll-margin-top:170px;
+  }
+  section.app > summary,
+  section.app > .app-header{
+    list-style:none; cursor:pointer; padding:16px 18px;
+    display:flex; align-items:center; gap:12px;
+  }
+  section.app > summary::-webkit-details-marker{display:none}
+
+  .badge{
+    flex-shrink:0; width:34px; height:34px; border-radius:10px;
+    background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:800;
+  }
+  .title-wrap{flex:1; min-width:0}
+  .app-name{font-size:15.5px; font-weight:800; margin:0}
+  .app-tag{font-size:12px; color:var(--muted); margin-top:1px}
+  .chev{color:var(--muted); font-size:13px; transition:transform .2s; flex-shrink:0}
+  details[open] > summary .chev{transform:rotate(180deg)}
+
+  .app-body{padding:0 18px 18px; border-top:1px solid var(--line)}
+  .app-body h4{
+    font-size:12.5px; color:var(--primary); margin:16px 0 8px; font-weight:800;
+    display:flex; align-items:center; gap:6px;
+  }
+  .app-body h4:first-child{margin-top:16px}
+  .app-body ul{margin:0; padding-left:18px; font-size:13.5px}
+  .app-body ul li{margin-bottom:6px}
+  .app-body p.purpose{
+    font-size:14px; margin:14px 0 0; padding:12px 14px;
+    background:var(--surface-2); border-radius:10px; border-left:3px solid var(--primary);
+  }
+  .caution{
+    background:#fff7ed; border:1px solid #fed7aa; border-radius:10px;
+    padding:10px 12px; font-size:13px; color:#9a3412;
+  }
+  .caution ul{padding-left:16px}
+  .caution li{margin-bottom:4px}
+
+  .footer-note{
+    text-align:center; font-size:12px; color:var(--muted); margin:24px 0 8px;
+  }
+
+  mark{background:#fef08a; color:inherit; border-radius:2px}
+  .hidden{display:none !important}
+
+  @media (max-width:480px){
+    main{padding:12px}
+    section.app > summary, .app-body{padding-left:14px; padding-right:14px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 MP dodo32 계산기 — 사용 설명서</h1>
+  <p>대출 상담에서 쓰는 계산기·조회·기록 도구 모음 안내</p>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="기능 검색 (예: DSR, 시세, 공시가, 상담일지...)">
+  </div>
+  <nav class="toc" id="tocNav"></nav>
+</header>
+
+<main>
+  <div class="intro">
+    <b>이 문서는 무엇인가요?</b><br>
+    메인 화면(<b>index.html</b>)에서 상단 메뉴 버튼으로 열 수 있는 9개 도구의 사용법을 정리했습니다.
+    각 항목을 눌러 펼치면 기능 설명이 나옵니다. 검색창에 키워드를 입력하면 관련 항목만 볼 수 있어요.
+  </div>
+
+  <!-- 0. 메인 화면 -->
+  <section class="app" id="app-index" data-keywords="메인 포털 index 시작 화면 메뉴 로그인 이름 프레임 상담일지 계산기">
+    <details>
+      <summary>
+        <div class="badge">🏠</div>
+        <div class="title-wrap">
+          <p class="app-name">메인 화면 (시작 페이지)</p>
+          <p class="app-tag">index.html · 모든 도구의 입구</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">처음 접속하면 나오는 화면으로, 이름을 입력하고 상단 메뉴 버튼을 눌러 각 계산기·조회 도구를 불러오는 <b>포털(허브)</b> 역할을 합니다.</p>
+
+        <h4>▸ 시작하는 법</h4>
+        <ul>
+          <li>맨 처음 "이름 입력" 칸에 이름을 넣고 확인을 누르면 이후에는 자동으로 기억되어 매번 입력할 필요가 없습니다.</li>
+          <li>상단 메뉴 버튼(DTI 계산, DSR 계산, 날짜계산, 공시가조회, 신분증변환, MCG 계산, 상담일지)을 누르면 해당 도구가 화면에 나타납니다.</li>
+        </ul>
+
+        <h4>▸ PC 화면 구성</h4>
+        <ul>
+          <li>PC나 태블릿 가로 화면에서는 화면이 <b>여러 칸(최대 3칸)</b>으로 나뉘어, 메뉴로 불러온 화면 + "계산기"(사칙연산) + "상담일지"를 동시에 볼 수 있습니다.</li>
+          <li>메뉴 옆의 "계산기" / "상담일지" 알약 모양 버튼으로 해당 칸을 껐다 켤 수 있습니다.</li>
+          <li>각 칸 위쪽 점 3개(⋯)를 드래그하면 칸 순서를 바꿀 수 있고, 칸 사이 경계선을 드래그하면 너비를 조절할 수 있습니다. 이 배치는 자동 저장되어 다음에 접속해도 그대로 유지됩니다.</li>
+        </ul>
+
+        <h4>▸ 모바일 화면 구성</h4>
+        <ul>
+          <li>휴대폰처럼 화면이 좁으면 한 번에 <b>도구 1개만</b> 표시되고, 메뉴 버튼으로 화면을 전환하는 방식으로 동작합니다.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- 1. DSR 계산기 -->
+  <section class="app" id="app-dsr" data-keywords="DSR DTI 대출 소득 신DTI LTV 상환 스케줄 상담일지전달 슬롯 저장">
+    <details>
+      <summary>
+        <div class="badge">💰</div>
+        <div class="title-wrap">
+          <p class="app-name">DSR 계산기</p>
+          <p class="app-tag">DSR_Main.html · 메인 대출 상담 도구</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">고객의 소득과 기존·신규 대출 정보를 입력하면 <b>DSR·DTI·신DTI 비율, 월 상환액, LTV 한도</b>를 자동 계산해주는 상담용 핵심 계산기입니다.</p>
+
+        <h4>▸ 대출 입력</h4>
+        <ul>
+          <li>대출 원금·금리(및 ST 스트레스금리)·기간·상환방식(원리금/원금/만기)을 입력하면 월 상환액과 DSR/DTI/신DTI가 자동 계산됩니다.</li>
+          <li>"대출 추가"로 여러 건 등록 가능하며, <b>첫 번째 칸은 항상 상담받는 "본건 대출"</b>이어야 정상 계산됩니다.</li>
+          <li>대출별로 "계산제외" 체크박스, "거치 적용"(거치개월 반영) 옵션이 있습니다.</li>
+        </ul>
+
+        <h4>▸ 소득 입력</h4>
+        <ul>
+          <li>"소득 추가"로 소득 항목을 여러 개 넣을 수 있고, "증빙"(연소득 직접입력) 또는 "추정/신고"(카드·건보·연금 사용액 환산) 방식을 선택합니다.</li>
+          <li>"장래예상소득" 체크 + 나이 입력 시 무주택자 한정으로 연령별 요율에 따라 소득 증가분이 자동 반영됩니다.</li>
+        </ul>
+
+        <h4>▸ LTV·한도 계산</h4>
+        <ul>
+          <li>시세를 직접 입력하거나 "KB시세 조회"로 아파트를 검색해 자동 입력할 수 있습니다.</li>
+          <li>LTV 비율(80/70/60/40%) 선택 + 소액임차보증금 입력 → LTV 최대한도 자동 산출.</li>
+          <li>DSR 40%/50% 기준 최대 대출가능금액이 표시되며, 그 금액을 누르면 대출원금 칸에 바로 채워집니다.</li>
+          <li>"월별 상환 스케줄"을 누르면 회차별 원금·이자·잔액표를 확인할 수 있습니다.</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li><b>저장 슬롯 1/2/3</b>: 입력값 전체를 저장했다가 나중에 그대로 불러오기 (고객별 임시 저장용)</li>
+          <li><b>내용 복사</b>: 대출/소득 요약 텍스트를 클립보드로 복사</li>
+          <li><b>화면캡쳐</b>: 계산 결과를 이미지로 저장</li>
+          <li><b>상담일지 전달</b>: 계산 결과와 물건 정보(단지명·평형·주소·규제지역 여부 등)를 상담일지 화면으로 자동 전달</li>
+          <li>"기본값 설정" 모달에서 금리·기간·요율 등을 직접 수정 가능 (6개월변동/5년변동 프로필 전환 포함)</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>첫 번째 대출 입력칸이 반드시 "본건 대출"이어야 신DTI(180개월 고정) 등이 정상 계산됩니다.</li>
+            <li>ST금리는 실제 월 이자 계산에는 쓰이지 않고 DSR 계산식에만 반영되는 값입니다.</li>
+            <li>신고소득(카드/건보/연금) 환산액은 1인당 최대 5,000만원 한도입니다.</li>
+            <li>대출 종류별 권장 입력 기간: 신용대출 60개월, 비주택담보·유가증권담보 96개월, 전세대출/예적금담보대출은 "만기" 방식 선택.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 2. DTI 계산기 -->
+  <section class="app" id="app-dti" data-keywords="DTI 전세자금대출 카드 건보 연금 전월세 주신보 환산소득">
+    <details>
+      <summary>
+        <div class="badge">🏦</div>
+        <div class="title-wrap">
+          <p class="app-name">DTI 계산기</p>
+          <p class="app-tag">DTI.html · 전세자금대출 전용</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">전세자금대출 상담 시 소득 증빙자료(카드 사용액·건강보험료 등)를 연소득으로 환산하고, 이를 바탕으로 <b>DTI와 최대 대출 가능금액</b>을 계산합니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>"카드/건보/연금/전.월세/주신보" 중 고객의 소득 증빙 방식을 선택 → 해당 값을 입력하면 연소득으로 자동 환산됩니다.</li>
+          <li>대출 금액·금리를 입력하면 월 상환액이 자동 계산되고, 기존 부채를 함께 입력하면 DTI(%)가 산출됩니다.</li>
+          <li>"최대 가능금액"을 누르면 DTI 40% 기준 최대 대출액이 자동 입력됩니다 (5억원 상한).</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>입력값 자동 저장(재접속해도 유지), 각 라벨을 눌러 해당 칸만 빠르게 지우기</li>
+          <li>상단 "신용점수" 버튼으로 기준표 팝업 확인</li>
+          <li>"설정"에서 카드/건보/연금/전월세 환산비율 직접 조정 가능</li>
+          <li>DTI 40% 초과 시 빨간색 경고 표시</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>선택한 방식(카드/건보/연금/전월세)마다 "연 사용액" 칸의 의미가 다르므로(예: 카드=연간 사용액, 건보·연금=3개월 평균액) 방식을 바꿀 때 값을 다시 확인하세요.</li>
+            <li>환산소득은 최대 5,000만원까지만 인정됩니다.</li>
+            <li>"초기화"는 입력값을 모두 지우며 되돌릴 수 없습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 3. MCG 계산기 -->
+  <section class="app" id="app-mcg" data-keywords="MCG 생애최초 특례보증 LTV 지역 보증료">
+    <details>
+      <summary>
+        <div class="badge">🏡</div>
+        <div class="title-wrap">
+          <p class="app-name">MCG 계산기</p>
+          <p class="app-tag">MCG.html · 생애최초 특례보증</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">생애최초 특례보증(MCG) 상담 시 물건지의 <b>지역별 담보인정비율(LTV)</b>을 조회하고, 보증가입금액·보증료·최대 대출가능금액을 자동 계산합니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>지역 → 시군구 → 물건 종류 순서로 선택하면 해당 물건의 LTV(%)가 자동 표시됩니다.</li>
+          <li>소액임차금액·주택가격·필요금액을 입력하면 신청 LTV, LTV 80%/70% 기준 금액, 보증가입금액·보증료(0.2%)가 자동 계산됩니다.</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>소액임차금액 칸을 누르면 자주 쓰는 금액(2,500만/2,800만/4,800만/5,500만) 버튼이 나타나 바로 선택 가능</li>
+          <li>"LTV 구간"·"최대가능금액"의 숫자를 누르면 "필요금액" 칸에 자동 반영</li>
+          <li>지역 데이터는 온라인 자동 갱신 + 오프라인 시 이전 데이터로 계속 사용 가능</li>
+          <li>"초기화"(입력값만)와 "기본 안내문 복원"(메모만)이 분리되어 있어 선택적으로 초기화 가능</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>필요금액이 담보인정비 금액보다 낮으면 "일반대출로 진행"으로 표시됩니다 (별도 보증 불필요라는 뜻).</li>
+            <li>대출 최대가능금액은 6억원 상한이며 주택가격 9억 이하 전제 계산입니다.</li>
+            <li>지역 데이터를 처음 불러올 때 인터넷 연결이 필요합니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 4. 신분증변환 -->
+  <section class="app" id="app-idcard" data-keywords="신분증 IDCard A4 인쇄 공유 PDF 이미지 밝기 대비 스캔">
+    <details>
+      <summary>
+        <div class="badge">🪪</div>
+        <div class="title-wrap">
+          <p class="app-name">신분증 변환</p>
+          <p class="app-tag">IDCard.html · 신분증 인쇄용 이미지 생성</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">신분증(주민등록증·운전면허증 등) 사진을 <b>A4 용지 크기 그대로 인쇄</b>할 수 있게 자동으로 배치해, 이미지나 PDF로 공유·저장·인쇄할 수 있게 해주는 도구입니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>신분증 사진을 선택(또는 촬영)하면 화면에 A4 용지 배치 미리보기가 나타납니다.</li>
+          <li>"색상"(컬러/흑백), "방향"(가로/세로)을 선택하고, 밝기·대비 슬라이더로 사진 상태를 조정합니다 (각 옆의 초기화 버튼으로 되돌리기 가능).</li>
+          <li>"이미지 공유" 또는 "PDF 공유" 버튼으로 원하는 형식을 골라 저장·공유합니다.</li>
+        </ul>
+
+        <h4>▸ 환경별 동작</h4>
+        <ul>
+          <li><b>모바일</b>: 버튼을 누르면 기기의 공유 시트(문자·카톡·저장 등 선택창)가 열립니다. 공유가 지원되지 않는 환경이면 자동으로 다운로드로 대체되고 안내 메시지가 나타납니다.</li>
+          <li><b>PC</b>: 공유 시트 없이 바로 파일이 다운로드됩니다. 화면 하단의 "바로인쇄" 버튼(PC에서만 표시)을 누르면 별도 저장 없이 바로 인쇄할 수 있습니다.</li>
+          <li><b>스마트상담도구 앱</b>: 앱 내부 기능으로 공유가 바로 처리됩니다.</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>카카오톡 등 <b>인앱 브라우저</b>에서는 보안 정책상 저장/공유가 차단될 수 있습니다. 이 경우 화면에 "크롬으로 열기" 안내가 나타나므로 눌러서 크롬으로 다시 시도하세요.</li>
+            <li>이미지 공유는 PDF 공유보다 준비 시간이 조금 더 걸립니다(고화질로 다시 그리는 과정이 있어서, "이미지를 준비하고 있습니다" 메시지가 표시됩니다).</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 5. 공시가조회 -->
+  <section class="app" id="app-gonsi" data-keywords="공시가 gonsi 기준시가 서울보증 주신보 도시보증 공동주택 오피스텔">
+    <details>
+      <summary>
+        <div class="badge">🏢</div>
+        <div class="title-wrap">
+          <p class="app-name">공시가 조회</p>
+          <p class="app-tag">gonsi.html · 정부 공시가격 자동 조회</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">주소를 입력하면 아파트(공동주택)·단독/다가구·오피스텔의 <b>정부 공시가격(기준시가)</b>을 자동으로 찾아주고, 보증기관별 대출 산정가격까지 함께 계산해줍니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>주소(도로명/지번) 또는 건물명을 입력해 검색 — 결과가 여러 건이면 목록에서 선택합니다.</li>
+          <li>건물 유형은 시스템이 자동 판별하며, 공동주택·오피스텔은 동/호까지 선택할 수 있습니다.</li>
+          <li>기준연도(최근 3개년) 버튼을 누르면 즉시 재조회됩니다.</li>
+          <li>검색창에 "주소 + 동 + 호"를 한 번에 입력하면 동/호까지 자동 선택되어 바로 결과가 나옵니다.</li>
+        </ul>
+
+        <h4>▸ 자동 계산되는 값</h4>
+        <ul>
+          <li>서울보증 주택가격(공시가×130%) / 서울보증 대출한도(×130%×90%)</li>
+          <li>주신보·도시보증(×140%×90%) / 단독주택 주신보(×100%)</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>오피스텔은 2026년 1월 1일 고시 자료 한 건만 제공됩니다(다른 연도 선택 불가).</li>
+            <li>공동주택은 올해 자료가 아직 고시 전이면 작년 자료로 자동 대체되니, 연초에는 기준연도를 꼭 확인하세요.</li>
+            <li>데이터 출처는 국토부 부동산공시가격알리미이며, 실제 심사 시에는 우측 상단 "직접조회" 버튼으로 원본을 재확인하는 것을 권장합니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 6. 시세조회 -->
+  <section class="app" id="app-sise" data-keywords="시세 KB 시세조회 하한가 일반가 상한가 규제지역">
+    <details>
+      <summary>
+        <div class="badge">📈</div>
+        <div class="title-wrap">
+          <p class="app-name">시세 조회</p>
+          <p class="app-tag">시세조회.html · KB부동산 시세 (보조 도구)</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">아파트 단지명을 입력하면 <b>KB부동산 시세(하한가/일반가/상한가)</b>를 평형별로 조회합니다. 주로 DSR 계산기 등에서 "KB시세 조회" 버튼을 눌렀을 때 함께 열리는 보조 화면입니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>단지명을 검색하고 목록에서 단지를 선택하면 평형(타입)별 시세 3종이 카드로 표시됩니다.</li>
+          <li>시세 금액을 클릭하면 그 값이 원래 화면(예: DSR 계산기)에 자동으로 전달됩니다.</li>
+          <li>단지별 투기과열지구/조정대상지역 여부가 배지로 함께 표시됩니다.</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>검색어에 "단지명 + 동 + 호"를 함께 입력하면 해당 동/호의 평형 타입이 자동으로 강조 표시됩니다.</li>
+          <li>최근 조회 내역이 최대 8건까지 저장되어 클릭 한 번으로 다시 불러올 수 있습니다.</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>동/호 조회는 "어떤 평형 타입인지"만 확인해주는 것으로, 동일 타입은 동일 시세가 적용됩니다(동/호별 개별 시세가 따로 있는 게 아닙니다).</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 7. 날짜계산기 -->
+  <section class="app" id="app-date" data-keywords="날짜계산 영업일 접수일 실행일 공휴일 캘린더">
+    <details>
+      <summary>
+        <div class="badge">📅</div>
+        <div class="title-wrap">
+          <p class="app-name">날짜 계산기</p>
+          <p class="app-tag">날짜계산기.html · 영업일 / 접수·실행일 계산</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">대출 접수일과 실행일 사이의 <b>영업일수(주말·공휴일 제외)</b>를 계산하고, 반대로 실행일 기준으로 "언제까지 접수해야 하는지"를 역산해주는 대출 업무 전용 날짜 계산기입니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>상단: 접수일·실행일을 달력에서 선택하면 단순 일수와 영업일수가 자동 계산됩니다.</li>
+          <li>하단 "실행일 기준 접수가능일 계산": 실행일 선택 후 상품 유형 버튼(영업10일 이상 / 영업30일 이상 / 45일 이하 / 60일 이하)을 누르면 접수 가능 날짜(요일 포함)가 바로 계산됩니다.</li>
+          <li>결과 아래에 상품별(주택금융·도시보증·서울보증·주담대) 접수~실행 기간 기준표가 함께 제공됩니다.</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>대한민국 공휴일을 자동으로 불러와 달력에 토요일(파란색), 일요일/공휴일(빨간색+이름)로 표시</li>
+          <li>영업일수 결과가 도장 형태로 강조 표시되어 눈에 잘 띔</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>계산 방식은 "접수일 제외, 실행일 포함"입니다 — 고객 안내 시 이 기준을 헷갈리지 않아야 합니다.</li>
+            <li>공휴일 데이터는 인터넷으로 실시간 조회되므로, 연결이 안 되면 공휴일이 반영되지 않을 수 있습니다.</li>
+            <li>접수일이 실행일보다 늦으면 결과가 나오지 않습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 8. 계산기 -->
+  <section class="app" id="app-calc" data-keywords="계산기 사칙연산 퍼센트">
+    <details>
+      <summary>
+        <div class="badge">🔢</div>
+        <div class="title-wrap">
+          <p class="app-name">계산기</p>
+          <p class="app-tag">계산기.html · 사칙연산 (보조 도구)</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">상담 중 즉석에서 쓰는 <b>사칙연산·퍼센트 계산용</b> 일반 계산기입니다 (대출 전용 계산 기능은 없음). PC 화면에서는 항상 옆에 떠 있는 보조 패널입니다.</p>
+
+        <h4>▸ 주요 기능</h4>
+        <ul>
+          <li>숫자 + 사칙연산(＋－×÷) 및 %(퍼센트) 계산</li>
+          <li>상단 퀵 퍼센트 버튼(90/80/70/60/40%): 입력된 숫자에 바로 그 비율을 곱함 (예: "얼마의 70%는?"을 한 번에 계산)</li>
+          <li>PC에서는 키보드로도 입력 가능</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>화면 상단에 계산 과정이 함께 표시됨 (예: "100 × 70% =")</li>
+          <li>결과가 길어지면 자동으로 글자 크기가 줄어 한 줄에 맞춰짐</li>
+          <li>천 단위 콤마 자동 표시, 모바일 진동 피드백</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>계산 기록을 남기는 기능은 없으므로, 결과를 남기려면 별도로 메모해야 합니다.</li>
+            <li>0으로 나누면 "Error"가 표시되며, C(전체 지우기)를 눌러야 재시작됩니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 9. 상담일지 -->
+  <section class="app" id="app-log" data-keywords="상담일지 기록 저장 불러오기 검색 통화 콜노트">
+    <details>
+      <summary>
+        <div class="badge">📝</div>
+        <div class="title-wrap">
+          <p class="app-name">상담일지</p>
+          <p class="app-tag">상담일지.html · 상담 기록 저장·관리</p>
+        </div>
+        <span class="chev">▾</span>
+      </summary>
+      <div class="app-body">
+        <p class="purpose">고객과의 상담 내용(연락처·물건정보·시세·신청금액·메모 등)을 한 화면에서 기록하고, <b>서버에 저장·검색·재조회</b>할 수 있는 상담일지 도구입니다.</p>
+
+        <h4>▸ 사용법</h4>
+        <ul>
+          <li>처음 접속 시 "사용자 이름"을 입력해 등록하면 이후 자동 기억됩니다.</li>
+          <li>상담일시(자동 기록), 연락처, 고객명, 필요일자(잔금일), 중개업소, 물건정보, 시세/매매가, 신청금액, 상담내용을 한 화면에서 작성합니다.</li>
+          <li>"저장" 버튼으로 서버(구글시트)에 저장 — 동일 연락처가 있으면 덮어쓸지 확인 후 갱신됩니다.</li>
+          <li>"불러오기"로 과거 상담 목록을 카드 형태로 조회·검색하고, 카드를 클릭하면 해당 내용이 화면에 그대로 채워집니다.</li>
+          <li>"복사"로 상담 요약을 클립보드에 복사(문자 발송용), "초기화"로 이름을 제외한 입력값 전체 비우기</li>
+        </ul>
+
+        <h4>▸ 편의 기능</h4>
+        <ul>
+          <li>연락처는 숫자만 입력해도 010-0000-0000 형식으로 자동 정렬</li>
+          <li>신청금액이 시세 대비 몇 %인지 자동 표시</li>
+          <li><b>DSR 계산기 연동</b>: DSR_Main.html에서 "상담일지로 전달"을 누르면 계산 결과가 이 화면에 자동으로 채워지고 파란색으로 반짝여 표시됩니다.</li>
+          <li>저장 버튼을 누르지 않아도 입력 중 내용이 자동으로 임시 보관되어, 실수로 새로고침해도 유지됩니다.</li>
+          <li>스마트상담도구 앱 안에서는 통화기록 자동 입력, 수신전화 시 자동 팝업 등 추가 기능이 동작합니다 (일반 PC 브라우저에서는 해당 없음).</li>
+        </ul>
+
+        <div class="caution">
+          <b>⚠️ 주의할 점</b>
+          <ul>
+            <li>저장·불러오기·복사 전 반드시 상단 "사용자 이름"을 먼저 입력해야 합니다.</li>
+            <li>저장 시 이름과 연락처는 필수이며, 없으면 저장되지 않습니다.</li>
+            <li>동일 연락처로 다시 저장하면 기존 기록을 덮어쓸지 확인창이 뜨니, 실수로 이전 기록을 지우지 않도록 확인이 필요합니다.</li>
+            <li>카드 삭제(×)는 되돌릴 수 없습니다.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <p class="footer-note">문의·오류 제보는 담당자에게 알려주세요.</p>
+</main>
+
+<script>
+  const sections = [...document.querySelectorAll('section.app')];
+  const tocNav = document.getElementById('tocNav');
+
+  // 상단 바로가기 칩 생성
+  sections.forEach(sec => {
+    const name = sec.querySelector('.app-name').textContent;
+    const a = document.createElement('a');
+    a.href = '#' + sec.id;
+    a.textContent = name;
+    tocNav.appendChild(a);
+  });
+
+  // 검색 필터
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    sections.forEach(sec => {
+      const keywords = (sec.dataset.keywords + ' ' + sec.textContent).toLowerCase();
+      const match = !q || keywords.includes(q);
+      sec.classList.toggle('hidden', !match);
+      if (q && match) sec.querySelector('details').open = true;
+    });
+  });
+
+  // 앵커로 진입 시 해당 항목 펼치기
+  if (location.hash) {
+    const target = document.querySelector(location.hash);
+    if (target) {
+      const d = target.querySelector('details');
+      if (d) d.open = true;
+    }
+  }
+</script>
+
+</body>
+</html>
