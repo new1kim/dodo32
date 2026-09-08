@@ -49,6 +49,21 @@
         th, td { border: none; background: transparent; padding: 0; font-size: clamp(13px, 2.5vw, 15px); text-align: center; box-sizing: border-box; }
         th, .label { background: transparent; font-weight: 800; color: var(--primary-hover); font-size: 11px; letter-spacing: 0.3px; text-transform: uppercase; text-align: left; padding: 0 3px; }
 
+        /* 제목줄 옆의 작은 x 버튼 - 누르면 해당 입력칸만 지운다. 라벨 글자 바로 옆에 붙인다(justify-content 없이 flex-start 기본값) */
+        .label-with-clear { display: flex; align-items: center; gap: 4px; }
+        .field-clear-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; flex-shrink: 0; border-radius: 50%;
+            background: transparent; color: #a8b0c3; border: 1px solid #d7dbe8;
+            font-size: 10px; font-weight: 700; line-height: 1; cursor: pointer;
+            padding: 0; box-shadow: none; transition: all 0.15s ease;
+        }
+        .field-clear-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); transform: none; }
+        /* 토글(KB시세/감정가, 매매가/보증금) 옆에 버튼을 붙일 땐 토글 자체를 100%에서 내용만큼만 차지하게 줄인다 */
+        .label-with-clear .label-toggle { width: auto; flex: 0 1 auto; min-width: 0; }
+        /* 신청금액은 라벨이 세로로 쌓이는(신청금액 / %표시) 구조라, 버튼은 첫 줄(신청금액) 옆에만 붙게 별도로 감싼다 */
+        .need-amount-title-row { display: flex; align-items: center; gap: 4px; }
+
         /* 시세/매매/신청금액 라벨행과 값행을 거의 붙여서 표시 (테이블 기본 row-gap 8px를 값행에서만 음수 마진으로 상쇄) */
         .price-row-value { margin-top: -8px; }
         #needAmountLabel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 1px; }
@@ -185,8 +200,8 @@
     <table>
         <tr>
             <th>최근상담일시</th>
-            <th>연락처</th>
-            <th>고객명</th>
+            <th class="label-with-clear">연락처<button type="button" class="field-clear-btn" id="clearPhoneBtn" aria-label="연락처 지우기">×</button></th>
+            <th class="label-with-clear">고객명<button type="button" class="field-clear-btn" id="clearNameBtn" aria-label="고객명 지우기">×</button></th>
         </tr>
         <tr>
             <td><span id="currentDateTime" class="current-datetime-text"></span></td>
@@ -194,8 +209,8 @@
             <td><input type="text" placeholder="이름 입력" inputmode="text" lang="ko"></td>
         </tr>
         <tr>
-            <td class="label">필요일자</td>
-            <td class="label field-span-2">중개업소</td>
+            <td class="label label-with-clear">필요일자<button type="button" class="field-clear-btn" id="clearDateBtn" aria-label="필요일자 지우기">×</button></td>
+            <td class="label field-span-2 label-with-clear">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></td>
         </tr>
         <tr>
             <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
@@ -204,7 +219,7 @@
         <tr>
             <td class="field-span-full">
                 <div class="property-field-wrap">
-                    <div class="property-compound-label">물건정보</div>
+                    <div class="property-compound-label label-with-clear">물건정보<button type="button" class="field-clear-btn" id="clearPropertyBtn" aria-label="물건정보 지우기">×</button></div>
                     <div class="property-compound">
                         <input type="text" id="propertyLineInput" class="property-line-input" placeholder="단지명 타입, 평수, 동호수" inputmode="text" lang="ko" autocomplete="off">
                         <div class="property-line2">
@@ -216,20 +231,25 @@
             </td>
         </tr>
         <tr>
-            <td class="label price-row-label" style="padding: 4px 8px;">
+            <td class="label price-row-label label-with-clear" style="padding: 4px 8px;">
                 <div class="label-toggle">
                     <button type="button" class="toggle-btn active">KB시세</button>
                     <button type="button" class="toggle-btn">감정가</button>
                 </div>
+                <button type="button" class="field-clear-btn" id="clearKbPriceBtn" aria-label="KB시세 지우기">×</button>
             </td>
-            <td class="label price-row-label" style="padding: 4px 8px;">
+            <td class="label price-row-label label-with-clear" style="padding: 4px 8px;">
                 <div class="label-toggle">
                     <button type="button" class="toggle-btn active">매매가</button>
                     <button type="button" class="toggle-btn">보증금</button>
                 </div>
+                <button type="button" class="field-clear-btn" id="clearSalePriceBtn" aria-label="매매가 지우기">×</button>
             </td>
             <td class="label price-row-label" id="needAmountLabel">
-                <span id="needAmountLabelMain">신청금액</span>
+                <span class="need-amount-title-row">
+                    <span id="needAmountLabelMain">신청금액</span>
+                    <button type="button" class="field-clear-btn" id="clearNeedAmountBtn" aria-label="신청금액 지우기">×</button>
+                </span>
                 <span id="needAmountLabelPct" class="need-amount-pct-line" style="display:none;"></span>
             </td>
         </tr>
@@ -678,6 +698,45 @@ window.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             updateAmountPercentage();
         });
+    });
+
+    // 제목줄 옆 작은 x 버튼 - 해당 입력칸 하나만 지운다(전체 초기화 버튼과 별개)
+    document.getElementById('clearPhoneBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        phoneInput.value = '';
+    });
+    document.getElementById('clearNameBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        nameInput.value = '';
+    });
+    document.getElementById('clearDateBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        dateInput.value = '';
+    });
+    document.getElementById('clearBrokerBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        brokerInput.value = '';
+    });
+    document.getElementById('clearPropertyBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        propertyLineInput.value = '';
+        propertyAddressInput.value = '';
+        if (propertyRegBadges) propertyRegBadges.innerHTML = '';
+    });
+    document.getElementById('clearKbPriceBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        kbPriceInput.value = '';
+        updateAmountPercentage();
+    });
+    document.getElementById('clearSalePriceBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        salePriceInput.value = '';
+        updateAmountPercentage();
+    });
+    document.getElementById('clearNeedAmountBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        moneyInput.value = '';
+        updateAmountPercentage();
     });
 
     function clearForm() {
