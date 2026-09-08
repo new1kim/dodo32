@@ -431,6 +431,9 @@ let manualDragIdx=null, zoomLevel=1;
 
 // ISO 신분증 실제 크기(mm)와 A4 용지 크기(mm). 세로 방향은 이 둘을 서로 바꿔서 쓴다.
 const CARD_W_MM=85.6, CARD_H_MM=53.98, PAGE_W_MM=210, PAGE_H_MM=297;
+// 실제 신분증(ISO/IEC 7810 ID-1)의 모서리 라운드 반지름. 미리보기·인쇄·이미지·PDF가
+// 전부 이 값 하나로 통일해서 실물과 같은 둥근 모서리로 나오게 한다.
+const CARD_CORNER_MM=3.18;
 
 // 신분증을 용지 중앙이 아니라 상단에 배치할 때 위쪽 여백(용지 높이 대비 비율).
 // 미리보기·이미지저장·PDF·인쇄가 전부 이 값 하나로 통일해서 항상 같은 위치에 나오게 한다.
@@ -978,6 +981,9 @@ function updateA4Layout(){
   out.style.width=widthPct+'%';
   out.style.height='auto';
   out.style.aspectRatio=`${w}/${h}`;
+  // border-radius의 %는 이 박스 자신의 가로/세로를 기준으로 계산되므로(가로세로 다른 %),
+  // 방향이 바뀌어도(w,h가 서로 바뀌어도) 항상 정확히 3.18mm 반지름이 나온다.
+  out.style.borderRadius=`${CARD_CORNER_MM/w*100}% / ${CARD_CORNER_MM/h*100}%`;
 
   const mw=document.querySelector('.measure-w');
   mw.style.left=leftPct+'%';
@@ -1204,6 +1210,19 @@ $('printBtn').onclick=()=>{
   window.print();
 };
 
+// 실제 카드처럼 둥근 모서리로 그리기 위한 라운드 사각형 경로(arcTo는 구형 웹뷰까지
+// 폭넓게 지원돼서, 최신 브라우저 전용인 ctx.roundRect() 대신 이걸 쓴다).
+function roundedRectPath(ctx, x, y, w, h, r){
+  r=Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
 // A4 페이지 크기의 흰 캔버스 정중앙(방향에 맞춰)에 신분증 이미지를 그려 넣는다.
 // "이미지 공유"가 신분증만 잘린 사진이 아니라 A4 배치가 그대로 반영된 한 장이 되게 한다.
 function renderA4Canvas(){
@@ -1223,10 +1242,33 @@ function renderA4Canvas(){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>{
+      ctx.save();
+      roundedRectPath(ctx, leftPx, topPx, w*mmToPx, h*mmToPx, CARD_CORNER_MM*mmToPx);
+      ctx.clip();
       ctx.drawImage(img, leftPx, topPx, w*mmToPx, h*mmToPx);
+      ctx.restore();
       resolve(canvas);
     };
     img.src=orientedDataURL;
+  });
+}
+
+// orientedDataURL(신분증 사진)의 네 모서리를 CARD_CORNER_MM 반지름으로 둥글게 잘라
+// 돌려준다(모서리는 투명 PNG). PDF에 넣을 때 jsPDF의 클리핑 API 대신 이 방식을 쓰는 이유는
+// jsPDF 버전에 상관없이 항상 동작하는, 이미지 공유와 완전히 같은 방식이라서다.
+function roundImageCorners(dataURL, mmW){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      c.width=img.width; c.height=img.height;
+      const ctx=c.getContext('2d');
+      roundedRectPath(ctx, 0, 0, c.width, c.height, img.width*(CARD_CORNER_MM/mmW));
+      ctx.clip();
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.src=dataURL;
   });
 }
 
@@ -1243,20 +1285,22 @@ async function shareAsImage(){
 }
 
 // jsPDF로 A4 페이지를 만들고 신분증 이미지를 정중앙(방향에 맞춰)에 배치한다.
-function buildIdPdf(){
+async function buildIdPdf(){
   const { jsPDF }=window.jspdf;
   const doc=new jsPDF({ unit:'mm', format:'a4' });
   const {w,h}=currentCardBoxMm();
   const left=(PAGE_W_MM-w)/2, top=CARD_TOP_MM;
-  doc.addImage(orientedDataURL, 'JPEG', left, top, w, h);
+  const roundedDataURL=await roundImageCorners(orientedDataURL, w);
+  doc.addImage(roundedDataURL, 'PNG', left, top, w, h);
   return doc;
 }
 
-function shareAsPdf(){
+async function shareAsPdf(){
   if(!orientedDataURL){ showToast('먼저 신분증 사진을 선택해주세요.'); return; }
   if(!window.jspdf){ showToast('PDF 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
   try{
-    const blob=buildIdPdf().output('blob');
+    const doc=await buildIdPdf();
+    const blob=doc.output('blob');
     shareOrDownload(blob, '신분증_A4.pdf', 'application/pdf');
   }catch(e){ console.error(e); showToast('PDF 생성에 실패했습니다.'); }
 }
