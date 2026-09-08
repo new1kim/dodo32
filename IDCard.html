@@ -376,39 +376,49 @@ input[type=file]{display:none}
 const $=id=>document.getElementById(id);
 
 /* =========================================================
-   브라우저 권장 안내 (크롬 유도)
-   카카오톡/네이버 등 인앱 브라우저나 구형 웹뷰는 파일 공유(Web Share) 지원이
-   불안정해서, 정식 크롬이 아니면 배너로 권장하고 크롬 실행을 시도한다.
-   인텐트 URL(intent://...#Intent;package=com.android.chrome;end)은 안드로이드
-   OS가 처리하는 표준 방식이라 대부분의 인앱 브라우저에서도 동작하지만,
-   일부(인스타그램 등)는 앱 이탈을 막아 무시할 수 있다 - 그럴 땐 그냥 닫으면 된다.
+   브라우저 환경 판별 (크롬 유도 배너 + 저장 차단 안내에서 공용으로 쓴다)
+   카카오톡/네이버 등 인앱 브라우저나 구형 웹뷰는 파일 공유(Web Share)뿐 아니라
+   다운로드 자체도 보안 정책상 막는 경우가 있다. 정식 크롬이 아니면 판별해서
+   상황에 맞게 크롬 실행(intent URL)을 권한다.
+   스마트상담도구 앱 자체 웹뷰는 대상에서 제외한다(window.AndroidBridge로 식별) -
+   그 안에서는 이미 네이티브 공유가 되므로 크롬으로 유도할 필요가 없다.
    iOS는 크롬을 강제로 열 방법이 없어서(강제 실행 가능한 URL 스킴이 없음, 크롬
    미설치 시 조용히 실패) 대상에서 제외한다 - 사파리 자체가 이미 공유를 잘 지원한다. */
-(function initBrowserHint(){
-  const ua=navigator.userAgent;
-  const isAndroid=/Android/i.test(ua);
-  if(!isAndroid) return; // iOS는 강제 전환 수단이 없어 배너를 띄우지 않음
+const IS_APP_WEBVIEW=!!window.AndroidBridge;
+const UA=navigator.userAgent;
+const IS_ANDROID=/Android/i.test(UA);
+const IS_INAPP_BROWSER=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(UA);
+// 크롬 UA에는 "Chrome/"이 들어있지만, 삼성인터넷/웨일/오페라/UC브라우저 등도
+// 크로미움 기반이라 호환성 목적으로 똑같이 "Chrome/" 토큰을 끼워 넣는다 -
+// 그래서 다른 브라우저 고유 토큰이 없어야만 진짜 크롬으로 판단한다.
+const IS_OTHER_ANDROID_BROWSER=/SamsungBrowser|Whale|MiuiBrowser|HeyTapBrowser|UCBrowser|EdgA|OPR\/|; ?wv\)/i.test(UA);
+const IS_REAL_CHROME=/Chrome\//.test(UA) && !IS_OTHER_ANDROID_BROWSER && !IS_INAPP_BROWSER;
 
-  const isInApp=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(ua);
-  // 크롬 UA에는 "Chrome/"이 들어있지만, 삼성인터넷/웨일/오페라/UC브라우저 등도
-  // 크로미움 기반이라 호환성 목적으로 똑같이 "Chrome/" 토큰을 끼워 넣는다 -
-  // 그래서 다른 브라우저 고유 토큰이 없어야만 진짜 크롬으로 판단한다.
-  const otherBrowser=/SamsungBrowser|Whale|MiuiBrowser|HeyTapBrowser|UCBrowser|EdgA|OPR\/|; ?wv\)/i.test(ua);
-  const isRealChrome=/Chrome\//.test(ua) && !otherBrowser && !isInApp;
-  if(isRealChrome) return;
-  if(sessionStorage.getItem('browserHintDismissed')) return;
+function openInChrome(){
+  const scheme=location.protocol.replace(':','');
+  const withoutScheme=location.href.slice(location.protocol.length+2);
+  location.href=`intent://${withoutScheme}#Intent;scheme=${scheme};package=com.android.chrome;end`;
+}
 
+// message를 주면 그 문구로, 안 주면 기본 권장 문구로 배너를 띄운다.
+// dismissible=false면 "이번 세션엔 다시 안 봄" 저장 없이 그냥 닫기만 한다 - 실제
+// 저장 실패에 대한 대응 안내라서, 예전에 배너를 닫은 적 있어도 다시 보여줘야 한다.
+function showChromeHint(message, dismissible=true){
   const bar=$('browserHintBar');
+  if(message) bar.querySelector('span').innerHTML=message;
   bar.style.display='flex';
-  $('openInChromeBtn').onclick=()=>{
-    const scheme=location.protocol.replace(':','');
-    const withoutScheme=location.href.slice(location.protocol.length+2);
-    location.href=`intent://${withoutScheme}#Intent;scheme=${scheme};package=com.android.chrome;end`;
-  };
+  $('openInChromeBtn').onclick=openInChrome;
   $('dismissBrowserHint').onclick=()=>{
     bar.style.display='none';
-    sessionStorage.setItem('browserHintDismissed','1');
+    if(dismissible) sessionStorage.setItem('browserHintDismissed','1');
   };
+}
+
+(function initBrowserHint(){
+  if(IS_APP_WEBVIEW) return; // 앱 자체 웹뷰 - 네이티브 공유가 이미 되므로 불필요
+  if(!IS_ANDROID || IS_REAL_CHROME) return; // iOS는 강제 전환 수단이 없어 배너를 띄우지 않음
+  if(sessionStorage.getItem('browserHintDismissed')) return;
+  showChromeHint();
 })();
 
 let originalImage=null, processedDataURL=null, orientedDataURL=null, mode='color';
@@ -1306,8 +1316,16 @@ async function shareOrDownload(blob, filename, mimeType){
   }
 
   // Web Share를 못 쓰는 환경(일반 데스크톱 브라우저, 미지원 형식 등)은 평범한 다운로드로 대체.
-  // "공유가 안 됐다"에서 끝나지 않고 다음에 뭘 해야 하는지까지 안내한다.
-  showToast('공유가 지원되지 않아 다운로드했습니다. 다운로드 폴더에서 열어 공유 버튼을 눌러주세요.');
+  // 카카오톡 등 인앱 브라우저는 보안 정책상 다운로드 자체도 조용히 막는 경우가 있는데,
+  // 이건 브라우저가 의도적으로 막는 것이라 코드로 우회할 방법이 없다 - 그래서 다운로드는
+  // 일단 시도하되(막히지 않는 경우도 있으므로), 동시에 확실히 되는 크롬으로 바로 갈아탈
+  // 수 있는 안내를 띄운다. 예전에 크롬 권장 배너를 닫았어도(dismissible=false) 이건
+  // 실제 실패에 대한 대응이라 다시 보여준다.
+  if(IS_INAPP_BROWSER){
+    showChromeHint('카카오톡 등 인앱 브라우저에서는 보안 정책상 저장이 차단될 수 있습니다. 저장이 안 되면 크롬으로 열어 다시 시도해주세요.', false);
+  }else{
+    showToast('공유가 지원되지 않아 다운로드했습니다. 다운로드 폴더에서 열어 공유 버튼을 눌러주세요.');
+  }
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url; a.download=filename; a.click();
