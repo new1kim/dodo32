@@ -1311,7 +1311,8 @@ function renderA4Canvas(){
 
   const DPI=200, mmToPx=DPI/25.4;
   const {w,h}=currentCardBoxMm();
-  const leftPx=(PAGE_W_MM-w)/2*mmToPx, topPx=CARD_TOP_MM*mmToPx;
+  const boxWpx=w*mmToPx, boxHpx=h*mmToPx;
+  const boxLeftPx=(PAGE_W_MM-w)/2*mmToPx, boxTopPx=CARD_TOP_MM*mmToPx;
 
   const canvas=document.createElement('canvas');
   canvas.width=Math.round(PAGE_W_MM*mmToPx);
@@ -1323,10 +1324,18 @@ function renderA4Canvas(){
   return new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>{
+      // 미리보기(.id-output img, object-fit:contain)와 똑같이 이미지 실제 픽셀 비율을
+      // 그대로 유지한 채 칸 안에 맞춘다. w×h(mm)에 그냥 강제로 늘려 그리면, warpAndColor의
+      // Math.round()로 생긴 아주 미세한 비율 오차(약 0.1% 미만)만큼 카드가 살짝 찌그러져
+      // 나온다 - 미리보기는 contain이라 안 늘어나서 이 오차가 안 보이고 출력에서만 보였다.
+      const scale=Math.min(boxWpx/img.naturalWidth, boxHpx/img.naturalHeight);
+      const drawW=img.naturalWidth*scale, drawH=img.naturalHeight*scale;
+      const drawLeft=boxLeftPx+(boxWpx-drawW)/2, drawTop=boxTopPx+(boxHpx-drawH)/2;
+
       ctx.save();
-      roundedRectPath(ctx, leftPx, topPx, w*mmToPx, h*mmToPx, CARD_CORNER_MM*mmToPx);
+      roundedRectPath(ctx, boxLeftPx, boxTopPx, boxWpx, boxHpx, CARD_CORNER_MM*mmToPx);
       ctx.clip();
-      ctx.drawImage(img, leftPx, topPx, w*mmToPx, h*mmToPx);
+      ctx.drawImage(img, drawLeft, drawTop, drawW, drawH);
       ctx.restore();
       resolve(canvas);
     };
@@ -1337,6 +1346,8 @@ function renderA4Canvas(){
 // orientedDataURL(신분증 사진)의 네 모서리를 CARD_CORNER_MM 반지름으로 둥글게 잘라
 // 돌려준다(모서리는 투명 PNG). PDF에 넣을 때 jsPDF의 클리핑 API 대신 이 방식을 쓰는 이유는
 // jsPDF 버전에 상관없이 항상 동작하는, 이미지 공유와 완전히 같은 방식이라서다.
+// 실제 픽셀 크기도 함께 돌려준다 - buildIdPdf()가 이 값으로 원본 비율을 그대로 유지한 채
+// PDF에 배치할 수 있게(강제로 늘리지 않게) 하기 위함.
 function roundImageCorners(dataURL, mmW){
   return new Promise(resolve=>{
     const img=new Image();
@@ -1347,7 +1358,7 @@ function roundImageCorners(dataURL, mmW){
       roundedRectPath(ctx, 0, 0, c.width, c.height, img.width*(CARD_CORNER_MM/mmW));
       ctx.clip();
       ctx.drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/png'));
+      resolve({ dataURL: c.toDataURL('image/png'), width: img.width, height: img.height });
     };
     img.src=dataURL;
   });
@@ -1370,9 +1381,15 @@ async function buildIdPdf(){
   const { jsPDF }=window.jspdf;
   const doc=new jsPDF({ unit:'mm', format:'a4' });
   const {w,h}=currentCardBoxMm();
-  const left=(PAGE_W_MM-w)/2, top=CARD_TOP_MM;
-  const roundedDataURL=await roundImageCorners(orientedDataURL, w);
-  doc.addImage(roundedDataURL, 'PNG', left, top, w, h);
+  const { dataURL: roundedDataURL, width: imgW, height: imgH } = await roundImageCorners(orientedDataURL, w);
+
+  // 미리보기(object-fit:contain)와 동일하게, 이미지 실제 픽셀 비율을 유지한 채 칸 안에
+  // 맞춘다 - w×h(mm)에 그냥 강제로 늘리면 반올림으로 생긴 미세한 비율 오차만큼 찌그러진다.
+  const scale=Math.min(w/imgW, h/imgH);
+  const drawW=imgW*scale, drawH=imgH*scale;
+  const left=(PAGE_W_MM-drawW)/2, top=CARD_TOP_MM+(h-drawH)/2;
+
+  doc.addImage(roundedDataURL, 'PNG', left, top, drawW, drawH);
   return doc;
 }
 
