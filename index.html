@@ -304,9 +304,27 @@
       background-color: transparent;
       transition: background-color 0.15s ease;
     }
+    /* 항상 보이는 손잡이 막대 - hover 전에는 회색으로 은은하게, hover/드래그 중엔 파란색으로 */
+    .frame-resizer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 4px;
+      height: 100%;
+      transform: translateX(-50%);
+      border-radius: 2px;
+      background-color: #cbd5e1;
+      transition: background-color 0.15s ease, width 0.15s ease;
+    }
     .frame-resizer:hover,
     .frame-resizer.is-resizing {
-      background-color: rgba(37, 99, 235, 0.4);
+      background-color: rgba(37, 99, 235, 0.15);
+    }
+    .frame-resizer:hover::after,
+    .frame-resizer.is-resizing::after {
+      width: 5px;
+      background-color: #2563eb;
     }
     /* 맨 오른쪽 프레임에는 짝이 될 프레임이 없으므로 리사이저를 숨긴다.
        프레임을 접을 수 있게 된 뒤로는 :last-child가 "화면상 마지막"과 어긋날 수 있어

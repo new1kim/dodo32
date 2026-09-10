@@ -1,7 +1,7 @@
 /* DSR계산기ETC - 그 외 코드 (UI, 이벤트, 모달, 로컬스토리지 등) */
 
 /* localStorage 저장/불러오기 대상 입력창 셀렉터 (여러 함수에서 공용으로 사용) */
-const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"]';
+const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], textarea';
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
 
 function getStoredJson(key, fallback = null) {
@@ -635,6 +635,165 @@ function getMortgageRowMemo(row) {
   return memoRow.querySelector('.mort-memo')?.value.trim() || '';
 }
 
+/* 소득/대출 메모칸(textarea)은 입력 중인 줄 수에 맞춰 높이가 늘어나야 하므로,
+   값이 바뀔 때마다(사용자 입력 또는 저장된 값 복원) 높이를 다시 계산한다. */
+function autoResizeMemoTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+document.addEventListener('input', (e) => {
+  if (e.target.matches?.('.mort-memo, .income-memo')) {
+    autoResizeMemoTextarea(e.target);
+  }
+});
+
+/* 본건 대출정보 행의 "필요일자" 입력칸 - 클릭하면 달력 팝업을 띄운다.
+   .mort-need-date는 주담대행추가()가 호출될 때 동적으로 생성되므로, 개별 바인딩 대신
+   document 레벨 이벤트 위임(상담일지.html의 날짜 선택 UI와 동일한 로직)으로 처리한다. */
+function setupNeedDatePicker() {
+  const popup = document.getElementById('datePickerPopup');
+  if (!popup) return;
+  const monthLabel = popup.querySelector('.date-picker-month');
+  const grid = popup.querySelector('.date-picker-grid');
+  const navPrev = popup.querySelector('.nav-prev');
+  const navNext = popup.querySelector('.nav-next');
+  let currentPickerYear = new Date().getFullYear();
+  let currentPickerMonth = new Date().getMonth();
+  let activeInput = null;
+
+  function formatToCustomDate(str) {
+    if (!str) return '';
+    let digits = str.replace(/\D/g, '');
+    if (digits.length > 6) digits = digits.slice(0, 6);
+    let formatted = digits;
+    if (digits.length >= 6) {
+      formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1/$2/$3');
+      const parsed = parseCustomDate(formatted);
+      if (parsed) {
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        formatted += ` (${dayNames[parsed.getDay()]})`;
+      }
+    } else if (digits.length >= 4) {
+      formatted = digits.replace(/(\d{2})(\d{2})/, '$1/$2/');
+    } else if (digits.length >= 2) {
+      formatted = digits.replace(/(\d{2})/, '$1/');
+    }
+    return formatted;
+  }
+
+  function parseCustomDate(str) {
+    if (!str) return null;
+    const match = str.match(/(\d{2})\D*(\d{2})\D*(\d{2})/);
+    if (!match) {
+      const clean = str.replace(/\D/g, '');
+      if (clean.length === 6) {
+        return new Date(2000 + Number(clean.slice(0, 2)), Number(clean.slice(2, 4)) - 1, Number(clean.slice(4, 6)));
+      }
+      return null;
+    }
+    const year = 2000 + Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return new Date(year, month, day);
+  }
+
+  function formatDisplayDate(date) {
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    return `${yy}/${mm}/${dd} (${dayNames[date.getDay()]})`;
+  }
+
+  function renderDatePicker(year, month) {
+    currentPickerYear = year;
+    currentPickerMonth = month;
+    monthLabel.textContent = `${year}년 ${String(month + 1).padStart(2, '0')}월`;
+    grid.innerHTML = '';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const selectedDate = activeInput ? parseCustomDate(activeInput.value) : null;
+    const today = new Date();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'calendar-cell empty';
+      grid.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'calendar-cell';
+      button.textContent = day;
+      const cellDate = new Date(year, month, day);
+      if (selectedDate && cellDate.toDateString() === selectedDate.toDateString()) {
+        button.classList.add('selected');
+      }
+      if (cellDate.toDateString() === today.toDateString()) {
+        button.classList.add('today');
+      }
+      button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (activeInput) {
+          activeInput.value = formatDisplayDate(cellDate);
+          activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        closeDatePicker();
+      });
+      grid.appendChild(button);
+    }
+  }
+
+  function openDatePicker(input) {
+    activeInput = input;
+    const parsed = parseCustomDate(input.value) || new Date();
+    renderDatePicker(parsed.getFullYear(), parsed.getMonth());
+    popup.classList.add('open');
+    popup.setAttribute('aria-hidden', 'false');
+    const rect = input.getBoundingClientRect();
+    popup.style.top = `${rect.bottom + window.scrollY + 8}px`;
+    popup.style.left = `${Math.max(16, rect.left + window.scrollX - 10)}px`;
+  }
+
+  function closeDatePicker() {
+    popup.classList.remove('open');
+    popup.setAttribute('aria-hidden', 'true');
+    activeInput = null;
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.classList && e.target.classList.contains('mort-need-date')) {
+      e.stopPropagation();
+      openDatePicker(e.target);
+      return;
+    }
+    if (!popup.contains(e.target)) closeDatePicker();
+  });
+
+  document.addEventListener('input', function (e) {
+    if (e.target.classList && e.target.classList.contains('mort-need-date')) {
+      e.target.value = formatToCustomDate(e.target.value);
+    }
+  });
+
+  navPrev.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const newDate = new Date(currentPickerYear, currentPickerMonth - 1, 1);
+    renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+  });
+  navNext.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const newDate = new Date(currentPickerYear, currentPickerMonth + 1, 1);
+    renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDatePicker();
+  });
+}
+
 function 주담대행추가() {
   mortCount++;
   const tbody = document.getElementById('mortgage-inputs');
@@ -711,9 +870,13 @@ function 주담대행추가() {
   // 세는 기존 로직에는 안 잡히고, 항상 newRow의 다음 형제로만 짝지어 찾는다).
   const memoRow = document.createElement('tr');
   memoRow.className = 'mortgage-memo-row';
+  const needDateMarkup = isFirstRow ? `<input type="text" class="mort-need-date" placeholder="필요일자" inputmode="numeric" autocomplete="off">` : '';
   memoRow.innerHTML = `
     <td colspan="4" class="no-bg">
-      <input type="text" class="mort-memo" placeholder="메모 입력" lang="ko" inputmode="text" autocomplete="off">
+      <div class="mortgage-memo-row-inner">
+        ${needDateMarkup}
+        <textarea class="mort-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
+      </div>
     </td>
   `;
   tbody.appendChild(memoRow);
@@ -788,6 +951,9 @@ function updateIncomeCalc() {
 
     rateDisplay.innerText = `(${percentStr})`;
 
+    const applyRateBtn = document.getElementById('applyRateBtn');
+    if (applyRateBtn) applyRateBtn.classList.toggle('active', applyRateCheck.checked);
+
     let finalVal = memoBaseIncome;
     if (isChecked && currentRate !== 1.0) {
         finalVal = memoBaseIncome * currentRate;
@@ -852,19 +1018,7 @@ if (baseIncomeInput) {
       memoBaseIncome = v ? parseFloat(v) : 0;
       memoBaseIncomeDirect = memoBaseIncome;
       e.target.value = v ? memoBaseIncome.toLocaleString() : '';
-      
-      let tempRate = 1.0;
-      if (applyRateCheck && applyRateCheck.checked && ageInput && ageInput.value !== '') {
-          const tempAge = parseAgeInputValue(ageInput.value);
-
-          if (tempAge >= 0) {
-              const matched = LOAN_RATE_TABLE.find(item => tempAge >= item.minAge && tempAge <= item.maxAge);
-              if (matched) tempRate = matched.percent / 100.0;
-          }
-      }
-      const tempFinal = memoBaseIncome * tempRate;
-      if (hiddenIncomeInput) hiddenIncomeInput.value = tempFinal > 0 ? Math.floor(tempFinal).toLocaleString() : "";
-      if (typeof 자동계산 === 'function') 자동계산();
+      updateIncomeCalc();
   });
 }
 
@@ -1210,16 +1364,16 @@ function buildIncomeRowHTML(index) {
             <input type="text" id="incomeInput_${index}" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
             <div class="future-income-row" id="futureIncomeRow_${index}">
               <span class="rate-toggle-row">
-                <span class="rate-toggle-text">
-                  <label for="applyRateCheck_${index}">장래예상</label>
+                <button type="button" id="applyRateBtn_${index}" class="mort-category-toggle rate-toggle-btn" onclick="document.getElementById('applyRateCheck_${index}').click()">
+                  <span class="rate-toggle-label">장래예상</span>
                   <span id="rateDisplay_${index}" class="rate-display" style="display:none;">(-)</span>
-                </span>
-                <input type="checkbox" id="applyRateCheck_${index}">
+                </button>
+                <input type="checkbox" id="applyRateCheck_${index}" style="display:none;">
               </span>
               <input type="number" id="ageInput_${index}" class="age-input" placeholder="32 or 1992" style="display:none;">
-              <span id="futureIncomeConverted_${index}" class="future-income-converted" style="display:none;"></span>
             </div>
           </div>
+          <span id="futureIncomeConverted_${index}" class="future-income-converted" style="display:none;"></span>
           <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
           <div class="declare-cell-flex" id="declareCellFlex_${index}">
             <div class="declare-input-group" id="declareInputGroup_${index}" style="display:none;">
@@ -1236,7 +1390,7 @@ function buildIncomeRowHTML(index) {
       </tr>
       <tr class="income-memo-row">
         <td colspan="4">
-          <input type="text" id="incomeMemo_${index}" class="income-memo" placeholder="메모 입력" lang="ko" inputmode="text" autocomplete="off">
+          <textarea id="incomeMemo_${index}" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
         </td>
       </tr>`;
 }
@@ -1264,6 +1418,8 @@ function updateRowIncomeCalc(index) {
   const isDeclareMode = st.mode === '신고';
   const rateApplies = els.applyRateCheck.checked && !isDeclareMode; // 신고소득 모드에서는 장래예상 미적용
   els.rateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
+  const applyRateBtn = document.getElementById(`applyRateBtn_${index}`);
+  if (applyRateBtn) applyRateBtn.classList.toggle('active', els.applyRateCheck.checked);
   const finalVal = rateApplies ? st.memoIncome * rate : st.memoIncome;
   // 소득1이 건보/연금 추정소득이면 나머지 행 소득은 합산 대상에서 제외한다 (입력값 자체는 보존).
   els.hiddenInput.value = (!isOtherIncomeBlocked() && finalVal > 0) ? Math.floor(finalVal).toLocaleString() : "";
@@ -1695,7 +1851,7 @@ function 소득1초기화() {
   if (applyRateCheck) applyRateCheck.checked = false;
   if (ageInput) ageInput.value = "";
   const baseIncomeMemo = document.getElementById("baseIncomeMemo");
-  if (baseIncomeMemo) baseIncomeMemo.value = "";
+  if (baseIncomeMemo) { baseIncomeMemo.value = ""; autoResizeMemoTextarea(baseIncomeMemo); }
 
   // 신고소득(카드/건강/연금) 관련 상태 초기화
   memoBaseIncomeDirect = 0;
@@ -1759,7 +1915,9 @@ function 선택초기화() {
     const firstMemoRow = firstRow.nextElementSibling;
     if (firstMemoRow && firstMemoRow.classList.contains('mortgage-memo-row')) {
       const firstMemoInput = firstMemoRow.querySelector('.mort-memo');
-      if (firstMemoInput) firstMemoInput.value = '';
+      if (firstMemoInput) { firstMemoInput.value = ''; autoResizeMemoTextarea(firstMemoInput); }
+      const firstNeedDateInput = firstMemoRow.querySelector('.mort-need-date');
+      if (firstNeedDateInput) firstNeedDateInput.value = '';
     }
 
     firstRow.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
@@ -1858,6 +2016,9 @@ function saveMortgageRows() {
       graceTerm: row.querySelector('.mort-grace-term')?.value || '',
       memo: row.nextElementSibling?.classList.contains('mortgage-memo-row')
         ? (row.nextElementSibling.querySelector('.mort-memo')?.value || '')
+        : '',
+      needDate: row.nextElementSibling?.classList.contains('mortgage-memo-row')
+        ? (row.nextElementSibling.querySelector('.mort-need-date')?.value || '')
         : ''
     };
     mortgageData.push(rowData);
@@ -1879,6 +2040,7 @@ function loadDSRInputs() {
       const savedValue = localStorage.getItem(`DSR_${input.id}`);
       if (savedValue !== null) {
         input.value = savedValue;
+        if (input.tagName === 'TEXTAREA') autoResizeMemoTextarea(input);
         if (input.id === 'baseIncomeInput') {
           memoBaseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
           memoBaseIncomeDirect = memoBaseIncome; // applyBaseIncomeMode()가 증빙 모드로 되돌릴 때 이 값을 기준으로 삼음
@@ -1980,7 +2142,9 @@ function loadMortgageRows() {
         const memoRow = currentRow.nextElementSibling;
         if (memoRow && memoRow.classList.contains('mortgage-memo-row')) {
           const memoInput = memoRow.querySelector('.mort-memo');
-          if (memoInput) memoInput.value = rowData.memo || '';
+          if (memoInput) { memoInput.value = rowData.memo || ''; autoResizeMemoTextarea(memoInput); }
+          const needDateInput = memoRow.querySelector('.mort-need-date');
+          if (needDateInput) needDateInput.value = rowData.needDate || '';
         }
 
         const typeButtons = currentRow.querySelectorAll('.type-btn');
@@ -2262,6 +2426,7 @@ function init() {
   }
   loadDSRInputs();
   setupDSRAutoSave();
+  setupNeedDatePicker();
   initSlotButtons();
   refreshRadioToggleStyles('#baseIncomeModeToggle');
   refreshRadioToggleStyles('#baseDeclareTypeToggle');

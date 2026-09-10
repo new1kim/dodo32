@@ -1,3 +1,7 @@
+## 언어
+
+모든 답변, 설명, 코드 주석은 한글로 작성한다.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

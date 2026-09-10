@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>스마트 상담일지 프리미엄</title>
+    <title>DSR 통합 상담 (Consult)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
@@ -26,7 +26,6 @@
         .top-actions .left-actions { display:flex; align-items:center; gap:8px; }
         .top-actions .right-actions { display:flex; align-items:center; gap:8px; }
 
-        /* 사용자 이름 인증 콘테이너 및 요소 스타일 */
         .user-auth-container { display: flex; align-items: center; gap: 4px; }
         .user-code-input { width: 100px; padding: 8px 10px; font-size: 13px; font-weight: bold; border: 2px solid #dfe3ee; border-radius: 10px; box-sizing: border-box; text-align: center; color: #1e293b; background: #f8fafc; transition: all 0.2s; }
         .user-code-input:focus { border-color: var(--primary); background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.15); }
@@ -44,12 +43,11 @@
         #loadBtn:hover { background: #f8f9ff; transform: translateY(-1px); }
 
         table { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; width: 100%; border: none; background: transparent; }
-        tbody, thead, tfoot { display: contents; } /* 브라우저가 암묵적으로 끼워넣는 tbody가 grid 체인을 끊는 것을 방지 */
+        tbody, thead, tfoot { display: contents; }
         tr { display: contents; }
         th, td { border: none; background: transparent; padding: 0; font-size: clamp(13px, 2.5vw, 15px); text-align: center; box-sizing: border-box; }
         th, .label { background: transparent; font-weight: 800; color: var(--primary-hover); font-size: 11px; letter-spacing: 0.3px; text-transform: uppercase; text-align: left; padding: 0 3px; }
 
-        /* 제목줄 옆의 작은 x 버튼 - 누르면 해당 입력칸만 지운다. 라벨 글자 바로 옆에 붙인다(justify-content 없이 flex-start 기본값) */
         .label-with-clear { display: flex; align-items: center; gap: 4px; }
         .field-clear-btn {
             display: inline-flex; align-items: center; justify-content: center;
@@ -59,13 +57,9 @@
             padding: 0; box-shadow: none; transition: all 0.15s ease;
         }
         .field-clear-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); transform: none; }
-        /* 토글(KB시세/감정가, 매매가/보증금) 옆에 x 버튼을 나란히 두기 위해 width:100% 대신 flex-grow를
-           쓴다 - 이래야 x 버튼(고정 15px)은 그대로 두고 토글만 값 입력창처럼 창 너비에 맞춰 커진다 */
         .label-with-clear .label-toggle { width: auto; flex: 1 1 auto; min-width: 0; }
-        /* 신청금액은 라벨이 세로로 쌓이는(신청금액 / %표시) 구조라, 버튼은 첫 줄(신청금액) 옆에만 붙게 별도로 감싼다 */
         .need-amount-title-row { display: flex; align-items: center; gap: 4px; }
 
-        /* 시세/매매/신청금액 라벨행과 값행을 거의 붙여서 표시 (테이블 기본 row-gap 8px를 값행에서만 음수 마진으로 상쇄) */
         .price-row-value { margin-top: -8px; }
         #needAmountLabel { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 1px; }
         .need-amount-pct-line { font-size: 10px; letter-spacing: 0; }
@@ -93,16 +87,14 @@
         .content-label-cell #copyBtn { margin-left: 10px; }
         .content-row { grid-column: 1 / -1; background: #fff; text-align: left; vertical-align: top; padding: 0; border: 1.5px solid var(--border-color); border-radius: 12px; overflow: hidden; }
 
-        textarea { width: 100%; height: 480px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 14px; box-sizing: border-box; outline: none; line-height: 1.55; }
+        textarea { width: 100%; height: 360px; resize: none; border: none; font-size: 15px; font-family: inherit; background: #fff; padding: 14px; box-sizing: border-box; outline: none; line-height: 1.55; }
         input[type="text"] { width: 100%; height: 100%; box-sizing: border-box; font-size: clamp(13px, 2.5vw, 15px); padding: 9px 10px; border: 1.5px solid var(--border-color); border-radius: 10px; background: var(--bg-table); transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; text-align: center; }
-        /* 입력칸 하나만 들어있는 칸은 세로 중앙 정렬로 필드처럼 보이게 한다 (물건정보처럼 여러 칸이 합쳐진 셀은 제외) */
         td:has(> input[type="text"]) { display: flex; align-items: center; min-height: 40px; }
         td:has(> #currentDateTime) { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 6px 4px; background: var(--bg-table); border: 1.5px solid var(--border-color); border-radius: 10px; }
         .current-datetime-text { font-weight: 600; color: var(--text-main); white-space: normal; word-break: keep-all; line-height: 1.1; text-align: center; }
         input[type="text"]:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
         textarea::placeholder, input::placeholder { color: #a0aec0; }
 
-        /* 물건정보: 라벨(밖) + 1번째 줄(단지명+타입+평수+동호수)/2번째 줄(주소+투기과열지구 배지)를 박스 하나 안에서 줄바꿈으로 표시 (개별 입력칸처럼 안 보이게 테두리/배경을 박스 하나로 통합) */
         .property-field-wrap { display: flex; flex-direction: column; gap: 4px; width: 100%; }
         .property-compound-label { font-weight: 800; color: var(--primary-hover); font-size: 11px; letter-spacing: 0.3px; text-transform: uppercase; text-align: left; padding: 0 3px; }
         .property-compound {
@@ -121,6 +113,15 @@
         .apt-reg-badge-warning { background: #fdf3e2; color: #b9762a; }
         .field-span-2 { grid-column: 2 / -1; }
         .field-span-full { grid-column: 1 / -1; }
+
+        /* ===== DSR 계산기 iframe 섹션 (Consult.html 전용 추가) ===== */
+        .dsr-frame-wrap { border: 1.5px solid var(--border-color); border-radius: 14px; overflow: hidden; background: #fff; margin: 4px 0 2px; }
+        .dsr-frame-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--primary-soft); border-bottom: 1px solid var(--border-color); }
+        .dsr-frame-header b { font-size: 12px; font-weight: 800; color: var(--primary-hover); letter-spacing: 0.3px; text-transform: uppercase; }
+        .dsr-sync-badge { font-size: 10.5px; font-weight: 700; color: #12b76a; display: flex; align-items: center; gap: 5px; }
+        .dsr-sync-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #12b76a; animation: dsrPulse 1.6s ease-in-out infinite; }
+        @keyframes dsrPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+        #dsrFrame { display: block; width: 100%; border: 0; min-height: 420px; }
 
         .date-picker-field { cursor: pointer; background: linear-gradient(180deg, #ffffff 0%, #f5f7ff 100%); }
         .date-picker-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
@@ -149,8 +150,7 @@
         .search-box-wrap { padding: 15px 20px; background: #fff; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
         .search-input { width: 50%; padding: 10px 12px; font-size: 14px; border: 1.5px solid var(--border-color); border-radius: 10px; box-sizing: border-box; background: var(--bg-table); transition: border 0.2s ease, box-shadow 0.2s ease; }
         .search-input:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
-        /* 검색창 안 오른쪽에 붙는 작은 x 지우기 버튼 */
-        .search-input-wrap { position: relative; width: auto; flex: 1; display: flex; align-items: center; } /* 버튼이 차지하는 만큼을 제외한 나머지를 검색창이 채움 */
+        .search-input-wrap { position: relative; width: auto; flex: 1; display: flex; align-items: center; }
         .search-input-wrap .search-input { width: 100%; padding-right: 32px; }
         .search-clear-btn {
             position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
@@ -188,7 +188,7 @@
             .left-actions, .right-actions { flex-shrink: 0; }
             .user-code-input { width: 90px !important; }
             textarea { font-size: 13px; }
-            textarea { height: 320px; }
+            textarea { height: 280px; }
             .history-modal { width: 100%; right: -100%; }
         }
     </style>
@@ -227,6 +227,17 @@
         <tr>
             <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
             <td class="field-span-2"><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
+        </tr>
+        <tr>
+            <td class="field-span-full">
+                <div class="dsr-frame-wrap">
+                    <div class="dsr-frame-header">
+                        <b>DSR 계산기</b>
+                        <span class="dsr-sync-badge"><span class="dot"></span>실시간 연동 중</span>
+                    </div>
+                    <iframe id="dsrFrame" src="DSR_Main.html?v=consult1" title="DSR 계산기"></iframe>
+                </div>
+            </td>
         </tr>
         <tr>
             <td class="field-span-full">
@@ -323,7 +334,7 @@ function proceedToApp(userName) {
     const displayEl = document.getElementById('userDisplay');
     displayEl.textContent = `👤 ${userName}`;
     displayEl.style.display = 'inline-block';
-    
+
     const inputEl = document.getElementById('userCodeInput');
     if(inputEl) inputEl.value = userName;
 }
@@ -331,7 +342,7 @@ function proceedToApp(userName) {
 function submitUserCode() {
     const inputEl = document.getElementById('userCodeInput');
     const name = inputEl.value.trim().toUpperCase().replace(/\s/g, '');
-    
+
     if (!name) {
         alert("사용자 이름을 입력해주세요.");
         return;
@@ -343,8 +354,7 @@ function submitUserCode() {
 
 window.addEventListener('DOMContentLoaded', function() {
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbynY6KNzjtmWcEHxFdpV7S77uD-oRj_sX_dMhpjopftsWj_ceDB2P2lFJHjsdiSGPDf/exec';
-    
-    // 페이지 로드 시점 시간 표시용 (기존 유지)
+
     const nowInit = new Date();
     const yyInit = String(nowInit.getFullYear()).slice(-2);
     const mmInit = String(nowInit.getMonth() + 1).padStart(2, '0');
@@ -360,14 +370,10 @@ window.addEventListener('DOMContentLoaded', function() {
     const nameInput    = $('input[placeholder="이름 입력"]');
     const dateInput    = document.getElementById('needDateInput');
     const moneyInput   = $('input[placeholder="예: 250,000,000"]');
-    
-    // 물건정보: 1줄(단지명 평형 동호수) + 2줄(주소 + 투기과열지구 배지) 한 칸으로 합성
-    // (서버/로컬저장에는 "1번째줄,주소" 형태 문자열 하나로 합쳐서 보관 - 배지는 DSR에서 전달받은 세션에만 표시, 저장 대상 아님)
+
     const propertyLineInput    = document.getElementById('propertyLineInput');
     const propertyAddressInput = document.getElementById('propertyAddressInput');
     const propertyRegBadges    = document.getElementById('propertyRegBadges');
-    // 1번째 줄 자체에 쉼표가 들어가므로(예: "단지명 84A, 34평, 806동 702호"), 줄 구분자는 쉼표 대신 개행으로 사용한다
-    // (텍스트 입력칸 값에는 실제 개행이 들어갈 수 없으므로 충돌 없이 안전하게 분리 가능).
     function getPropertyInfoText() {
       const line = propertyLineInput ? propertyLineInput.value.trim() : '';
       const address = propertyAddressInput ? propertyAddressInput.value.trim() : '';
@@ -382,7 +388,6 @@ window.addEventListener('DOMContentLoaded', function() {
 
     const contentInput = $('textarea[placeholder="상담내용을 입력해 주세요."]');
 
-    // 입력칸에 값을 채운 뒤 잠깐 파란빛으로 깜빡여서 어디에 들어갔는지 표시
     function flashField(el) {
       if (!el) return;
       el.style.transition = 'background-color 0.3s ease';
@@ -390,10 +395,9 @@ window.addEventListener('DOMContentLoaded', function() {
       setTimeout(() => { el.style.backgroundColor = ''; }, 700);
     }
 
-    // DSR 계산기에서 "상담일지 전달"로 보낸 값을 상담일지의 각 입력칸에 나눠 받는다.
-    // - text(요약 전체) → 상담내용 메모 / kbPrice → KB시세 / neededAmount → 필요금액
-    // - aptName·typeLabel·pyeong·exclusiveSqm → 물건정보 1번째 줄("단지명 공급 평수+타입  전용 ㎡,")
-    // - address·dongHo·투기과열지구·조정대상지역 → 물건정보 2번째 줄("주소, 동호수" + 배지)
+    // DSR 계산기(iframe)에서 온 값을 각 입력칸에 나눠 받는다. 원래 상담일지.html이 index.html
+    // 프레임 간 postMessage를 받으려고 만든 리스너를 그대로 재사용 - DSR_Main.html은 손대지
+    // 않았으므로 상담일지로전달()이 보내는 payload 모양이 똑같아서 로직 변경 없이 통한다.
     window.addEventListener('message', function(e) {
       if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
       const { text, kbPrice, neededAmount, aptName, typeLabel, pyeong, exclusiveSqm, dongHo, address, 투기과열지구, 조정대상지역 } = e.data;
@@ -420,8 +424,6 @@ window.addEventListener('DOMContentLoaded', function() {
         propertyLineInput.value = line1;
         flashField(propertyLineInput);
       }
-      // 배지를 먼저 넣어 폭을 확정한 뒤 주소 값을 넣어야, 주소 입력칸의 "칸 폭에 맞춰 글자 크기 줄이기"가
-      // 배지 때문에 좁아진 실제 폭을 기준으로 계산된다 (순서가 바뀌면 배지 넣기 전 넓은 폭 기준으로 잘못 계산되어 글자가 잘려 보임).
       if (propertyRegBadges) {
         const badges = [];
         if (투기과열지구) badges.push('<span class="apt-reg-badge apt-reg-badge-danger">투기과열</span>');
@@ -432,21 +434,18 @@ window.addEventListener('DOMContentLoaded', function() {
         propertyAddressInput.value = [address, dongHo].filter(Boolean).join(', ');
         flashField(propertyAddressInput);
       }
-      // KB시세/신청금액을 값 설정만으로 바꾸면 input 이벤트가 안 터져서 "신청금액(%)" 표시가 안 갱신되므로 직접 호출
       if ((kbPrice || neededAmount) && typeof updateAmountPercentage === 'function') {
         updateAmountPercentage();
       }
-
-      if (contentInput) {
-        contentInput.focus();
-        contentInput.scrollTop = contentInput.scrollHeight;
-      }
+      // Consult.html에서는 실시간 자동 동기화라 매번 메모/스크롤에 강제로 포커스를 옮기면
+      // 타이핑 중 방해가 되므로, 이 페이지에서는 자동 포커스 이동을 하지 않는다
+      // (상담일지.html 원본은 버튼 클릭 1회성 전달이라 포커스 이동이 자연스러웠음).
     });
 
     const brokerInput     = $('input[placeholder="중개업소 입력"]');
     const kbPriceInput    = $('input[placeholder="예: 500,000,000"]');
     const salePriceInput  = $('input[placeholder="예: 400,000,000"]');
-    
+
     const datePickerPopup = $('#datePickerPopup');
     const datePickerMonth = datePickerPopup.querySelector('.date-picker-month');
     const datePickerGrid = datePickerPopup.querySelector('.date-picker-grid');
@@ -457,7 +456,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     let currentPickerYear = new Date().getFullYear();
     let currentPickerMonth = new Date().getMonth();
-    let rawHistoryData = []; 
+    let rawHistoryData = [];
 
     const savedUserCode = localStorage.getItem('calc_user_name');
     if (savedUserCode) {
@@ -475,7 +474,6 @@ window.addEventListener('DOMContentLoaded', function() {
         e.target.value = v.replace(/-+$/, '');
     });
 
-    // 연락처 칸을 탭하면 최근 통화기록(부재중 제외, 최근 15건) 드롭다운을 보여줌 — Call Note 앱 안에서만 동작
     function showCallLogDropdown() {
         if (!(window.AndroidBridge && window.AndroidBridge.getRecentCallLog)) return;
 
@@ -527,6 +525,88 @@ window.addEventListener('DOMContentLoaded', function() {
             dropdown.style.display = 'none';
         }
     });
+
+    /* =========================================================
+       DSR 계산기 iframe 실시간 연동 (Consult.html 전용 추가 기능)
+       - DSR_Main.html/DSR_calculator_ui.js는 전혀 수정하지 않는다. 그 안에 이미 있는
+         상담일지로전달()을 그대로 이용한다 - 이 함수는 iframe 안에서 호출되면
+         (window.parent !== window) 팝업 없이 조용히 부모 창(=이 페이지)으로
+         postMessage만 보내고 끝난다(showBubble은 실패 경로에서만 뜸).
+       - 그래서 iframe 안 입력을 감지할 때마다(디바운스) 이 함수를 대신 호출해주기만
+         하면, 위에 있는 기존 message 리스너가 알아서 받아 필드를 채워준다.
+    ========================================================= */
+    const dsrFrame = document.getElementById('dsrFrame');
+    let dsrSyncTimer = null;
+    function scheduleDsrSync() {
+        clearTimeout(dsrSyncTimer);
+        dsrSyncTimer = setTimeout(() => {
+            try {
+                const win = dsrFrame.contentWindow;
+                if (win && typeof win.상담일지로전달 === 'function') {
+                    win.상담일지로전달();
+                }
+            } catch (e) { /* 아직 로딩 전이면 무시 */ }
+        }, 400);
+    }
+
+    // iframe 안 문서 높이에 맞춰 iframe 자체 높이를 계속 맞춰준다 - 소득행/대출행을
+    // 추가·삭제해도 iframe 안에 스크롤이 따로 생기지 않고 페이지 전체가 하나로 이어진다.
+    function resizeDsrFrame() {
+        try {
+            const doc = dsrFrame.contentDocument;
+            if (doc && doc.body) {
+                const h = doc.body.scrollHeight;
+                if (h > 0 && Math.abs(h - dsrFrame.clientHeight) > 4) dsrFrame.style.height = h + 'px';
+            }
+        } catch (e) { /* 크로스 오리진 등으로 접근 불가하면 조용히 무시 */ }
+    }
+
+    dsrFrame.addEventListener('load', function() {
+        try {
+            const doc = dsrFrame.contentDocument;
+            doc.addEventListener('input', scheduleDsrSync);
+            doc.addEventListener('change', scheduleDsrSync);
+            doc.addEventListener('click', scheduleDsrSync);
+        } catch (e) {}
+        resizeDsrFrame();
+    });
+    setInterval(resizeDsrFrame, 800);
+
+    // DSR 계산값 스냅샷 저장/복원 - 연락처를 키로 이 기기(localStorage)에만 보관한다.
+    // DSR이 이미 갖고 있는 "슬롯 저장" 메커니즘(saveFormToSlot/applySlotSnapshot)을
+    // 그대로 재사용한다 - 슬롯 이름만 전화번호별로 다르게 붙여서 씀.
+    function saveDsrSnapshotForPhone(phone) {
+        const cleanPhone = (phone || '').replace(/\D/g, '');
+        if (!cleanPhone) return;
+        try {
+            const win = dsrFrame.contentWindow;
+            if (win && typeof win.saveDSRInputs === 'function') win.saveDSRInputs();
+            const snapshot = {};
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('DSR_') && !key.startsWith('DSR_SLOT_')) {
+                    snapshot[key] = localStorage.getItem(key);
+                }
+            });
+            if (Object.keys(snapshot).length) {
+                localStorage.setItem(`CONSULT_DSR_${cleanPhone}`, JSON.stringify(snapshot));
+            }
+        } catch (e) { console.warn('DSR 스냅샷 저장 실패:', e); }
+    }
+
+    function restoreDsrSnapshotForPhone(phone) {
+        const cleanPhone = (phone || '').replace(/\D/g, '');
+        if (!cleanPhone) return;
+        const raw = localStorage.getItem(`CONSULT_DSR_${cleanPhone}`);
+        if (!raw) return;
+        try {
+            localStorage.setItem('DSR_SLOT_consult', raw);
+            const win = dsrFrame.contentWindow;
+            if (win && typeof win.applySlotSnapshot === 'function') {
+                win.applySlotSnapshot('consult');
+                setTimeout(resizeDsrFrame, 300);
+            }
+        } catch (e) { console.warn('DSR 스냅샷 복원 실패:', e); }
+    }
 
     function formatToCustomDate(str) {
         if (!str) return '';
@@ -636,7 +716,7 @@ window.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
         openDatePicker();
     });
-    
+
     navPrev.addEventListener('click', function(e) {
         e.stopPropagation();
         const newDate = new Date(currentPickerYear, currentPickerMonth - 1, 1);
@@ -668,10 +748,10 @@ window.addEventListener('DOMContentLoaded', function() {
         let baseLabel = '';
         if (secondToggleActive === '매매가') {
             baseValue = Number(kbPriceInput.value.replace(/\D/g, ''));
-            baseLabel = kbStatus; // "KB시세" 또는 "감정가"
+            baseLabel = kbStatus;
         } else {
             baseValue = Number(salePriceInput.value.replace(/\D/g, ''));
-            baseLabel = secondToggleActive; // "보증금"
+            baseLabel = secondToggleActive;
         }
 
         if (baseValue && needValue) {
@@ -689,20 +769,20 @@ window.addEventListener('DOMContentLoaded', function() {
         e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
         updateAmountPercentage();
     });
-    
+
     if(kbPriceInput) {
         kbPriceInput.addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '').slice(0, 10);
             e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
-            updateAmountPercentage(); 
+            updateAmountPercentage();
         });
     }
-    
+
     if(salePriceInput) {
         salePriceInput.addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '').slice(0, 10);
             e.target.value = v ? Number(v).toLocaleString('ko-KR') : '';
-            updateAmountPercentage(); 
+            updateAmountPercentage();
         });
     }
 
@@ -755,19 +835,19 @@ window.addEventListener('DOMContentLoaded', function() {
     });
 
     function clearForm() {
-        phoneInput.value = ''; 
-        nameInput.value = ''; 
+        phoneInput.value = '';
+        nameInput.value = '';
         dateInput.value = '';
         moneyInput.value = '';
         propertyLineInput.value = '';
         propertyAddressInput.value = '';
         if (propertyRegBadges) propertyRegBadges.innerHTML = '';
         contentInput.value = '';
-        
+
         brokerInput.value = '';
         kbPriceInput.value = '';
         salePriceInput.value = '';
-        
+
         document.querySelectorAll('.label-toggle').forEach(toggle => {
             const btns = toggle.querySelectorAll('.toggle-btn');
             btns.forEach((b, idx) => {
@@ -775,8 +855,11 @@ window.addEventListener('DOMContentLoaded', function() {
                 else b.classList.remove('active');
             });
         });
-        
+
         updateAmountPercentage();
+
+        // 다음 고객 상담을 위해 DSR 계산기도 함께 새로 시작한다.
+        try { dsrFrame.src = 'DSR_Main.html?v=consult1&t=' + Date.now(); } catch (e) {}
     }
 
     document.getElementById('copyBtn').addEventListener('click', function() {
@@ -787,7 +870,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const needAmount = moneyInput.value.trim();
         const loanType   = getPropertyInfoText();
         const memo       = contentInput.value.trim();
-        
+
         const broker     = brokerInput.value.trim();
         const kbStatus   = document.querySelectorAll('.label-toggle')[0].querySelector('.toggle-btn.active').textContent;
         const kbPrice    = kbPriceInput.value.trim();
@@ -796,7 +879,6 @@ window.addEventListener('DOMContentLoaded', function() {
 
         let formattedAmount = needAmount || '';
         if (needAmount) {
-            // needAmountLabel엔 이미 "KB시세 80%"처럼 기준값 이름과 %가 함께 들어있으므로 그대로 갖다 쓴다.
             const matchPct = needAmountLabel.textContent.match(/\(([^)]+)\)/);
             if (matchPct && matchPct[1]) {
                 formattedAmount = `(${matchPct[1]} 대비) ${needAmount}`;
@@ -859,7 +941,6 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('saveBtn').addEventListener('click', async function() {
         const userCode   = userCodeInput.value.trim();
 
-        // [수정사항] 저장 버튼을 누르는 현재 시점으로 시간을 생성
         const nowClick = new Date();
         const yyClick = String(nowClick.getFullYear()).slice(-2);
         const mmClick = String(nowClick.getMonth() + 1).padStart(2, '0');
@@ -868,7 +949,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const minClick = String(nowClick.getMinutes()).padStart(2, '0');
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
         const dateTime = `${yyClick}/${mmClick}/${ddClick} (${dayNames[nowClick.getDay()]}) ${hhClick}:${minClick}`;
-        document.getElementById('currentDateTime').textContent = dateTime; // 화면에 보이는 최근상담일시도 저장 시점으로 갱신
+        document.getElementById('currentDateTime').textContent = dateTime;
 
 
         const phone      = phoneInput.value.trim();
@@ -877,7 +958,7 @@ window.addEventListener('DOMContentLoaded', function() {
         const needAmount = moneyInput.value.trim();
         const loanType   = getPropertyInfoText();
         const memo       = contentInput.value.trim();
-        
+
         const broker     = brokerInput.value.trim();
         const kbStatus   = document.querySelectorAll('.label-toggle')[0].querySelector('.toggle-btn.active').textContent;
         const kbPrice    = kbPriceInput.value.trim();
@@ -892,6 +973,10 @@ window.addEventListener('DOMContentLoaded', function() {
             const overwrite = confirm(`[${phone}] 번호로 이미 저장된 상담 내역이 있습니다.\n(${existing.dateTime} / ${existing.name || '이름 없음'})\n\n해당 내역에 새 내용으로 덮어써서 저장하시겠습니까?`);
             if (!overwrite) return;
         }
+
+        // Consult.html 전용: DSR 계산값 스냅샷을 이 기기에 함께 저장(연락처 기준) -
+        // 나중에 같은 기기에서 이 고객을 다시 불러오면 계산기 상태까지 그대로 복원된다.
+        saveDsrSnapshotForPhone(phone);
 
         const formData = new URLSearchParams();
         formData.append('userCode', userCode);
@@ -924,8 +1009,6 @@ window.addEventListener('DOMContentLoaded', function() {
             body: formData.toString()
         })
         .then(() => {
-            // Call Note 앱(안드로이드) 안에서 열려 있을 때만 존재하는 창구 — 로컬 캐시에도 즉시 반영해서
-            // 다음 전화 수신 때 서버를 다시 안 타도 바로 뜨게 함. 일반 브라우저에서는 그냥 무시됨.
             if (window.AndroidBridge && window.AndroidBridge.saveLocalRecord) {
                 window.AndroidBridge.saveLocalRecord(JSON.stringify({
                     userCode, dateTime, phone, name, needDate, needAmount, loanType, memo,
@@ -950,8 +1033,6 @@ window.addEventListener('DOMContentLoaded', function() {
             return alert('히스토리를 조회할 [사용자 이름]를 먼저 입력해 주세요.');
         }
 
-        // Call Note 앱 안이면 로컬 캐시(하루 4회 동기화 + 저장 시 즉시 반영)를 그대로 사용 — 서버 호출 없음.
-        // 검색해서 로컬에 없는 번호가 나오면 renderHistoryCards의 "서버에서 다시 검색" 버튼으로 그때만 요청함.
         if (window.AndroidBridge && window.AndroidBridge.getLocalRecords) {
             $('#modalTitle').textContent = `[${userCode}] 로컬 캐시 히스토리`;
             try {
@@ -964,7 +1045,6 @@ window.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // 일반 브라우저(Call Note 앱이 아님) — 기존처럼 서버에서 직접 조회
         $('#modalTitle').textContent = `[${userCode}] 서버 실시간 히스토리`;
         fetch(`${WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}`)
         .then(res => res.json())
@@ -984,7 +1064,6 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 검색결과가 로컬 캐시에 없을 때, 사용자가 버튼을 눌러야만 서버로 해당 번호를 조회함(자동 요청 안 함)
     function searchServerByPhone() {
         const userCode = userCodeInput.value.trim();
         const query = (document.getElementById('historySearch').value || '').trim();
@@ -999,7 +1078,6 @@ window.addEventListener('DOMContentLoaded', function() {
                 $('#modalBody').innerHTML = '<div class="loading-view">서버에도 일치하는 내역이 없습니다.</div>';
                 return;
             }
-            // 다음부터는 로컬 캐시에서 바로 찾히도록 반영
             if (window.AndroidBridge && window.AndroidBridge.saveLocalRecord) {
                 data.forEach(item => window.AndroidBridge.saveLocalRecord(JSON.stringify(item)));
             }
@@ -1010,7 +1088,6 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Call Note 앱(수신전화 팝업)에서 "상담일지 열기"를 누르면 호출되는 진입점
     window.injectCallData = function(phone, name, memo) {
         if (phone) phoneInput.value = phone;
         if (name) nameInput.value = name;
@@ -1021,9 +1098,6 @@ window.addEventListener('DOMContentLoaded', function() {
         $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
         openModal();
 
-        // 목록이 실제로 다 그려진 뒤(서버 응답 시점)에 검색창을 채워야 필터가 제대로 먹힘.
-        // 고정 딜레이(setTimeout)로 추측하면 서버 응답이 늦을 때 빈 데이터에 필터를 걸게 되어,
-        // 화면엔 번호가 입력돼 있어도 결과가 안 나오는 문제가 생김 (그 뒤 번호를 다시 입력해야 되던 원인).
         loadHistoryData(function() {
             const searchEl = document.getElementById('historySearch');
             if (searchEl && phone) {
@@ -1033,14 +1107,10 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     };
 
-    // 팝업을 거치지 않고 나중에 앱을 직접 열었을 때, 아직 통화 중인 번호가 있으면 연락처 칸만 채워줌
     window.fillActivePhone = function(phone) {
         if (phone && phoneInput) phoneInput.value = phone;
     };
 
-    // 통화 중에 앱을 열었을 때 연락처 칸만 채우는 게 아니라, 히스토리 검색까지 화면에 안 띄우고 미리 해둠
-    // (모달을 열지 않은 채 modalBody/검색창만 채워두는 것 — openModal()을 안 부르므로 화면엔 아무 변화 없음).
-    // 나중에 사용자가 '불러오기'를 누르면 이미 그 번호로 필터링된 결과가 바로 보임.
     window.prefetchActiveCall = function(phone) {
         if (!phone) return;
         fillActivePhone(phone);
@@ -1063,7 +1133,6 @@ window.addEventListener('DOMContentLoaded', function() {
         $('#modalBody').innerHTML = '<div class="loading-view">상담 목록 데이터를 분석하는 중입니다...</div>';
         openModal();
 
-        // 연락처 칸에 이미 번호가 입력돼 있으면, 목록이 다 뜬 뒤 검색창에도 그대로 채워서 바로 필터링해줌
         const prefilledPhone = phoneInput.value.trim();
         loadHistoryData(function() {
             const searchEl = document.getElementById('historySearch');
@@ -1074,7 +1143,6 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // "로컬에 저장" — 하루 4회 자동 동기화를 기다리지 않고, 그 자리에서 서버 자료를 로컬 캐시로 즉시 반영
     document.getElementById('syncNowBtn').addEventListener('click', function() {
         if (!(window.AndroidBridge && window.AndroidBridge.syncNowBlocking)) {
             return alert('이 기능은 스마트 상담도구 앱 안에서만 사용할 수 있습니다.');
@@ -1084,7 +1152,6 @@ window.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.textContent = '동기화 중...';
 
-        // 버튼 텍스트가 화면에 반영된 뒤에 블로킹 호출을 실행(그렇지 않으면 텍스트 변경 전에 멈춰버림)
         setTimeout(function() {
             let ok = false;
             try { ok = window.AndroidBridge.syncNowBlocking(); } catch (e) { ok = false; }
@@ -1157,17 +1224,17 @@ window.addEventListener('DOMContentLoaded', function() {
                 phoneInput.value = selectData.phone;
                 nameInput.value = selectData.name;
                 dateInput.value = selectData.needDate ? selectData.needDate.trim() : '';
-                
+
                 let numericAmount = selectData.needAmount ? selectData.needAmount.replace(/\D/g, '') : '';
                 moneyInput.value = numericAmount ? Number(numericAmount).toLocaleString('ko-KR') : '';
 
                 setPropertyInfoText(selectData.loanType);
                 contentInput.value = selectData.memo;
-                
+
                 brokerInput.value = selectData.broker || '';
                 kbPriceInput.value = selectData.kbPrice || '';
                 salePriceInput.value = selectData.salePrice || '';
-                
+
                 document.querySelectorAll('.label-toggle').forEach((toggle, toggleIdx) => {
                     const btns = toggle.querySelectorAll('.toggle-btn');
                     const targetStatus = toggleIdx === 0 ? selectData.kbStatus : selectData.saleStatus;
@@ -1181,6 +1248,10 @@ window.addEventListener('DOMContentLoaded', function() {
 
                 updateAmountPercentage();
 
+                // Consult.html 전용: 이 고객 전화번호로 저장된 DSR 계산 스냅샷이 이
+                // 기기에 있으면 계산기 상태까지 그대로 복원한다.
+                restoreDsrSnapshotForPhone(selectData.phone);
+
                 const wrap = $('.table-wrap');
                 wrap.style.transition = 'background 0.1s';
                 wrap.style.background = '#e3effa';
@@ -1192,7 +1263,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
         document.querySelectorAll('.card-delete-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
-                e.stopPropagation(); 
+                e.stopPropagation();
                 const targetIdx = this.getAttribute('data-idx');
                 const targetData = list[targetIdx];
                 const currentUserCode = userCodeInput.value.trim();
@@ -1220,7 +1291,6 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 상담일지 LocalStorage 저장 함수
     function saveConsultingInputs() {
         const inputData = {
             userCode: userCodeInput.value,
@@ -1234,12 +1304,11 @@ window.addEventListener('DOMContentLoaded', function() {
             kbPrice: kbPriceInput.value,
             salePrice: salePriceInput.value
         };
-        localStorage.setItem('consulting_inputs', JSON.stringify(inputData));
+        localStorage.setItem('consult_inputs', JSON.stringify(inputData));
     }
 
-    // 상담일지 LocalStorage 로드 함수
     function loadConsultingInputs() {
-        const savedData = localStorage.getItem('consulting_inputs');
+        const savedData = localStorage.getItem('consult_inputs');
         if (savedData) {
             try {
                 const data = JSON.parse(savedData);
@@ -1260,7 +1329,6 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 자동 저장 설정
     function setupConsultingAutoSave() {
         [userCodeInput, phoneInput, nameInput, dateInput, moneyInput,
          propertyLineInput, propertyAddressInput,
@@ -1272,7 +1340,6 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 페이지 로드 시 저장된 데이터 복원
     loadConsultingInputs();
     setupConsultingAutoSave();
 
@@ -1307,7 +1374,6 @@ window.addEventListener('DOMContentLoaded', function() {
         renderHistoryCards(filtered);
     });
 
-    // 검색창 안 x 버튼 - 검색어만 지우고(전체 초기화 아님) 목록을 다시 필터링(=전체 표시)한다
     document.getElementById('clearHistorySearchBtn').addEventListener('click', function() {
         const searchEl = document.getElementById('historySearch');
         searchEl.value = '';
@@ -1318,33 +1384,28 @@ window.addEventListener('DOMContentLoaded', function() {
   </script>
 
   <script>
-    // 부모(index.html)에서 호출할 전체 필드 초기화 함수
     function resetAllFields() {
-      // 모든 입력 필드 초기화 (서버저장 체크박스, 사용자 이름 입력창 제외)
       const inputs = document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], select, textarea');
       inputs.forEach(input => {
-        if (input.id === 'userCodeInput') return; // 사용자 이름은 초기화 대상이 아님
+        if (input.id === 'userCodeInput') return;
         input.value = '';
       });
 
-      // 체크박스 초기화
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
         checkbox.checked = false;
       });
 
-      // 물건정보 투기과열지구/조정대상지역 배지 초기화
       const regBadges = document.getElementById('propertyRegBadges');
       if (regBadges) regBadges.innerHTML = '';
 
-      // 주요 필드들 초기화 (사용자 이름은 유지)
       const mainFields = [
         'phoneInput', 'nameInput', 'dateInput',
         'needDateInput', 'moneyInput', 'contentInput',
         'propertyLineInput', 'propertyAddressInput',
         'brokerInput', 'kbPriceInput', 'salePriceInput'
       ];
-      
+
       mainFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
@@ -1356,7 +1417,6 @@ window.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      // 현재 시간 업데이트
       const currentDateTime = document.getElementById('currentDateTime');
       if (currentDateTime) {
         const now = new Date();
@@ -1368,33 +1428,31 @@ window.addEventListener('DOMContentLoaded', function() {
         currentDateTime.textContent = `${year}/${month}/${day} ${hours}:${minutes}`;
       }
 
-      // localStorage에서 상담 관련 데이터 삭제
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
-        if (key.includes('상담') || key.includes('consulting')) {
+        if (key.includes('상담') || key.includes('consult')) {
           localStorage.removeItem(key);
         }
       });
 
-      // 사용자 이름은 초기화 대상이 아님 — 혹시라도 비워졌다면 저장된 원래 값으로 다시 채워줌
       const savedUserCode = localStorage.getItem('calc_user_name');
       const userCodeEl = document.getElementById('userCodeInput');
       if (savedUserCode && userCodeEl && !userCodeEl.value) {
         userCodeEl.value = savedUserCode;
       }
 
-      // 모달 창 닫기
       const modalOverlay = document.getElementById('modalOverlay');
       if (modalOverlay) {
         modalOverlay.style.display = 'none';
       }
+
+      // DSR 계산기도 함께 새로 시작
+      const frame = document.getElementById('dsrFrame');
+      if (frame) { try { frame.src = 'DSR_Main.html?v=consult1&t=' + Date.now(); } catch (e) {} }
     }
   </script>
 
   <script>
-    // 표 안 텍스트 입력칸: 내용이 칸 폭보다 길면 글자를 줄이고, 짧아지면 원래 크기로 다시 키운다.
-    // 값이 타이핑/불러오기/전화번호 자동입력 등 어디서 바뀌든 다 반영되도록 value 세터 자체를 감싼다
-    // (호출 지점이 여러 곳에 흩어져 있어 하나하나 찾아 고치는 대신 이 방식이 안전함).
     (function () {
       const ghost = document.createElement('span');
       ghost.style.position = 'absolute';
@@ -1410,7 +1468,7 @@ window.addEventListener('DOMContentLoaded', function() {
           input.dataset.origSize = window.getComputedStyle(input).fontSize;
         }
         const origSize = parseFloat(input.dataset.origSize);
-        const maxWidth = input.clientWidth - 18; // 좌우 padding(8px*2) + 커서 여유분 감안
+        const maxWidth = input.clientWidth - 18;
         if (maxWidth <= 0) { input.style.fontSize = input.dataset.origSize; return; }
 
         const cs = window.getComputedStyle(input);
@@ -1448,3 +1506,5 @@ window.addEventListener('DOMContentLoaded', function() {
       fitAllTableInputFontSizes();
     })();
   </script>
+</body>
+</html>

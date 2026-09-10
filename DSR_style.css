@@ -396,6 +396,34 @@ td:has(.type-btn-row) {
   font-weight: 700;
   box-shadow: var(--toggle-shadow);
 }
+/* 장래예상 버튼 - 여백 없이 라벨/요율 두 줄을 꽉 채워서 켜지면 요율이 줄바꿈으로 나타난다 */
+.rate-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: auto !important;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+.rate-toggle-btn .rate-toggle-label {
+  display: block;
+  margin: 0;
+  line-height: 1;
+}
+.rate-toggle-btn .rate-display {
+  margin: 0;
+  line-height: 1;
+  font-size: 13px;
+}
+/* 버튼이 켜지면 배경이 파란색 그라데이션이라 기존 빨간색은 잘 안 보여서, 대비가 강한 노란색으로 표시 */
+.rate-toggle-btn.active .rate-display {
+  color: #ffd60a !important;
+}
 
 .add-btn {
   background-color: var(--c-success);
@@ -567,17 +595,23 @@ td:has(.type-btn-row) {
 
 /* 대출 행 바로 아래에 붙는 메모 전용 행 */
 .mortgage-memo-row td { border-top: none !important; padding: 3px 6px 6px !important; }
+.mortgage-memo-row-inner { display: flex; gap: 6px; }
 .mort-memo {
+  display: block;
   width: 100%;
   box-sizing: border-box;
   padding: 5px 8px;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.4;
   text-align: left;
   border: 1px dashed var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface-muted);
   color: var(--c-text-muted);
+  resize: none;
+  overflow: hidden;
 }
 .mort-memo:focus {
   outline: none;
@@ -588,6 +622,45 @@ td:has(.type-btn-row) {
   box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
 }
 .mort-memo::placeholder { color: var(--c-text-faint); font-weight: 500; }
+.mort-need-date {
+  flex: 0 0 100px;
+  width: 100px;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-muted);
+  color: var(--c-text-muted);
+}
+.mort-need-date:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--c-primary-light);
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
+}
+.mort-need-date { cursor: pointer; }
+.mort-need-date::placeholder { color: #8fb2f5; font-weight: 500; }
+
+/* 필요일자 클릭 시 뜨는 달력 (상담일지.html과 동일한 패턴) */
+.date-picker-popup { position: absolute; width: 310px; padding: 16px; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 40px rgba(0,0,0,0.12); border: 1px solid rgba(98, 146, 234, 0.18); z-index: 3100; display: none; }
+.date-picker-popup.open { display: block; }
+.date-picker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.date-picker-month { font-weight: 700; color: #1c3a60; }
+.date-picker-nav { display: inline-flex; gap: 6px; }
+.date-picker-nav button { width: 36px; height: 36px; border: none; border-radius: 10px; background: #eef5ff; color: #1d4ed8; font-size: 18px; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; }
+.date-picker-nav button:hover { transform: translateY(-1px); background: #dbeafe; }
+.date-picker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; color: #64748b; font-size: 12px; text-align: center; }
+.date-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.date-picker-grid .calendar-cell { width: 100%; padding: 10px 0; border: none; border-radius: 12px; background: transparent; color: #334155; cursor: pointer; font-weight: 600; transition: background 0.2s ease, color 0.2s ease; }
+.date-picker-grid .calendar-cell:hover { background: var(--c-primary-soft); }
+.date-picker-grid .calendar-cell.selected { background: var(--c-primary); color: #fff; }
+.date-picker-grid .calendar-cell.empty { cursor: default; background: transparent; }
+.date-picker-grid .calendar-cell.today { border: 1px solid var(--c-primary-light); }
 
 .mort-exclude-cell {
   display: flex;
@@ -1070,16 +1143,21 @@ td:has(.type-btn-row) {
 /* 소득 행 바로 아래에 붙는 메모 전용 행 (대출 정보 메모 행과 동일한 스타일) */
 .income-memo-row td { border-top: none !important; padding: 3px 6px 6px !important; }
 .income-memo {
+  display: block;
   width: 100%;
   box-sizing: border-box;
   padding: 5px 8px;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.4;
   text-align: left;
   border: 1px dashed var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface-muted);
   color: var(--c-text-muted);
+  resize: none;
+  overflow: hidden;
 }
 .income-memo:focus {
   outline: none;
@@ -1107,13 +1185,6 @@ td:has(.type-btn-row) {
 .future-income-row .rate-toggle-row { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; }
 .future-income-row .rate-toggle-row label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
 .future-income-row .rate-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
-/* "장래예상" 라벨 아래에 예상효율을 줄바꿈해서 표시 (체크박스 옆에 세로로 쌓임) */
-.rate-toggle-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.15;
-}
 /* 장래예상 체크박스 - (라벨+요율 2줄) - 나이입력을 한 줄에 왼쪽 정렬로 배치 (체크 전엔 나이/요율 숨김) */
 .future-income-row {
   display: flex;
@@ -1128,13 +1199,11 @@ td:has(.type-btn-row) {
   font-size: 13px !important;
   flex: 0 0 auto;
 }
-.future-income-row .rate-display {
-  margin: 0;
-}
-/* 장래예상 체크 시 나이입력 오른쪽 남는 공간에 환산된 금액을 보여준다 */
+/* 장래예상 적용 계산값 - 소득입력행 바로 아래로 줄바꿈해서 여백 없이 표시 */
 .future-income-converted {
-  flex: 1 1 auto;
-  min-width: 100px;
+  display: block;
+  width: 100%;
+  margin: 0;
   text-align: left;
   color: #1d4ed8;
   font-weight: 800;

@@ -4,7 +4,12 @@
       "Read(//c/Users/Administrator/AndroidStudioProjects/CallNote/**)",
       "Bash(export JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\")",
       "Bash(./gradlew.bat assembleDebug --console=plain)",
-      "PowerShell(cd \"C:\\\\Users\\\\Administrator\\\\AndroidStudioProjects\\\\CallNote\"; $env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat assembleDebug --console=plain --no-daemon 2>&1 | Select-Object -Last 150)"
+      "PowerShell(cd \"C:\\\\Users\\\\Administrator\\\\AndroidStudioProjects\\\\CallNote\"; $env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat assembleDebug --console=plain --no-daemon 2>&1 | Select-Object -Last 150)",
+      "Bash(node --check DSR_calculator_ui.js)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(git clone https://github.com/daniel3303/ClaudeCodeStatusLine \"$env:USERPROFILE\\\\.claude\\\\statusline\")",
+      "PowerShell(try { pwsh -NoProfile -Command '$PSVersionTable.PSVersion' -ErrorAction Stop } catch { Write-Output \"pwsh not found\" })",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
