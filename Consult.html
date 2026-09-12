@@ -123,6 +123,24 @@
         @keyframes dsrPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
         #dsrFrame { display: block; width: 100%; border: 0; min-height: 420px; }
 
+        /* ===== 고객정보 탭 (기본 숨김, 클릭 시 펼침) ===== */
+        .customer-info-tab { border: 1.5px solid var(--border-color); border-radius: 14px; overflow: hidden; background: #fff; margin: 4px 0 2px; }
+        .customer-info-tab-header {
+            width: 100%; display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; background: var(--primary-soft); border: none; border-radius: 0;
+            font-size: 12px; font-weight: 800; color: var(--primary-hover); letter-spacing: 0.3px;
+            cursor: pointer; box-shadow: none; transform: none;
+        }
+        .customer-info-tab-header:hover { background: var(--primary-soft-border); }
+        .customer-info-tab-caret { transition: transform 0.2s ease; font-size: 12px; }
+        .customer-info-tab-header[aria-expanded="true"] .customer-info-tab-caret { transform: rotate(180deg); }
+        .customer-info-tab-body {
+            display: none; grid-template-columns: repeat(3, 1fr); gap: 8px 10px;
+            padding: 14px; border-top: 1px solid var(--border-color);
+        }
+        .customer-info-tab-body.open { display: grid; }
+        .customer-info-field { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+
         .date-picker-field { cursor: pointer; background: linear-gradient(180deg, #ffffff 0%, #f5f7ff 100%); }
         .date-picker-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.12); }
         .date-picker-popup { position: absolute; width: 310px; padding: 16px; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 40px rgba(0,0,0,0.12); border: 1px solid rgba(98, 146, 234, 0.18); z-index: 1010; display: none; }
@@ -212,21 +230,11 @@
     <table>
         <tr>
             <th>최근상담일시</th>
-            <th class="label-with-clear">연락처<button type="button" class="field-clear-btn" id="clearPhoneBtn" aria-label="연락처 지우기">×</button></th>
-            <th class="label-with-clear">고객명<button type="button" class="field-clear-btn" id="clearNameBtn" aria-label="고객명 지우기">×</button></th>
+            <th class="field-span-2 label-with-clear">필요일자<button type="button" class="field-clear-btn" id="clearDateBtn" aria-label="필요일자 지우기">×</button></th>
         </tr>
         <tr>
             <td><span id="currentDateTime" class="current-datetime-text"></span></td>
-            <td><input type="text" placeholder="연락처 입력" inputmode="numeric"></td>
-            <td><input type="text" placeholder="이름 입력" inputmode="text" lang="ko"></td>
-        </tr>
-        <tr>
-            <td class="label label-with-clear">필요일자<button type="button" class="field-clear-btn" id="clearDateBtn" aria-label="필요일자 지우기">×</button></td>
-            <td class="label field-span-2 label-with-clear">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></td>
-        </tr>
-        <tr>
-            <td><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
-            <td class="field-span-2"><input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko"></td>
+            <td class="field-span-2"><input type="text" id="needDateInput" class="date-picker-field" placeholder="예: 26/06/20" inputmode="numeric" autocomplete="off"></td>
         </tr>
         <tr>
             <td class="field-span-full">
@@ -235,7 +243,7 @@
                         <b>DSR 계산기</b>
                         <span class="dsr-sync-badge"><span class="dot"></span>실시간 연동 중</span>
                     </div>
-                    <iframe id="dsrFrame" src="DSR_Main.html?v=consult1" title="DSR 계산기"></iframe>
+                    <iframe id="dsrFrame" src="Consult_Main.html?v=consult1" title="DSR 계산기"></iframe>
                 </div>
             </td>
         </tr>
@@ -248,6 +256,34 @@
                         <div class="property-line2">
                             <input type="text" id="propertyAddressInput" class="property-address-input" placeholder="주소" inputmode="text" lang="ko" autocomplete="off">
                             <span id="propertyRegBadges" class="apt-reg-badges"></span>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <!-- 고객정보 탭 UI는 DSR 계산기(Consult_Main.html) 쪽으로 옮겼다. 여기 아래 블록은
+             연락처/고객명/중개업소 입력값을 읽는 기존 JS(전화번호 포맷, 통화기록, 저장/불러오기,
+             상담내용 복사 등)가 그대로 동작하도록 화면에서만 숨긴 것 - DSR 계산기 쪽과 값을
+             연동하는 작업을 마치기 전까지는 지우지 않는다. -->
+        <tr style="display: none;">
+            <td colspan="3" class="field-span-full" style="padding: 0;">
+                <div class="customer-info-tab">
+                    <button type="button" class="customer-info-tab-header" id="customerInfoTabBtn" aria-expanded="false">
+                        <span>👤 고객정보</span>
+                        <span class="customer-info-tab-caret">▾</span>
+                    </button>
+                    <div class="customer-info-tab-body" id="customerInfoTabBody">
+                        <div class="customer-info-field">
+                            <div class="label label-with-clear">연락처<button type="button" class="field-clear-btn" id="clearPhoneBtn" aria-label="연락처 지우기">×</button></div>
+                            <input type="text" placeholder="연락처 입력" inputmode="numeric">
+                        </div>
+                        <div class="customer-info-field">
+                            <div class="label label-with-clear">고객명<button type="button" class="field-clear-btn" id="clearNameBtn" aria-label="고객명 지우기">×</button></div>
+                            <input type="text" placeholder="이름 입력" inputmode="text" lang="ko">
+                        </div>
+                        <div class="customer-info-field">
+                            <div class="label label-with-clear">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></div>
+                            <input type="text" placeholder="중개업소 입력" inputmode="text" lang="ko">
                         </div>
                     </div>
                 </div>
@@ -396,7 +432,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     // DSR 계산기(iframe)에서 온 값을 각 입력칸에 나눠 받는다. 원래 상담일지.html이 index.html
-    // 프레임 간 postMessage를 받으려고 만든 리스너를 그대로 재사용 - DSR_Main.html은 손대지
+    // 프레임 간 postMessage를 받으려고 만든 리스너를 그대로 재사용 - Consult_Main.html은 손대지
     // 않았으므로 상담일지로전달()이 보내는 payload 모양이 똑같아서 로직 변경 없이 통한다.
     window.addEventListener('message', function(e) {
       if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
@@ -528,7 +564,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     /* =========================================================
        DSR 계산기 iframe 실시간 연동 (Consult.html 전용 추가 기능)
-       - DSR_Main.html/DSR_calculator_ui.js는 전혀 수정하지 않는다. 그 안에 이미 있는
+       - Consult_Main.html/Consult_calculator_ui.js는 전혀 수정하지 않는다. 그 안에 이미 있는
          상담일지로전달()을 그대로 이용한다 - 이 함수는 iframe 안에서 호출되면
          (window.parent !== window) 팝업 없이 조용히 부모 창(=이 페이지)으로
          postMessage만 보내고 끝난다(showBubble은 실패 경로에서만 뜸).
@@ -795,6 +831,13 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // 고객정보 탭 - 기본 숨김, 클릭할 때만 펼침
+    document.getElementById('customerInfoTabBtn').addEventListener('click', function() {
+        const body = document.getElementById('customerInfoTabBody');
+        const isOpen = body.classList.toggle('open');
+        this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
     // 제목줄 옆 작은 x 버튼 - 해당 입력칸 하나만 지운다(전체 초기화 버튼과 별개)
     document.getElementById('clearPhoneBtn').addEventListener('click', function(e) {
         e.stopPropagation();
@@ -859,7 +902,7 @@ window.addEventListener('DOMContentLoaded', function() {
         updateAmountPercentage();
 
         // 다음 고객 상담을 위해 DSR 계산기도 함께 새로 시작한다.
-        try { dsrFrame.src = 'DSR_Main.html?v=consult1&t=' + Date.now(); } catch (e) {}
+        try { dsrFrame.src = 'Consult_Main.html?v=consult1&t=' + Date.now(); } catch (e) {}
     }
 
     document.getElementById('copyBtn').addEventListener('click', function() {
@@ -1448,7 +1491,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
       // DSR 계산기도 함께 새로 시작
       const frame = document.getElementById('dsrFrame');
-      if (frame) { try { frame.src = 'DSR_Main.html?v=consult1&t=' + Date.now(); } catch (e) {} }
+      if (frame) { try { frame.src = 'Consult_Main.html?v=consult1&t=' + Date.now(); } catch (e) {} }
     }
   </script>
 
