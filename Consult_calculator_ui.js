@@ -3816,3 +3816,75 @@ function initPropertyExtraFields() {
 window.addEventListener('DOMContentLoaded', initPropertyExtraFields);
 window.addEventListener('DOMContentLoaded', initLtvAmountTransfer);
 window.addEventListener('DOMContentLoaded', init);
+/* ───────────────── 상담 전용 저장소 ───────────────── */
+const CONSULT_STORAGE_KEY = '상담저장소';
+function getConsultRecords() {
+  try { const value = JSON.parse(localStorage.getItem(CONSULT_STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
+  catch (_) { return []; }
+}
+function saveConsultRecord() {
+  const phone = document.getElementById('customerPhoneInput')?.value.trim() || '';
+  const name = document.getElementById('customerNameInput')?.value.trim() || '';
+  const broker = document.getElementById('customerBrokerInput')?.value.trim() || '';
+  const memo = document.getElementById('customerInfoMemo')?.value.trim() || '';
+  const snapshot = getDsrStorageSnapshot();
+  const hasStoredInput = Object.values(snapshot).some(value => String(value ?? '').trim() !== '');
+  const hasMeaningfulData = phone || name || broker || memo || hasStoredInput;
+  if (!hasMeaningfulData) return false;
+  const record = { phone, name, broker, memo, savedAt: new Date().toISOString(), storage: snapshot };
+  // 구분값이 있는 경우에만 같은 번호 상담을 교체한다. 번호와 이름이 모두 없으면 매번 새 기록으로 남긴다.
+  const hasIdentifier = Boolean(phone || name);
+  const records = hasIdentifier
+    ? getConsultRecords().filter(item => {
+        const samePhone = phone && String(item.phone || '').replace(/\D/g, '') === phone.replace(/\D/g, '');
+        const sameName = name && String(item.name || '').trim() === name;
+        return !(samePhone || sameName);
+      })
+    : getConsultRecords();
+  records.unshift(record);
+  localStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+  if (window.AndroidBridge && typeof window.AndroidBridge.saveConsultRecord === 'function') {
+    try { window.AndroidBridge.saveConsultRecord(JSON.stringify(record)); } catch (_) {}
+  }
+  if (typeof showBubble === 'function') showBubble('상담저장소에 저장했습니다');
+}
+function openConsultStorageModal() {
+  const records = getConsultRecords();
+  let modal = document.getElementById('consultStorageModal');
+  if (!modal) {
+    modal = document.createElement('div'); modal.id = 'consultStorageModal'; modal.className = 'consult-storage-modal';
+    modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-close">닫기</button></div><div class="consult-storage-list"></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.consult-storage-close').addEventListener('click', () => { modal.style.display = 'none'; });
+  }
+  const list = modal.querySelector('.consult-storage-list');
+  const search = modal.querySelector('.consult-storage-search');
+  const renderRecords = () => {
+    const query = String(search?.value || '').trim().toLowerCase();
+    const filtered = query ? records.filter(r => JSON.stringify(r).toLowerCase().includes(query)) : records;
+    list.innerHTML = filtered.length ? filtered.map(r => {
+      const displayName = String(r.name || r.customerName || r.customer_name || '').trim() || '이름없음';
+      const index = records.indexOf(r);
+      return `<button type="button" class="consult-storage-item" data-index="${index}"><b>${escapeHtml(displayName)}</b><span>${escapeHtml(r.phone || '연락처 없음')}</span><small>${escapeHtml(r.memo || '')}</small></button>`;
+    }).join('') : '<div class="consult-storage-empty">검색 결과가 없습니다.</div>';
+    list.querySelectorAll('.consult-storage-item').forEach(item => item.addEventListener('click', () => {
+      const record = records[Number(item.dataset.index)];
+      if (!record) return;
+      loadDsrSnapshotIntoForm(record.storage || {});
+      // 저장 당시 상담정보를 별도로 직접 복원해 UI/요약/팝업 모두 같은 값을 사용하게 한다.
+      const fields = [['customerPhoneInput', record.phone], ['customerNameInput', record.name], ['customerBrokerInput', record.broker], ['customerInfoMemo', record.memo]];
+      fields.forEach(([id, value]) => { const el = document.getElementById(id); if (el && value !== undefined) { el.value = value || ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
+      if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+      if (typeof openAllInfoTabs === 'function') openAllInfoTabs();
+      modal.style.display = 'none';
+      if (typeof showBubble === 'function') showBubble('상담저장소에서 불러왔습니다');
+    }));
+  };
+  if (search && !search.dataset.bound) { search.dataset.bound = 'true'; search.addEventListener('input', renderRecords); }
+  renderRecords();
+  modal.style.display = 'flex';
+}
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('consultSaveBtn')?.addEventListener('click', saveConsultRecord);
+  document.getElementById('consultLoadBtn')?.addEventListener('click', openConsultStorageModal);
+});

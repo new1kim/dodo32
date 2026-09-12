@@ -2072,3 +2072,36 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 .bottom-controls-row .reset-btn,
 .bottom-controls-row .bottom-view-btn { flex:0 0 auto; white-space:nowrap; }
 .bottom-controls-row .bottom-view-btn { margin:0; }
+
+/* Consult 전용 상담저장소 */
+.consult-storage-controls { display:flex; justify-content:center; gap:8px; padding:8px 2px; }
+.consult-storage-modal { display:none; position:fixed; inset:0; z-index:4000; align-items:center; justify-content:center; background:rgba(15,23,42,.45); padding:16px; }
+.consult-storage-panel { position:relative; width:min(520px,100%); max-height:80vh; overflow:auto; background:#fff; border-radius:14px; padding:16px; box-shadow:0 16px 40px rgba(0,0,0,.25); }
+.consult-storage-header { display:flex !important; flex-direction:row !important; align-items:center !important; justify-content:space-between !important; gap:12px !important; width:100% !important; min-width:0 !important; padding:0 2px 10px 2px; border-bottom:1px solid #e2e8f0; }
+.consult-storage-title, .consult-storage-header .consult-storage-title { display:block !important; width:auto !important; min-width:0 !important; flex:1 1 auto !important; writing-mode:horizontal-tb !important; white-space:nowrap !important; word-break:keep-all !important; overflow:visible !important; font-size:16px; line-height:1.4; font-weight:800; color:#0f172a; text-align:left; }
+.consult-storage-close, .consult-storage-header .consult-storage-close { position:static !important; display:block !important; width:auto !important; min-width:52px !important; flex:0 0 auto !important; writing-mode:horizontal-tb !important; white-space:nowrap !important; border:1px solid #cbd5e1; background:#f8fafc; color:#475569; border-radius:6px; padding:4px 9px; cursor:pointer; }
+/* 이전 JS가 헤더 래퍼 없이 제목/닫기 버튼을 만들더라도 같은 행으로 보정 */
+.consult-storage-panel > .consult-storage-title { display:inline-block !important; width:calc(100% - 70px) !important; vertical-align:middle; }
+.consult-storage-panel > .consult-storage-close { float:right; margin-top:0; }
+.consult-storage-list { display:flex; flex-direction:column; gap:6px; clear:both; padding:8px 4px 0 4px; text-align:left; }
+.consult-storage-item { display:grid; grid-template-columns:1fr auto; gap:2px 8px; width:100%; text-align:left; border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; padding:9px 10px; cursor:pointer; }
+.consult-storage-item span { color:#2563eb; font-size:12px; }
+.consult-storage-item small { grid-column:1 / -1; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.consult-storage-empty { padding:18px; color:#64748b; text-align:center; }
+
+/* 상담저장소 목록 최종 정렬 보정 */
+.consult-storage-panel,
+.consult-storage-header,
+.consult-storage-list { text-align:left !important; }
+.consult-storage-list { align-items:stretch !important; padding-left:8px !important; padding-right:8px !important; }
+.consult-storage-item,
+.consult-storage-item b,
+.consult-storage-item span,
+.consult-storage-item small { text-align:left !important; justify-self:stretch; }
+.consult-storage-item b { display:block; min-width:0; font-weight:800; color:#0f172a; }
+.consult-storage-item span { justify-self:end; text-align:right !important; }
+.consult-storage-item small { padding-left:0; }
+
+.consult-storage-item span { justify-self:start !important; text-align:left !important; }
+
+.consult-storage-search { flex:1 1 180px; min-width:120px; max-width:260px; height:30px; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:7px; padding:4px 8px; font-size:12px; text-align:left; }

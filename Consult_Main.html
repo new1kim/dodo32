@@ -125,7 +125,8 @@
             <tr class="property-extra-row">
               <td colspan="3" class="no-bg">
                 <div class="property-extra-fields">
-                  <input type="text" id="propertySettlementDate" class="mort-need-date" placeholder="잔금일자" inputmode="numeric" autocomplete="off">
+                  <!-- 달력으로만 선택하는 날짜: readonly로 모바일 키패드가 뜨지 않게 한다. -->
+                  <input type="text" id="propertySettlementDate" class="mort-need-date" placeholder="잔금일자" readonly inputmode="none" autocomplete="off">
                   <textarea id="propertyInfoMemo" class="income-memo property-info-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
                 </div>
               </td>
@@ -365,7 +366,7 @@
       </table>
     </div>
 
-    <!-- 맨 하단 버튼들을 하나의 행에 모았다. (안내 / 내용복사 / 저장 / 불러오기 / 초기화) -->
+    <!-- 앱 하단 버튼 구성과 동일하게 안내 / 내용복사 / 저장 / 불러오기 / 초기화 버튼을 배치 -->
     <div class="loan-controls-temp bottom-controls-row">
       <button class="view-btn bottom-view-btn" onclick="openTextModal()">기본값 설정 및 안내</button>
       <span class="copy-menu-wrap">
@@ -373,11 +374,10 @@
         <span class="copy-menu-list" id="copyMenuList">
           <span class="copy-menu-item" onclick="내용복사()">텍스트<BR> 복사</span>
           <span class="copy-menu-item" onclick="화면캡쳐()">화면<BR>캡쳐</span>
-          <span class="copy-menu-item" onclick="상담일지로전달()">상담일지<BR>전달</span>
         </span>
       </span>
-      <button type="button" class="copy-btn" id="dsrSaveBtn">저 장</button>
-      <button type="button" class="copy-btn" id="dsrLoadBtn">불러오기</button>
+      <button type="button" class="copy-btn" id="consultSaveBtn">저장</button>
+      <button type="button" class="copy-btn" id="consultLoadBtn">불러오기</button>
       <button type="button" class="copy-btn" id="screenshot-btn" onclick="화면캡쳐()" style="display:none;">화면캡쳐</button>
       <button type="button" class="reset-btn" onclick="선택초기화()">초기화</button>
     </div>
@@ -391,7 +391,7 @@
     </div>
     -->
 
-    <!-- 1·2·3 저장 슬롯 버튼은 숨김 처리 (마크업/기능은 남겨두어 필요 시 되살릴 수 있게 함) -->
+
     <div class="view-btn-wrapper" id="slotBtnWrapper" style="display:none;">
       <div class="slot-btn-group" id="slotBtnGroup">
         <button type="button" class="slot-btn" data-slot="1">1</button>
@@ -714,10 +714,6 @@
 
   <!-- 고객정보 탭 - 기본 숨김, 클릭할 때만 펼침 -->
   <script>
-    // 진단용: 이 블록이 실제로 실행됐는지 Logcat에서 확인한다(다 확인되면 지워도 됨)
-    if (document.getElementById('customerInfoTabBtn')) console.error('[고객정보] 탭 스크립트 실행됨');
-    else console.error('[고객정보] customerInfoTabBtn 요소를 못 찾음 - HTML 구조 확인 필요');
-
     document.getElementById('customerInfoTabBtn').addEventListener('click', function () {
       var body = document.getElementById('customerInfoTabBody');
       var isOpen = body.classList.toggle('open');
@@ -814,7 +810,7 @@
             : rPhone;
           return '<div class="call-log-item" data-phone="' + rPhone + '" data-name="' + rName + '"'
             + ' style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:14px;">'
-            + icon + ' + label + '</div>';
+            + icon + ' &nbsp;' + label + '</div>';
         }).join('');
       }
 
@@ -1078,12 +1074,199 @@
             });
          </script>
 
-          <!-- 진단용 임시: 이 줄까지 도달하면 HTML 파싱은 끝까지 된 것. 다 확인되면 지워도 됨 -->
-         <script>
-            console.error('[진단] body 끝 도달 - 스크립트 로드 완료');
-            console.error('[진단] AndroidBridge 있음: ' + !!(window.AndroidBridge && window.AndroidBridge.getRecentCallLog));
-            console.error('[진단] 고객정보 탭 요소: ' + !!document.getElementById('customerInfoTabBtn'));
-            console.error('[진단] 탭 토글 함수: ' + (typeof updateCustomerInfoSummary));
-         </script>
+          
+          <!-- 고객정보 기능 보강: 상담일지와 동일한 입력/초기화/최근 통화 동작 -->
+          <script>
+            (function () {
+              function initCustomerInfoFeatures() {
+                var phone = document.getElementById('customerPhoneInput');
+                var name = document.getElementById('customerNameInput');
+                var broker = document.getElementById('customerBrokerInput');
+                var memo = document.getElementById('customerInfoMemo');
+                var tabBtn = document.getElementById('customerInfoTabBtn');
+                var tabBody = document.getElementById('customerInfoTabBody');
+                if (!phone || !name || !tabBtn || !tabBody) return;
+
+                function updateSummary() {
+                  var summary = document.getElementById('customerInfoSummary');
+                  if (!summary) return;
+                  var n = name.value.trim();
+                  var p = phone.value.trim();
+                  summary.textContent = n && p ? ' - ' + n + ' (' + p + ')' : n ? ' - ' + n : p ? ' - (' + p + ')' : '';
+                }
+
+                function formatPhone() {
+                  var value = phone.value.replace(/\D/g, '').slice(0, 11);
+                  if (value.length > 7) value = value.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
+                  else if (value.length > 3) value = value.replace(/(\d{3})(\d{0,4})/, '$1-$2');
+                  phone.value = value.replace(/-+$/, '');
+                  updateSummary();
+                }
+
+                function resizeMemo() {
+                  if (!memo) return;
+                  memo.style.height = 'auto';
+                  memo.style.height = memo.scrollHeight + 'px';
+                }
+
+                if (!tabBtn.dataset.customerBound) {
+                  tabBtn.dataset.customerBound = 'true';
+                  tabBtn.addEventListener('click', function () {
+                    var open = tabBody.classList.toggle('open');
+                    tabBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if (open) resizeMemo();
+                  });
+                }
+                if (!phone.dataset.customerBound) {
+                  phone.dataset.customerBound = 'true';
+                  phone.addEventListener('input', formatPhone);
+                  phone.addEventListener('click', showConsultCallLog);
+                  phone.addEventListener('focus', showConsultCallLog);
+                }
+                if (!name.dataset.customerBound) {
+                  name.dataset.customerBound = 'true';
+                  name.addEventListener('input', updateSummary);
+                  name.addEventListener('click', showConsultCallLog);
+                  name.addEventListener('focus', showConsultCallLog);
+                }
+                if (memo && !memo.dataset.customerBound) {
+                  memo.dataset.customerBound = 'true';
+                  memo.addEventListener('input', resizeMemo);
+                  resizeMemo();
+                }
+                document.querySelectorAll('.info-tab-field .field-clear-btn').forEach(function (button) {
+                  if (button.dataset.customerBound) return;
+                  button.dataset.customerBound = 'true';
+                  button.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    var field = button.closest('.info-tab-field');
+                    var input = field ? field.querySelector('input') : null;
+                    if (input) {
+                      input.value = '';
+                      input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    if (button.id === 'clearBrokerBtn' && broker) {
+                      broker.value = '';
+                      broker.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                  });
+                });
+                updateSummary();
+              }
+
+              function showConsultCallLog() {
+                var anchor = this;
+                if (!(window.AndroidBridge && typeof window.AndroidBridge.getRecentCallLog === 'function')) return;
+                var phone = document.getElementById('customerPhoneInput');
+                var name = document.getElementById('customerNameInput');
+                var dropdown = document.getElementById('consultCallLogDropdown');
+                if (!dropdown) {
+                  dropdown = document.createElement('div');
+                  dropdown.id = 'consultCallLogDropdown';
+                  dropdown.style.cssText = 'position:absolute;z-index:4000;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);max-height:280px;overflow-y:auto;display:none;';
+                  document.body.appendChild(dropdown);
+                }
+                var records = [];
+                try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()) || []; } catch (error) { records = []; }
+                if (!Array.isArray(records) || !records.length) {
+                  dropdown.innerHTML = '<div style="padding:12px;color:#64748b;font-size:13px">최근 통화기록이 없습니다.</div>';
+                } else {
+                  dropdown.innerHTML = records.map(function (record) {
+                    var number = String(record.phone || record.number || '');
+                    var displayName = String(record.name || record.contactName || '');
+                    var direction = String(record.direction || '').toUpperCase();
+                    var icon = direction === 'OUT' || direction === 'OUTGOING' ? '📤' : '📥';
+                    var item = document.createElement('div');
+                    item.className = 'consult-call-log-item';
+                    item.dataset.phone = number;
+                    item.dataset.name = displayName;
+                    item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:14px;';
+                    item.textContent = icon + ' + (displayName ? displayName + ' (' + number + ')' : number);
+                    return item.outerHTML;
+                  }).join('');
+                }
+                var rect = anchor.getBoundingClientRect();
+                dropdown.style.left = rect.left + window.scrollX + 'px';
+                dropdown.style.top = rect.bottom + window.scrollY + 4 + 'px';
+                dropdown.style.width = Math.max(rect.width, 240) + 'px';
+                dropdown.style.display = 'block';
+                dropdown.querySelectorAll('.consult-call-log-item').forEach(function (item) {
+                  item.addEventListener('click', function () {
+                    phone.value = item.dataset.phone || '';
+                    phone.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (item.dataset.name) {
+                      name.value = item.dataset.name;
+                      name.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    dropdown.style.display = 'none';
+                  });
+                });
+              }
+
+              if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCustomerInfoFeatures, { once: true });
+              else initCustomerInfoFeatures();
+              document.addEventListener('click', function (event) {
+                var dropdown = document.getElementById('consultCallLogDropdown');
+                if (!dropdown || dropdown.style.display !== 'block') return;
+                if (event.target.closest && event.target.closest('#customerPhoneInput, #customerNameInput, #consultCallLogDropdown')) return;
+                dropdown.style.display = 'none';
+              });
+            })();
+          </script>
+          <!-- Android 수신전화에서 Consult 고객정보를 채우는 진입 함수 -->
+          <script>
+            window.prepareForIncomingConsult = function (phone, name, memo) {
+                // 반드시 기존값 저장 → 초기화 → 새 수신정보 입력 순서로 실행한다.
+                // 새 번호가 먼저 들어가면 기존 상담이 새 번호 상담으로 덮어써질 수 있다.
+                if (typeof saveConsultRecord === 'function') saveConsultRecord();
+                if (typeof 선택초기화 === 'function') 선택초기화();
+                if (typeof window.injectConsultCustomerData === 'function') window.injectConsultCustomerData(phone, name, memo);
+            };
+
+            window.injectConsultCustomerData = function (phone, name, memo) {
+              var phoneInput = document.getElementById('customerPhoneInput');
+              var nameInput = document.getElementById('customerNameInput');
+              var brokerInput = document.getElementById('customerBrokerInput');
+              var memoInput = document.getElementById('customerInfoMemo');
+              var tabBody = document.getElementById('customerInfoTabBody');
+              var tabBtn = document.getElementById('customerInfoTabBtn');
+
+              /* 수신번호로 저장된 상담내용이 있으면 그 값을 우선 뿌린다.
+                 팝업에서 넘어오는 이름·메모는 저장된 값이 없을 때만 쓰는 보조 정보다. */
+              var saved = null;
+              if (window.AndroidBridge && typeof window.AndroidBridge.findConsultRecord === 'function') {
+                try {
+                  var raw = window.AndroidBridge.findConsultRecord(String(phone || ''));
+                  if (raw) saved = JSON.parse(raw);
+                } catch (error) { console.error('상담내용 조회 실패', error); }
+              }
+              if (saved && saved.storage && typeof loadDsrSnapshotIntoForm === 'function') {
+                loadDsrSnapshotIntoForm(saved.storage);
+              }
+              var resolvedName = saved && saved.name ? saved.name : (name || '');
+              var resolvedBroker = saved && saved.broker ? saved.broker : '';
+              var resolvedMemo = saved && saved.memo ? saved.memo : (memo || '');
+
+              if (phoneInput) {
+                phoneInput.value = phone || '';
+                phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              if (nameInput) {
+                nameInput.value = resolvedName;
+                nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              if (brokerInput) {
+                brokerInput.value = resolvedBroker;
+                brokerInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              if (memoInput) {
+                memoInput.value = resolvedMemo;
+                memoInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              if (tabBody && !tabBody.classList.contains('open')) tabBody.classList.add('open');
+              if (tabBtn) tabBtn.setAttribute('aria-expanded', 'true');
+              if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+            };
+          </script>
         </body>
         </html>

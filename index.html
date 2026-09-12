@@ -168,7 +168,7 @@
       background-color: #1d4ed8;
     }
 
-    /* ── 프레임 표시 토글 칩 (본문은 항상 표시, 계산기/상담일지만 켜고 끈다) ── */
+    /* ── 프레임 표시 토글 칩 (본문은 항상 표시, 계산기만 켜고 끈다) ── */
     /* 내비 버튼 바로 옆에 붙인다 (오른쪽 끝으로 밀면 눈에 잘 안 띈다) */
     .frame-toggle-group {
       display: flex;
@@ -396,12 +396,21 @@
        src를 직접 바꾸면 화면이 다시 로드되므로 속성 대신 dataset을 쓴다. */
     function 프레임이동(frame, page, version) {
       if (!frame) return;
+
+      /* data-page를 먼저 적는다.
+
+         location.replace()를 부른 직후 resize가 끼어들면(가상 키보드·스크롤바·창 크기 변경),
+         아직 data-page가 비어 있는 상태로 updateFramesSrc()가 다시 돌아
+         "아직 아무것도 안 띄운 프레임"으로 오해하고 같은 페이지를 또 불러온다
+         - 첫 번째 프레임이 계속 새로고침되는 것처럼 보이는 원인이다.
+         먼저 적어두면 두 번째 호출이 이미 채워진 프레임으로 보고 건너뛴다. */
+      frame.dataset.page = page;
+
       if (frame.contentWindow) {
         frame.contentWindow.location.replace(`${page}?v=${version}`);
       } else {
         frame.setAttribute('src', `${page}?v=${version}`);
       }
-      frame.dataset.page = page;
     }
 
     function 현재페이지(frame) {
@@ -411,20 +420,8 @@
     function loadPage(page, element) {
       const version = '250605_1';
 
-      // 상담일지는 별도 처리 (전용 프레임을 쓸 수 있으면 그쪽, 아니면 본문 프레임)
-      if (page === '상담일지.html') {
-        if (!isConsultingFrameAvailable()) {
-          // 모바일이거나 상담일지 프레임을 접어둔 상태: content-frame 사용
-          프레임이동(document.getElementById('content-frame'), page, version);
-        } else {
-          // 상담일지 프레임이 펼쳐져 있음: consulting-frame 사용
-          프레임이동(document.getElementById('consulting-frame'), page, version);
-        }
-      } else {
-        // 다른 페이지들: content-frame 사용
-        프레임이동(document.getElementById('content-frame'), page, version);
-      }
-
+      // 모든 페이지는 본문 프레임(content-frame)에 띄운다(상담일지 프레임 제거)
+      프레임이동(document.getElementById('content-frame'), page, version);
 
       if (element) {
         const buttons = document.querySelectorAll('.button-container button.nav-btn');
@@ -432,21 +429,19 @@
         element.classList.add('active-nav');
       }
     }
-    
+
     /* ── 프레임 표시 여부 ──────────────────────────────────────────
-       본문(content-container)은 항상 표시하고, 계산기/상담일지만 켜고 끈다.
-       처음 열었을 때 기본값은 창 너비로 정한다: DSR 화면이 최소 396px를 요구하는데
-       (Consult_style.css), 1200px 미만에서 3분할하면 한 칸이 400px 아래로 내려가
+       본문(content-container)은 항상 표시하고, 계산기만 켜고 끈다.
+       처음 열었을 때 기본값은 창 너비와 무관하게 계산기만 펼친다.
+
        DSR이 가로로 잘린다. 그래서 태블릿 폭에서는 상담일지를 접은 2분할로 시작한다.
        한 번이라도 사용자가 칩을 누르면 그 선택이 저장되어 기본값보다 우선한다. */
     const FRAME_VISIBILITY_KEY = 'frame_visibility';
-    const TOGGLEABLE_FRAMES = ['calc-container', 'consulting-container'];
-    const THREE_FRAME_MIN_WIDTH = 1200;
+    const TOGGLEABLE_FRAMES = ['calc-container'];
 
     function getFrameVisibility() {
       const 기본값 = {
-        'calc-container': true,
-        'consulting-container': window.innerWidth >= THREE_FRAME_MIN_WIDTH
+        'calc-container': true
       };
       try {
         const saved = JSON.parse(localStorage.getItem(FRAME_VISIBILITY_KEY));
@@ -524,13 +519,6 @@
       });
     }
 
-    // 상담일지 전용 프레임을 지금 쓸 수 있는가 (모바일이거나 사용자가 접었으면 못 쓴다)
-    function isConsultingFrameAvailable() {
-      if (window.innerWidth < 768) return false;
-      const container = document.getElementById('consulting-container');
-      return !!container && !container.classList.contains('is-hidden');
-    }
-
     // 프레임 순서 저장 함수
     function updateFrameOrder() {
       const containers = document.querySelectorAll('.frame-container');
@@ -583,12 +571,12 @@
           const order = JSON.parse(savedOrder);
           const mainWrapper = document.querySelector('.main-wrapper');
           const containerMap = {};
-          
+
           // 기존 컨테이너들을 맵에 저장
           document.querySelectorAll('.frame-container').forEach(container => {
             containerMap[container.id] = container;
           });
-          
+
           // 순서대로 재배치
           order.forEach(id => {
             if (containerMap[id]) {
@@ -628,36 +616,34 @@
     }
 
     // DSR 계산기(content-frame)에서 "상담일지 전달" 클릭 시 보내는 메시지를 받아
-    // 상담일지가 있는 프레임(모바일: content-frame 재사용 / PC: 항상 떠있는 consulting-frame)으로 중계한다.
+    // 상담 메인(content-frame의 Consult_Main.html)으로 중계한다.
     window.addEventListener('message', function(e) {
       if (!e.data || e.data.type !== 'dsrSendToConsulting') return;
       const payload = e.data; // text/kbPrice/neededAmount/propertyInfo 등을 그대로 통째로 중계
+      const contentFrame = document.getElementById('content-frame');
+      if (!contentFrame) return;
 
-      if (!isConsultingFrameAvailable()) {
-        // 상담일지 프레임이 없음(모바일이거나 접어둠): content-frame을 상담일지로 전환한 뒤 전달
-        const contentFrame = document.getElementById('content-frame');
-        if (!contentFrame) return;
-        const navBtn = document.querySelector('.button-container button.nav-btn[onclick*="상담일지.html"]');
-        const forwardWhenReady = () => {
-          contentFrame.removeEventListener('load', forwardWhenReady);
-          if (contentFrame.contentWindow) {
-            contentFrame.contentWindow.postMessage(payload, '*');
-          }
-        };
-        contentFrame.addEventListener('load', forwardWhenReady);
-        loadPage('상담일지.html', navBtn);
-      } else {
-        // 상담일지 프레임이 펼쳐져 있고 이미 로드되어 있으므로 바로 전달
-        const consultingFrame = document.getElementById('consulting-frame');
-        if (consultingFrame && consultingFrame.contentWindow) {
-          consultingFrame.contentWindow.postMessage(payload, '*');
+      // 이미 상담 메인이 떠 있으면 바로 전달하고, 아니면 상담 메인으로 전환한 뒤 전달
+      if (현재페이지(contentFrame) === 'Consult_Main.html') {
+        if (contentFrame.contentWindow) {
+          contentFrame.contentWindow.postMessage(payload, '*');
         }
+        return;
       }
+
+      const forwardWhenReady = () => {
+        contentFrame.removeEventListener('load', forwardWhenReady);
+        if (contentFrame.contentWindow) {
+          contentFrame.contentWindow.postMessage(payload, '*');
+        }
+      };
+      contentFrame.addEventListener('load', forwardWhenReady);
+      loadPage('Consult_Main.html');
     }, false);
 
     function initPages() {
       const savedName = localStorage.getItem('calc_user_name');
-      
+
       if (savedName) {
         proceedToApp(savedName); // 화면은 즉시 정상 진입 (인증/카운트는 아래에서 백그라운드로만 처리)
 
@@ -682,7 +668,7 @@
       // 프레임 설정 불러오기 (순서·너비 복원 뒤에 표시 여부를 적용해야 한다)
       loadFrameSettings();
       initFrameToggles();
-      
+
       window.addEventListener('resize', () => {
         const savedName = localStorage.getItem('calc_user_name');
         if (savedName) {
@@ -706,7 +692,6 @@
 
       const contentFrame = document.getElementById('content-frame');
       const calcFrame = document.getElementById('calc-frame');
-      const consultingFrame = document.getElementById('consulting-frame');
 
       const contentPage = 현재페이지(contentFrame);
 
@@ -716,9 +701,6 @@
       }
       if (현재페이지(calcFrame) === '') {
         프레임이동(calcFrame, '계산기.html', version);
-      }
-      if (현재페이지(consultingFrame) === '') {
-        프레임이동(consultingFrame, '상담일지.html', version);
       }
     }
 
@@ -1077,32 +1059,24 @@
     <button type="button" class="nav-btn locked-content" onclick="loadPage('IDCard.html', this)">신분증변환</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('문서스캔.html', this)">문서스캔</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('MCG.html', this)">MCG 계산</button>
-    <button type="button" class="nav-btn locked-content" onclick="loadPage('상담일지.html', this)">상담일지</button>
 
     <div class="frame-toggle-group locked-content" id="frameToggleGroup">
       <button type="button" class="frame-toggle" data-target="calc-container" aria-pressed="true">계산기</button>
-      <button type="button" class="frame-toggle" data-target="consulting-container" aria-pressed="true">상담일지</button>
     </div>
   </div>
-  
+
   <div class="main-wrapper locked-content">
     <div id="content-container" class="frame-container">
       <div class="drag-handle" title="드래그하여 순서 변경"></div>
       <iframe id="content-frame" src=""></iframe>
       <div class="frame-resizer" title="드래그하여 간격 조절"></div>
     </div>
-    
-    <div id="calc-container" class="frame-container">
-      <div class="drag-handle" title="드래그하여 순서 변경"></div>
-      <iframe id="calc-frame" src=""></iframe>
-      <div class="frame-resizer" title="드래그하여 간격 조절"></div>
+
+       <div id="calc-container" class="frame-container">
+         <div class="drag-handle" title="드래그하여 순서 변경"></div>
+         <iframe id="calc-frame" src=""></iframe>
+         <div class="frame-resizer" title="드래그하여 간격 조절"></div>
+       </div>
     </div>
-    
-    <div id="consulting-container" class="frame-container">
-      <div class="drag-handle" title="드래그하여 순서 변경"></div>
-      <iframe id="consulting-frame" src=""></iframe>
-      <div class="frame-resizer" title="드래그하여 간격 조절"></div>
-    </div>
-  </div>
 </body>
 </html>
