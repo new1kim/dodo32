@@ -760,6 +760,93 @@
     }
     customerNameInput.addEventListener('input', updateCustomerInfoSummary);
 
+    /* ── 통화목록 불러오기 (Call Note 앱 전용) ──────────────────────
+       연락처·고객명 입력칸을 탭하면 최근 통화기록을 드롭다운으로 보여주고,
+       항목을 고르면 연락처와 이름이 함께 채워진다.
+       AndroidBridge 는 앱의 WebView에서만 주입되므로, 웹 브라우저에서 열면
+       함수가 조용히 빠져나가 아무 동작도 하지 않는다(오류 없음).
+       상담일지.html 의 같은 기능을 이 화면의 두 입력칸에 이식한 것. */
+    (function setupCallLogDropdown() {
+      // 앱이 아니면(AndroidBridge 없음) 이 블록 전체를 건너뛴다
+      if (!(window.AndroidBridge && window.AndroidBridge.getRecentCallLog)) return;
+
+      function ensureDropdown() {
+        var dropdown = document.getElementById('callLogDropdown');
+        if (!dropdown) {
+          dropdown = document.createElement('div');
+          dropdown.id = 'callLogDropdown';
+          dropdown.style.cssText = 'position:absolute; z-index:2000; background:#fff; border:1px solid #cbd5e1;'
+            + ' border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); max-height:280px; overflow-y:auto; display:none;';
+          document.body.appendChild(dropdown);
+        }
+        return dropdown;
+      }
+
+      function hideDropdown() {
+        var dropdown = document.getElementById('callLogDropdown');
+        if (dropdown) dropdown.style.display = 'none';
+      }
+
+      // anchorInput: 드롭다운을 붙일 입력칸(연락처 또는 이름)
+      function showCallLogDropdown(anchorInput) {
+        var dropdown = ensureDropdown();
+
+        var records = [];
+        try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()); } catch (e) { records = []; }
+
+        if (records.length === 0) {
+          dropdown.innerHTML = '<div style="padding:12px 14px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
+        } else {
+          dropdown.innerHTML = records.map(function (r) {
+            var icon = r.direction === 'OUT' ? '📤' : '📥';
+            var label = r.name
+              ? '<b>' + r.name + '</b> <span style="color:#64748b;">(' + r.phone + ')</span>'
+              : r.phone;
+            return '<div class="call-log-item" data-phone="' + r.phone + '" data-name="' + (r.name || '') + '"'
+              + ' style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:14px;">'
+              + icon + ' + label + '</div>';
+          }).join('');
+        }
+
+        var rect = anchorInput.getBoundingClientRect();
+        dropdown.style.left = (rect.left + window.scrollX) + 'px';
+        dropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        dropdown.style.width = Math.max(rect.width, 220) + 'px';
+        dropdown.style.display = 'block';
+
+        dropdown.querySelectorAll('.call-log-item').forEach(function (item) {
+          item.addEventListener('click', function () {
+            // 연락처는 포맷팅 리스너가 붙어 있으므로 .value 대신 input 이벤트를 발생시킨다
+            customerPhoneInput.value = this.getAttribute('data-phone') || '';
+            customerPhoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+            var nm = this.getAttribute('data-name');
+            if (nm) {
+              customerNameInput.value = nm;
+              customerNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            dropdown.style.display = 'none';
+            if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+            if (typeof saveDSRInputs === 'function') saveDSRInputs();
+          });
+        });
+      }
+
+      // 연락처·고객명 두 칸 모두 클릭/포커스 시 통화목록을 띄운다
+      [customerPhoneInput, customerNameInput].forEach(function (input) {
+        input.addEventListener('click', function () { showCallLogDropdown(input); });
+        input.addEventListener('focus', function () { showCallLogDropdown(input); });
+      });
+
+      // 입력칸 바깥을 누르면 닫기
+      document.addEventListener('click', function (e) {
+        var dropdown = document.getElementById('callLogDropdown');
+        if (!dropdown || dropdown.style.display !== 'block') return;
+        if (e.target === customerPhoneInput || e.target === customerNameInput) return;
+        if (dropdown.contains(e.target)) return;
+        dropdown.style.display = 'none';
+      });
+    })();
+
     // localStorage에서 복원된 값은 change/input 이벤트 없이 .value로 바로 채워지므로,
     // 복원이 끝난 뒤(Consult_calculator_ui.js의 init() 이후) 제목줄을 한 번 맞춰준다.
     // Consult_calculator_ui.js의 init()도 window.addEventListener('DOMContentLoaded', ...)로 등록되어
