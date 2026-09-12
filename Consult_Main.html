@@ -1073,9 +1073,17 @@
             ho: e.data.ho || ''
           });
         }
-        closeMarketPriceOverlay();
-      }
-    });
-  </script>
-</body>
-</html>
+                closeMarketPriceOverlay();
+              }
+            });
+         </script>
+
+          <!-- 진단용 임시: 이 줄까지 도달하면 HTML 파싱은 끝까지 된 것. 다 확인되면 지워도 됨 -->
+         <script>
+            console.error('[진단] body 끝 도달 - 스크립트 로드 완료');
+            console.error('[진단] AndroidBridge 있음: ' + !!(window.AndroidBridge && window.AndroidBridge.getRecentCallLog));
+            console.error('[진단] 고객정보 탭 요소: ' + !!document.getElementById('customerInfoTabBtn'));
+            console.error('[진단] 탭 토글 함수: ' + (typeof updateCustomerInfoSummary));
+         </script>
+        </body>
+        </html>
