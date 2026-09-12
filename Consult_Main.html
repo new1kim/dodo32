@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSR/DTI 계산기</title>
+  <!-- CSS 파일 연결 -->
+  <link rel="stylesheet" href="Consult_style.css">
+</head>
+<body>
+  <div class="container">
+    <div id="bubble-box">신DTI 적용</div>
+
+    <div id="capture-area">
+    <div class="dsr-table-wrap" data-table-key="schedule">
+      <table class="summary-table">
+        <tr class="table-header-row">
+          <td rowspan="2" style="width: 22%; cursor: pointer; text-decoration: underline; font-weight: bold;" onclick="openScheduleModal()"><span class="section-title-graphic">본건 월별<br>상환 스케줄</span></td>
+          <td style="color:#475569; font-weight:normal;">합 계</td>
+          <td style="color:#475569; font-weight:normal;">월 원금</td>
+          <td style="color:#475569; font-weight:normal;">월 이자</td>
+        </tr>
+        <tr>
+          <td id="월합계" class="no-bg">-</td>
+          <td id="월원금" class="no-bg">-</td>
+          <td id="월이자" class="no-bg">-</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="dsr-table-wrap" data-table-key="customer-info">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab">
+              <button type="button" class="info-tab-header" id="customerInfoTabBtn" aria-expanded="true">
+                <span>👤 고객정보<span id="customerInfoSummary" class="info-tab-summary"></span></span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body open" id="customerInfoTabBody">
+                <div class="info-tab-field">
+                  <div class="info-tab-label">연락처<button type="button" class="field-clear-btn" id="clearPhoneBtn" aria-label="연락처 지우기">×</button></div>
+                  <input type="text" id="customerPhoneInput" placeholder="연락처 입력" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="info-tab-field">
+                  <div class="info-tab-label">고객명<button type="button" class="field-clear-btn" id="clearNameBtn" aria-label="고객명 지우기">×</button></div>
+                  <input type="text" id="customerNameInput" placeholder="이름 입력" inputmode="text" lang="ko" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <div class="info-tab-field">
+                  <div class="info-tab-label">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></div>
+                  <input type="text" id="customerBrokerInput" placeholder="중개업소 입력" inputmode="text" lang="ko" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
+                <textarea id="customerInfoMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="dsr-table-wrap" data-table-key="ltv">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab">
+              <button type="button" class="info-tab-header" id="propertyInfoTabBtn" aria-expanded="true">
+                <span>🏢 물건지정보<span id="propertyInfoSummary" class="info-tab-summary"></span></span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body info-tab-body-table open" id="propertyInfoTabBody">
+                <table class="ltv-table summary-table">
+            <tr class="table-header-row">
+              <!-- 1번 칸: 시세 입력 -->
+              <td class="ltv-cell">
+                <div class="ltv-market-price-wrap">
+                  <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" autocomplete="off">
+                  <button type="button" id="marketPriceLookupBtn" onclick="openMarketPriceOverlay()">KB시세 조회</button>
+                </div>
+              </td>
+
+              <!-- 2번 & 4번 칸을 하나로 묶어 세로 간격 최소화 -->
+              <td class="ltv-cell">
+                <div class="ltv-stack">
+                  <!-- 토글 버튼 영역 -->
+                  <div class="pill-toggle-group" id="ltvRateToggleGroup">
+                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="80">80%</label>
+                    <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="70" checked>70%</label>
+                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="60">60%</label>
+                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="40">40%</label>
+                  </div>
+
+                  <!-- 소액임차금액 입력 영역 -->
+                  <div class="minor-lease-input-row">
+                    <div class="minor-lease-input-wrap">
+                      <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액" autocomplete="off">
+                      <div class="minor-lease-suggest-list" id="minorLeaseSuggestList">
+                        <div class="minor-lease-suggest-item" data-value="55000000">5,500만</div>
+                        <div class="minor-lease-suggest-item" data-value="48000000">4,800만</div>
+                        <div class="minor-lease-suggest-item" data-value="28000000">2,800만</div>
+                        <div class="minor-lease-suggest-item" data-value="25000000">2,500만</div>
+                      </div>
+                    </div>
+                    <!-- 나중에 참고 이미지를 연결할 버튼 -->
+                    <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+                  </div>
+                </div>
+              </td>
+
+              <!-- 3번 칸: LTV 최대한도 -->
+              <td class="ltv-cell">
+                <input type="text" id="ltvMaxAmountOutput" class="ltv-output" placeholder="LTV 최대한도" readonly>
+              </td>
+            </tr>
+            <!-- KB시세 조회에서 시세를 선택했을 때만 나타나는 행 - 선택 전엔 완전히 숨김 -->
+            <tr id="selectedAptRow" class="selected-apt-row" style="display:none;">
+              <td colspan="3">
+                <div class="selected-apt-info" id="selectedAptInfoText"></div>
+                <div class="selected-apt-address-row">
+                  <div class="selected-apt-address" id="selectedAptAddressText"></div>
+                  <span class="apt-reg-badges" id="selectedAptRegulationBadges"></span>
+                </div>
+              </td>
+            </tr>
+            <!-- 물건지정보 표 제일 아래: 잔금일자 / 메모 (기존 본건 대출행의 필요일자 기능을 이곳으로 이동) -->
+            <tr class="property-extra-row">
+              <td colspan="3" class="no-bg">
+                <div class="property-extra-fields">
+                  <input type="text" id="propertySettlementDate" class="mort-need-date" placeholder="잔금일자" inputmode="numeric" autocomplete="off">
+                  <textarea id="propertyInfoMemo" class="income-memo property-info-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                </div>
+              </td>
+            </tr>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 소득정보 탭 - 기존 "소득 정보" 표(소득1, 장래예상 등)는 당분간 그대로 두고,
+         이 탭은 새 디자인 시안이다. 합산 소득만 실시간으로 같이 보여준다. -->
+    <div class="dsr-table-wrap" data-table-key="income-info">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab">
+              <button type="button" class="info-tab-header" id="incomeInfoTabBtn" aria-expanded="true">
+                <span>💰 소득정보<span id="incomeInfoSummary" class="info-tab-summary"></span></span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body info-tab-body-table open" id="incomeInfoTabBody">
+                <table class="income-table">
+                  <colgroup>
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 35%;">
+                    <col style="width: 31%;">
+                  </colgroup>
+                  <!-- "소득 정보" 제목/합산 표시는 이 탭 제목줄로 옮겨서 여기선 화면에서 숨기지만,
+                       계산 로직과 "내용복사"가 그대로 참조하는 #totalIncomeOutput은 남겨둔다. -->
+                  <tr class="income-control-row" style="display:none;">
+                    <td class="income-control-cell income-control-cell-info" colspan="4">
+                      <div class="income-control-info-row">
+                        <span class="income-control-title section-title-graphic">소득 정보</span>
+                        <div class="income-result-badge">
+                          <span class="income-result-badge-label">합산</span>
+                          <input type="text" id="totalIncomeOutput" class="income-result-badge-value" readonly placeholder="합계">
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="income-data-row" id="incomeRow_1">
+                    <td class="income-label">
+                      <div class="income-title" id="baseIncomeTitle">소득1</div>
+                    </td>
+                    <td class="income-mode-cell" id="baseModeCell">
+                      <div class="income-mode-toggle pill-toggle-group" id="baseIncomeModeToggle">
+                        <label style="background-color: #2563eb; color: #ffffff;">
+                          <input type="radio" name="base_income_mode" value="증빙" checked><span class="income-mode-label">증빙</span>
+                        </label>
+                        <label style="background-color: transparent; color: #64748b;">
+                          <input type="radio" name="base_income_mode" value="신고"><span class="income-mode-label" id="baseEstimateLabel">추정</span>
+                        </label>
+                      </div>
+                      <div class="declare-type-bubble-list" id="baseDeclareTypeBubbleList">
+                        <div class="declare-type-bubble-item" data-value="증빙">증빙</div>
+                        <div class="declare-type-bubble-item" data-value="카드">카드</div>
+                        <div class="declare-type-bubble-item" data-value="건강">건보</div>
+                        <div class="declare-type-bubble-item" data-value="연금">연금</div>
+                        <div class="declare-type-bubble-item" data-value="초기화">초기화</div>
+                      </div>
+                    </td>
+                    <td class="income-input-cell" id="baseIncomeInputCell" colspan="3">
+                      <input type="hidden" id="computedIncomeHidden" class="income-computed-hidden" value="">
+                      <!-- 증빙 모드: 연소득 입력 + 장래예상(체크박스/나이/요율)을 가로로 나란히 배치 -->
+                      <div class="income-cell-flex" id="baseIncomeCellFlex">
+                        <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
+                        <div class="future-income-row" id="baseFutureIncomeRow">
+                          <span class="rate-toggle-row">
+                            <button type="button" id="applyRateBtn" class="mort-category-toggle rate-toggle-btn" onclick="applyRateCheck.click()">
+                              <span class="rate-toggle-label">장래예상</span>
+                              <span id="rateDisplay" class="rate-display" style="display:none;">(-)</span>
+                            </button>
+                            <input type="checkbox" id="applyRateCheck" style="display:none;">
+                          </span>
+                          <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992" style="display:none;">
+                        </div>
+                      </div>
+                      <span id="baseFutureIncomeConverted" class="future-income-converted" style="display:none;"></span>
+                      <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
+                      <div class="declare-cell-flex" id="baseDeclareCellFlex">
+                        <div class="declare-input-group" id="baseDeclareInputGroup" style="display:none;">
+                          <!-- 카드/건보/연금 선택은 이제 왼쪽 "추정" 버튼에서 뜨는 버블 팝업으로 처리 - 이 라디오들은 상태 보관용으로만 남기고 화면엔 숨김 -->
+                          <div class="pill-toggle-group declare-type-toggle" id="baseDeclareTypeToggle" style="display:none;">
+                            <label style="background-color: #2563eb; color: #ffffff;">
+                              <input type="radio" name="base_declare_type" value="카드" checked>카드
+                            </label>
+                            <label style="background-color: transparent; color: #64748b;">
+                              <input type="radio" name="base_declare_type" value="건강">건보
+                            </label>
+                            <label style="background-color: transparent; color: #64748b;">
+                              <input type="radio" name="base_declare_type" value="연금">연금
+                            </label>
+                          </div>
+                          <input type="text" inputmode="numeric" class="declare-amount-input" id="baseDeclareAmountInput" placeholder="연사용액 입력">
+                        </div>
+                        <input type="text" class="declare-converted-output" id="baseDeclareConvertedOutput" readonly placeholder="환산금액" style="display:none;">
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="income-memo-row">
+                    <td colspan="4">
+                      <textarea id="baseIncomeMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
+                    </td>
+                  </tr>
+                  <!-- 소득 추가 버튼 - 소득 행이 늘어나도 항상 맨 아래에 있도록, 새 행은
+                       이 행 바로 앞에 삽입한다(소득행추가()가 이 tr을 기준으로 insertAdjacentHTML). -->
+                  <tr class="income-add-row" id="incomeAddRow">
+                    <td colspan="4" class="income-add-row-cell no-bg">
+                      <button type="button" class="add-btn income-add-btn" onclick="handleAddIncomeClick(this)">소득 추가</button>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="dsr-table-wrap dsr-info-tab-hidden" data-table-key="dsr-dti">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab dsr-info-tab-hidden">
+              <button type="button" class="info-tab-header" id="dsrInfoTabBtn" aria-expanded="true">
+                <span>📊 DSR정보<span id="dsrInfoSummary" class="info-tab-summary"></span></span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body info-tab-body-flex open" id="dsrInfoTabBody">
+                <div class="dsr-chip-row">
+                  <div class="dsr-chip">
+                    <span class="dsr-chip-label">DSR</span>
+                    <span class="dsr-chip-value" id="DSR확인">-</span>
+                  </div>
+                  <div class="dsr-chip">
+                    <span class="dsr-chip-label">DTI</span>
+                    <span class="dsr-chip-value" id="DIT확인">-</span>
+                  </div>
+                  <div class="dsr-chip">
+                    <span class="dsr-chip-label">신DTI</span>
+                    <span class="dsr-chip-value" id="신DTI확인">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+
+
+
+
+
+
+
+    <div class="dsr-table-wrap" data-table-key="loan">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab">
+              <button type="button" class="info-tab-header" id="loanInfoTabBtn" aria-expanded="true">
+                <span>🏦 대출정보<span id="loanInfoSummary" class="info-tab-summary"></span></span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body info-tab-body-table open" id="loanInfoTabBody">
+    <table>
+      <colgroup>
+          <col style="width: 6%;">
+          <col style="width: 52%;">
+          <col style="width: 12%;">
+          <col style="width: 24%;">
+      </colgroup>
+      <tbody id="mortgage-inputs">
+      </tbody>
+      <tfoot>
+        <!-- 대출 추가 버튼 - 소득 추가와 같은 방식: 대출 행이 늘어나도 tbody 바깥(tfoot)에 있어 항상 맨 아래에 남는다. -->
+        <tr class="mort-add-row" id="mortAddRow">
+          <td colspan="4" class="income-add-row-cell no-bg">
+            <button type="button" class="add-btn income-add-btn" onclick="주담대행추가()">대출 추가</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="dsr-table-wrap" data-table-key="dsr-limit">
+      <table class="summary-table">
+        <tr>
+          <td class="no-bg" style="padding: 0;">
+            <div class="info-tab">
+              <button type="button" class="info-tab-header" id="maxAmountTabBtn" aria-expanded="true">
+                <span>💵 최대가능금액</span>
+                <span class="info-tab-caret">▾</span>
+              </button>
+              <div class="info-tab-body info-tab-body-2col open" id="maxAmountTabBody">
+                <div class="info-tab-field dsr-limit-row" style="grid-column: 1 / -1;">
+                  <div class="info-tab-label">DSR 한도 기준</div>
+                  <div id="dsrLimitToggleGroup" class="pill-toggle-group">
+                    <label style="background-color: #2563eb; color: #ffffff;">
+                      <input type="radio" name="dsr_limit_rate" value="40" checked>40%
+                    </label>
+                    <label style="background-color: transparent; color: #64748b;">
+                      <input type="radio" name="dsr_limit_rate" value="50">50%
+                    </label>
+                  </div>
+                </div>
+                <div class="info-tab-field dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
+                  <div class="info-tab-label">원리금 상환 시</div>
+                  <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
+                    <span class="dsr-main-val">-</span>
+                    <span class="dsr-sub-val">-</span>
+                  </span>
+                </div>
+                <div class="info-tab-field dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
+                  <div class="info-tab-label">원금 상환 시</div>
+                  <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
+                    <span class="dsr-main-val">-</span>
+                    <span class="dsr-sub-val">-</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 맨 하단 버튼들을 하나의 행에 모았다. (안내 / 내용복사 / 저장 / 불러오기 / 초기화) -->
+    <div class="loan-controls-temp bottom-controls-row">
+      <button class="view-btn bottom-view-btn" onclick="openTextModal()">기본값 설정 및 안내</button>
+      <span class="copy-menu-wrap">
+        <button type="button" class="copy-btn" id="copy-menu-btn">내 용<br>복 사</button>
+        <span class="copy-menu-list" id="copyMenuList">
+          <span class="copy-menu-item" onclick="내용복사()">텍스트<BR> 복사</span>
+          <span class="copy-menu-item" onclick="화면캡쳐()">화면<BR>캡쳐</span>
+          <span class="copy-menu-item" onclick="상담일지로전달()">상담일지<BR>전달</span>
+        </span>
+      </span>
+      <button type="button" class="copy-btn" id="dsrSaveBtn">저 장</button>
+      <button type="button" class="copy-btn" id="dsrLoadBtn">불러오기</button>
+      <button type="button" class="copy-btn" id="screenshot-btn" onclick="화면캡쳐()" style="display:none;">화면캡쳐</button>
+      <button type="button" class="reset-btn" onclick="선택초기화()">초기화</button>
+    </div>
+    </div>
+
+    <!-- 테이블 순서 테스트용 선택기 - 최종 순서(6,2,1,4,3,5)를 위 테이블 배치에 직접 반영해서 지금은 숨겨둠.
+         나중에 순서를 다시 실험하고 싶으면 이 주석만 풀면 바로 재사용 가능 (JS/CSS는 그대로 남겨둠).
+    <div id="tableOrderTestPanel" class="table-order-test-panel">
+      <label>테이블 순서 테스트 (버튼 두 개를 순서대로 누르면 서로 자리를 바꿔요)</label>
+      <div class="table-order-btn-row" id="tableOrderBtnRow"></div>
+    </div>
+    -->
+
+    <!-- 1·2·3 저장 슬롯 버튼은 숨김 처리 (마크업/기능은 남겨두어 필요 시 되살릴 수 있게 함) -->
+    <div class="view-btn-wrapper" id="slotBtnWrapper" style="display:none;">
+      <div class="slot-btn-group" id="slotBtnGroup">
+        <button type="button" class="slot-btn" data-slot="1">1</button>
+        <button type="button" class="slot-btn" data-slot="2">2</button>
+        <button type="button" class="slot-btn" data-slot="3">3</button>
+      </div>
+    </div>
+
+    <div id="dsrHistoryModal" class="dsr-history-modal" style="display: none;">
+      <div class="dsr-history-panel">
+        <div class="dsr-history-header">
+          <div class="dsr-history-title">저장된 계산기 불러오기</div>
+          <button type="button" id="closeDsrHistoryBtn" class="dsr-history-close" aria-label="닫기">×</button>
+        </div>
+        <div class="dsr-history-toolbar">
+          <div class="dsr-history-search-wrap">
+            <input type="text" id="dsrHistorySearch" class="dsr-history-search" placeholder="이름, 연락처, 물건정보, 메모 등으로 검색" autocomplete="off">
+            <button type="button" id="clearDsrHistorySearchBtn" class="dsr-history-clear" aria-label="검색 지우기">×</button>
+          </div>
+        </div>
+        <div id="dsrHistoryList" class="dsr-history-list"></div>
+      </div>
+    </div>
+
+    <!-- 모달 등 기타 UI 마크업 생략 없이 모두 포함 -->
+    <div id="image-modal" onclick="closeModal()">
+      <img id="modal-img" src="" alt="안내 이미지 팝업" style="display: none;">
+
+      <div id="modal-text-card" class="text-popup-card" style="display: none;" onclick="event.stopPropagation()">
+        <div class="text-popup-title">💡 DSR 계산기 이용 안내</div>
+        <div class="text-popup-content">
+          <div class="alert-box">
+            ⚠️ <b>필독 지침</b><br>
+            항상 <b>첫 번째 입력칸</b>이 상담받으실 <b>'본건 대출금액'</b>이어야 합니다. 그래야 월별 부담금액 및 최대한도, 신DTI(180개월) 계산이 정상적으로 연산되어 표시됩니다.
+          </div>
+          <div class="accent-box">
+            ✨ DSR 40%, 50% 최대한도 금액을 터치하시면 해당 한도 금액이 본건 대출원금 칸에 자동으로 입력됩니다.
+          </div>
+          <div class="info-section">
+            <div class="section-title">📊 대출현황 입력 시 참고사항</div>
+            <ul class="info-list">
+              <li><b>신용대출</b>: 5년 (60개월) 입력</li>
+              <li><b>비주택담보대출</b>: 8년 (96개월) 입력</li>
+              <li><b>전세대출 / 예적금담보대출</b>: 만기일시 형태이므로 상환방식에서 <br>개월수  상관없이<b style="color:#d97706;">  [만기] </b> 선택</li>
+              <li><b>유가증권담보</b>: 8년 (96개월) 입력</li>
+              <li><b>캐피탈 / 카드대출 / 학자금 등</b>: 12개월 기준으로 1년간 실제 총 납입금액을 계산하여 입력</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <div class="section-title">ℹ️ 기타 안내</div>
+            <ul class="info-list">
+              <li><b>ST금리 구분 이유</b>: 스트레스 금리는 DSR 계산식에만 포함하고, 실제 월 부담액(이자) 계산에서는 제외하기 위함입니다.</li>
+              <li><b>계산제외 버튼</b>: DSR 연산에서 아예 제외하거나 상환 조건부 상담 시 체크하는 용도입니다.</li>
+              <li><b>신DTI 계산값</b>: 신DTI 계산값은 항상 180개월로 계산되어있음, 그 외는 입력값에 따라 다름. 거치 적용시 180개월 내에서도 해당 기간만큼 거치기간이 반영됩니다.</li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <div class="section-title">📈 장래예상소득증가율</div>
+            <ul class="info-list">
+              <li>은행별 차이나 새로운 공지 요율에 맞춰 직접 요율 수정이 가능합니다.</li>
+              <li>수정된 요율은 <b>연소득 입력</b> 시 적용됩니다.</li>
+              <li>예상 요율은 연령별로 설정되며, 생년(1986), 또는 만나이(32) 입력하면 자동으로 요율이 적용됩니다.</li>
+              <li>장래예상은, 무주택자만 가능 ( 처분조건 불가 ), 만나이 생일 지나는 고객 상담시 유의.</li>
+            </ul>
+          </div>
+
+          <div class="info-section" id="modal-rate-card" style="text-align:center;">
+            <div class="section-title" style="justify-content:center;">✏️ 장래예상소득증가율 수정</div>
+            <table class="rate-popup-table">
+              <thead>
+                <tr>
+                  <td>연령 구간</td>
+                  <td>기존 요율( % )</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>20세 ~ 24세</td><td><input type="text" id="edit-rate-0" inputmode="decimal"></td></tr>
+                <tr><td>25세 ~ 29세</td><td><input type="text" id="edit-rate-1" inputmode="decimal"></td></tr>
+                <tr><td>30세 ~ 34세</td><td><input type="text" id="edit-rate-2" inputmode="decimal"></td></tr>
+                <tr><td>35세 ~ 39세</td><td><input type="text" id="edit-rate-3" inputmode="decimal"></td></tr>
+                <tr><td>40세 ~ 44세</td><td><input type="text" id="edit-rate-4" inputmode="decimal"></td></tr>
+              </tbody>
+            </table>
+            <div class="modal-actions">
+              <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
+              <button type="button" class="btn-success" onclick="saveCustomRates()">저장하기</button>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="section-title">📝 본건 대출 기본값 설정</div>
+            <ul class="info-list">
+              <li>본건 대출 기본값은 <b>금리, ST금리, 기간</b>을 저장할 수 있습니다.</li>
+              <li>저장된 기본값은 <b>[6M/5Y 전환]</b> 버튼을 통해 선택하여 적용할 수 있습니다.</li>
+            </ul>
+          </div>
+
+          <div class="info-section" id="modal-default-card" style="text-align:center;">
+            <div class="section-title" style="justify-content:center;">✏️ 본건 대출 기본값 설정</div>
+            <table class="rate-popup-table">
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="default-field-group">
+                      <div class="default-field">
+                        <div class="default-field-label">6개월 변동금</div>
+                        <input type="text" id="default-mort-rate" inputmode="decimal" placeholder="예: 3.5">
+                      </div>
+                      <div class="default-field">
+                        <div class="default-field-label">5년 변동</div>
+                        <input type="text" id="default-five-year-rate" inputmode="decimal" placeholder="예: 3.8">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="default-field-group">
+                      <div class="default-field">
+                        <div class="default-field-label">ST금리 ( 6개월 변동 )</div>
+                        <input type="text" id="default-mort-st-rate" inputmode="decimal" placeholder="예: 1.5">
+                      </div>
+                      <div class="default-field">
+                        <div class="default-field-label">ST금리 ( 5년 변동 )</div>
+                        <input type="text" id="default-five-year-st-rate" inputmode="decimal" placeholder="예: 1.8">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="default-field-group">
+                      <div class="default-field">
+                        <div class="default-field-label">기간 ( 6개월 변동 )</div>
+                        <input type="text" id="default-mort-term" inputmode="numeric" placeholder="예: 480">
+                      </div>
+                      <div class="default-field">
+                        <div class="default-field-label">기간 ( 5년 변동 )</div>
+                        <input type="text" id="default-five-year-term" inputmode="numeric" placeholder="예: 480">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="default-modal-actions">
+              <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
+              <button type="button" class="btn-primary" onclick="saveDefaultFirstRowData()">기본값 저장</button>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <div class="section-title">📐 신고소득 환산 요율</div>
+            <ul class="info-list">
+              <li>카드는 연간 사용금액을 그대로 입력하고(월환산 없음), 건보·연금은 최근 3개월 평균 월납부액을 입력하면 12개월로 환산하여 계산합니다.</li>
+              <li>카드/건보/연금 입력 금액은 종류별로 각각 따로 저장됩니다. 예: 카드에 입력한 금액과 건보에 입력한 금액은 서로 섞이지 않고 버튼 전환 시 그대로 유지됩니다.</li>
+              <li>환산된 소득은 1인당 최대 5,000만원까지만 인정되며, 차주·배우자 중 한쪽이라도 신고소득을 사용하면 두 사람 합산 소득 역시 최대 5,000만원까지만 인정됩니다.</li>
+            </ul>
+          </div>
+
+          <div class="info-section" id="modal-declare-rate-card" style="text-align:center;">
+            <div class="section-title" style="justify-content:center;">✏️ 신고소득 환산 요율 수정</div>
+            <table class="rate-popup-table">
+              <thead>
+                <tr>
+                  <td>구분</td>
+                  <td>(÷) 요율 %</td>
+                  <td>(X) 인정배수 %</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>카드 연사용액</td>
+                  <td><input type="text" id="edit-declare-카드-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-카드-multiplier" inputmode="decimal"></td>
+                </tr>
+                <tr>
+                  <td>건보 3개월평균<br>세대주</td>
+                  <td><input type="text" id="edit-declare-건강-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-건강-multiplier" inputmode="decimal"></td>
+                </tr>
+                <tr>
+                  <td>연금 3개월평균</td>
+                  <td><input type="text" id="edit-declare-연금-divisor" inputmode="decimal"></td>
+                  <td><input type="text" id="edit-declare-연금-multiplier" inputmode="decimal"></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="modal-actions">
+              <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
+              <button type="button" class="btn-success" onclick="saveDeclareIncomeRates()">저장하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="modal-schedule-card" class="text-popup-card" style="display: none; max-width: 95%; width: 500px;" onclick="event.stopPropagation()">
+        <div class="text-popup-title" style="margin-bottom: 10px;">📅 본건 대출 상환 스케줄</div>
+         <!-- "대출조건표시"  -->
+      <div class="schedule-close-row">
+        <span id="schedule-loan-info" class="schedule-loan-info"></span>
+        <button type="button" class="reset-btn" onclick="closeModal()">닫기</button>
+      </div>
+
+
+        <table id="schedule-table">
+          <thead>
+            <tr>
+              <th style="width:10%;">회차</th>
+              <th style="width:22%;">월상환금</th>
+              <th style="width:21%;">납입원금</th>
+              <th style="width:21%;">이자</th>
+              <th style="width:25%;">대출잔액</th>
+            </tr>
+          </thead>
+          <tbody id="schedule-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- KB 시세 조회 전체화면 오버레이 -->
+  <div id="marketPriceOverlay" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
+    <iframe id="marketPriceFrame" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
+  </div>
+
+  <!-- 필요일자(본건 대출정보) 클릭 시 뜨는 달력 -->
+  <div class="date-picker-popup" id="datePickerPopup" aria-hidden="true">
+    <div class="date-picker-header">
+      <div class="date-picker-month">2026년 06월</div>
+      <div class="date-picker-nav">
+        <button type="button" class="nav-btn nav-prev" aria-label="이전 달">‹</button>
+        <button type="button" class="nav-btn nav-next" aria-label="다음 달">›</button>
+      </div>
+    </div>
+    <div class="date-picker-weekdays">
+      <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+    </div>
+    <div class="date-picker-grid"></div>
+  </div>
+
+  <!-- 화면 캡쳐용 라이브러리 (html2canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- JavaScript 파일 연결 -->
+  <script src="Consult_calculator_logic.js"></script>
+  <script src="Consult_calculator_ui.js"></script>
+  <script>
+    (function () {
+      function parseDisplayValue(rawText) {
+        if (!rawText || rawText === '-' || rawText === '대출 불가') return NaN;
+        const text = String(rawText).trim();
+        const cleaned = text.replace(/\s+/g, '');
+        const matchEok = cleaned.match(/(\d[\d,]*)억/);
+        const matchMan = cleaned.match(/(\d[\d,]*)만/);
+        const plainNumber = cleaned.replace(/[^0-9]/g, '');
+
+        if (matchEok || matchMan || plainNumber) {
+          let total = 0;
+          if (matchEok) total += Number(matchEok[1].replace(/,/g, '')) * 100000000;
+          if (matchMan) total += Number(matchMan[1].replace(/,/g, '')) * 10000;
+          if (!matchEok && !matchMan && plainNumber) total = Number(plainNumber);
+          return Number.isFinite(total) ? total : NaN;
+        }
+        return NaN;
+      }
+
+      function formatPlainWon(value) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) return '-';
+        return `${Math.round(numeric).toLocaleString('ko-KR')} 원`;
+      }
+
+      function normalizeDsrMaxDisplay() {
+        const blocks = document.querySelectorAll('[id^="DSR최대금액확인-"]');
+        blocks.forEach((block) => {
+          if (!block) return;
+          const mainEl = block.querySelector('.dsr-main-val');
+          const subEl = block.querySelector('.dsr-sub-val');
+          if (mainEl) {
+            const parsed = parseDisplayValue(mainEl.textContent);
+            if (Number.isFinite(parsed)) {
+              mainEl.textContent = formatPlainWon(parsed);
+            }
+          }
+          if (subEl) {
+            subEl.textContent = '';
+            subEl.style.display = 'none';
+          }
+        });
+      }
+
+      const originalAutoCalc = window.자동계산;
+      if (typeof originalAutoCalc === 'function' && !window.__dsrMaxAmountDisplayPatched) {
+        window.__dsrMaxAmountDisplayPatched = true;
+        window.자동계산 = function () {
+          const result = originalAutoCalc.apply(this, arguments);
+          normalizeDsrMaxDisplay();
+          return result;
+        };
+      }
+
+      window.addEventListener('DOMContentLoaded', normalizeDsrMaxDisplay, { once: true });
+    })();
+  </script>
+  <!-- 페이지 스크롤바 자동 숨김: 스크롤 중에만 표시하고, 멈추면 다시 숨김 -->
+  <script>
+    (function () {
+      var hideTimer = null;
+      function onPageScroll() {
+        document.body.classList.add('is-scrolling');
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(function () {
+          document.body.classList.remove('is-scrolling');
+        }, 800);
+      }
+      document.body.addEventListener('scroll', onPageScroll, { passive: true });
+    })();
+  </script>
+
+  <!-- 고객정보 탭 - 기본 숨김, 클릭할 때만 펼침 -->
+  <script>
+    document.getElementById('customerInfoTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('customerInfoTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      // 접혀있던 동안(scrollHeight=0)에는 메모칸 높이를 제대로 잴 수 없으므로, 펼쳐질 때 다시 계산한다.
+      if (isOpen && typeof autoResizeMemoTextarea === 'function') {
+        autoResizeMemoTextarea(document.getElementById('customerInfoMemo'));
+      }
+    });
+    document.querySelectorAll('.info-tab-field .field-clear-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var field = btn.closest('.info-tab-field');
+        var input = field ? field.querySelector('input') : null;
+        if (input) {
+          input.value = '';
+          // 실제 input 이벤트를 발생시켜, 그 입력칸에 붙어있는 포맷팅/요약 갱신 리스너가 각자 알아서 반응하게 한다.
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    });
+
+    // 연락처 입력 중 자동으로 하이픈(-) 삽입 (Consult.html 전화번호 입력칸과 동일한 포맷 규칙)
+    var customerPhoneInput = document.getElementById('customerPhoneInput');
+    customerPhoneInput.addEventListener('input', function (e) {
+      var v = e.target.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 7) v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
+      else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,4})/, '$1-$2');
+      e.target.value = v.replace(/-+$/, '');
+      updateCustomerInfoSummary();
+    });
+
+    // 이름/연락처가 채워지면 탭 제목줄에 "이름 (연락처)" 형태로 같이 보여준다
+    var customerNameInput = document.getElementById('customerNameInput');
+    var customerInfoSummary = document.getElementById('customerInfoSummary');
+    function updateCustomerInfoSummary() {
+      var name = customerNameInput.value.trim();
+      var phone = customerPhoneInput.value.trim();
+      var text = '';
+      if (name && phone) text = ' - ' + name + ' (' + phone + ')';
+      else if (name) text = ' - ' + name;
+      else if (phone) text = ' - (' + phone + ')';
+      customerInfoSummary.textContent = text;
+    }
+    customerNameInput.addEventListener('input', updateCustomerInfoSummary);
+
+    // localStorage에서 복원된 값은 change/input 이벤트 없이 .value로 바로 채워지므로,
+    // 복원이 끝난 뒤(Consult_calculator_ui.js의 init() 이후) 제목줄을 한 번 맞춰준다.
+    // Consult_calculator_ui.js의 init()도 window.addEventListener('DOMContentLoaded', ...)로 등록되어
+    // 있어서, 여기서도 반드시 window에 등록해야 init()(loadDSRInputs 포함)이 끝난 뒤에 실행된다
+    // - document에 등록하면 window보다 먼저(캡처/타겟 단계) 실행돼 복원 전 값을 읽게 된다.
+    // (메모칸 높이는 탭이 접혀있으면 scrollHeight를 잴 수 없어 여기서는 재지 않고, 펼쳐질 때 잰다.)
+    window.addEventListener('DOMContentLoaded', updateCustomerInfoSummary);
+  </script>
+
+  <!-- 소득정보 탭 - 기본 숨김, 클릭할 때만 펼침. 제목줄 합산 표시는 자동계산()이 계산한
+       #totalIncomeOutput 값을 그대로 옮겨 보여준다(Consult_calculator_logic.js 쪽에서 호출). -->
+  <script>
+    document.getElementById('incomeInfoTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('incomeInfoTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen && typeof autoResizeMemoTextarea === 'function') {
+        body.querySelectorAll('.income-memo').forEach(autoResizeMemoTextarea);
+      }
+    });
+
+    var incomeInfoSummary = document.getElementById('incomeInfoSummary');
+    function updateIncomeInfoSummary() {
+      var totalIncomeOutput = document.getElementById('totalIncomeOutput');
+      var total = totalIncomeOutput ? totalIncomeOutput.value.trim() : '';
+      incomeInfoSummary.textContent = total ? ' - 합산 ' + total + '원' : '';
+    }
+    window.addEventListener('DOMContentLoaded', updateIncomeInfoSummary);
+  </script>
+
+  <!-- 물건지정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 입력된 시세값을 같이 보여준다. -->
+  <script>
+    function openAllInfoTabs() {
+      var tabMap = [
+        ['customerInfoTabBtn', 'customerInfoTabBody'],
+        ['propertyInfoTabBtn', 'propertyInfoTabBody'],
+        ['incomeInfoTabBtn', 'incomeInfoTabBody'],
+        ['loanInfoTabBtn', 'loanInfoTabBody'],
+        ['dsrInfoTabBtn', 'dsrInfoTabBody'],
+        ['maxAmountTabBtn', 'maxAmountTabBody']
+      ];
+      tabMap.forEach(function (pair) {
+        var btn = document.getElementById(pair[0]);
+        var body = document.getElementById(pair[1]);
+        if (btn && body) {
+          body.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+
+    document.getElementById('propertyInfoTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('propertyInfoTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    var propertyInfoSummary = document.getElementById('propertyInfoSummary');
+    function updatePropertyInfoSummary() {
+      var priceInput = document.getElementById('ltvMarketPriceInput');
+      var price = priceInput ? priceInput.value.trim() : '';
+      propertyInfoSummary.textContent = price ? ' - ' + price + '원' : '';
+    }
+    var ltvMarketPriceInputForSummary = document.getElementById('ltvMarketPriceInput');
+    if (ltvMarketPriceInputForSummary) {
+      ltvMarketPriceInputForSummary.addEventListener('input', updatePropertyInfoSummary);
+    }
+    // localStorage 복원(.value로 바로 채워짐, input 이벤트 없음) 이후 한 번 맞춰준다 - 다른 탭과
+    // 같은 이유로 window에 등록(문서 타겟이 window(버블)보다 먼저 실행돼 init() 이전 값을 읽는 것 방지).
+    window.addEventListener('DOMContentLoaded', updatePropertyInfoSummary);
+  </script>
+
+  <!-- 대출정보 탭 - 기본 펼침, 클릭할 때마다 토글 -->
+  <script>
+    document.getElementById('loanInfoTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('loanInfoTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) {
+        body.querySelectorAll('.mort-memo').forEach(el => {
+          if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(el);
+        });
+      }
+    });
+
+    // 제목줄에 DSR/DTI 값을 같이 보여준다. 보유대출 중 "주담대"로 선택된 행이 하나라도 있으면
+    // 신DTI 값도 같이 보여준다(주담대가 없으면 신DTI는 의미가 없어 생략). 40% 이상(경고 표시)이면
+    // 값 칸과 같은 빨간색으로 제목줄 전체를 칠한다.
+    var loanInfoSummary = document.getElementById('loanInfoSummary');
+    var loanInfoTabHeader = document.getElementById('loanInfoTabBtn');
+    function updateLoanInfoSummary() {
+      var dsrVal = (document.getElementById('DSR확인') || {}).textContent || '';
+      var dtiVal = (document.getElementById('DIT확인') || {}).textContent || '';
+      var newDtiVal = (document.getElementById('신DTI확인') || {}).textContent || '';
+      dsrVal = dsrVal.trim();
+      dtiVal = dtiVal.trim();
+      newDtiVal = newDtiVal.trim();
+
+      var parts = [];
+      var isDanger = false;
+      if (dsrVal && dsrVal !== '-') {
+        parts.push('DSR ' + dsrVal);
+        if (parseFloat(dsrVal) >= 40) isDanger = true;
+      }
+      if (dtiVal && dtiVal !== '-') {
+        parts.push('DTI ' + dtiVal);
+        if (parseFloat(dtiVal) >= 40) isDanger = true;
+      }
+      var hasMortgageHeldLoan = !!document.querySelector('#mortgage-inputs .mort-category-toggle.active');
+      if (hasMortgageHeldLoan && newDtiVal && newDtiVal !== '-') {
+        parts.push('신DTI ' + newDtiVal);
+        if (parseFloat(newDtiVal) >= 40) isDanger = true;
+      }
+      loanInfoSummary.textContent = parts.length ? ' - ' + parts.join(' / ') : '';
+      loanInfoTabHeader.classList.toggle('info-tab-header-danger', isDanger);
+    }
+    window.addEventListener('DOMContentLoaded', updateLoanInfoSummary);
+  </script>
+
+  <!-- DSR정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 DSR 값을 같이 보여준다. -->
+  <script>
+    document.getElementById('dsrInfoTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('dsrInfoTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    var dsrInfoSummary = document.getElementById('dsrInfoSummary');
+    function updateDsrInfoSummary() {
+      var dsrEl = document.getElementById('DSR확인');
+      var val = dsrEl ? dsrEl.textContent.trim() : '';
+      dsrInfoSummary.textContent = (val && val !== '-') ? ' - DSR ' + val : '';
+    }
+    window.addEventListener('DOMContentLoaded', updateDsrInfoSummary);
+  </script>
+
+  <!-- 최대가능금액 탭 - 기본 펼침, 클릭할 때마다 토글 -->
+  <script>
+    document.getElementById('maxAmountTabBtn').addEventListener('click', function () {
+      var body = document.getElementById('maxAmountTabBody');
+      var isOpen = body.classList.toggle('open');
+      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) {
+        var retry = function (delay) {
+          setTimeout(function () {
+            if (typeof refreshDsrMaxFontSizeStably === 'function') {
+              refreshDsrMaxFontSizeStably();
+            } else if (typeof adjustDsrMaxFontSize === 'function') {
+              adjustDsrMaxFontSize();
+            }
+            if (typeof adjustDsrToggleFontSize === 'function') {
+              adjustDsrToggleFontSize();
+            }
+          }, delay);
+        };
+        requestAnimationFrame(function () { retry(0); });
+        retry(30);
+        retry(120);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', openAllInfoTabs);
+  </script>
+
+  <!-- KB 시세 조회 오버레이 열기/닫기 + 결과 적용 -->
+  <script>
+    function openMarketPriceOverlay() {
+      var overlay = document.getElementById('marketPriceOverlay');
+      var frame = document.getElementById('marketPriceFrame');
+      frame.src = '시세조회.html';
+      overlay.style.display = 'block';
+    }
+
+    function closeMarketPriceOverlay() {
+      var overlay = document.getElementById('marketPriceOverlay');
+      var frame = document.getElementById('marketPriceFrame');
+      overlay.style.display = 'none';
+      frame.src = 'about:blank';
+    }
+
+    window.addEventListener('message', function (e) {
+      if (!e.data || !e.data.type) return;
+
+      if (e.data.type === 'kbMarketPriceClose') {
+        closeMarketPriceOverlay();
+        return;
+      }
+
+      if (e.data.type === 'kbMarketPrice') {
+        var input = document.getElementById('ltvMarketPriceInput');
+        if (input) {
+          input.value = String(e.data.value);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        // 투기과열지구면 LTV 비율을 40%로, 아니면 70%로 자동 선택
+        var ltvTarget = document.querySelector('input[name="ltv_rate"][value="' + (e.data.투기과열지구 ? '40' : '70') + '"]');
+        if (ltvTarget && !ltvTarget.checked) {
+          ltvTarget.checked = true;
+          ltvTarget.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // 아파트명/타입/평형 정보도 같이 기억해뒀다가, "내용복사" 시 같이 옮겨지게 한다.
+        if (typeof setSelectedAptInfo === 'function') {
+          setSelectedAptInfo({
+            aptName: e.data.aptName || '',
+            address: e.data.address || '',
+            typeLabel: e.data.typeLabel || '',
+            pyeong: e.data.pyeong || '',
+            exclusiveSqm: e.data.exclusiveSqm || '',
+            supplyPyeong: e.data.supplyPyeong || '',
+            priceField: e.data.priceField || '',
+            priceWon: e.data.value || 0,
+            투기과열지구: !!e.data.투기과열지구,
+            조정대상지역: !!e.data.조정대상지역,
+            dong: e.data.dong || '',
+            ho: e.data.ho || ''
+          });
+        }
+        closeMarketPriceOverlay();
+      }
+    });
+  </script>
+</body>
+</html>

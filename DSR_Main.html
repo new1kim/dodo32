@@ -28,6 +28,44 @@
       </table>
     </div>
 
+    <div class="dsr-table-wrap" data-table-key="dsr-limit">
+      <table class="dsr-limit-table">
+        <colgroup>
+          <col style="width: 10%;">
+          <col style="width: 5%;">
+          <col style="width: 25%;">
+          <col style="width: 5%;">
+          <col style="width: 25%;">
+        </colgroup>
+        <tr id="dsrLimitRow">
+          <td class="dsr-label-cell" style="padding: 1.8px 4px;">
+            <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
+              <label style="background-color: #2563eb; color: #ffffff;">
+                <input type="radio" name="dsr_limit_rate" value="40" checked>40%
+              </label>
+              <label style="background-color: transparent; color: #64748b;">
+                <input type="radio" name="dsr_limit_rate" value="50">50%
+              </label>
+            </div>
+          </td>
+          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>리<br>금</td>
+          <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
+            <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
+              <span class="dsr-main-val">-</span>
+              <span class="dsr-sub-val">-</span>
+            </span>
+          </td>
+          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>금</td>
+          <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
+            <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
+              <span class="dsr-main-val">-</span>
+              <span class="dsr-sub-val">-</span>
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
     <div class="dsr-table-wrap" data-table-key="ltv">
       <table class="ltv-table summary-table">
         <tr class="table-header-row">
@@ -80,44 +118,6 @@
               <div class="selected-apt-address" id="selectedAptAddressText"></div>
               <span class="apt-reg-badges" id="selectedAptRegulationBadges"></span>
             </div>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <div class="dsr-table-wrap" data-table-key="dsr-limit">
-      <table class="dsr-limit-table">
-        <colgroup>
-          <col style="width: 10%;">
-          <col style="width: 5%;">
-          <col style="width: 25%;">
-          <col style="width: 5%;">
-          <col style="width: 25%;">
-        </colgroup>
-        <tr id="dsrLimitRow">
-          <td class="dsr-label-cell" style="padding: 1.8px 4px;">
-            <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
-              <label style="background-color: #2563eb; color: #ffffff;">
-                <input type="radio" name="dsr_limit_rate" value="40" checked>40%
-              </label>
-              <label style="background-color: transparent; color: #64748b;">
-                <input type="radio" name="dsr_limit_rate" value="50">50%
-              </label>
-            </div>
-          </td>
-          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>리<br>금</td>
-          <td class="dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-            <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
-              <span class="dsr-main-val">-</span>
-              <span class="dsr-sub-val">-</span>
-            </span>
-          </td>
-          <td class="dsr-label-cell" style="line-height: 1.1;">원<br>금</td>
-          <td class="dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-            <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
-              <span class="dsr-main-val">-</span>
-              <span class="dsr-sub-val">-</span>
-            </span>
           </td>
         </tr>
       </table>
@@ -224,16 +224,16 @@
             <input type="text" id="baseIncomeInput" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
             <div class="future-income-row" id="baseFutureIncomeRow">
               <span class="rate-toggle-row">
-                <button type="button" id="applyRateBtn" class="mort-category-toggle rate-toggle-btn" onclick="applyRateCheck.click()">
-                  <span class="rate-toggle-label">장래예상</span>
+                <span class="rate-toggle-text">
+                  <label for="applyRateCheck">장래예상</label>
                   <span id="rateDisplay" class="rate-display" style="display:none;">(-)</span>
-                </button>
-                <input type="checkbox" id="applyRateCheck" style="display:none;">
+                </span>
+                <input type="checkbox" id="applyRateCheck">
               </span>
               <input type="number" id="ageInput" class="age-input" placeholder="32 or 1992" style="display:none;">
+              <span id="baseFutureIncomeConverted" class="future-income-converted" style="display:none;"></span>
             </div>
           </div>
-          <span id="baseFutureIncomeConverted" class="future-income-converted" style="display:none;"></span>
           <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
           <div class="declare-cell-flex" id="baseDeclareCellFlex">
             <div class="declare-input-group" id="baseDeclareInputGroup" style="display:none;">
@@ -257,7 +257,7 @@
       </tr>
       <tr class="income-memo-row">
         <td colspan="4">
-          <textarea id="baseIncomeMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
+          <input type="text" id="baseIncomeMemo" class="income-memo" placeholder="메모 입력" lang="ko" inputmode="text" autocomplete="off">
         </td>
       </tr>
     </table>
@@ -537,25 +537,10 @@
     <iframe id="marketPriceFrame" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
   </div>
 
-  <!-- 필요일자(본건 대출정보) 클릭 시 뜨는 달력 -->
-  <div class="date-picker-popup" id="datePickerPopup" aria-hidden="true">
-    <div class="date-picker-header">
-      <div class="date-picker-month">2026년 06월</div>
-      <div class="date-picker-nav">
-        <button type="button" class="nav-btn nav-prev" aria-label="이전 달">‹</button>
-        <button type="button" class="nav-btn nav-next" aria-label="다음 달">›</button>
-      </div>
-    </div>
-    <div class="date-picker-weekdays">
-      <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
-    </div>
-    <div class="date-picker-grid"></div>
-  </div>
-
   <!-- 화면 캡쳐용 라이브러리 (html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- JavaScript 파일 연결 -->
-  <script src="DSR_calculator_logic.min.js"></script>
+  <script src="DSR_calculator_logic.js"></script>
   <script src="DSR_calculator_ui.js"></script>
   <!-- 페이지 스크롤바 자동 숨김: 스크롤 중에만 표시하고, 멈추면 다시 숨김 -->
   <script>

@@ -1,8 +1,15 @@
 /* DSR계산기ETC - 그 외 코드 (UI, 이벤트, 모달, 로컬스토리지 등) */
 
 /* localStorage 저장/불러오기 대상 입력창 셀렉터 (여러 함수에서 공용으로 사용) */
-const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"]';
+const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], textarea';
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
+
+/* 복원(불러오기) 중에는 setRestoredInputValue/setRestoredCheckboxValue가 발생시키는
+   input/change 이벤트가 setupDSRAutoSave의 자동저장(saveDSRInputs)을 유발해,
+   아직 복원되지 않은 기존 화면 상태(특히 대출행)로 DSR_* 키를 덮어써 스냅샷이 파괴된다.
+   복원 중에는 자동저장을 잠가야 한다. */
+let __dsrRestoring = false;
+function isDsrRestoring() { return __dsrRestoring; }
 
 function getStoredJson(key, fallback = null) {
   try {
@@ -12,6 +19,16 @@ function getStoredJson(key, fallback = null) {
     console.warn(`저장 데이터가 손상되어 초기화했습니다: ${key}`, e);
     localStorage.removeItem(key);
     return fallback;
+  }
+}
+
+/* getStoredJson의 짝. 저장 용량 초과(iOS 사파리 시크릿 모드 등)로 setItem이 던져도
+   계산 화면 자체는 계속 쓸 수 있어야 하므로 예외를 삼키고 경고만 남긴다. */
+function setStoredJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.warn(`저장에 실패했습니다: ${key}`, e);
   }
 }
 
@@ -142,6 +159,8 @@ function hideOtherModalPanels(panels, panelToKeep) {
   ['imgModal', 'textCard', 'scheduleCard'].forEach(key => {
     if (key !== panelToKeep && panels[key]) panels[key].style.display = "none";
   });
+  const reductionCard = document.getElementById('reduction-recommend-card');
+  if (reductionCard && panelToKeep !== 'reductionCard') reductionCard.style.display = 'none';
 }
 
 function openScheduleModal() {
@@ -191,21 +210,6 @@ function populateRateEditFields() {
     const editEl = document.getElementById(`edit-rate-${index}`);
     if (editEl) editEl.value = item.percent;
   });
-}
-
-function openRateEditModal() {
-  const panels = getModalPanels();
-  hideOtherModalPanels(panels, 'textCard');
-
-  populateRateEditFields();
-
-  if (panels.textCard) panels.textCard.style.display = "block";
-  if (panels.imageModal) panels.imageModal.style.display = "flex";
-
-  const targetSection = document.getElementById("modal-rate-card");
-  if (targetSection) targetSection.scrollIntoView({ block: "start" });
-
-  fitAllNumericInputFontSizes();
 }
 
 /* 본건 대출 기본값(6M/5Y 금리·ST금리·개월) 입력창 id 목록 - 모달 열기/저장 양쪽에서 공용 */
@@ -266,7 +270,7 @@ function saveDefaultFirstRowData() {
     stRate: sixMonthStRate,
     term: sixMonthTerm
   };
-  localStorage.setItem("DEFAULT_FIRST_ROW_DATA", JSON.stringify(data));
+  setStoredJson("DEFAULT_FIRST_ROW_DATA", data);
   showBubble("본건 대출 기본값 저장 완료");
   closeModal();
 
@@ -292,15 +296,261 @@ function saveCustomRates() {
       LOAN_RATE_TABLE[i].percent = val;
     }
   }
-  localStorage.setItem("CUSTOM_LOAN_RATE_TABLE", JSON.stringify(LOAN_RATE_TABLE));
+  setStoredJson("CUSTOM_LOAN_RATE_TABLE", LOAN_RATE_TABLE);
   showBubble("예상 요율 저장 완료");
   closeModal();
   if (typeof updateIncomeCalc === 'function') updateIncomeCalc();
 }
 
 function closeModal() {
+  const panels = getModalPanels();
+  Object.values(panels).forEach(panel => {
+    if (panel) panel.style.display = 'none';
+  });
+  const reductionCard = document.getElementById('reduction-recommend-card');
+  if (reductionCard) reductionCard.style.display = 'none';
   const imageModal = document.getElementById("image-modal");
   if (imageModal) imageModal.style.display = "none";
+}
+
+function getMortgageAnnualDebtForRow(row, index) {
+  if (!row) return 0;
+  const excludeEl = row.querySelector('.mort-exclude');
+  if (excludeEl && excludeEl.checked) return 0;
+
+  const amtEl = row.querySelector('.mort-amt');
+  const rateEl = row.querySelector('.mort-rate');
+  const stRateEl = row.querySelector('.mort-st-rate');
+  const termEl = row.querySelector('.mort-term');
+  const typeEl = row.querySelector('.mort-type');
+  const categoryEl = row.querySelector('.mort-loan-category');
+
+  const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
+  const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
+  const stRateValue = stRateEl ? (parseFloat(stRateEl.value) || 0) : 0;
+  const combinedRate = (pureRate * 100 + stRateValue) / 100;
+  const term = termEl ? (parseInt(termEl.value) || 0) : 0;
+  const type = typeEl ? typeEl.value : '원리금';
+  const loanCategory = categoryEl ? categoryEl.value : '신용';
+  const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
+
+  if (amt <= 0 || term <= 0 || combinedRate <= 0) return 0;
+
+  let fixPostTerm;
+  if (index === 0) {
+    const newDtiBaseTerm = Math.min(term, 180);
+    let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
+    fixPostTerm = newDtiBaseTerm - fixGrace;
+    if (fixPostTerm <= 0) fixPostTerm = 1;
+  } else {
+    fixPostTerm = postTerm;
+  }
+
+  if (type === '만기') {
+    const annualInterest = amt * combinedRate;
+    return annualInterest + (index > 0 ? (amt * 12 / postTerm) : 0);
+  }
+
+  if (type === '원리금') {
+    const calc = 원리금균등_계산대출(amt, combinedRate, postTerm);
+    const totalInterest = (calc.월상환금액 * postTerm) - amt;
+    const years = postTerm / 12 || 1;
+    return (calc.월상환금액 * 12) + (index === 0 ? 0 : 0);
+  }
+
+  if (type === '원금') {
+    const calcA = 원금균등_연간계산(amt, combinedRate, postTerm);
+    return calcA.대출합계;
+  }
+
+  if (loanCategory === '신용' && index > 0) {
+    const mInt = amt * combinedRate / 12;
+    return mInt * 12;
+  }
+
+  return 0;
+}
+
+function updateMortgageReductionButtons() {
+  const buttons = document.querySelectorAll('.mort-reduction-btn');
+  if (!buttons.length) return;
+
+  const incomeEls = document.querySelectorAll('.income-computed-hidden');
+  const income = [...incomeEls].reduce((sum, el) => sum + (parseFloat((el.value || '').replace(/,/g, '')) || 0), 0);
+
+  let totalDsrDebt = 0;
+  const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
+  rows.forEach((row, index) => {
+    const excludeEl = row.querySelector('.mort-exclude');
+    if (excludeEl && excludeEl.checked) return;
+    totalDsrDebt += getMortgageAnnualDebtForRow(row, index);
+  });
+
+  const currentDsr = income > 0 ? (totalDsrDebt / income) * 100 : 0;
+  const defaultLabel = currentDsr > 40 ? '감액필요' : '추가가능';
+
+  buttons.forEach((btn) => {
+    const memoRow = btn.closest('.mortgage-memo-row');
+    const sourceRow = memoRow ? memoRow.previousElementSibling : null;
+    const excludeEl = sourceRow ? sourceRow.querySelector('.mort-exclude') : null;
+
+    if (excludeEl && excludeEl.checked) {
+      btn.textContent = '상환조건';
+      btn.dataset.status = 'excluded';
+      return;
+    }
+
+    btn.textContent = defaultLabel;
+    btn.dataset.status = currentDsr > 40 ? 'need' : 'possible';
+  });
+}
+
+function openDebtReductionRecommendation(button) {
+  const memoRow = button.closest('.mortgage-memo-row');
+  const sourceRow = memoRow ? memoRow.previousElementSibling : null;
+  if (!sourceRow) return;
+
+  const categoryInput = sourceRow.querySelector('.mort-loan-category');
+  const amountInput = sourceRow.querySelector('.mort-amt');
+  const rateInput = sourceRow.querySelector('.mort-rate');
+  const termInput = sourceRow.querySelector('.mort-term');
+  const typeInput = sourceRow.querySelector('.mort-type');
+
+  const loanCategory = categoryInput ? categoryInput.value : '신용';
+  const currentAmount = amountInput ? (parseFloat(amountInput.value.replace(/,/g, '')) || 0) : 0;
+  const currentRate = rateInput ? (parseFloat(rateInput.value) || 0) : 0;
+  const currentTerm = termInput ? (parseInt(termInput.value) || 0) : 0;
+
+  if (loanCategory !== '신용') {
+    alert('신용대출 행에서만 감액추천을 사용할 수 있습니다.');
+    return;
+  }
+
+  if (!currentAmount || !currentRate || !currentTerm) {
+    alert('신용대출 금액, 금리, 기간을 먼저 입력해 주세요.');
+    return;
+  }
+
+  const incomeEls = document.querySelectorAll('.income-computed-hidden');
+  const income = [...incomeEls].reduce((sum, el) => sum + (parseFloat((el.value || '').replace(/,/g, '')) || 0), 0);
+  if (income <= 0) {
+    alert('소득이 입력되어야 DSR 40% 기준 계산을 할 수 있습니다.');
+    return;
+  }
+
+  let selectedDebt = 0;
+  let totalDsrDebt = 0;
+  const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
+  rows.forEach((row, index) => {
+    const annualDebt = getMortgageAnnualDebtForRow(row, index);
+    totalDsrDebt += annualDebt;
+    if (row === sourceRow) selectedDebt = annualDebt;
+  });
+
+  if (selectedDebt <= 0) {
+    alert('현재 신용대출의 DSR 반영액이 0이어서 계산할 수 없습니다.');
+    return;
+  }
+
+  const currentDsr = (totalDsrDebt / income) * 100;
+  const targetDebt = income * 0.4;
+  const typeLabel = typeInput ? typeInput.value : '원리금';
+
+  const overlay = document.getElementById('image-modal');
+  if (!overlay) return;
+
+  const reductionCard = document.getElementById('reduction-recommend-card') || document.createElement('div');
+  reductionCard.id = 'reduction-recommend-card';
+  reductionCard.className = 'text-popup-card';
+  reductionCard.style.display = 'block';
+  reductionCard.style.maxWidth = '520px';
+  reductionCard.style.width = 'min(92vw, 520px)';
+  reductionCard.onclick = (e) => e.stopPropagation();
+
+  if (currentDsr > 40) {
+    const requiredDebtReduction = Math.max(0, totalDsrDebt - targetDebt);
+    const recommendedAnnualDebtReduction = Math.min(selectedDebt, requiredDebtReduction);
+    const principalReduction = selectedDebt > 0 ? currentAmount * (recommendedAnnualDebtReduction / selectedDebt) : 0;
+    const recommendedAmount = Math.max(0, currentAmount - principalReduction);
+    const reductionText = formatKoreanAmount(Math.round(principalReduction));
+
+    reductionCard.innerHTML = `
+      <div class="text-popup-title" style="margin-bottom: 12px;">💸 DSR 40% 감액 필요</div>
+      <div class="text-popup-content">
+        <div class="alert-box">
+          현재 DSR <b>${currentDsr.toFixed(2)}%</b> 이므로, 목표 DSR 40% 달성을 위해<br>
+          <b>신용대출</b>을 약 <b>${reductionText}</b> 정도 감액하는 것이 적절합니다.
+        </div>
+        <div class="info-section">
+          <div class="section-title">📌 계산 기준</div>
+          <ul class="info-list">
+            <li>대출금액: ${formatKoreanAmount(Math.round(currentAmount))}</li>
+            <li>금리: ${currentRate.toFixed(2)}%</li>
+            <li>기간: ${currentTerm}개월</li>
+            <li>상환방식: ${typeLabel}</li>
+          </ul>
+        </div>
+        <div class="info-section">
+          <div class="section-title">🔍 역산 결과</div>
+          <ul class="info-list">
+            <li>현재 신용대출 DSR 반영액: ${formatKoreanAmount(Math.round(selectedDebt))}</li>
+            <li>필요 감액액(원금 기준): 약 <b>${reductionText}</b></li>
+            <li>감액 후 권장 대출금액: 약 <b>${formatKoreanAmount(Math.round(recommendedAmount))}</b></li>
+          </ul>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-neutral" onclick="closeModal()">닫기</button>
+        </div>
+      </div>
+    `;
+  } else {
+    const availableDebtIncrease = Math.max(0, targetDebt - totalDsrDebt);
+    const principalIncrease = selectedDebt > 0 ? currentAmount * (availableDebtIncrease / selectedDebt) : 0;
+    const maxRecommendedAmount = currentAmount + principalIncrease;
+    const increaseText = formatKoreanAmount(Math.round(principalIncrease));
+
+    reductionCard.innerHTML = `
+      <div class="text-popup-title" style="margin-bottom: 12px;">💸 DSR 40% 추가 가능</div>
+      <div class="text-popup-content">
+        <div class="alert-box">
+          현재 DSR <b>${currentDsr.toFixed(2)}%</b> 이므로, 목표 DSR 40% 유지 기준으로<br>
+          <b>신용대출</b>을 약 <b>${increaseText}</b>까지 더 받을 수 있습니다.
+        </div>
+        <div class="info-section">
+          <div class="section-title">📌 계산 기준</div>
+          <ul class="info-list">
+            <li>대출금액: ${formatKoreanAmount(Math.round(currentAmount))}</li>
+            <li>금리: ${currentRate.toFixed(2)}%</li>
+            <li>기간: ${currentTerm}개월</li>
+            <li>상환방식: ${typeLabel}</li>
+          </ul>
+        </div>
+        <div class="info-section">
+          <div class="section-title">🔍 역산 결과</div>
+          <ul class="info-list">
+            <li>현재 총 DSR 반영액: ${formatKoreanAmount(Math.round(totalDsrDebt))}</li>
+            <li>DSR 40% 기준 허용 한도: ${formatKoreanAmount(Math.round(targetDebt))}</li>
+            <li>추가 가능 대출액: 약 <b>${increaseText}</b></li>
+            <li>권장 최대 대출금액: 약 <b>${formatKoreanAmount(Math.round(maxRecommendedAmount))}</b></li>
+          </ul>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-neutral" onclick="closeModal()">닫기</button>
+        </div>
+      </div>
+    `;
+  }
+
+  button.textContent = currentDsr > 40 ? '감액필요' : '추가가능';
+  button.dataset.status = currentDsr > 40 ? 'need' : 'possible';
+
+  const allPanels = getModalPanels();
+  ['imgModal', 'textCard', 'scheduleCard'].forEach(key => {
+    if (allPanels[key]) allPanels[key].style.display = 'none';
+  });
+  overlay.appendChild(reductionCard);
+  overlay.style.display = 'flex';
+  reductionCard.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 function setMortgageRepaymentType(btn, type) {
@@ -378,34 +628,6 @@ function handleDsrMaxBlockClick(block) {
   }
 }
 
-function 전달DSR한도금액(tdElement) {
-  const mainValEl = tdElement.querySelector('.dsr-main-val');
-  const text = mainValEl ? mainValEl.innerText.trim() : tdElement.innerText.trim();
-  if (!text || text === "-" || text.includes("대출 불가")) return;
-
-  let totalAmount = parseKoreanAmountText(text);
-  
-  if (totalAmount > 0) {
-    totalAmount = Math.floor(totalAmount / 1000000) * 1000000;
-  }
-
-  const type = tdElement.dataset.type;
-  if (type) {
-    setFirstRowRepaymentType(type);
-  }
-
-  const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
-  if (firstRow) {
-    const amtInput = firstRow.querySelector('.mort-amt');
-    if (amtInput && totalAmount > 0) {
-      amtInput.value = totalAmount.toLocaleString();
-      showBubble(`${type || '최대한도'} 및 최대한도가 본건에 입력되었습니다.`);
-      if (typeof 자동계산 === 'function') 자동계산();
-      if (typeof saveDSRInputs === 'function') saveDSRInputs();
-    }
-  }
-}
-
 function adjustDsrMaxFontSize() {
   const ghost = getMeasureGhost('dsr-max-font-ghost');
 
@@ -413,7 +635,7 @@ function adjustDsrMaxFontSize() {
     const mainEl = el.querySelector('.dsr-main-val');
     if (!mainEl) return;
 
-    const maxWidth = el.clientWidth - 10; 
+    const maxWidth = Math.max(el.clientWidth - 10, 0);
     if (maxWidth <= 0) return;
 
     const style = window.getComputedStyle(mainEl);
@@ -424,6 +646,15 @@ function adjustDsrMaxFontSize() {
 
     const fontSize = shrinkFontSizeToFit(ghost, mainEl.innerText.trim() || '-', maxWidth, 28, 8);
     mainEl.style.fontSize = fontSize + 'px';
+  });
+}
+
+function refreshDsrMaxFontSizeStably() {
+  const steps = [0, 20, 80, 180];
+  steps.forEach((delay) => {
+    setTimeout(() => {
+      if (typeof adjustDsrMaxFontSize === 'function') adjustDsrMaxFontSize();
+    }, delay);
   });
 }
 
@@ -510,6 +741,7 @@ function bindMortgageRowEvents(row) {
       let v = e.target.value.replace(/\D/g, '');
       e.target.value = v ? parseInt(v).toLocaleString() : '';
       if (typeof 자동계산 === 'function') 자동계산();
+      updateMortgageReductionButtons();
     });
   });
   
@@ -517,6 +749,7 @@ function bindMortgageRowEvents(row) {
     el.addEventListener("input", (e) => {
       e.target.value = e.target.value.replace(/[^0-9.]/g, '');
       if (typeof 자동계산 === 'function') 자동계산();
+      updateMortgageReductionButtons();
     });
   });
 
@@ -547,7 +780,10 @@ function bindMortgageRowEvents(row) {
 
   row.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(el => {
     el.addEventListener("change", (e) => {
-      if (e.target.classList.contains('mort-exclude')) showBubble(e.target.checked ? "계산 제외" : "대출 적용");
+      if (e.target.classList.contains('mort-exclude')) {
+        showBubble(e.target.checked ? "계산 제외" : "대출 적용");
+        updateMortgageReductionButtons();
+      }
       if (e.target.classList.contains('mort-grace-check')) showBubble(e.target.checked ? "거치 적용" : "거치 해제");
       if (typeof 자동계산 === 'function') 자동계산();
     });
@@ -668,6 +904,165 @@ function getMortgageRowMemo(row) {
   return memoRow.querySelector('.mort-memo')?.value.trim() || '';
 }
 
+/* 소득/대출 메모칸(textarea)은 입력 중인 줄 수에 맞춰 높이가 늘어나야 하므로,
+   값이 바뀔 때마다(사용자 입력 또는 저장된 값 복원) 높이를 다시 계산한다. */
+function autoResizeMemoTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+document.addEventListener('input', (e) => {
+  if (e.target.matches?.('.mort-memo, .income-memo')) {
+    autoResizeMemoTextarea(e.target);
+  }
+});
+
+/* 본건 대출정보 행의 "필요일자" 입력칸 - 클릭하면 달력 팝업을 띄운다.
+   .mort-need-date는 주담대행추가()가 호출될 때 동적으로 생성되므로, 개별 바인딩 대신
+   document 레벨 이벤트 위임(상담일지.html의 날짜 선택 UI와 동일한 로직)으로 처리한다. */
+function setupNeedDatePicker() {
+  const popup = document.getElementById('datePickerPopup');
+  if (!popup) return;
+  const monthLabel = popup.querySelector('.date-picker-month');
+  const grid = popup.querySelector('.date-picker-grid');
+  const navPrev = popup.querySelector('.nav-prev');
+  const navNext = popup.querySelector('.nav-next');
+  let currentPickerYear = new Date().getFullYear();
+  let currentPickerMonth = new Date().getMonth();
+  let activeInput = null;
+
+  function formatToCustomDate(str) {
+    if (!str) return '';
+    let digits = str.replace(/\D/g, '');
+    if (digits.length > 6) digits = digits.slice(0, 6);
+    let formatted = digits;
+    if (digits.length >= 6) {
+      formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1/$2/$3');
+      const parsed = parseCustomDate(formatted);
+      if (parsed) {
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        formatted += ` (${dayNames[parsed.getDay()]})`;
+      }
+    } else if (digits.length >= 4) {
+      formatted = digits.replace(/(\d{2})(\d{2})/, '$1/$2/');
+    } else if (digits.length >= 2) {
+      formatted = digits.replace(/(\d{2})/, '$1/');
+    }
+    return formatted;
+  }
+
+  function parseCustomDate(str) {
+    if (!str) return null;
+    const match = str.match(/(\d{2})\D*(\d{2})\D*(\d{2})/);
+    if (!match) {
+      const clean = str.replace(/\D/g, '');
+      if (clean.length === 6) {
+        return new Date(2000 + Number(clean.slice(0, 2)), Number(clean.slice(2, 4)) - 1, Number(clean.slice(4, 6)));
+      }
+      return null;
+    }
+    const year = 2000 + Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return new Date(year, month, day);
+  }
+
+  function formatDisplayDate(date) {
+    const yy = String(date.getFullYear()).slice(-2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    return `${yy}/${mm}/${dd} (${dayNames[date.getDay()]})`;
+  }
+
+  function renderDatePicker(year, month) {
+    currentPickerYear = year;
+    currentPickerMonth = month;
+    monthLabel.textContent = `${year}년 ${String(month + 1).padStart(2, '0')}월`;
+    grid.innerHTML = '';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const selectedDate = activeInput ? parseCustomDate(activeInput.value) : null;
+    const today = new Date();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'calendar-cell empty';
+      grid.appendChild(empty);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'calendar-cell';
+      button.textContent = day;
+      const cellDate = new Date(year, month, day);
+      if (selectedDate && cellDate.toDateString() === selectedDate.toDateString()) {
+        button.classList.add('selected');
+      }
+      if (cellDate.toDateString() === today.toDateString()) {
+        button.classList.add('today');
+      }
+      button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (activeInput) {
+          activeInput.value = formatDisplayDate(cellDate);
+          activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        closeDatePicker();
+      });
+      grid.appendChild(button);
+    }
+  }
+
+  function openDatePicker(input) {
+    activeInput = input;
+    const parsed = parseCustomDate(input.value) || new Date();
+    renderDatePicker(parsed.getFullYear(), parsed.getMonth());
+    popup.classList.add('open');
+    popup.setAttribute('aria-hidden', 'false');
+    const rect = input.getBoundingClientRect();
+    popup.style.top = `${rect.bottom + window.scrollY + 8}px`;
+    popup.style.left = `${Math.max(16, rect.left + window.scrollX - 10)}px`;
+  }
+
+  function closeDatePicker() {
+    popup.classList.remove('open');
+    popup.setAttribute('aria-hidden', 'true');
+    activeInput = null;
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.classList && e.target.classList.contains('mort-need-date')) {
+      e.stopPropagation();
+      openDatePicker(e.target);
+      return;
+    }
+    if (!popup.contains(e.target)) closeDatePicker();
+  });
+
+  document.addEventListener('input', function (e) {
+    if (e.target.classList && e.target.classList.contains('mort-need-date')) {
+      e.target.value = formatToCustomDate(e.target.value);
+    }
+  });
+
+  navPrev.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const newDate = new Date(currentPickerYear, currentPickerMonth - 1, 1);
+    renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+  });
+  navNext.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const newDate = new Date(currentPickerYear, currentPickerMonth + 1, 1);
+    renderDatePicker(newDate.getFullYear(), newDate.getMonth());
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDatePicker();
+  });
+}
+
 function 주담대행추가() {
   mortCount++;
   const tbody = document.getElementById('mortgage-inputs');
@@ -744,12 +1139,26 @@ function 주담대행추가() {
   // 세는 기존 로직에는 안 잡히고, 항상 newRow의 다음 형제로만 짝지어 찾는다).
   const memoRow = document.createElement('tr');
   memoRow.className = 'mortgage-memo-row';
+  // 필요일자는 물건지정보 표 하단(잔금일자)으로 이동했다. 마크업은 빈 문자열로 둔다.
+  const needDateMarkup = '';
+  const reductionButtonMarkup = isFirstRow ? '' : `<button type="button" class="mort-reduction-btn" aria-label="신용대출 감액추천">감액추천</button>`;
+  const memoTextareaMarkup = `<textarea class="mort-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>`;
   memoRow.innerHTML = `
     <td colspan="4" class="no-bg">
-      <input type="text" class="mort-memo" placeholder="메모 입력" lang="ko" inputmode="text" autocomplete="off">
+      <div class="mortgage-memo-row-inner">
+        ${reductionButtonMarkup}
+        ${needDateMarkup}
+        ${memoTextareaMarkup}
+      </div>
     </td>
   `;
   tbody.appendChild(memoRow);
+
+  const reductionBtn = memoRow.querySelector('.mort-reduction-btn');
+  if (reductionBtn) {
+    reductionBtn.addEventListener('click', () => openDebtReductionRecommendation(reductionBtn));
+    reductionBtn.textContent = '추가가능';
+  }
 
   bindMortgageRowEvents(newRow);
   if (isFirstRow) {
@@ -759,6 +1168,7 @@ function 주담대행추가() {
   adjustTableFontSize();
   fitAllNumericInputFontSizes();
   if (typeof 자동계산 === 'function') 자동계산();
+  updateMortgageReductionButtons();
 }
 
 const DEFAULT_LOAN_RATE_TABLE = [
@@ -782,6 +1192,26 @@ function parseAgeInputValue(rawStr) {
   if (rawStr.length === 2) return parseInt(rawStr);
   if (rawStr.length === 4) return new Date().getFullYear() - parseInt(rawStr);
   return -1;
+}
+
+// 장래예상효율 구간의 경계 나이는 생일 전후로 적용 요율이 달라질 수 있으므로 안내한다.
+let lastAgeBoundaryWarningKey = '';
+function warnAgeBoundaryIfNeeded(age, rawAge, shouldWarn) {
+  if (!shouldWarn || !Number.isFinite(age) || age < 0) {
+    lastAgeBoundaryWarningKey = '';
+    return;
+  }
+  // 효율표의 구간 경계: 24↔25, 29↔30, 34↔35, 39↔40
+  // 사용자 설정표가 일부 저장되어 있어도 안내가 빠지 않도록 명시적으로 검사한다.
+  const rateBoundaryAges = new Set([24, 25, 29, 30, 34, 35, 39, 40]);
+  const isBoundary = rateBoundaryAges.has(age) || LOAN_RATE_TABLE.some(item => age === item.minAge || age === item.maxAge);
+  const warningKey = isBoundary ? `${rawAge}:${age}` : '';
+  if (warningKey && warningKey !== lastAgeBoundaryWarningKey) {
+    lastAgeBoundaryWarningKey = warningKey;
+    showBubble('생일 꼭 확인!');
+  } else if (!warningKey) {
+    lastAgeBoundaryWarningKey = '';
+  }
 }
 
 const baseIncomeInput = document.getElementById("baseIncomeInput");
@@ -809,6 +1239,7 @@ function updateIncomeCalc() {
         calculatedAge = parseAgeInputValue(rawInputStr);
 
         if (calculatedAge >= 0) {
+            warnAgeBoundaryIfNeeded(calculatedAge, rawInputStr, isChecked);
             const matched = LOAN_RATE_TABLE.find(item => calculatedAge >= item.minAge && calculatedAge <= item.maxAge);
             if (matched) {
                 currentRate = matched.percent / 100.0;
@@ -820,6 +1251,9 @@ function updateIncomeCalc() {
     }
 
     rateDisplay.innerText = `(${percentStr})`;
+
+    const applyRateBtn = document.getElementById('applyRateBtn');
+    if (applyRateBtn) applyRateBtn.classList.toggle('active', applyRateCheck.checked);
 
     let finalVal = memoBaseIncome;
     if (isChecked && currentRate !== 1.0) {
@@ -843,7 +1277,7 @@ function updateIncomeCalc() {
     if (!isEditingIncome) {
         baseIncomeInput.value = memoBaseIncome > 0 ? Math.floor(memoBaseIncome).toLocaleString() : "";
     }
-    
+
     if (typeof 자동계산 === 'function') 자동계산();
 }
 
@@ -885,19 +1319,7 @@ if (baseIncomeInput) {
       memoBaseIncome = v ? parseFloat(v) : 0;
       memoBaseIncomeDirect = memoBaseIncome;
       e.target.value = v ? memoBaseIncome.toLocaleString() : '';
-      
-      let tempRate = 1.0;
-      if (applyRateCheck && applyRateCheck.checked && ageInput && ageInput.value !== '') {
-          const tempAge = parseAgeInputValue(ageInput.value);
-
-          if (tempAge >= 0) {
-              const matched = LOAN_RATE_TABLE.find(item => tempAge >= item.minAge && tempAge <= item.maxAge);
-              if (matched) tempRate = matched.percent / 100.0;
-          }
-      }
-      const tempFinal = memoBaseIncome * tempRate;
-      if (hiddenIncomeInput) hiddenIncomeInput.value = tempFinal > 0 ? Math.floor(tempFinal).toLocaleString() : "";
-      if (typeof 자동계산 === 'function') 자동계산();
+      updateIncomeCalc();
   });
 }
 
@@ -1130,43 +1552,6 @@ setupIncomeTitleBubble(
   }
 );
 
-/* "소득 추가" 버튼 옆에서 증빙/카드 중 어떤 종류로 새 행을 만들지 먼저 고르는 버블.
-   행 생성 전에 뜨는 버블이라 기존 declare-type-bubble-list를 그대로 재사용하되,
-   기존 행에 딸린 라디오 상태와는 무관하게 독립적으로 동작한다. */
-const incomeAddTypeBubbleList = document.getElementById('incomeAddTypeBubbleList');
-let openIncomeAddTypeBubble = null;
-if (incomeAddTypeBubbleList) {
-  document.body.appendChild(incomeAddTypeBubbleList);
-
-  const positionAddBubble = (triggerEl) => {
-    const rect = triggerEl.getBoundingClientRect();
-    incomeAddTypeBubbleList.style.left = (rect.right + 10) + 'px';
-    incomeAddTypeBubbleList.style.top = (rect.top + rect.height / 2 - incomeAddTypeBubbleList.offsetHeight / 2) + 'px';
-  };
-  const closeAddBubble = () => incomeAddTypeBubbleList.classList.remove('open');
-
-  openIncomeAddTypeBubble = (triggerEl) => {
-    incomeAddTypeBubbleList.classList.add('open');
-    positionAddBubble(triggerEl);
-  };
-
-  incomeAddTypeBubbleList.querySelectorAll('.declare-type-bubble-item').forEach(item => {
-    const value = item.dataset.value;
-    item.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      closeAddBubble();
-      소득행추가(undefined, false, value);
-    });
-  });
-
-  document.addEventListener('click', (e) => {
-    const btn = document.querySelector('.income-add-btn');
-    if (e.target === btn || incomeAddTypeBubbleList.contains(e.target)) return;
-    closeAddBubble();
-  });
-  document.body.addEventListener('scroll', closeAddBubble, { passive: true });
-}
-
 if (baseDeclareAmountInput) {
   baseDeclareAmountInput.addEventListener("input", (e) => {
     const v = e.target.value.replace(/\D/g, '');
@@ -1243,16 +1628,16 @@ function buildIncomeRowHTML(index) {
             <input type="text" id="incomeInput_${index}" class="income-input" inputmode="numeric" placeholder="연소득 입력" autocomplete="off">
             <div class="future-income-row" id="futureIncomeRow_${index}">
               <span class="rate-toggle-row">
-                <span class="rate-toggle-text">
-                  <label for="applyRateCheck_${index}">장래예상</label>
+                <button type="button" id="applyRateBtn_${index}" class="mort-category-toggle rate-toggle-btn" onclick="document.getElementById('applyRateCheck_${index}').click()">
+                  <span class="rate-toggle-label">장래예상</span>
                   <span id="rateDisplay_${index}" class="rate-display" style="display:none;">(-)</span>
-                </span>
-                <input type="checkbox" id="applyRateCheck_${index}">
+                </button>
+                <input type="checkbox" id="applyRateCheck_${index}" style="display:none;">
               </span>
               <input type="number" id="ageInput_${index}" class="age-input" placeholder="32 or 1992" style="display:none;">
-              <span id="futureIncomeConverted_${index}" class="future-income-converted" style="display:none;"></span>
             </div>
           </div>
+          <span id="futureIncomeConverted_${index}" class="future-income-converted" style="display:none;"></span>
           <!-- 추정 모드: 연사용액 입력칸과 환산금액 칸을 합치지 않고, 증빙과 마찬가지로 가로로 나란히 배치 -->
           <div class="declare-cell-flex" id="declareCellFlex_${index}">
             <div class="declare-input-group" id="declareInputGroup_${index}" style="display:none;">
@@ -1269,7 +1654,7 @@ function buildIncomeRowHTML(index) {
       </tr>
       <tr class="income-memo-row">
         <td colspan="4">
-          <input type="text" id="incomeMemo_${index}" class="income-memo" placeholder="메모 입력" lang="ko" inputmode="text" autocomplete="off">
+          <textarea id="incomeMemo_${index}" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
         </td>
       </tr>`;
 }
@@ -1292,11 +1677,15 @@ function updateRowIncomeCalc(index) {
   if (!st || !els.incomeInput || !els.hiddenInput || !els.ageInput || !els.applyRateCheck || !els.rateDisplay) return;
   if (els.ageInput.value.length > 4) els.ageInput.value = els.ageInput.value.slice(0, 4);
   const age = parseAgeInputValue(els.ageInput.value);
+  const rateApplies = els.applyRateCheck.checked && st.mode !== '신고';
+  warnAgeBoundaryIfNeeded(age, els.ageInput.value, rateApplies);
   const matched = LOAN_RATE_TABLE.find(item => age >= item.minAge && age <= item.maxAge);
   const rate = matched ? matched.percent / 100 : 1;
   const isDeclareMode = st.mode === '신고';
-  const rateApplies = els.applyRateCheck.checked && !isDeclareMode; // 신고소득 모드에서는 장래예상 미적용
+  // rateApplies는 위에서 계산한 값과 동일하게 유지한다. 신고소득 모드에서는 장래예상을 적용하지 않는다.
   els.rateDisplay.innerText = `(${matched ? matched.percent + "%" : "-"})`;
+  const applyRateBtn = document.getElementById(`applyRateBtn_${index}`);
+  if (applyRateBtn) applyRateBtn.classList.toggle('active', els.applyRateCheck.checked);
   const finalVal = rateApplies ? st.memoIncome * rate : st.memoIncome;
   // 소득1이 건보/연금 추정소득이면 나머지 행 소득은 합산 대상에서 제외한다 (입력값 자체는 보존).
   els.hiddenInput.value = (!isOtherIncomeBlocked() && finalVal > 0) ? Math.floor(finalVal).toLocaleString() : "";
@@ -1484,12 +1873,15 @@ function relabelIncomeRows() {
 // isRestore: true면 새로고침 복원 과정이므로 선택 버블을 자동으로 띄우지 않는다.
 // presetType: 소득추가 버튼의 사전 선택 버블(증빙/카드)에서 이미 종류를 고르고 들어온 경우 - 행 생성 직후
 //             해당 종류를 바로 적용하고, 뒤이어 뜨는 증빙/카드/삭제 선택 버블은 띄우지 않는다.
-function 소득행추가(explicitIndex, isRestore, presetType) {
+function 소득행추가(explicitIndex) {
   const index = (typeof explicitIndex === 'number') ? explicitIndex : nextIncomeRowIndex++;
   if (index >= nextIncomeRowIndex) nextIncomeRowIndex = index + 1;
   const table = document.querySelector('.income-table');
   if (!table) return;
-  table.insertAdjacentHTML('beforeend', buildIncomeRowHTML(index));
+  // "소득 추가" 버튼 행(#incomeAddRow)이 항상 맨 아래에 있도록, 새 행은 그 버튼 행 바로 앞에 끼워 넣는다.
+  const addRow = document.getElementById('incomeAddRow');
+  if (addRow) addRow.insertAdjacentHTML('beforebegin', buildIncomeRowHTML(index));
+  else table.insertAdjacentHTML('beforeend', buildIncomeRowHTML(index));
   incomeRowState.set(index, {
     mode: '증빙',
     declareType: '카드',
@@ -1498,51 +1890,23 @@ function 소득행추가(explicitIndex, isRestore, presetType) {
     memoDeclareAmounts: { '카드': 0, '건강': 0, '연금': 0 },
     isEditing: false,
   });
-  const titleBubble = wireIncomeRow(index);
+  wireIncomeRow(index);
   applyIncomeRowMode(index);
   applyOtherRowsBlock();
   relabelIncomeRows();
   adjustTableFontSize();
   showBubble(`소득${index} 행이 추가되었습니다`);
-
-  if (presetType) {
-    const els = getRowEls(index);
-    if (presetType === '카드') {
-      // 종류(카드)를 먼저 반영해야, 뒤이어 모드를 "신고"로 바꿀 때 실행되는 라벨/제목 갱신 로직이
-      // 방금 고른 종류를 정확히 읽는다(순서가 바뀌면 이전 종류로 표시됨).
-      const typeRadio = [...els.typeRadios].find(r => r.value === '카드');
-      if (typeRadio && !typeRadio.checked) {
-        typeRadio.checked = true;
-        typeRadio.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-      const modeRadio = [...els.modeRadios].find(r => r.value === '신고');
-      if (modeRadio && !modeRadio.checked) {
-        modeRadio.checked = true;
-        modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    } else {
-      const modeRadio = [...els.modeRadios].find(r => r.value === '증빙');
-      if (modeRadio && !modeRadio.checked) {
-        modeRadio.checked = true;
-        modeRadio.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-  } else if (!isRestore && titleBubble) {
-    // 소득 추가 버튼을 눌러 새로 만든 행은 곧바로 증빙/카드/삭제 버블을 띄워 종류를 고르게 한다.
-    // setTimeout으로 다음 틱에 열어야, 지금 이 클릭 이벤트가 document까지 버블링되면서 바로 닫아버리는 것을 피할 수 있다.
-    setTimeout(() => titleBubble.openBubble(), 0);
-  }
   return index;
 }
 
 /* "소득 추가" 버튼: 1번 행이 건보/연금이면 합산 자체가 불가하므로 행을 만들지 않고 안내만 띄운다.
-   그 외(증빙/카드)에는 행을 만들기 전에 먼저 증빙/카드 중 어떤 종류로 추가할지 버블로 고르게 한다. */
+   그 외에는 증빙/카드를 고르는 버블 없이 바로 증빙 모드의 새 소득 행을 추가한다. */
 function handleAddIncomeClick(triggerEl) {
   if (isOtherIncomeBlocked()) {
     showBubble('건보 또는 연금은 소득합산 불가');
     return;
   }
-  if (typeof openIncomeAddTypeBubble === 'function') openIncomeAddTypeBubble(triggerEl);
+  소득행추가();
 }
 
 function 소득행삭제(index) {
@@ -1558,6 +1922,19 @@ function 소득행삭제(index) {
   if (typeof 자동계산 === 'function') 자동계산();
   showBubble('소득 행이 삭제되었습니다');
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
+}
+
+function resetExtraIncomeRowsForRestore() {
+  extraIncomeRowIndexes().forEach(idx => {
+    const els = getRowEls(idx);
+    const memoRow = els.row?.nextElementSibling;
+    if (memoRow && memoRow.classList.contains('income-memo-row')) memoRow.remove();
+    if (els.row) els.row.remove();
+    if (els.bubbleList) els.bubbleList.remove();
+  });
+  incomeRowState.clear();
+  nextIncomeRowIndex = 2;
+  otherRowsWereBlocked = false;
 }
 
 function populateDeclareRateEditFields() {
@@ -1588,7 +1965,7 @@ function saveDeclareIncomeRates() {
     DECLARE_INCOME_RATES[type].divisor = parsed[type].divisor;
     DECLARE_INCOME_RATES[type].multiplier = parsed[type].multiplier;
   });
-  localStorage.setItem("CUSTOM_DECLARE_INCOME_RATES", JSON.stringify(DECLARE_INCOME_RATES));
+  setStoredJson("CUSTOM_DECLARE_INCOME_RATES", DECLARE_INCOME_RATES);
   showBubble("신고소득 환산 요율 저장 완료");
   closeModal();
   if (baseIncomeMode === '신고') { memoBaseIncome = refreshBaseDeclareConverted(); updateIncomeCalc(); }
@@ -1728,7 +2105,7 @@ function 소득1초기화() {
   if (applyRateCheck) applyRateCheck.checked = false;
   if (ageInput) ageInput.value = "";
   const baseIncomeMemo = document.getElementById("baseIncomeMemo");
-  if (baseIncomeMemo) baseIncomeMemo.value = "";
+  if (baseIncomeMemo) { baseIncomeMemo.value = ""; autoResizeMemoTextarea(baseIncomeMemo); }
 
   // 신고소득(카드/건강/연금) 관련 상태 초기화
   memoBaseIncomeDirect = 0;
@@ -1779,20 +2156,23 @@ function 선택초기화() {
   if (firstRow) {
     const mortAmt = firstRow.querySelector('.mort-amt');
     if (mortAmt) mortAmt.value = '';
-    
+
     const rateInput = firstRow.querySelector('.mort-rate');
     if (rateInput) rateInput.value = savedDefaultFirstRowData?.rate || '';
-    
+
     const stRateInput = firstRow.querySelector('.mort-st-rate');
     if (stRateInput) stRateInput.value = savedDefaultFirstRowData?.stRate || '';
-    
+
     const termInput = firstRow.querySelector('.mort-term');
     if (termInput) termInput.value = savedDefaultFirstRowData?.term || '';
 
     const firstMemoRow = firstRow.nextElementSibling;
     if (firstMemoRow && firstMemoRow.classList.contains('mortgage-memo-row')) {
       const firstMemoInput = firstMemoRow.querySelector('.mort-memo');
-      if (firstMemoInput) firstMemoInput.value = '';
+      if (firstMemoInput) { firstMemoInput.value = ''; autoResizeMemoTextarea(firstMemoInput); }
+      // 본건 대출행의 필요일자도 함께 초기화한다 (메모 행이 있으면 그 안의 입력칸).
+      const firstNeedDateInput = firstMemoRow.querySelector('.mort-need-date');
+      if (firstNeedDateInput) firstNeedDateInput.value = '';
     }
 
     firstRow.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
@@ -1820,32 +2200,683 @@ function 선택초기화() {
     if (firstDefaultTypeBtn) firstDefaultTypeBtn.classList.add('active');
   }
 
-  document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
-    if (input.id) localStorage.removeItem(`DSR_${input.id}`);
-  });
-  document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
-    if (checkbox.id) localStorage.removeItem(`DSR_${checkbox.id}`);
-  });
-  localStorage.removeItem('DSR_radio_base_income_mode');
-  localStorage.removeItem('DSR_radio_base_declare_type');
-  // 소득2 이후 행(income_mode_N / declare_type_N / declareAmt_N_*)은 몇 개였는지 몰라도
-  // 접두어로 한 번에 훑어서 지운다.
+  // 현재 폼 데이터만 비우고, 저장 이력/신규 슬롯은 유지한다.
   Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('DSR_radio_income_mode_') || key.startsWith('DSR_radio_declare_type_') || key.startsWith('DSR_declareAmt_')) {
+    if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
       localStorage.removeItem(key);
     }
   });
-  localStorage.removeItem('DSR_incomeRowIndexes');
-  localStorage.removeItem('DSR_mortgageData');
-  localStorage.removeItem('DSR_selectedAptInfo');
   selectedAptInfo = null;
   renderSelectedAptRow();
 
+  // 고객정보 탭(연락처/고객명/중개업소/메모)도 같이 초기화
+  ['customerNameInput', 'customerPhoneInput', 'customerBrokerInput', 'customerInfoMemo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+
   updateIncomeCalc();
+  if (typeof openAllInfoTabs === 'function') openAllInfoTabs();
   showBubble("입력 내용이 초기화되었습니다.");
 }
 
+const DSR_HISTORY_KEY = 'DSR_HISTORY_ITEMS';
+const DSR_HISTORY_LIMIT = 30;
+
+function getDsrHistoryItems() {
+  try {
+    const raw = localStorage.getItem(DSR_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn('DSR 저장 이력 불러오기 실패:', e);
+    return [];
+  }
+}
+
+function getDsrStorageSnapshot() {
+  const snapshot = {};
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
+      snapshot[key] = localStorage.getItem(key);
+    }
+  });
+  return snapshot;
+}
+
+function clearDsrStorageSnapshot() {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+function restoreDsrSnapshot(snapshot = {}) {
+  const preserved = {};
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('DSR_HISTORY') || key.startsWith('DSR_SLOT_')) {
+      preserved[key] = localStorage.getItem(key);
+    }
+  });
+
+  clearDsrStorageSnapshot();
+
+  Object.entries(snapshot || {}).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) localStorage.setItem(key, value);
+  });
+
+  Object.entries(preserved).forEach(([key, value]) => {
+    localStorage.setItem(key, value);
+  });
+}
+
+function loadDsrSnapshotIntoForm(snapshot = {}) {
+  // 복원 전체 구간에서 자동저장을 잠근다 - 복원 중 발생하는 input/change 이벤트와
+  // 소득행추가()/주담대행추가() 내부 로직이 saveDSRInputs를 유발해,
+  // 아직 복원되지 않은 이전 화면 상태(특히 대출행)로 DSR_* 키를 덮어쓰는 것을 막는다.
+  const prevRestoreFlag = __dsrRestoring;
+  __dsrRestoring = true;
+  try {
+    resetExtraIncomeRowsForRestore();
+    restoreDsrSnapshot(snapshot || {});
+    loadDSRInputs();
+  } finally {
+    __dsrRestoring = prevRestoreFlag;
+  }
+
+  refreshRadioToggleStyles('#baseIncomeModeToggle');
+  refreshRadioToggleStyles('#baseDeclareTypeToggle');
+  if (typeof applyBaseIncomeMode === 'function') applyBaseIncomeMode();
+
+  extraIncomeRowIndexes().forEach(idx => {
+    if (typeof refreshRadioToggleStyles === 'function') {
+      refreshRadioToggleStyles(`#incomeModeToggle_${idx}`);
+      refreshRadioToggleStyles(`#declareTypeToggle_${idx}`);
+    }
+    if (typeof applyIncomeRowMode === 'function') applyIncomeRowMode(idx);
+  });
+
+  if (typeof updateIncomeCalc === 'function') updateIncomeCalc();
+  if (typeof applyOtherRowsBlock === 'function') applyOtherRowsBlock();
+  if (typeof 자동계산 === 'function') 자동계산();
+
+  if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+  if (typeof updateIncomeInfoSummary === 'function') updateIncomeInfoSummary();
+  if (typeof updatePropertyInfoSummary === 'function') updatePropertyInfoSummary();
+  if (typeof updateLoanInfoSummary === 'function') updateLoanInfoSummary();
+  if (typeof updateDsrInfoSummary === 'function') updateDsrInfoSummary();
+}
+
+function setRestoredInputValue(input, value, triggerEvent = true) {
+  if (!input) return;
+  input.value = value;
+  if (triggerEvent && typeof Event !== 'undefined') {
+    // 복원 중 발생하는 input 이벤트가 자동저장(saveDSRInputs)을 유발해
+    // 아직 복원되지 않은 이전 화면 상태로 저장 키를 덮어쓰지 않도록 잠글 때가 있다.
+    const prev = __dsrRestoring;
+    __dsrRestoring = true;
+    try {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } finally {
+      __dsrRestoring = prev;
+    }
+  }
+}
+
+function setRestoredCheckboxValue(checkbox, checked, triggerEvent = true) {
+  if (!checkbox) return;
+  checkbox.checked = checked;
+  if (triggerEvent && typeof Event !== 'undefined') {
+    const prev = __dsrRestoring;
+    __dsrRestoring = true;
+    try {
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    } finally {
+      __dsrRestoring = prev;
+    }
+  }
+}
+
+function normalizeDsrPhoneNumber(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function buildDsrSavedMemoText(storage = null) {
+  const readValue = (id, fallback = '') => {
+    if (storage && Object.prototype.hasOwnProperty.call(storage, `DSR_${id}`)) {
+      const value = storage[`DSR_${id}`];
+      return value === null || value === undefined ? fallback : String(value);
+    }
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    if (typeof el.value !== 'undefined') return String(el.value ?? '');
+    return String(el.textContent ?? '');
+  };
+
+  const selectedAptInfoSnapshot = storage && storage.DSR_selectedAptInfo
+    ? (() => {
+        try { return JSON.parse(storage.DSR_selectedAptInfo); } catch { return null; }
+      })()
+    : (selectedAptInfo || null);
+
+  const mortgageData = storage && storage.DSR_mortgageData
+    ? (() => {
+        try { return JSON.parse(storage.DSR_mortgageData) || []; } catch { return []; }
+      })()
+    : Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row')).map(row => ({
+        amount: row.querySelector('.mort-amt')?.value || '',
+        rate: row.querySelector('.mort-rate')?.value || '',
+        term: row.querySelector('.mort-term')?.value || '',
+        type: row.querySelector('.mort-type')?.value || '',
+        memo: row.nextElementSibling?.querySelector('.mort-memo')?.value || ''
+      }));
+
+  const firstRowData = mortgageData[0] || {};
+  const heldRows = Array.isArray(mortgageData) ? mortgageData.slice(1) : [];
+
+  const customerName = readValue('customerNameInput', '').trim() || '고객명 미입력';
+  const customerPhone = readValue('customerPhoneInput', '').trim() || '연락처 미입력';
+  const customerBroker = readValue('customerBrokerInput', '').trim() || '중개업소 미입력';
+  const customerMemo = readValue('customerInfoMemo', '').trim();
+  const propertyName = (selectedAptInfoSnapshot && selectedAptInfoSnapshot.aptName) || readValue('selectedAptInfoText', '').trim() || '아파트 미선택';
+  const kbPrice = readValue('ltvMarketPriceInput', '').trim() || '-';
+  const incomeMode = storage && storage.DSR_radio_base_income_mode ? storage.DSR_radio_base_income_mode : (baseIncomeMode || '증빙');
+  const incomeKind = incomeMode === '신고'
+    ? (storage && storage.DSR_radio_base_declare_type ? storage.DSR_radio_base_declare_type : (baseDeclareType || '신고'))
+    : '근로소득';
+  const incomeValue = readValue('baseIncomeInput', '').trim() || '-';
+  const incomeMemo = readValue('baseIncomeMemo', '').trim();
+
+  const firstAmt = firstRowData.amount || '-';
+  const firstRate = firstRowData.rate || '-';
+  const firstTerm = firstRowData.term || '-';
+  const firstType = firstRowData.type || '-';
+  const firstMemo = (firstRowData.memo || '').trim();
+
+  const heldStatus = heldRows.length
+    ? heldRows.map((row, idx) => `보유대출${idx + 1} [ ${row.amount || '-'}, ${row.rate || '-'}%, ${row.term || '-'}개월, ${row.type || '-'} ]`).join(' / ')
+    : '없음';
+  const heldMemo = heldRows.length
+    ? heldRows.map(row => String(row.memo || '')).filter(Boolean).join(' / ') || '없음'
+    : '없음';
+
+  return [
+    '♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️',
+    '',
+    `♦️ 고객정보 : ${customerName} [ ${customerPhone} ] ( ${customerBroker} )`,
+    customerMemo ? `♦️ 고객정보 메모 : ${customerMemo}` : '♦️ 고객정보 메모 : 없음',
+    '♦️',
+    `♦️ 물건지 정보 : [ ${propertyName}, ${kbPrice} ]`,
+    `♦️ 소득정보 : [ ${incomeKind} ] [ ${incomeValue} ]`,
+    incomeMemo ? `♦️ 소득 메모 : ${incomeMemo}` : '♦️ 소득 메모 : 없음',
+    '♦️',
+    `♦️ 신청금액 - 본건대출금 [ ${firstAmt}, ${firstRate}%, ${firstTerm}개월, ${firstType} ]`,
+    firstMemo ? `♦️ 신청금액 메모 : ${firstMemo}` : '♦️ 신청금액 메모 : 없음',
+    '♦️',
+    `♦️ 보유대출 - 보유대출 현황 [ ${heldStatus} ]`,
+    `♦️ 보유대출 메모 : ${heldMemo}`
+  ].join('\n');
+}
+
+function getDsrHistorySearchText() {
+  const values = [];
+
+  const idList = [
+    'customerNameInput', 'customerPhoneInput', 'customerBrokerInput', 'customerInfoMemo',
+    'ltvMarketPriceInput', 'ltvMinorLeaseInput', 'selectedAptInfoText', 'selectedAptAddressText',
+    'baseIncomeInput', 'baseIncomeMemo', 'baseDeclareAmountInput', 'baseDeclareConvertedOutput',
+    'ltvMaxAmountOutput', 'DSR확인', 'DIT확인', '신DTI확인', 'loanInfoSummary', 'dsrInfoSummary'
+  ];
+
+  idList.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== undefined) values.push(String(el.value || ''));
+    else if (el && el.textContent) values.push(String(el.textContent || ''));
+  });
+
+  document.querySelectorAll('input, textarea').forEach(el => {
+    if (el.id && !el.closest('#dsrHistoryModal')) {
+      const value = (el.type === 'checkbox' ? (el.checked ? 'checked' : '') : (el.value || ''));
+      if (value) values.push(String(value));
+    }
+  });
+
+  const selectedAptInfoText = document.getElementById('selectedAptInfoText');
+  if (selectedAptInfoText) values.push(selectedAptInfoText.textContent || '');
+
+  const selectedAptAddressText = document.getElementById('selectedAptAddressText');
+  if (selectedAptAddressText) values.push(selectedAptAddressText.textContent || '');
+
+  values.push(buildDsrSavedMemoText());
+
+  return values.join(' ');
+}
+
+function saveDsrHistoryItem() {
+  saveDSRInputs();
+  const history = getDsrHistoryItems();
+  const phoneInput = document.getElementById('customerPhoneInput');
+  const currentPhone = normalizeDsrPhoneNumber(phoneInput ? phoneInput.value : localStorage.getItem('DSR_customerPhoneInput'));
+
+  const item = {
+    savedAt: new Date().toISOString(),
+    // 스냅샷은 localStorage의 DSR_* 키 복사본인데, 결과값(DSR/DTI/신DTI, 최대금액)과 소득 요율 표시는
+    // 입력창이 아니라 화면 텍스트라 스냅샷에 없다. 저장 시점에 화면에서 읽어 함께 넣어둔다.
+    storage: (() => {
+      const snap = getDsrStorageSnapshot();
+      const rateEl = document.getElementById('rateDisplay');
+      snap.DSR_rateDisplay = rateEl ? rateEl.innerText.replace(/[()]/g, '') : '';
+      const extraIdx = (getStoredJson('DSR_incomeRowIndexes', []) || []);
+      extraIdx.forEach(idx => {
+        const el = document.getElementById(`rateDisplay_${idx}`);
+        snap[`DSR_rateDisplay_${idx}`] = el ? el.innerText.replace(/[()]/g, '') : '';
+      });
+      const readText = id => {
+        const el = document.getElementById(id);
+        return el ? (el.textContent || '').trim() : '';
+      };
+      snap.DSR_DSR확인 = readText('DSR확인');
+      snap.DSR_DIT확인 = readText('DIT확인');
+      snap.DSR_신DTI확인 = readText('신DTI확인');
+      const readMax = suffix => {
+        const el = document.querySelector(`[id^="DSR최대금액확인-${suffix}"] .dsr-main-val`);
+        return el ? el.textContent.trim() : '';
+      };
+      snap.DSR_dsrMax_원리금 = readMax('원리금');
+      snap.DSR_dsrMax_원금 = readMax('원금');
+      snap.DSR_hasHeldLoan = !!document.querySelector('#mortgage-inputs .mort-category-toggle.active');
+      const ltvRateChecked = document.querySelector('input[name="ltv_rate"]:checked');
+      snap.DSR_radio_ltv_rate = ltvRateChecked ? ltvRateChecked.value : '';
+      // 물건지정보 하단 잔금일자/메모는 저장 스냅샷에 자동 포함되지 않으므로 직접 담는다.
+      const settlementEl = document.getElementById('propertySettlementDate');
+      snap.DSR_propertySettlementDate = settlementEl ? settlementEl.value : '';
+      const propertyMemoEl = document.getElementById('propertyInfoMemo');
+      snap.DSR_propertyInfoMemo = propertyMemoEl ? propertyMemoEl.value : '';
+      return snap;
+    })(),
+    searchText: getDsrHistorySearchText()
+  };
+
+  if (currentPhone) {
+    const samePhoneIndex = history.findIndex(entry => {
+      const storedPhone = normalizeDsrPhoneNumber(entry.storage && entry.storage.DSR_customerPhoneInput);
+      return storedPhone && storedPhone === currentPhone;
+    });
+
+    if (samePhoneIndex >= 0) {
+      history.splice(samePhoneIndex, 1);
+    }
+  }
+
+  history.unshift(item);
+
+  const deduped = [];
+  const seenPhones = new Set();
+  history.forEach(entry => {
+    const phone = normalizeDsrPhoneNumber(entry.storage && entry.storage.DSR_customerPhoneInput);
+    if (phone && seenPhones.has(phone)) {
+      return;
+    }
+    if (phone) {
+      seenPhones.add(phone);
+    }
+    deduped.push(entry);
+  });
+
+  const trimmed = deduped.slice(0, DSR_HISTORY_LIMIT);
+  localStorage.setItem(DSR_HISTORY_KEY, JSON.stringify(trimmed));
+  showBubble('현재 입력 내용을 저장했습니다.');
+}
+
+/* ------------------- 저장 목록 카드 렌더링 (예제 양식 적용) ------------------- */
+function dsrHistGet(storage, id) {
+  const v = storage[`DSR_${id}`];
+  return v === undefined || v === null ? '' : String(v);
+}
+function dsrHistFmtMoney(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  if (/^-?[\d,]+$/.test(s)) {
+    const numeric = Number(s.replace(/,/g, ''));
+    return Number.isFinite(numeric) ? `${numeric.toLocaleString('ko-KR')}원` : s;
+  }
+  return s;
+}
+/* 화면 표시용 금액(예: "5억 9,500만", "595,000,000")에서 숫자만 추출 */
+function dsrHistNum(v) {
+  if (v === null || v === undefined) return NaN;
+  const s = String(v).replace(/[^0-9]/g, '');
+  return s ? Number(s) : NaN;
+}
+/* [LTV비율 - 소액임차] 계산값: 시세 × 비율 − 소액임차(있을 때만). 시세가 없으면 화면의 LTV 최대한도 값을 그대로 쓴다. */
+function dsrHistLtvCalc(storage) {
+  const price = dsrHistNum(storage.DSR_ltvMarketPriceInput);
+  const rate = Number(dsrHistGet(storage, 'radio_ltv_rate') || '70');
+  const minor = dsrHistNum(storage.DSR_ltvMinorLeaseInput);
+  if (Number.isFinite(price) && price > 0) {
+    let val = price * rate / 100;
+    if (Number.isFinite(minor) && minor > 0) val -= minor;
+    return `${Math.round(val).toLocaleString('ko-KR')}원`;
+  }
+  return dsrHistFmtMoney(storage.DSR_ltvMaxAmountOutput);
+}
+function dsrHistRow(label, value, muted) {
+  const v = String(value || '').trim() || '미입력';
+  return `<div class="dsr-h-row"><span class="dsr-h-lbl">${label}</span><span class="dsr-h-val${muted ? ' muted' : ''}">${escapeHtml(v)}</span></div>`;
+}
+function dsrHistIncomeBlock(storage, idx) {
+  const p = idx === 1 ? '' : `_${idx}`;
+  const mode = dsrHistGet(storage, idx === 1 ? 'radio_base_income_mode' : `radio_income_mode_${idx}`) || '증빙';
+  const dtype = dsrHistGet(storage, idx === 1 ? 'radio_base_declare_type' : `radio_declare_type_${idx}`) || '카드';
+  const isDeclare = mode === '신고';
+  const rawAmount = isDeclare
+    ? dsrHistGet(storage, idx === 1 ? 'baseDeclareConvertedOutput' : `declareConvertedOutput${p}`)
+    : dsrHistGet(storage, idx === 1 ? 'baseIncomeInput' : `incomeInput${p}`);
+  const amount = dsrHistFmtMoney(rawAmount);
+  const future = dsrHistGet(storage, idx === 1 ? 'applyRateCheck' : `applyRateCheck${p}`) === 'true';
+  const age = dsrHistGet(storage, idx === 1 ? 'ageInput' : `ageInput${p}`).trim();
+  // 저장된 요율은 "(5.5%)" 또는 "5.5%" 형태일 수 있으므로 %/괄호를 제거한 뒤 한 번만 붙인다.
+  const rate = dsrHistGet(storage, idx === 1 ? 'rateDisplay' : `rateDisplay${p}`)
+    .replace(/[()%]/g, '')
+    .trim();
+  const memo = dsrHistGet(storage, idx === 1 ? 'baseIncomeMemo' : `incomeMemo${p}`).trim();
+  const futureConverted = dsrHistGet(storage, idx === 1 ? 'computedIncomeHidden' : `computedIncomeHidden${p}`).trim();
+  const label = isDeclare ? `소득${idx} (추정 - ${dtype})` : `소득${idx} (증빙)`;
+  let html = '<div class="dsr-h-income-block">';
+  html += `<div class="dsr-h-row"><span class="dsr-h-lbl">${label}</span><span class="dsr-h-val">${escapeHtml(amount || '미입력')} ${future ? '<span class="badge future">장래예상</span>' : ''}</span></div>`;
+  if (future && (age || rate)) {
+    html += `<div class="dsr-h-row"><span class="dsr-h-lbl">나이 / 요율</span><span class="dsr-h-val">${escapeHtml([age ? `${age}세` : '', rate ? `${rate}%` : ''].filter(Boolean).join(' · ') || '미입력')}</span></div>`;
+  }
+  if (future && (futureConverted || rawAmount)) {
+    // 내부 장래예상효율은 118.41%처럼 "최종 적용 배율"로 저장되어 있다.
+    // 따라서 75,000,000 × (118.41 / 100)으로 계산해야 하며, 1을 더하면 안 된다.
+    const incomeNumber = Number(String(rawAmount || '').replace(/[^0-9.-]/g, ''));
+    let rateNumber = Number(String(rate || '').replace(/[^0-9.-]/g, ''));
+    // 예전 저장분에 요율이 없으면 저장된 나이로 내부 요율표에서 다시 찾는다.
+    if (!Number.isFinite(rateNumber)) {
+      const savedAgeRaw = age.replace(/[^0-9]/g, '');
+      const savedAge = parseAgeInputValue(savedAgeRaw);
+      const matchedRate = LOAN_RATE_TABLE.find(item => savedAge >= item.minAge && savedAge <= item.maxAge);
+      if (matchedRate) rateNumber = Number(matchedRate.percent);
+    }
+    const calculatedFutureIncome = Number.isFinite(incomeNumber) && incomeNumber > 0 && Number.isFinite(rateNumber)
+      ? Math.round(incomeNumber * rateNumber / 100)
+      : dsrHistNum(futureConverted);
+    const appliedVal = calculatedFutureIncome > 0
+      ? dsrHistFmtMoney(String(calculatedFutureIncome))
+      : dsrHistFmtMoney(futureConverted || rawAmount);
+    html += `<div class="dsr-h-row"><span class="dsr-h-lbl">장래예상적용</span><span class="dsr-h-val dsr-h-future-val">${escapeHtml(appliedVal)}</span></div>`;
+  }
+  if (memo) html += `<div class="dsr-h-memo">${escapeHtml(memo)}</div>`;
+  html += '</div>';
+  return html;
+}
+function dsrHistLoanBlock(rows, idx) {
+  const row = rows[idx];
+  if (!row) return '';
+  const tag = idx === 0 ? '본건' : `보유${idx}`;
+  const bits = [];
+  if (row.amount) bits.push(dsrHistFmtMoney(row.amount));
+  if (row.rate) bits.push(`${row.rate}%`);
+  if (row.term) bits.push(`${row.term}개월`);
+  if (row.repaymentType) bits.push(row.repaymentType);
+  if (row.loanCategory && row.loanCategory !== '신용') bits.push(row.loanCategory);
+  if (row.graceCheck && row.graceTerm) bits.push(`거치 ${row.graceTerm}개월`);
+  const excludeBadge = row.exclude ? ' <span class="badge danger">계산제외</span>' : '';
+  let html = '<div class="dsr-h-loan-block">';
+  html += `<div class="dsr-h-loan-row"><span class="dsr-h-tag${idx === 0 ? ' primary' : ''}">${tag}</span><span>${escapeHtml(bits.join(' · ') || '내용 없음')}${excludeBadge}</span></div>`;
+  if (row.memo) html += `<div class="dsr-h-memo">${escapeHtml(row.memo)}</div>`;
+  html += '</div>';
+  return html;
+}
+/* ------------------- 저장 카드 글자 자동 축소 (줄바꿈 없이 폭에 맞춤) ------------------- */
+function fitDsrHistoryRows() {
+  // 펼쳐진(보이는) 카드의 행만 측정 가능하므로, 렌더 직후에는 열려 있는 카드만 맞추고
+  // 나머지는 제목줄 클릭으로 펼쳐질 때 다시 맞춘다.
+  document.querySelectorAll('.dsr-history-item.open').forEach(itemEl => {
+    itemEl.querySelectorAll('.dsr-h-row, .dsr-history-item-title').forEach(row => {
+      // 축소 적용 전에 초기화해야 다시 측정할 때 정확하다
+      row.style.fontSize = '';
+      row.querySelectorAll('.dsr-h-sub').forEach(el => el.style.fontSize = '');
+      // 실제 가용 폭은 각 행의 부모(중첩 블록이면 그 블록) 기준으로 잰다
+      const availW = row.parentElement ? row.parentElement.clientWidth : 0;
+      if (!availW || row.scrollWidth <= availW) return;
+      let size = parseFloat(getComputedStyle(row).fontSize);
+      while (size > 7 && row.scrollWidth > availW) {
+        size -= 0.5;
+        row.style.fontSize = size + 'px';
+        // 괄호 보조값은 본문보다 작게 유지
+        row.querySelectorAll('.dsr-h-sub').forEach(el => el.style.fontSize = (size - 1) + 'px');
+      }
+    });
+  });
+}
+
+/* 창 크기가 바뀌면 열려 있는 카드 글자 크기를 다시 맞춘다 */
+window.addEventListener('resize', fitDsrHistoryRows);
+
+function renderDsrHistoryList(filterText = '') {
+  const listEl = document.getElementById('dsrHistoryList');
+  if (!listEl) return;
+  const items = getDsrHistoryItems();
+  const normalized = (filterText || '').trim().toLowerCase();
+  const filtered = normalized
+    ? items.filter(item => (item.searchText || '').toLowerCase().includes(normalized))
+    : items;
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="dsr-history-empty">저장된 항목이 없습니다. 현재 입력값을 저장하면 여기에 표시됩니다.</div>';
+    return;
+  }
+  listEl.innerHTML = filtered.map((item, index) => {
+    const storage = item.storage || {};
+    const name = escapeHtml(storage.DSR_customerNameInput || '미입력');
+    const phone = escapeHtml(storage.DSR_customerPhoneInput || '연락처 없음');
+    const date = new Date(item.savedAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+    /* --- 고객정보 --- */
+    let secCustomer = '';
+    secCustomer += dsrHistRow('이름', storage.DSR_customerNameInput || '');
+    secCustomer += dsrHistRow('연락처', storage.DSR_customerPhoneInput || '');
+    secCustomer += dsrHistRow('중개업소', storage.DSR_customerBrokerInput || '');
+    secCustomer += dsrHistRow('메모', storage.DSR_customerInfoMemo || '');
+
+    /* --- 물건지정보 --- */
+    let apt = null;
+    try { apt = JSON.parse(storage.DSR_selectedAptInfo || 'null'); } catch (e) { apt = null; }
+    let secProperty = '';
+    if (apt && (apt.aptName || apt.address)) {
+      const aptBits = [apt.aptName].filter(Boolean);
+      if (apt.exclusiveSqm) aptBits.push(`${apt.exclusiveSqm}㎡`);
+      else if (apt.pyeong) aptBits.push(`${apt.pyeong}평`);
+      else if (apt.supplyPyeong) aptBits.push(`공급 ${apt.supplyPyeong}평`);
+      // 둘 다 해당되면 투기과열만 표시하고, 조정지역만이면 규제 뱃지는 숨긴다.
+      const regBadges = (apt.투기과열지구 ? ' <span class="badge danger">투기과열</span>' : '');
+      // 뱃지는 HTML이므로 텍스트 부분만 이스케이프하고 뱃지는 그대로 넣는다 (dsrHistRow를 쓰면 뱃지가 이스케이프돼 태그가 그대로 보이는 문제)
+      secProperty += `<div class="dsr-h-row"><span class="dsr-h-lbl">단지</span><span class="dsr-h-val">${escapeHtml(aptBits.join(' '))}${regBadges}</span></div>`;
+      // 주소 뒤에 콤마를 붙인 뒤 동호수를 붙인다. 예: "팔달구 인계로 20, 100동 200호"
+      if (apt.address) {
+        let addrLine = String(apt.address || '').trim();
+        const dong = String(apt.dong || '').trim();
+        const ho = String(apt.ho || '').trim();
+        const dongHo = [dong ? `${/\d$/.test(dong) ? dong + '동' : dong}` : '', ho ? `${/\d$/.test(ho) ? ho + '호' : ho}` : ''].filter(Boolean).join(' ');
+        if (dongHo) addrLine = (addrLine ? `${addrLine}, ` : '') + dongHo;
+        secProperty += dsrHistRow('주소', addrLine);
+      }
+    }
+    secProperty += dsrHistRow('KB시세', dsrHistFmtMoney(storage.DSR_ltvMarketPriceInput));
+    /* LTV 행: 라벨은 비율만(LTV 70%), 값은 [LTV비율 - 소액임차] 계산 금액 */
+    const ltvRate = dsrHistGet(storage, 'radio_ltv_rate') || '70';
+    const ltvCalcVal = dsrHistLtvCalc(storage);
+    secProperty += dsrHistRow(`LTV ${ltvRate}%`, ltvCalcVal);
+    let mortgageRows = [];
+    try { mortgageRows = JSON.parse(storage.DSR_mortgageData || '[]') || []; } catch (e) { mortgageRows = []; }
+    const firstMortAmt = dsrHistFmtMoney((mortgageRows[0] || {}).amount || '');
+    /* 본건신청금액 옆 괄호: [LTV비율 - 소액임차] 계산값 */
+    const ltvMaxParen = ltvCalcVal
+      ? ` <span class="dsr-h-sub">( ${ltvCalcVal} )</span>` : '';
+    secProperty += `<div class="dsr-h-row"><span class="dsr-h-lbl">본건신청금액</span><span class="dsr-h-val">${escapeHtml(firstMortAmt || '미입력')}${ltvMaxParen}</span></div>`;
+    secProperty += dsrHistRow('잔금일자', storage.DSR_propertySettlementDate || '');
+    secProperty += dsrHistRow('메모', storage.DSR_propertyInfoMemo || '');
+
+
+    /* --- 소득정보 --- */
+    let extraIdx = [];
+    try { extraIdx = JSON.parse(storage.DSR_incomeRowIndexes || '[]') || []; } catch (e) { extraIdx = []; }
+    const totalIncome = dsrHistFmtMoney(storage.DSR_totalIncomeOutput);
+    let secIncome = dsrHistIncomeBlock(storage, 1);
+    extraIdx.forEach(idx => { secIncome += dsrHistIncomeBlock(storage, idx); });
+
+    /* --- 대출정보 (제목줄에 DSR/DTI/신DTI) --- */
+    const dsrVal = (storage.DSR_DSR확인 || '').trim();
+    const dtiVal = (storage.DSR_DIT확인 || '').trim();
+    const newDtiVal = (storage.DSR_신DTI확인 || '').trim();
+    const heldLoanCount = mortgageRows.filter(r => r.loanCategory === '주담대').length;
+    const loanHeaderParts = [];
+    if (dsrVal && dsrVal !== '-') loanHeaderParts.push(`DSR ${dsrVal}`);
+    if (dtiVal && dtiVal !== '-') loanHeaderParts.push(`DTI ${dtiVal}`);
+    if (heldLoanCount > 0 && newDtiVal && newDtiVal !== '-') loanHeaderParts.push(`신DTI ${newDtiVal}`);
+    const loanHeader = loanHeaderParts.length
+      ? `<span class="dsr-h-sec-h-right">${escapeHtml(loanHeaderParts.join(' | '))}</span>` : '';
+    let secLoan = '';
+    if (mortgageRows.length) {
+      mortgageRows.forEach((row, i) => { secLoan += dsrHistLoanBlock(mortgageRows, i); });
+    } else {
+      secLoan += dsrHistRow('대출', '', true);
+    }
+
+    /* --- 결과 --- */
+    let secResult = '<div class="dsr-h-kpi-row">';
+    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">DSR</div><div class="dsr-h-v">${escapeHtml(dsrVal || '-')}</div></div>`;
+    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">DTI</div><div class="dsr-h-v">${escapeHtml(dtiVal || '-')}</div></div>`;
+    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">신DTI</div><div class="dsr-h-v">${escapeHtml(newDtiVal || '-')}</div></div>`;
+    secResult += '</div>';
+    secResult += '<div class="dsr-h-kpi-row" style="margin-top:6px;">';
+    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">최대 원리금</div><div class="dsr-h-v">${escapeHtml(storage.DSR_dsrMax_원리금 || '-')}</div></div>`;
+    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">최대 원금</div><div class="dsr-h-v">${escapeHtml(storage.DSR_dsrMax_원금 || '-')}</div></div>`;
+    secResult += '</div>';
+
+    return `
+      <div class="dsr-history-item" data-index="${index}">
+        <div class="dsr-history-item-meta">
+          <span>${date}</span>
+          <button type="button" class="dsr-history-load-btn" data-index="${index}">불러오기</button>
+        </div>
+        <div class="dsr-history-item-title dsr-history-toggle">
+          <span><span class="name">${name}</span><span class="dsr-history-item-phone"> ( ${phone} )</span></span>
+          <span class="dsr-h-caret-wrap"><span class="dsr-h-caret-label">펼치기</span><span class="dsr-h-caret">▾</span></span>
+        </div>
+        <div class="dsr-history-body">
+          <div class="dsr-h-sec">
+            <div class="dsr-h-sec-h">👤 고객정보</div>
+            <div class="dsr-h-sec-rows">${secCustomer}</div>
+          </div>
+          <div class="dsr-h-sec">
+            <div class="dsr-h-sec-h">🏢 물건지정보</div>
+            <div class="dsr-h-sec-rows">${secProperty}</div>
+          </div>
+          <div class="dsr-h-sec">
+            <div class="dsr-h-sec-h">💰 소득정보${totalIncome ? `<span class="dsr-h-sec-h-right">합산 ${totalIncome}</span>` : ''}</div>
+            <div class="dsr-h-sec-rows">${secIncome}</div>
+          </div>
+          <div class="dsr-h-sec">
+            <div class="dsr-h-sec-h">🏦 대출정보${loanHeader}</div>
+            <div class="dsr-h-sec-rows">${secLoan}</div>
+          </div>
+          <div class="dsr-h-sec">
+            <div class="dsr-h-sec-h">📊 결과</div>
+            <div class="dsr-h-sec-rows">${secResult}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  // 제목줄(이름/연락처) 클릭 → 내용 펼침/접힘 + 라벨 토글
+  listEl.querySelectorAll('.dsr-history-toggle').forEach(toggleEl => {
+    toggleEl.addEventListener('click', () => {
+      const itemEl = toggleEl.closest('.dsr-history-item');
+      const isOpen = itemEl.classList.toggle('open');
+      const labelEl = toggleEl.querySelector('.dsr-h-caret-label');
+      if (labelEl) labelEl.textContent = isOpen ? '접기' : '펼치기';
+      if (isOpen) requestAnimationFrame(fitDsrHistoryRows);
+    });
+  });
+  // 이미 펼쳐져 있는 카드는 화면 폭에 맞게 글자를 축소한다
+  requestAnimationFrame(fitDsrHistoryRows);
+  // 불러오기 버튼 → 저장값 복원 (기존 동작 유지)
+  listEl.querySelectorAll('.dsr-history-load-btn').forEach(loadBtn => {
+    loadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = Number(loadBtn.dataset.index);
+      const itemsAfterFilter = normalized ? filtered : getDsrHistoryItems();
+      const snapshot = itemsAfterFilter[idx];
+      if (!snapshot) return;
+      loadDsrSnapshotIntoForm(snapshot.storage || {});
+      if (typeof openAllInfoTabs === 'function') openAllInfoTabs();
+      showBubble('저장된 내용을 불러왔습니다.');
+      closeDsrHistoryModal();
+    });
+  });
+}
+
+function openDsrHistoryModal() {
+  const modal = document.getElementById('dsrHistoryModal');
+  if (!modal) return;
+  renderDsrHistoryList();
+  modal.style.display = 'flex';
+}
+
+function closeDsrHistoryModal() {
+  const modal = document.getElementById('dsrHistoryModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function initDsrHistoryModal() {
+  const saveBtn = document.getElementById('dsrSaveBtn');
+  const loadBtn = document.getElementById('dsrLoadBtn');
+  const closeBtn = document.getElementById('closeDsrHistoryBtn');
+  const searchInput = document.getElementById('dsrHistorySearch');
+  const clearBtn = document.getElementById('clearDsrHistorySearchBtn');
+
+  if (saveBtn) saveBtn.addEventListener('click', saveDsrHistoryItem);
+  if (loadBtn) loadBtn.addEventListener('click', openDsrHistoryModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeDsrHistoryModal);
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      renderDsrHistoryList(this.value);
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      if (searchInput) {
+        searchInput.value = '';
+        renderDsrHistoryList('');
+      }
+    });
+  }
+  const modal = document.getElementById('dsrHistoryModal');
+  if (modal) {
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) closeDsrHistoryModal();
+    });
+  }
+}
+
 function saveDSRInputs() {
+  // 복원(불러오기) 중에는 자동저장 금지 - 복원 이벤트로 인해 이전 화면 상태가
+  // 저장 키를 덮어써 불러온 스냅샷이 파괴되는 것을 방지한다.
+  if (__dsrRestoring) return;
   localStorage.setItem('DSR_selectedAptInfo', selectedAptInfo ? JSON.stringify(selectedAptInfo) : '');
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) localStorage.setItem(`DSR_${input.id}`, input.value);
@@ -1870,7 +2901,7 @@ function saveDSRInputs() {
     saveRadioAndAmounts(`income_mode_${idx}`, `declare_type_${idx}`, String(idx), incomeRowState.get(idx).memoDeclareAmounts);
   });
   // 새로고침 시 어떤 인덱스의 소득 행을 다시 만들어야 하는지 저장 (개별 삭제로 인덱스에 구멍이 생길 수 있어 개수 대신 목록으로 저장)
-  localStorage.setItem('DSR_incomeRowIndexes', JSON.stringify(extraIdx));
+  setStoredJson('DSR_incomeRowIndexes', extraIdx);
   saveMortgageRows();
 }
 
@@ -1891,34 +2922,34 @@ function saveMortgageRows() {
       graceTerm: row.querySelector('.mort-grace-term')?.value || '',
       memo: row.nextElementSibling?.classList.contains('mortgage-memo-row')
         ? (row.nextElementSibling.querySelector('.mort-memo')?.value || '')
+        : '',
+      needDate: row.nextElementSibling?.classList.contains('mortgage-memo-row')
+        ? (row.nextElementSibling.querySelector('.mort-need-date')?.value || '')
         : ''
     };
     mortgageData.push(rowData);
   });
   
-  localStorage.setItem('DSR_mortgageData', JSON.stringify(mortgageData));
+  setStoredJson('DSR_mortgageData', mortgageData);
 }
 
 function loadDSRInputs() {
-  try {
-    const savedAptInfo = localStorage.getItem('DSR_selectedAptInfo');
-    selectedAptInfo = savedAptInfo ? JSON.parse(savedAptInfo) : null;
-  } catch (e) {
-    selectedAptInfo = null;
-  }
+  selectedAptInfo = getStoredJson('DSR_selectedAptInfo', null);
   renderSelectedAptRow();
+
+  // 불러오기/복원 시 기존에 화면에 남아있던 소득 추가행이 다시 쌓이지 않도록 먼저 정리한다.
+  resetExtraIncomeRowsForRestore();
 
   // "소득 추가"로 늘어났던 행들을 먼저 원래 인덱스 그대로 다시 만들어둬야, 그 안의 입력값들이
   // 아래 일반 복원 루프(TEXT_NUMBER_INPUT_SELECTOR)에서 정상적으로 걸린다.
-  let savedIndexes = [];
-  try { savedIndexes = JSON.parse(localStorage.getItem('DSR_incomeRowIndexes') || '[]'); } catch (e) { savedIndexes = []; }
-  savedIndexes.forEach(idx => 소득행추가(idx, true));
+  getStoredJson('DSR_incomeRowIndexes', []).forEach(idx => 소득행추가(idx));
 
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) {
       const savedValue = localStorage.getItem(`DSR_${input.id}`);
       if (savedValue !== null) {
-        input.value = savedValue;
+        setRestoredInputValue(input, savedValue);
+        if (input.tagName === 'TEXTAREA') autoResizeMemoTextarea(input);
         if (input.id === 'baseIncomeInput') {
           memoBaseIncome = parseFloat(savedValue.replace(/\D/g, '')) || 0;
           memoBaseIncomeDirect = memoBaseIncome; // applyBaseIncomeMode()가 증빙 모드로 되돌릴 때 이 값을 기준으로 삼음
@@ -1941,7 +2972,7 @@ function loadDSRInputs() {
     if (checkbox.id) {
       const savedValue = localStorage.getItem(`DSR_${checkbox.id}`);
       if (savedValue !== null) {
-        checkbox.checked = savedValue === 'true';
+        setRestoredCheckboxValue(checkbox, savedValue === 'true');
       }
     }
   });
@@ -1951,12 +2982,12 @@ function loadDSRInputs() {
     const savedMode = localStorage.getItem(`DSR_radio_${modeName}`);
     if (savedMode !== null) {
       const radio = document.querySelector(`input[name="${modeName}"][value="${savedMode}"]`);
-      if (radio) radio.checked = true;
+      if (radio) setRestoredCheckboxValue(radio, true, true);
     }
     const savedType = localStorage.getItem(`DSR_radio_${typeName}`);
     if (savedType !== null) {
       const radio = document.querySelector(`input[name="${typeName}"][value="${savedType}"]`);
-      if (radio) radio.checked = true;
+      if (radio) setRestoredCheckboxValue(radio, true, true);
     }
     ['카드', '건강', '연금'].forEach(type => {
       const saved = localStorage.getItem(`DSR_declareAmt_${amountKey}_${type}`);
@@ -1972,11 +3003,39 @@ function loadDSRInputs() {
     (v) => { baseIncomeMode = v; }, (v) => { baseDeclareType = v; });
   extraIncomeRowIndexes().forEach(idx => {
     const st = incomeRowState.get(idx);
+    if (!st) return;
     restoreRadioAndAmounts(`income_mode_${idx}`, `declare_type_${idx}`, String(idx), st.memoDeclareAmounts,
       (v) => { st.mode = v; }, (v) => { st.declareType = v; });
   });
 
   loadMortgageRows();
+
+  // 복원 직후 값은 자동 input/change 이벤트가 발생하지 않으므로,
+  // 상태가 보이는 값과 계산 값을 함께 한 번 다시 적용해야 한다.
+  if (typeof refreshRadioToggleStyles === 'function') {
+    refreshRadioToggleStyles('#baseIncomeModeToggle');
+    refreshRadioToggleStyles('#baseDeclareTypeToggle');
+  }
+  if (typeof applyBaseIncomeMode === 'function') applyBaseIncomeMode();
+  extraIncomeRowIndexes().forEach(idx => {
+    const st = incomeRowState.get(idx);
+    if (!st) return;
+    if (typeof refreshRadioToggleStyles === 'function') {
+      refreshRadioToggleStyles(`#incomeModeToggle_${idx}`);
+      refreshRadioToggleStyles(`#declareTypeToggle_${idx}`);
+    }
+    if (typeof applyIncomeRowMode === 'function') applyIncomeRowMode(idx);
+  });
+  if (typeof updateIncomeCalc === 'function') updateIncomeCalc();
+  if (typeof 자동계산 === 'function') 자동계산();
+
+  // 저장된 값으로 복원한 뒤에는 input 이벤트가 자동으로 발생하지 않으므로,
+  // 제목줄 요약 텍스트를 직접 한 번 갱신해줘야 탭 헤더가 즉시 반영된다.
+  if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+  if (typeof updateIncomeInfoSummary === 'function') updateIncomeInfoSummary();
+  if (typeof updatePropertyInfoSummary === 'function') updatePropertyInfoSummary();
+  if (typeof updateLoanInfoSummary === 'function') updateLoanInfoSummary();
+  if (typeof updateDsrInfoSummary === 'function') updateDsrInfoSummary();
 }
 
 function loadMortgageRows() {
@@ -2020,7 +3079,9 @@ function loadMortgageRows() {
         const memoRow = currentRow.nextElementSibling;
         if (memoRow && memoRow.classList.contains('mortgage-memo-row')) {
           const memoInput = memoRow.querySelector('.mort-memo');
-          if (memoInput) memoInput.value = rowData.memo || '';
+          if (memoInput) { memoInput.value = rowData.memo || ''; autoResizeMemoTextarea(memoInput); }
+          const needDateInput = memoRow.querySelector('.mort-need-date');
+          if (needDateInput) needDateInput.value = rowData.needDate || '';
         }
 
         const typeButtons = currentRow.querySelectorAll('.type-btn');
@@ -2068,7 +3129,7 @@ function saveFormToSlot(n) {
       snapshot[key] = localStorage.getItem(key);
     }
   });
-  localStorage.setItem(`${DSR_SLOT_PREFIX}${n}`, JSON.stringify(snapshot));
+  setStoredJson(`${DSR_SLOT_PREFIX}${n}`, snapshot);
   showBubble(`${n}번에 저장되었습니다`);
   refreshSlotButtonStates();
 }
@@ -2085,39 +3146,10 @@ function applySlotSnapshot(n) {
     return;
   }
 
-  // 지금 늘어나 있는 소득 추가행부터 정리한다 (대출행은 loadMortgageRows가 스스로 정리함).
-  extraIncomeRowIndexes().forEach(idx => {
-    const els = getRowEls(idx);
-    const memoRow = els.row?.nextElementSibling;
-    if (memoRow && memoRow.classList.contains('income-memo-row')) memoRow.remove();
-    if (els.row) els.row.remove();
-    if (els.bubbleList) els.bubbleList.remove();
-  });
-  incomeRowState.clear();
-  nextIncomeRowIndex = 2;
-  otherRowsWereBlocked = false;
-
-  // 스냅샷에 없는 기존 DSR_* 값(예: 방금까지 있던 소득행 인덱스 등)은 지워서 안 섞이게 한다.
-  Object.keys(localStorage)
-    .filter(k => k.startsWith('DSR_') && !k.startsWith(DSR_SLOT_PREFIX))
-    .forEach(k => localStorage.removeItem(k));
-  Object.entries(snapshot).forEach(([k, v]) => localStorage.setItem(k, v));
-
   if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === '[]') {
     주담대행추가();
   }
-  loadDSRInputs();
-  refreshRadioToggleStyles('#baseIncomeModeToggle');
-  refreshRadioToggleStyles('#baseDeclareTypeToggle');
-  applyBaseIncomeMode();
-  extraIncomeRowIndexes().forEach(idx => {
-    refreshRadioToggleStyles(`#incomeModeToggle_${idx}`);
-    refreshRadioToggleStyles(`#declareTypeToggle_${idx}`);
-    applyIncomeRowMode(idx);
-  });
-  updateIncomeCalc();
-  applyOtherRowsBlock();
-  if (typeof 자동계산 === 'function') 자동계산();
+  loadDsrSnapshotIntoForm(snapshot);
   showBubble(`${n}번 저장 내용을 불러왔습니다`);
 }
 
@@ -2175,21 +3207,27 @@ function initSlotButtons() {
 }
 
 function setupDSRAutoSave() {
-  document.querySelectorAll(`${TEXT_NUMBER_INPUT_SELECTOR}, ${CHECKBOX_INPUT_SELECTOR}`).forEach(input => {
-    input.addEventListener('change', saveDSRInputs);
-    if (input.type !== 'checkbox') {
-      input.addEventListener('input', saveDSRInputs);
-    }
-  });
-  
-  document.addEventListener('change', (e) => {
-    if (e.target.closest('#mortgage-inputs')) {
+  // 요소별 리스너 방식은 setup 시점에 존재하는 입력창에만 붙으므로,
+  // 이후 "소득 추가"/"대출 추가"로 만들어진 행의 입력값은 저장되지 않았다.
+  // 문서 레벨 이벤트 위임으로 바꿔 나중에 추가된 입력창/라디오도 모두 자동저장되게 한다.
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t || t.disabled || t.readOnly) return;
+    if ((t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'number')) || t.tagName === 'TEXTAREA') {
       saveDSRInputs();
     }
   });
-  
-  document.addEventListener('input', (e) => {
-    if (e.target.closest('#mortgage-inputs')) {
+
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t || t.disabled) return;
+    // 텍스트/숫자/textarea의 change도 저장 (input 이벤트 없이 값이 채워지는 케이스 대비)
+    if ((t.tagName === 'INPUT' && (t.type === 'text' || t.type === 'number')) || t.tagName === 'TEXTAREA') {
+      saveDSRInputs();
+      return;
+    }
+    // 체크박스 + 증빙/신고·카드/건보/연금 등 모든 라디오 선택 상태 저장
+    if (t.tagName === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio')) {
       saveDSRInputs();
     }
   });
@@ -2216,7 +3254,7 @@ function saveCurrentTableLayoutOrder() {
   const area = document.getElementById('capture-area');
   if (!area) return;
   const order = [...area.querySelectorAll(':scope > .dsr-table-wrap[data-table-key]')].map(w => w.dataset.tableKey);
-  localStorage.setItem(TABLE_ORDER_STORAGE_KEY, JSON.stringify(order));
+  setStoredJson(TABLE_ORDER_STORAGE_KEY, order);
 }
 
 // 1.시세입력 2.DSR선택 3.소득입력 4.DSR값표시 5.대출정보입력 6.상환스케줄표
@@ -2293,8 +3331,8 @@ function handleTableOrderBtnClick(key) {
 }
 
 function init() {
-  // 테이블 순서를 최종 배치(6,2,1,4,3,5)로 HTML에 직접 고정해서, 순서 선택기(테스트용)는
-  // 지금은 꺼둔다 - 나중에 다시 실험하려면 이 두 줄만 살리면 된다 (선택기 HTML은 DSR_Main.html에 주석으로 남아있음).
+  // 테이블 순서를 최종 배치(6,1,2,4,3,5)로 HTML에 직접 고정해서, 순서 선택기(테스트용)는
+  // 지금은 꺼둔다 - 나중에 다시 실험하려면 이 두 줄만 살리면 된다 (선택기 HTML은 Consult_Main.html에 주석으로 남아있음).
   // applySavedTableLayoutOrder();
   // renderTableOrderButtons();
   if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === "[]") {
@@ -2302,6 +3340,8 @@ function init() {
   }
   loadDSRInputs();
   setupDSRAutoSave();
+  setupNeedDatePicker();
+  initDsrHistoryModal();
   initSlotButtons();
   refreshRadioToggleStyles('#baseIncomeModeToggle');
   refreshRadioToggleStyles('#baseDeclareTypeToggle');
@@ -2323,7 +3363,7 @@ function init() {
   });
   setTimeout(() => {
     adjustTableFontSize();
-    adjustDsrMaxFontSize();
+    refreshDsrMaxFontSizeStably();
     adjustDsrToggleFontSize();
     fitAllNumericInputFontSizes();
   }, 100);
@@ -2509,7 +3549,14 @@ function 내용복사() {
 }
 
 // 대출 정보 요약 텍스트(상담내용 메모용) + 시세/필요금액/단지명·평형·동호수·주소·규제지역배지(상담일지 물건정보 1칸용)를 상담일지 탭으로 전달한다.
-// index.html이 모바일/PC 여부에 따라 알맞은 프레임(content-frame 또는 consulting-frame)으로 중계한다.
+//
+// 전달 경로가 웹과 앱에서 다르다.
+//  - 웹: DSR이 index.html 안의 iframe이라 부모로 보내면 index.html이 모바일/PC 여부에 따라
+//        알맞은 프레임(content-frame 또는 consulting-frame)으로 중계한다.
+//  - 앱: 화면 하나를 웹뷰에 통째로 띄우는 구조라 부모 프레임이 없다. 예전에는 여기서도
+//        window.parent.postMessage를 불렀는데, 부모가 없으면 window.parent는 자기 자신이라
+//        메시지가 DSR 화면으로 되돌아왔고 이걸 받는 곳이 없어 버튼이 반응하지 않았다.
+//        그래서 네이티브(AndroidBridge)에 넘겨 상담일지 화면으로 전환한 뒤 주입하게 한다.
 function 상담일지로전달() {
   const text = 대출정보텍스트생성();
   const kbPrice = document.getElementById('ltvMarketPriceInput')?.value.trim() || '';
@@ -2520,7 +3567,7 @@ function 상담일지로전달() {
   const exclusiveSqm = (selectedAptInfo && selectedAptInfo.exclusiveSqm) || '';
   const dongHo = (selectedAptInfo && selectedAptInfo.dong && selectedAptInfo.ho) ? `${selectedAptInfo.dong}동 ${selectedAptInfo.ho}호` : '';
   const address = (selectedAptInfo && selectedAptInfo.address) || '';
-  window.parent.postMessage({
+  const payload = {
     type: 'dsrSendToConsulting',
     text,
     kbPrice,
@@ -2533,7 +3580,27 @@ function 상담일지로전달() {
     address,
     투기과열지구: !!(selectedAptInfo && selectedAptInfo.투기과열지구),
     조정대상지역: !!(selectedAptInfo && selectedAptInfo.조정대상지역)
-  }, '*');
+  };
+
+  // 웹: 부모(index.html)가 받아서 상담일지 프레임으로 중계한다.
+  if (window.parent !== window) {
+    window.parent.postMessage(payload, '*');
+    return;
+  }
+
+  // 앱: 네이티브가 상담일지 화면으로 바꾸고, 그 화면 로딩이 끝나면 같은 내용을 넣어준다.
+  // 상담일지.html은 웹과 똑같이 message 이벤트로 받으므로 받는 쪽 코드는 그대로 쓴다.
+  const bridge = window.AndroidBridge;
+  if (bridge && typeof bridge.openConsultingWith === 'function') {
+    try {
+      bridge.openConsultingWith(JSON.stringify(payload));
+      return;
+    } catch (e) {
+      console.error('상담일지 전달 실패:', e);
+    }
+  }
+
+  showBubble('상담일지로 전달할 수 없습니다');
 }
 
 /* -------------------- 화면캐치: 계산기 화면(월상환스케줄~대출정보입력) 이미지 캡쳐 후 클립보드 복사 -------------------- */
@@ -2680,4 +3747,72 @@ async function 화면캡쳐() {
   }
 }
 
+// 물건지정보의 LTV 계산값을 클릭하면 본건 대출금액으로 전달한다.
+function initLtvAmountTransfer() {
+  const ltvOutput = document.getElementById('ltvMaxAmountOutput');
+  if (!ltvOutput || ltvOutput.dataset.transferReady === 'true') return;
+  ltvOutput.dataset.transferReady = 'true';
+  ltvOutput.style.cursor = 'pointer';
+  ltvOutput.title = '클릭하면 본건 대출금액에 적용됩니다';
+  ltvOutput.addEventListener('click', () => {
+    const displayed = String(ltvOutput.value || '').trim();
+    let amount = typeof parseKoreanAmountText === 'function' ? parseKoreanAmountText(displayed) : NaN;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      const digits = displayed.replace(/[^0-9]/g, '');
+      amount = digits ? Number(digits) : NaN;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showBubble('시세대비금액이 없습니다');
+      return;
+    }
+    const firstMortgageAmount = document.querySelector('#mortgage-inputs .mortgage-row .mort-amt');
+    if (!firstMortgageAmount) {
+      showBubble('본건 대출금액 칸을 찾을 수 없습니다');
+      return;
+    }
+    firstMortgageAmount.value = Math.floor(amount).toLocaleString('ko-KR');
+    firstMortgageAmount.dispatchEvent(new Event('input', { bubbles: true }));
+    firstMortgageAmount.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof 자동계산 === 'function') 자동계산();
+    if (typeof saveDSRInputs === 'function') saveDSRInputs();
+    showBubble('시세대비금액을 본건 대출금액에 적용했습니다');
+  });
+}
+
+/* -------------------- 물건지정보 하단 잔금일자/메모 연동 --------------------
+   본건 대출행에 있던 필요일자 기능을 물건지정보 표 하단으로 옮기면서,
+   기존 초기화/저장 함수를 건드리지 않도록 별도 함수로 분리했다.
+   (신규 입력값은 DOM에만 존재하고, 초기화·저장은 여기서 처리한다.) */
+function initPropertyExtraFields() {
+  const settlementInput = document.getElementById('propertySettlementDate');
+  const propertyMemo = document.getElementById('propertyInfoMemo');
+  if (!settlementInput) return;
+
+  // 저장된 값이 있으면 복원한다 (초기화 시에는 아래 선택초기화 후킹이 지운다).
+  const savedDate = localStorage.getItem('DSR_propertySettlementDate');
+  if (savedDate) settlementInput.value = savedDate;
+  const savedMemo = localStorage.getItem('DSR_propertyInfoMemo');
+  if (propertyMemo && savedMemo) {
+    propertyMemo.value = savedMemo;
+    if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
+  }
+
+  if (propertyMemo && typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
+
+  // 초기화 버튼은 기존 선택초기화()를 그대로 쓰고, 그 안에서 지워지 않는 이 두 칸만
+  // 여기서 따로 비운다. (기존 함수 본문을 수정하지 않기 위한 방식)
+  const resetBtn = document.querySelector('.reset-btn[onclick="선택초기화()"], [onclick="선택초기화()"]');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      settlementInput.value = '';
+      if (propertyMemo) {
+        propertyMemo.value = '';
+        if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
+      }
+    });
+  }
+}
+
+window.addEventListener('DOMContentLoaded', initPropertyExtraFields);
+window.addEventListener('DOMContentLoaded', initLtvAmountTransfer);
 window.addEventListener('DOMContentLoaded', init);

@@ -436,7 +436,7 @@
     /* ── 프레임 표시 여부 ──────────────────────────────────────────
        본문(content-container)은 항상 표시하고, 계산기/상담일지만 켜고 끈다.
        처음 열었을 때 기본값은 창 너비로 정한다: DSR 화면이 최소 396px를 요구하는데
-       (DSR_style.css), 1200px 미만에서 3분할하면 한 칸이 400px 아래로 내려가
+       (Consult_style.css), 1200px 미만에서 3분할하면 한 칸이 400px 아래로 내려가
        DSR이 가로로 잘린다. 그래서 태블릿 폭에서는 상담일지를 접은 2분할로 시작한다.
        한 번이라도 사용자가 칩을 누르면 그 선택이 저장되어 기본값보다 우선한다. */
     const FRAME_VISIBILITY_KEY = 'frame_visibility';
@@ -712,7 +712,7 @@
 
       // DTI는 좁은 화면에서 쓰기 불편해 넓은 화면으로 바뀔 때 DSR로 넘긴다(기존 동작 유지)
       if (contentPage === '' || contentPage.includes('DTI.html')) {
-        프레임이동(contentFrame, 'DSR_Main.html', version);
+        프레임이동(contentFrame, 'Consult_Main.html', version);
       }
       if (현재페이지(calcFrame) === '') {
         프레임이동(calcFrame, '계산기.html', version);
@@ -724,7 +724,7 @@
 
     function proceedToApp(userName) {
       document.getElementById('auth-section').style.display = 'none';
-      
+
       const lockedElements = document.querySelectorAll('.locked-content');
       lockedElements.forEach(el => el.classList.remove('locked-content'));
 
@@ -819,7 +819,7 @@
 
     function initTouchFeedback() {
       const buttons = document.querySelectorAll('.button-container button');
-      
+
       buttons.forEach(button => {
         button.addEventListener('touchstart', function(e) {
           this.classList.add('touch-active');
@@ -1048,7 +1048,7 @@
             activeResizer = null;
             leftContainer = null;
             rightContainer = null;
-            
+
             // 리사이즈 후 프레임 너비 저장
             updateFrameWidths();
           }
@@ -1063,12 +1063,13 @@
 <body onload="initPages()">
   <div class="button-container">
     <span id="today-count" class="visitor-counter">확인중...</span>
-    
+
     <div id="auth-section" class="user-auth-container">
       <input type="text" id="user-name-input" class="user-input" placeholder="이름 입력" onkeydown="if(event.key === 'Enter') submitUserName()">
       <button type="button" class="user-submit-btn" onclick="submitUserName()">확인</button>
     </div>
 
+    <button type="button" class="nav-btn locked-content" onclick="loadPage('Consult_Main.html', this)">상담</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('DTI.html', this)">DTI 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('DSR_Main.html', this)">DSR 계산</button>
     <button type="button" class="nav-btn locked-content" onclick="loadPage('날짜계산기.html', this)">날짜계산</button>
