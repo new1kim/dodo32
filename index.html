@@ -687,6 +687,22 @@
        판단 기준은 src 속성이 아니라 data-page다 - loadPage는 location.replace로 옮기기
        때문에 src 속성이 계속 ''로 남아, 그걸 보면 이미 띄워둔 MCG·날짜계산 같은 화면을
        "비어 있다"고 착각해 DSR로 덮어써버린다. (창 폭이 768px 경계를 넘을 때마다 발생) */
+    /* 지금 이 화면이 스마트상담도구 안드로이드 앱의 WebView인가?
+
+       앱은 MainActivity에서 addJavascriptInterface(..., 'AndroidBridge')로 브릿지를 주입하므로
+       앱 안에서는 window.AndroidBridge가 존재한다. 일반 브라우저(PC·모바일 웹)에는 없다.
+       이 프로젝트의 다른 화면(사진스캔·IDCard 등)도 같은 방식으로 앱 웹뷰를 판별한다. */
+    function 앱웹뷰인가() {
+      return typeof window.AndroidBridge !== 'undefined' && window.AndroidBridge !== null;
+    }
+
+    /* 본문 프레임에 기본으로 띄울 화면.
+       앱 WebView에서는 상담이 주 용도라 상담 화면을, 그 밖의 환경(PC·모바일 웹)에서는
+       DSR 계산 화면을 먼저 띄운다. */
+    function 기본화면경로() {
+      return 앱웹뷰인가() ? 'Consult_Main.html' : 'DSR_Main.html';
+    }
+
     function updateFramesSrc() {
       const version = '250605_1';
 
@@ -697,7 +713,7 @@
 
       // DTI는 좁은 화면에서 쓰기 불편해 넓은 화면으로 바뀔 때 DSR로 넘긴다(기존 동작 유지)
       if (contentPage === '' || contentPage.includes('DTI.html')) {
-        프레임이동(contentFrame, 'Consult_Main.html', version);
+        프레임이동(contentFrame, 기본화면경로(), version);
       }
       if (현재페이지(calcFrame) === '') {
         프레임이동(calcFrame, '계산기.html', version);
