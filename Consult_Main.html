@@ -375,8 +375,8 @@
           <span class="copy-menu-item" onclick="화면캡쳐()">화면<BR>캡쳐</span>
         </span>
       </span>
-      <button type="button" class="copy-btn" id="consultSaveBtn">저장</button>
-      <button type="button" class="copy-btn" id="consultLoadBtn">불러오기</button>
+      <button type="button" class="copy-btn square-action-btn" id="consultSaveBtn">저장</button>
+      <button type="button" class="copy-btn square-action-btn" id="consultLoadBtn">불러오기</button>
       <button type="button" class="copy-btn" id="screenshot-btn" onclick="화면캡쳐()" style="display:none;">화면캡쳐</button>
       <button type="button" class="reset-btn" onclick="선택초기화()">초기화</button>
     </div>
@@ -925,8 +925,8 @@
     });
 
     // 제목줄에 DSR/DTI 값을 같이 보여준다. 보유대출 중 "주담대"로 선택된 행이 하나라도 있으면
-    // 신DTI 값도 같이 보여준다(주담대가 없으면 신DTI는 의미가 없어 생략). 40% 이상(경고 표시)이면
-    // 값 칸과 같은 빨간색으로 제목줄 전체를 칠한다.
+    // 신DTI 값도 같이 보여준다(주담대가 없으면 신DTI는 의미가 없어 생략). DSR은 40% 미만이면
+    // 연한 파란색, 40% 이상이면 빨간색으로 표시한다.
     var loanInfoSummary = document.getElementById('loanInfoSummary');
     var loanInfoTabHeader = document.getElementById('loanInfoTabBtn');
     function updateLoanInfoSummary() {
@@ -940,19 +940,26 @@
       var parts = [];
       var isDanger = false;
       if (dsrVal && dsrVal !== '-') {
-        parts.push('DSR ' + dsrVal);
+        parts.push({ text: 'DSR ' + dsrVal, type: parseFloat(dsrVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
         if (parseFloat(dsrVal) >= 40) isDanger = true;
       }
       if (dtiVal && dtiVal !== '-') {
-        parts.push('DTI ' + dtiVal);
+        parts.push({ text: 'DTI ' + dtiVal, type: parseFloat(dtiVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
         if (parseFloat(dtiVal) >= 40) isDanger = true;
       }
       var hasMortgageHeldLoan = !!document.querySelector('#mortgage-inputs .mort-category-toggle.active');
       if (hasMortgageHeldLoan && newDtiVal && newDtiVal !== '-') {
-        parts.push('신DTI ' + newDtiVal);
+        parts.push({ text: '신DTI ' + newDtiVal, type: parseFloat(newDtiVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
         if (parseFloat(newDtiVal) >= 40) isDanger = true;
       }
-      loanInfoSummary.textContent = parts.length ? ' - ' + parts.join(' / ') : '';
+      loanInfoSummary.textContent = '';
+      parts.forEach(function (part, index) {
+        if (index > 0) loanInfoSummary.appendChild(document.createTextNode(' / '));
+        var partEl = document.createElement('span');
+        partEl.textContent = (index === 0 ? ' - ' : '') + (part.text || part);
+        if (part.type) partEl.className = 'loan-info-' + part.type;
+        loanInfoSummary.appendChild(partEl);
+      });
       loanInfoTabHeader.classList.toggle('info-tab-header-danger', isDanger);
     }
     window.addEventListener('DOMContentLoaded', updateLoanInfoSummary);

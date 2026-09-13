@@ -2057,7 +2057,7 @@ if (ltvMinorLeaseInput && minorLeaseSuggestList) {
 }
 
 // 내용복사 버튼: "텍스트로 복사" / "화면 캡쳐" 2가지 선택 팝업
-// table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮기고 position:fixed 좌표를 매번 계산한다.
+// table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮기고 버튼 위쪽에 표시한다.
 const copyMenuBtn = document.getElementById("copy-menu-btn");
 const copyMenuList = document.getElementById("copyMenuList");
 if (copyMenuBtn && copyMenuList) {
@@ -2065,12 +2065,12 @@ if (copyMenuBtn && copyMenuList) {
   const positionCopyMenu = () => {
     const rect = copyMenuBtn.getBoundingClientRect();
     copyMenuList.style.left = (rect.left + rect.width / 2) + 'px';
-    copyMenuList.style.top = (rect.bottom + 6) + 'px';
+    copyMenuList.style.top = (rect.top - copyMenuList.offsetHeight - 6) + 'px';
   };
   copyMenuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    positionCopyMenu();
     copyMenuList.classList.toggle("open");
+    if (copyMenuList.classList.contains("open")) positionCopyMenu();
   });
   copyMenuList.querySelectorAll(".copy-menu-item").forEach(item => {
     item.addEventListener("click", () => copyMenuList.classList.remove("open"));
@@ -3537,33 +3537,59 @@ function 대출정보텍스트생성() {
   return lines.join('\n');
 }
 
-function fallbackCopyText(text) {
+function copyTextSynchronously(text) {
   const textarea = document.createElement('textarea');
   textarea.value = text;
+  textarea.setAttribute('readonly', '');
   textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
+  textarea.style.left = '0';
+  textarea.style.top = '0';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.opacity = '0';
   document.body.appendChild(textarea);
-  textarea.focus();
+  textarea.focus({ preventScroll: true });
   textarea.select();
-  try {
-    document.execCommand('copy');
-    showBubble('내용이 복사되었습니다');
-  } catch (e) {
-    showBubble('복사에 실패했습니다');
-  }
-  document.body.removeChild(textarea);
+  textarea.setSelectionRange(0, textarea.value.length);
+  let copied = false;
+  try { copied = document.execCommand('copy') === true; } catch (e) { copied = false; }
+  textarea.remove();
+  return copied;
+}
+
+function fallbackCopyText(text) {
+  const copied = copyTextSynchronously(text);
+  showBubble(copied ? '내용이 복사되었습니다' : '복사에 실패했습니다. 다시 시도해 주세요');
+  return copied;
 }
 
 function 내용복사() {
-  const text = 대출정보텍스트생성();
-  if (navigator.clipboard && navigator.clipboard.writeText) {
+  let text;
+  try {
+    text = 대출정보텍스트생성();
+  } catch (e) {
+    console.error('텍스트 생성 실패:', e);
+    showBubble('복사할 내용을 만들지 못했습니다');
+    return;
+  }
+  if (!text) {
+    showBubble('복사할 내용이 없습니다');
+    return;
+  }
+
+  // Clipboard API는 WebView/비보안 환경에서 실패할 수 있으므로 먼저 동기 복사를 시도한다.
+  if (copyTextSynchronously(text)) {
+    showBubble('내용이 복사되었습니다');
+    return;
+  }
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     navigator.clipboard.writeText(text).then(() => {
       showBubble('내용이 복사되었습니다');
     }).catch(() => {
-      fallbackCopyText(text);
+      showBubble('복사에 실패했습니다. 다시 시도해 주세요');
     });
   } else {
-    fallbackCopyText(text);
+    showBubble('복사에 실패했습니다. 다시 시도해 주세요');
   }
 }
 
@@ -3725,6 +3751,26 @@ async function 화면캡쳐() {
         scale: Math.min(window.devicePixelRatio || 1, 2) + 0.5,
         useCORS: true
       });
+
+      // 고객정보 탭부터 대출정보 탭까지만 잘라낸다.
+      const captureAreaRect = target.getBoundingClientRect();
+      const customerSection = target.querySelector('[data-table-key="customer-info"]');
+      const loanSection = target.querySelector('[data-table-key="loan"]');
+      if (customerSection && loanSection) {
+        const customerRect = customerSection.getBoundingClientRect();
+        const loanRect = loanSection.getBoundingClientRect();
+        const scaleX = canvas.width / captureAreaRect.width;
+        const scaleY = canvas.height / captureAreaRect.height;
+        const cropY = Math.max(0, Math.round((customerRect.top - captureAreaRect.top) * scaleY));
+        const cropBottom = Math.min(canvas.height, Math.round((loanRect.bottom - captureAreaRect.top) * scaleY));
+        const cropHeight = Math.max(1, cropBottom - cropY);
+        const croppedCanvas = document.createElement('canvas');
+        croppedCanvas.width = canvas.width;
+        croppedCanvas.height = cropHeight;
+        croppedCanvas.getContext('2d').drawImage(canvas, 0, cropY, canvas.width, cropHeight, 0, 0, canvas.width, cropHeight);
+        return await new Promise((resolve) => croppedCanvas.toBlob(resolve, 'image/png'));
+      }
+
       return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     } finally {
       restoreDsrToggle();
@@ -4127,3 +4173,73 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('consultSaveBtn')?.addEventListener('click', saveConsultRecord);
   document.getElementById('consultLoadBtn')?.addEventListener('click', openConsultStorageModal);
 });
+
+
+/* 내용복사 출력 형식 재정의 */
+function 대출정보텍스트생성() {
+  const val = id => document.getElementById(id)?.value?.trim() || '';
+  const text = id => document.getElementById(id)?.innerText?.trim() || '';
+  const incomeMemo = index => document.getElementById(index === 1 ? 'baseIncomeMemo' : `incomeMemo_${index}`)?.value?.trim() || '';
+  const cleanMemo = value => {
+    const memo = (value || '').trim();
+    if (!memo) return '';
+    const half = memo.length / 2;
+    return Number.isInteger(half) && memo.slice(0, half) === memo.slice(half) ? memo.slice(0, half).trim() : memo;
+  };
+  // 복사 텍스트는 괄호 없이 쉼표로 구분해 읽기 쉽게 구성한다.
+  const b = value => value || '';
+  const lines = [];
+  const addMemo = value => { if (value) lines.push(` ♦️ ${b(value)}`); };
+  const addIncome = (kind, income, future, age, converted, memo) => {
+    lines.push(` ♦️ ${[kind, income, future, age].filter(Boolean).join(', ')}`);
+    if (future && converted) lines.push(` ♦️ 장래예상소득 계산값, → ${b(converted)}`);
+    if (memo) lines.push(` ♦️ ${memo}`);
+  };
+
+  lines.push('👤 고객정보');
+  lines.push(` ♦️ ${[val('customerNameInput'), val('customerPhoneInput')].filter(Boolean).join(', ')}`);
+  lines.push(` ♦️ ${b(val('customerBrokerInput'))}`);
+  if (val('customerInfoMemo')) lines.push(` ♦️ ${val('customerInfoMemo')}`);
+  lines.push('');
+
+  const apt = selectedAptInfo || {};
+  const area = apt.exclusiveSqm ? `전용 ${apt.exclusiveSqm}` : (apt.pyeong ? `전용 ${apt.pyeong}평` : '');
+  const supply = apt.supplyPyeong ? `공급 ${apt.supplyPyeong}` : '';
+  const dongHo = apt.dong && apt.ho ? `${apt.dong}동 ${apt.ho}호` : '';
+  lines.push('🏢 물건지정보');
+  lines.push(` ♦️ ${[apt.aptName, area, supply].filter(Boolean).join(', ')}`);
+  lines.push(` ♦️ ${[apt.address, dongHo, apt.투기과열지구 ? '투기과열' : ''].filter(Boolean).join(', ')}`);
+  if (val('propertySettlementDate')) lines.push(` ♦️ 잔금일자 : ${val('propertySettlementDate')}`);
+  const propertyMemo = cleanMemo(val('propertyInfoMemo'));
+  if (propertyMemo) lines.push(` ♦️ 물건지 정보  ${propertyMemo}`);
+  lines.push('');
+
+  lines.push(`💰 소득정보  합산소득 - ${b(val('totalIncomeOutput'))}`);
+  const future = typeof applyRateCheck !== 'undefined' && applyRateCheck?.checked;
+  const kind = typeof baseIncomeMode !== 'undefined' && baseIncomeMode === '신고' ? (baseDeclareType || '추정') : '근로소득';
+  addIncome(kind, val('baseIncomeInput'), future ? '장래예상' : '', val('ageInput'), text('baseFutureIncomeConverted'), val('baseIncomeMemo'));
+  if (typeof extraIncomeRowIndexes === 'function') extraIncomeRowIndexes().forEach(idx => {
+    const st = incomeRowState.get(idx); const els = getRowEls(idx);
+    addIncome(st?.mode === '신고' ? (st.declareType || '추정') : '근로소득', els.incomeInput?.value?.trim(), els.applyRateCheck?.checked ? '장래예상' : '', els.ageInput?.value?.trim(), els.futureIncomeConverted?.textContent?.trim(), incomeMemo(idx));
+  });
+  lines.push('');
+
+  const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
+  lines.push(`💲 대출정보 · DSR ${text('DSR확인') || '-'}, DTI ${text('DIT확인') || '-'}, 신DTI ${text('신DTI확인') || '-'}`);
+  rows.forEach((row, index) => {
+    const amount = row.querySelector('.mort-amt')?.value?.trim() || '';
+    const rate = row.querySelector('.mort-rate')?.value?.trim() || '';
+    const term = row.querySelector('.mort-term')?.value?.trim() || '';
+    const type = row.querySelector('.mort-type')?.value?.trim() || '';
+    const grace = row.querySelector('.mort-grace-check')?.checked ? row.querySelector('.mort-grace-term')?.value?.trim() : '';
+    const category = row.querySelector('.mort-category-toggle.active') ? '주담대' : '';
+    if (index === 0) {
+      lines.push(` ♦️ 필요금액, ${[amount, rate, term, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
+      if (getMortgageRowMemo(row)) lines.push(` ♦️ ${getMortgageRowMemo(row)}`);
+    } else {
+      lines.push(` ♦️ 보유대출${index} -> ${[amount, rate, term, type, category].filter(Boolean).join(', ')}`);
+      if (getMortgageRowMemo(row)) lines.push(` ♦️ ${getMortgageRowMemo(row)}`);
+    }
+  });
+  return lines.join('\n');
+}

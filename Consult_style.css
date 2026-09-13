@@ -187,6 +187,8 @@ table:last-child { margin-bottom: 0; }
 .info-tab-header-danger,
 .info-tab-header-danger .info-tab-summary { color: var(--c-danger) !important; }
 .info-tab-summary { font-weight: 600; color: var(--c-text-muted); text-transform: none; letter-spacing: 0; }
+.info-tab-summary .loan-info-safe-ratio { color: #2563eb !important; }
+.info-tab-summary .loan-info-danger-ratio { color: var(--c-danger) !important; }
 .info-tab-caret { transition: transform 0.2s ease; font-size: 18px; line-height: 1; }
 .info-tab-header[aria-expanded="true"] .info-tab-caret { transform: rotate(180deg); }
 .info-tab-body {
@@ -649,6 +651,7 @@ td:has(.type-btn-row) {
   white-space: nowrap;
 }
 .copy-btn:hover { background-color: var(--c-primary); color: #fff; border-color: var(--c-primary); }
+.square-action-btn { width: 46px; height: 46px; padding: 4px; white-space: normal; word-break: keep-all; }
 
 /* 내용복사 버튼 - "텍스트로 복사" / "화면 캡쳐" 2개 버블 선택 팝업 (소액임차금액 버블과 같은 스타일).
    left/top은 JS에서 fixed로 매번 계산 - table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮겨서 렌더링 */
@@ -659,13 +662,13 @@ td:has(.type-btn-row) {
   transform: translateX(-50%);
   gap: 7px;
   z-index: 999;
-  padding-top: 6px; /* 말풍선 꼬리 자리 */
+  padding-bottom: 6px; /* 말풍선 꼬리 자리 */
 }
 .copy-menu-list.open { display: flex; }
 .copy-menu-list::before {
   content: "";
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 50%;
   width: 7px;
   height: 7px;
