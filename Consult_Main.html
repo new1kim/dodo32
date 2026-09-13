@@ -334,9 +334,8 @@
                 <span class="info-tab-caret">▾</span>
               </button>
               <div class="info-tab-body info-tab-body-2col open" id="maxAmountTabBody">
-                <div class="info-tab-field dsr-limit-row" style="grid-column: 1 / -1;">
-                  <div class="info-tab-label">DSR 한도 기준</div>
-                  <div id="dsrLimitToggleGroup" class="pill-toggle-group">
+                <div class="info-tab-field dsr-limit-row">
+                  <div id="dsrLimitToggleGroup" class="pill-toggle-group vertical">
                     <label style="background-color: #2563eb; color: #ffffff;">
                       <input type="radio" name="dsr_limit_rate" value="40" checked>40%
                     </label>
@@ -346,14 +345,14 @@
                   </div>
                 </div>
                 <div class="info-tab-field dsr-value-cell" data-type="원리금" onclick="handleDsrMaxBlockClick(this)">
-                  <div class="info-tab-label">원리금 상환 시</div>
+                  <div class="info-tab-label">원리금</div>
                   <span id="DSR최대금액확인-원리금" class="dsr-max-value-number">
                     <span class="dsr-main-val">-</span>
                     <span class="dsr-sub-val">-</span>
                   </span>
                 </div>
                 <div class="info-tab-field dsr-value-cell" data-type="원금" onclick="handleDsrMaxBlockClick(this)">
-                  <div class="info-tab-label">원금 상환 시</div>
+                  <div class="info-tab-label">원금</div>
                   <span id="DSR최대금액확인-원금" class="dsr-max-value-number">
                     <span class="dsr-main-val">-</span>
                     <span class="dsr-sub-val">-</span>
@@ -697,20 +696,8 @@
       window.addEventListener('DOMContentLoaded', normalizeDsrMaxDisplay, { once: true });
     })();
   </script>
-  <!-- 페이지 스크롤바 자동 숨김: 스크롤 중에만 표시하고, 멈추면 다시 숨김 -->
-  <script>
-    (function () {
-      var hideTimer = null;
-      function onPageScroll() {
-        document.body.classList.add('is-scrolling');
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(function () {
-          document.body.classList.remove('is-scrolling');
-        }, 800);
-      }
-      document.body.addEventListener('scroll', onPageScroll, { passive: true });
-    })();
-  </script>
+  <!-- 스크롤바 표시 상태를 스크롤 이벤트로 바꾸지 않는다.
+       Android WebView에서 스크롤바 표시/숨김이 resize를 연쇄 발생시키는 것을 막는다. -->
 
   <!-- 고객정보 탭 - 기본 숨김, 클릭할 때만 펼침 -->
   <script>

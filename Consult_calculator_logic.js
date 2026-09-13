@@ -57,7 +57,11 @@ function parseKoreanAmountText(text) {
   if (manMatch) {
     totalAmount += parseInt(manMatch[1].replace(/,/g, ''), 10) * 10000;
   }
-  return totalAmount;
+  if (!ukMatch && !manMatch) {
+    const plain = String(text).replace(/[^\d]/g, '');
+    if (plain) totalAmount = parseInt(plain, 10);
+  }
+  return Number.isFinite(totalAmount) ? totalAmount : 0;
 }
 
 /* -------------------- 거치기간 반영 공통 유틸 --------------------

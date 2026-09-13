@@ -101,25 +101,31 @@ body {
   /* 콘텐츠가 min-width(430px)보다 좁아지면 가로/세로 모두 이 요소 하나에서 스크롤 */
   overflow: auto;
   overscroll-behavior: contain;
-  /* 스크롤바는 기본적으로 숨김 - .is-scrolling일 때만 노출 (JS로 토글) */
+  /* 스크롤바는 항상 레이아웃을 차지하지 않게 숨긴다.
+     스크롤 중에 scrollbar-width를 바꾸면 Android WebView에서 body 폭이 바뀌고
+     iframe resize → 스크롤바 변경 → resize의 반복 순환이 발생할 수 있다. */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* 구형 Edge/IE */
+  scrollbar-gutter: stable;
 }
 body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background: transparent;
+  width: 0;
+  height: 0;
+  display: none;
 }
 body::-webkit-scrollbar-thumb {
   background-color: transparent;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
 }
+/* 스크롤 중에도 scrollbar-width/display를 바꾸지 않는다. */
 body.is-scrolling {
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
+body.is-scrolling::-webkit-scrollbar,
 body.is-scrolling::-webkit-scrollbar-thumb {
-  background-color: rgba(21, 27, 38, 0.32);
+  width: 0;
+  height: 0;
+  display: none;
+  background-color: transparent;
 }
 
 .container {
@@ -237,57 +243,72 @@ table:last-child { margin-bottom: 0; }
 /* 최대가능금액 탭 - 고객정보 탭과 같은 필드 형태(라벨+값)를 2열로 배치 */
 .info-tab-body-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .info-tab-body-2col.open { display: grid; }
+#maxAmountTabBody.info-tab-body-2col {
+  display: grid;
+  grid-template-columns: 76px repeat(2, minmax(0, 1fr));
+  gap: 0;
+  align-items: stretch;
+  padding: 0 !important;
+}
 #maxAmountTabBody .dsr-limit-row {
-  grid-column: 1 / -1;
+  grid-column: auto;
+  grid-row: 1;
   display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  width: 100%;
-  min-height: 26px;
-  padding: 3px 8px;
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
+  align-items: stretch;
+  justify-content: center;
+  width: 76px;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 0;
   background: var(--c-surface-muted);
-  text-align: left;
+  text-align: center;
 }
 #maxAmountTabBody .dsr-limit-row .info-tab-label {
-  padding: 0; white-space: nowrap; margin: 0;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1.15;
+  display: none;
 }
 #maxAmountTabBody #dsrLimitToggleGroup {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 2px;
-  gap: 4px;
-  margin-left: 0;
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 !important;
+  gap: 0;
+  margin: 0 !important;
+  border: 0;
+  border-radius: 0;
 }
 #maxAmountTabBody #dsrLimitToggleGroup label {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 0;
   align-items: center;
   justify-content: center;
-  min-height: 18px;
+  min-height: 26px;
   line-height: 1;
-  padding: 3px 7px;
-  font-size: 10px;
-  border-radius: 5px;
+  padding: 0 5px;
+  font-size: 12px;
+  border-radius: 0;
+  box-sizing: border-box;
 }
 .info-tab-field.dsr-value-cell {
-  position: relative; border-radius: var(--r-md); padding: 4px 6px 5px; margin: -4px -3px;
+  position: relative; border-radius: var(--r-md); padding: 0 !important; margin: 0;
   min-height: 42px; background: var(--c-surface-muted);
   display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 0;
 }
 .info-tab-field.dsr-value-cell + .dsr-value-cell {
   border-left: 1px solid var(--c-border); padding-left: 8px; margin-left: 2px;
 }
 .info-tab-field.dsr-value-cell .info-tab-label {
-  margin-bottom: 2px;
+  margin: 0 !important;
+  padding: 0 !important;
   letter-spacing: -0.1px;
   font-size: 8px;
+  line-height: 1;
 }
 .info-tab-field #dsrLimitToggleGroup {
   display: inline-flex; align-items: center; justify-content: flex-end;
@@ -1175,16 +1196,23 @@ td:has(.type-btn-row) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0px;
+  gap: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
   white-space: normal !important;
   width: 100%;
 }
 .dsr-max-value-number .dsr-main-val {
+  display: block;
+  margin: 0 !important;
+  padding: 0 !important;
   font-size: 14px;
   font-weight: 800;
   color: var(--c-primary-dark);
   letter-spacing: -0.3px;
-  line-height: 1.15;
+  line-height: 1;
   word-break: break-word;
   flex: 6;
 }
@@ -2084,9 +2112,26 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 .consult-storage-panel > .consult-storage-title { display:inline-block !important; width:calc(100% - 70px) !important; vertical-align:middle; }
 .consult-storage-panel > .consult-storage-close { float:right; margin-top:0; }
 .consult-storage-list { display:flex; flex-direction:column; gap:6px; clear:both; padding:8px 4px 0 4px; text-align:left; }
-.consult-storage-item { display:grid; grid-template-columns:1fr auto; gap:2px 8px; width:100%; text-align:left; border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; padding:9px 10px; cursor:pointer; }
+.consult-storage-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 8px; width:100%; text-align:left; border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; padding:9px 10px; cursor:pointer; }
 .consult-storage-item span { color:#2563eb; font-size:12px; }
 .consult-storage-item small { grid-column:1 / -1; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.consult-storage-delete {
+  grid-column: 3;
+  grid-row: 1;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+}
+.consult-storage-delete:hover { background: #fecaca; }
 .consult-storage-empty { padding:18px; color:#64748b; text-align:center; }
 
 /* 상담저장소 목록 최종 정렬 보정 */
@@ -2105,3 +2150,24 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 .consult-storage-item span { justify-self:start !important; text-align:left !important; }
 
 .consult-storage-search { flex:1 1 180px; min-width:120px; max-width:260px; height:30px; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:7px; padding:4px 8px; font-size:12px; text-align:left; }
+
+
+/* 상담저장소 서버 동기화 버튼 */
+.consult-storage-sync {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid #93c5fd;
+  border-radius: 5px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.consult-storage-sync:hover { background: #dbeafe; }
+.consult-storage-sync:disabled { opacity: .6; cursor: wait; }

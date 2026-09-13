@@ -4,6 +4,24 @@
 const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], textarea';
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
 
+/* DSR_Main과 Consult_Main은 같은 origin의 iframe이므로 localStorage를 공유한다.
+   상담 화면은 입력값을 별도 저장소로 격리해 DSR 계산 화면과 서로 덮어쓰지 않게 한다. */
+function consultStorageKey(key) {
+  const value = String(key);
+  return value.startsWith('CONSULT_') ? value : `CONSULT_${value}`;
+}
+function consultStorageKeys() {
+  const prefix = 'CONSULT_';
+  return Object.keys(window.localStorage)
+    .filter(key => key.startsWith(prefix))
+    .map(key => key.slice(prefix.length));
+}
+const consultLocalStorage = {
+  getItem(key) { return window.localStorage.getItem(consultStorageKey(key)); },
+  setItem(key, value) { return window.localStorage.setItem(consultStorageKey(key), value); },
+  removeItem(key) { return window.localStorage.removeItem(consultStorageKey(key)); }
+};
+
 /* 복원(불러오기) 중에는 setRestoredInputValue/setRestoredCheckboxValue가 발생시키는
    input/change 이벤트가 setupDSRAutoSave의 자동저장(saveDSRInputs)을 유발해,
    아직 복원되지 않은 기존 화면 상태(특히 대출행)로 DSR_* 키를 덮어써 스냅샷이 파괴된다.
@@ -13,11 +31,11 @@ function isDsrRestoring() { return __dsrRestoring; }
 
 function getStoredJson(key, fallback = null) {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = consultLocalStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch (e) {
     console.warn(`저장 데이터가 손상되어 초기화했습니다: ${key}`, e);
-    localStorage.removeItem(key);
+    consultLocalStorage.removeItem(key);
     return fallback;
   }
 }
@@ -26,7 +44,7 @@ function getStoredJson(key, fallback = null) {
    계산 화면 자체는 계속 쓸 수 있어야 하므로 예외를 삼키고 경고만 남긴다. */
 function setStoredJson(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    consultLocalStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
     console.warn(`저장에 실패했습니다: ${key}`, e);
   }
@@ -72,7 +90,7 @@ function adjustTableFontSize() {
     }
     cell.style.fontSize = cell.dataset.origSize;
     let currentCellSize = parseFloat(cell.dataset.origSize);
-    
+
     while (cell.scrollWidth > cell.clientWidth && currentCellSize > 4) {
       if (cell.clientWidth === 0) break;
       currentCellSize -= 0.5;
@@ -605,7 +623,7 @@ function handleDsrMaxBlockClick(block) {
   const mainValEl = block.querySelector('.dsr-main-val');
   const text = mainValEl ? mainValEl.innerText.trim() : block.innerText.trim();
   let totalAmount = parseKoreanAmountText(text);
-  
+
   if (totalAmount > 0) {
     totalAmount = Math.floor(totalAmount / 1000000) * 1000000;
   }
@@ -621,6 +639,7 @@ function handleDsrMaxBlockClick(block) {
     const amtInput = firstRow ? firstRow.querySelector('.mort-amt') : null;
     if (amtInput) {
       amtInput.value = totalAmount.toLocaleString();
+      amtInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
     showBubble(`${type || '최대값'} 방식 선택 및 본건 입력`);
     if (typeof 자동계산 === 'function') 자동계산();
@@ -744,7 +763,7 @@ function bindMortgageRowEvents(row) {
       updateMortgageReductionButtons();
     });
   });
-  
+
   row.querySelectorAll('.mort-rate, .mort-st-rate').forEach(el => {
     el.addEventListener("input", (e) => {
       e.target.value = e.target.value.replace(/[^0-9.]/g, '');
@@ -824,11 +843,11 @@ function increaseAmount(btn) {
   if (!row) return;
   const input = row.querySelector('.mort-amt');
   if (!input) return;
-  
+
   let currentVal = parseInt(input.value.replace(/,/g, '')) || 0;
   currentVal += 1000000;
   input.value = currentVal.toLocaleString();
-  
+
   if (typeof 자동계산 === 'function') 자동계산();
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
@@ -839,7 +858,7 @@ function decreaseAmount(btn) {
   if (!row) return;
   const input = row.querySelector('.mort-amt');
   if (!input) return;
-  
+
   let currentVal = parseInt(input.value.replace(/,/g, '')) || 0;
   currentVal -= 1000000;
   if (currentVal <= 0) {
@@ -847,7 +866,7 @@ function decreaseAmount(btn) {
   } else {
     input.value = currentVal.toLocaleString();
   }
-  
+
   if (typeof 자동계산 === 'function') 자동계산();
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
@@ -1126,13 +1145,13 @@ function 주담대행추가() {
       <input type="hidden" class="mort-type" value="원리금">
       ${isFirstRow ? '' : `<input type="hidden" class="mort-loan-category" value="신용">`}
       <div class="grace-cell">
-        
+
         <input type="checkbox" class="mort-grace-check" title="거치 적용">
         <input type="text" inputmode="numeric" placeholder="거치(개월)" class="mort-grace-term grace-term-input">
       </div>
     </td>
   `;
-  
+
   tbody.appendChild(newRow);
 
   // 대출 행마다 바로 아래에 메모 전용 행을 붙인다 (.mortgage-row가 아니어서 대출 행 개수를
@@ -2123,11 +2142,11 @@ function 소득1초기화() {
   applyBaseIncomeMode();
 
   [baseIncomeInput, ageInput, applyRateCheck, baseDeclareAmountInput].forEach(el => {
-    if (el && el.id) localStorage.removeItem(`DSR_${el.id}`);
+    if (el && el.id) consultLocalStorage.removeItem(`DSR_${el.id}`);
   });
-  localStorage.removeItem('DSR_radio_base_income_mode');
-  localStorage.removeItem('DSR_radio_base_declare_type');
-  ['카드', '건강', '연금'].forEach(type => localStorage.removeItem(`DSR_declareAmt_base_${type}`));
+  consultLocalStorage.removeItem('DSR_radio_base_income_mode');
+  consultLocalStorage.removeItem('DSR_radio_base_declare_type');
+  ['카드', '건강', '연금'].forEach(type => consultLocalStorage.removeItem(`DSR_declareAmt_base_${type}`));
 }
 
 function 선택초기화() {
@@ -2201,9 +2220,9 @@ function 선택초기화() {
   }
 
   // 현재 폼 데이터만 비우고, 저장 이력/신규 슬롯은 유지한다.
-  Object.keys(localStorage).forEach(key => {
+  consultStorageKeys().forEach(key => {
     if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
-      localStorage.removeItem(key);
+      consultLocalStorage.removeItem(key);
     }
   });
   selectedAptInfo = null;
@@ -2226,7 +2245,7 @@ const DSR_HISTORY_LIMIT = 30;
 
 function getDsrHistoryItems() {
   try {
-    const raw = localStorage.getItem(DSR_HISTORY_KEY);
+    const raw = consultLocalStorage.getItem(DSR_HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
@@ -2237,38 +2256,38 @@ function getDsrHistoryItems() {
 
 function getDsrStorageSnapshot() {
   const snapshot = {};
-  Object.keys(localStorage).forEach(key => {
+  consultStorageKeys().forEach(key => {
     if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
-      snapshot[key] = localStorage.getItem(key);
+      snapshot[key] = consultLocalStorage.getItem(key);
     }
   });
   return snapshot;
 }
 
 function clearDsrStorageSnapshot() {
-  Object.keys(localStorage).forEach(key => {
+  consultStorageKeys().forEach(key => {
     if (key.startsWith('DSR_') && !key.startsWith('DSR_HISTORY') && !key.startsWith('DSR_SLOT_')) {
-      localStorage.removeItem(key);
+      consultLocalStorage.removeItem(key);
     }
   });
 }
 
 function restoreDsrSnapshot(snapshot = {}) {
   const preserved = {};
-  Object.keys(localStorage).forEach(key => {
+  consultStorageKeys().forEach(key => {
     if (key.startsWith('DSR_HISTORY') || key.startsWith('DSR_SLOT_')) {
-      preserved[key] = localStorage.getItem(key);
+      preserved[key] = consultLocalStorage.getItem(key);
     }
   });
 
   clearDsrStorageSnapshot();
 
   Object.entries(snapshot || {}).forEach(([key, value]) => {
-    if (value !== null && value !== undefined) localStorage.setItem(key, value);
+    if (value !== null && value !== undefined) consultLocalStorage.setItem(key, value);
   });
 
   Object.entries(preserved).forEach(([key, value]) => {
-    localStorage.setItem(key, value);
+    consultLocalStorage.setItem(key, value);
   });
 }
 
@@ -2468,7 +2487,7 @@ function saveDsrHistoryItem() {
   saveDSRInputs();
   const history = getDsrHistoryItems();
   const phoneInput = document.getElementById('customerPhoneInput');
-  const currentPhone = normalizeDsrPhoneNumber(phoneInput ? phoneInput.value : localStorage.getItem('DSR_customerPhoneInput'));
+  const currentPhone = normalizeDsrPhoneNumber(phoneInput ? phoneInput.value : consultLocalStorage.getItem('DSR_customerPhoneInput'));
 
   const item = {
     savedAt: new Date().toISOString(),
@@ -2536,7 +2555,7 @@ function saveDsrHistoryItem() {
   });
 
   const trimmed = deduped.slice(0, DSR_HISTORY_LIMIT);
-  localStorage.setItem(DSR_HISTORY_KEY, JSON.stringify(trimmed));
+  consultLocalStorage.setItem(DSR_HISTORY_KEY, JSON.stringify(trimmed));
   showBubble('현재 입력 내용을 저장했습니다.');
 }
 
@@ -2877,22 +2896,22 @@ function saveDSRInputs() {
   // 복원(불러오기) 중에는 자동저장 금지 - 복원 이벤트로 인해 이전 화면 상태가
   // 저장 키를 덮어써 불러온 스냅샷이 파괴되는 것을 방지한다.
   if (__dsrRestoring) return;
-  localStorage.setItem('DSR_selectedAptInfo', selectedAptInfo ? JSON.stringify(selectedAptInfo) : '');
+  consultLocalStorage.setItem('DSR_selectedAptInfo', selectedAptInfo ? JSON.stringify(selectedAptInfo) : '');
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
-    if (input.id) localStorage.setItem(`DSR_${input.id}`, input.value);
+    if (input.id) consultLocalStorage.setItem(`DSR_${input.id}`, input.value);
   });
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
-    if (checkbox.id) localStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
+    if (checkbox.id) consultLocalStorage.setItem(`DSR_${checkbox.id}`, checkbox.checked);
   });
   // 증빙/신고 및 카드·건강·연금 선택 상태도 함께 저장 (새로고침 후에도 환산 금액이 바로 계산되도록)
   const saveRadioAndAmounts = (modeName, typeName, amountKey, amounts) => {
     const modeChecked = document.querySelector(`input[name="${modeName}"]:checked`);
-    if (modeChecked) localStorage.setItem(`DSR_radio_${modeName}`, modeChecked.value);
+    if (modeChecked) consultLocalStorage.setItem(`DSR_radio_${modeName}`, modeChecked.value);
     const typeChecked = document.querySelector(`input[name="${typeName}"]:checked`);
-    if (typeChecked) localStorage.setItem(`DSR_radio_${typeName}`, typeChecked.value);
+    if (typeChecked) consultLocalStorage.setItem(`DSR_radio_${typeName}`, typeChecked.value);
     // 추정(카드/건보/연금) 버튼별 입력 금액을 각각 따로 저장 (공용 입력창 하나를 돌려쓰기 때문에 종류별로 키를 분리해야 함)
     ['카드', '건강', '연금'].forEach(type => {
-      localStorage.setItem(`DSR_declareAmt_${amountKey}_${type}`, amounts[type] || 0);
+      consultLocalStorage.setItem(`DSR_declareAmt_${amountKey}_${type}`, amounts[type] || 0);
     });
   };
   saveRadioAndAmounts('base_income_mode', 'base_declare_type', 'base', memoBaseDeclareAmounts);
@@ -2908,7 +2927,7 @@ function saveDSRInputs() {
 function saveMortgageRows() {
   const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
   const mortgageData = [];
-  
+
   rows.forEach(row => {
     const rowData = {
       exclude: row.querySelector('.mort-exclude')?.checked || false,
@@ -2929,7 +2948,7 @@ function saveMortgageRows() {
     };
     mortgageData.push(rowData);
   });
-  
+
   setStoredJson('DSR_mortgageData', mortgageData);
 }
 
@@ -2946,7 +2965,7 @@ function loadDSRInputs() {
 
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) {
-      const savedValue = localStorage.getItem(`DSR_${input.id}`);
+      const savedValue = consultLocalStorage.getItem(`DSR_${input.id}`);
       if (savedValue !== null) {
         setRestoredInputValue(input, savedValue);
         if (input.tagName === 'TEXTAREA') autoResizeMemoTextarea(input);
@@ -2970,7 +2989,7 @@ function loadDSRInputs() {
 
   document.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(checkbox => {
     if (checkbox.id) {
-      const savedValue = localStorage.getItem(`DSR_${checkbox.id}`);
+      const savedValue = consultLocalStorage.getItem(`DSR_${checkbox.id}`);
       if (savedValue !== null) {
         setRestoredCheckboxValue(checkbox, savedValue === 'true');
       }
@@ -2979,18 +2998,18 @@ function loadDSRInputs() {
 
   // 증빙/신고 및 카드·건강·연금 선택 상태 + 종류별 금액 복원 (소득1 / 소득N 공용)
   const restoreRadioAndAmounts = (modeName, typeName, amountKey, amounts, setMode, setType) => {
-    const savedMode = localStorage.getItem(`DSR_radio_${modeName}`);
+    const savedMode = consultLocalStorage.getItem(`DSR_radio_${modeName}`);
     if (savedMode !== null) {
       const radio = document.querySelector(`input[name="${modeName}"][value="${savedMode}"]`);
       if (radio) setRestoredCheckboxValue(radio, true, true);
     }
-    const savedType = localStorage.getItem(`DSR_radio_${typeName}`);
+    const savedType = consultLocalStorage.getItem(`DSR_radio_${typeName}`);
     if (savedType !== null) {
       const radio = document.querySelector(`input[name="${typeName}"][value="${savedType}"]`);
       if (radio) setRestoredCheckboxValue(radio, true, true);
     }
     ['카드', '건강', '연금'].forEach(type => {
-      const saved = localStorage.getItem(`DSR_declareAmt_${amountKey}_${type}`);
+      const saved = consultLocalStorage.getItem(`DSR_declareAmt_${amountKey}_${type}`);
       if (saved !== null) amounts[type] = parseFloat(saved) || 0;
     });
     const modeChecked = document.querySelector(`input[name="${modeName}"]:checked`);
@@ -3041,20 +3060,20 @@ function loadDSRInputs() {
 function loadMortgageRows() {
   const mortgageData = getStoredJson('DSR_mortgageData');
   if (!Array.isArray(mortgageData)) return;
-  
+
   try {
     const tbody = document.getElementById('mortgage-inputs');
     if (!tbody) return;
-    
+
     tbody.querySelectorAll('.mortgage-row, .mortgage-memo-row').forEach(row => row.remove());
     mortCount = 0;
-    
+
     mortgageData.forEach(rowData => {
       주담대행추가();
-      
+
       const rows = tbody.querySelectorAll('.mortgage-row');
       const currentRow = rows[rows.length - 1];
-      
+
       if (currentRow) {
         const exclude = currentRow.querySelector('.mort-exclude');
         const amount = currentRow.querySelector('.mort-amt');
@@ -3065,7 +3084,7 @@ function loadMortgageRows() {
         const loanCategory = currentRow.querySelector('.mort-loan-category');
         const graceCheck = currentRow.querySelector('.mort-grace-check');
         const graceTerm = currentRow.querySelector('.mort-grace-term');
-        
+
         if (exclude) exclude.checked = rowData.exclude;
         if (amount) amount.value = rowData.amount;
         if (rate) rate.value = rowData.rate;
@@ -3117,16 +3136,16 @@ function formHasContent() {
 function refreshSlotButtonStates() {
   document.querySelectorAll('.slot-btn').forEach(btn => {
     const n = btn.dataset.slot;
-    btn.classList.toggle('slot-has-data', !!localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`));
+    btn.classList.toggle('slot-has-data', !!consultLocalStorage.getItem(`${DSR_SLOT_PREFIX}${n}`));
   });
 }
 
 function saveFormToSlot(n) {
   saveDSRInputs(); // 지금 상태를 최신 DSR_* 키에 우선 반영
   const snapshot = {};
-  Object.keys(localStorage).forEach(key => {
+  consultStorageKeys().forEach(key => {
     if (key.startsWith('DSR_') && !key.startsWith(DSR_SLOT_PREFIX)) {
-      snapshot[key] = localStorage.getItem(key);
+      snapshot[key] = consultLocalStorage.getItem(key);
     }
   });
   setStoredJson(`${DSR_SLOT_PREFIX}${n}`, snapshot);
@@ -3136,7 +3155,7 @@ function saveFormToSlot(n) {
 
 // init()이 새로고침 시 하는 순서와 동일하게, 저장된 스냅샷 기준으로 화면을 다시 그린다.
 function applySlotSnapshot(n) {
-  const raw = localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`);
+  const raw = consultLocalStorage.getItem(`${DSR_SLOT_PREFIX}${n}`);
   if (!raw) { showBubble(`${n}번에 저장된 내용이 없습니다`); return; }
   let snapshot;
   try {
@@ -3146,7 +3165,7 @@ function applySlotSnapshot(n) {
     return;
   }
 
-  if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === '[]') {
+  if (!consultLocalStorage.getItem('DSR_mortgageData') || consultLocalStorage.getItem('DSR_mortgageData') === '[]') {
     주담대행추가();
   }
   loadDsrSnapshotIntoForm(snapshot);
@@ -3154,7 +3173,7 @@ function applySlotSnapshot(n) {
 }
 
 function loadFormFromSlot(n) {
-  if (!localStorage.getItem(`${DSR_SLOT_PREFIX}${n}`)) {
+  if (!consultLocalStorage.getItem(`${DSR_SLOT_PREFIX}${n}`)) {
     showBubble(`${n}번에 저장된 내용이 없습니다`);
     return;
   }
@@ -3335,7 +3354,7 @@ function init() {
   // 지금은 꺼둔다 - 나중에 다시 실험하려면 이 두 줄만 살리면 된다 (선택기 HTML은 Consult_Main.html에 주석으로 남아있음).
   // applySavedTableLayoutOrder();
   // renderTableOrderButtons();
-  if (!localStorage.getItem('DSR_mortgageData') || localStorage.getItem('DSR_mortgageData') === "[]") {
+  if (!consultLocalStorage.getItem('DSR_mortgageData') || consultLocalStorage.getItem('DSR_mortgageData') === "[]") {
     주담대행추가();
   }
   loadDSRInputs();
@@ -3354,7 +3373,7 @@ function init() {
   updateIncomeCalc();
   applyOtherRowsBlock();
   if (typeof 자동계산 === 'function') 자동계산();
-  
+
   window.addEventListener('resize', () => {
     adjustTableFontSize();
     adjustDsrMaxFontSize();
@@ -3789,9 +3808,9 @@ function initPropertyExtraFields() {
   if (!settlementInput) return;
 
   // 저장된 값이 있으면 복원한다 (초기화 시에는 아래 선택초기화 후킹이 지운다).
-  const savedDate = localStorage.getItem('DSR_propertySettlementDate');
+  const savedDate = consultLocalStorage.getItem('DSR_propertySettlementDate');
   if (savedDate) settlementInput.value = savedDate;
-  const savedMemo = localStorage.getItem('DSR_propertyInfoMemo');
+  const savedMemo = consultLocalStorage.getItem('DSR_propertyInfoMemo');
   if (propertyMemo && savedMemo) {
     propertyMemo.value = savedMemo;
     if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
@@ -3818,8 +3837,141 @@ window.addEventListener('DOMContentLoaded', initLtvAmountTransfer);
 window.addEventListener('DOMContentLoaded', init);
 /* ───────────────── 상담 전용 저장소 ───────────────── */
 const CONSULT_STORAGE_KEY = '상담저장소';
+const CONSULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwnijhKF5l5r_BupFxu-Dcz0jkjOcDZPS7nWdjLkBB95wO_sUZ44ucrG-9g3BGTeTRd/exec';
+
+function consultUserCode() {
+  return String(window.localStorage.getItem('calc_user_name') || '').trim();
+}
+function consultPhoneKey(phone) {
+  return String(phone || '').replace(/\D/g, '');
+}
+function consultRecordTime(record) {
+  const value = String(record?.savedAt || record?.dateTime || '').trim();
+  if (!value) return 0;
+  let time = Date.parse(value);
+  if (Number.isFinite(time)) return time;
+
+  // Google Sheet 표시 형식(yy.MM.dd HH:mm:ss)은 Date.parse가 브라우저/WebView마다
+  // 다르게 처리될 수 있으므로 직접 파싱한다.
+  const match = value.match(/^(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return 0;
+  const year = Number(match[1]) + (Number(match[1]) < 70 ? 2000 : 1900);
+  time = new Date(year, Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0)).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+function consultServerRecordToLocal(record) {
+  let storage = record.storage || {};
+  try {
+    if (record.inputSnapshot) storage = { ...storage, ...JSON.parse(record.inputSnapshot) };
+  } catch (_) {}
+  return {
+    phone: record.phone || '',
+    name: record.name || '',
+    broker: record.broker || '',
+    memo: record.memo || record.content || '',
+    savedAt: record.dateTime || new Date(0).toISOString(),
+    futureSummary: record.futureSummary || '',
+    inputSnapshot: record.inputSnapshot || '',
+    propertyInfo: record.propertyInfo || '',
+    heldLoans: record.heldLoans || '',
+    fullRecord: record.fullRecord || '',
+    storage
+  };
+}
+function consultLocalRecordToServer(record, userCode) {
+  return {
+    userCode,
+    dateTime: record.savedAt || new Date().toISOString(),
+    phone: record.phone || '',
+    name: record.name || '',
+    needDate: record.needDate || '',
+    needAmount: record.needAmount || '',
+    loanType: record.loanType || '',
+    memo: record.memo || '',
+    broker: record.broker || '',
+    futureSummary: record.futureSummary || '',
+    inputSnapshot: record.inputSnapshot || JSON.stringify(record.storage || {}),
+    propertyInfo: record.propertyInfo || '',
+    heldLoans: record.heldLoans || '',
+    fullRecord: JSON.stringify(record)
+  };
+}
+function consultReadServerRecords(userCode) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `__consultSync_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const cleanup = () => {
+      delete window[callbackName];
+      script.remove();
+    };
+    const timer = setTimeout(() => { cleanup(); reject(new Error('서버 조회 시간 초과')); }, 20000);
+    window[callbackName] = data => { clearTimeout(timer); cleanup(); resolve(Array.isArray(data) ? data : []); };
+    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('서버 조회 실패')); };
+    script.src = `${CONSULT_WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}&callback=${callbackName}&t=${Date.now()}`;
+    document.head.appendChild(script);
+  });
+}
+async function syncConsultRecords() {
+  const userCode = consultUserCode();
+  if (!userCode) {
+    showBubble('사용자 이름을 먼저 확인해 주세요');
+    return;
+  }
+  const button = document.getElementById('consultSyncBtn');
+  if (button) { button.disabled = true; button.textContent = '동기화 중...'; }
+  try {
+    const serverRecords = await consultReadServerRecords(userCode);
+    const localRecords = getConsultRecords();
+    const mergedByPhone = new Map();
+    const withoutPhone = [];
+
+    [...serverRecords.map(consultServerRecordToLocal), ...localRecords].forEach(record => {
+      const phone = consultPhoneKey(record.phone);
+      if (!phone) { withoutPhone.push(record); return; }
+      const previous = mergedByPhone.get(phone);
+      if (!previous || consultRecordTime(record) >= consultRecordTime(previous)) {
+        mergedByPhone.set(phone, record);
+      }
+    });
+
+    const merged = [...mergedByPhone.values(), ...withoutPhone]
+      .sort((a, b) => consultRecordTime(b) - consultRecordTime(a))
+      .slice(0, 100);
+    consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(merged));
+
+    // 병합된 최종 목록을 한 번의 요청으로 서버에 보낸다.
+    // 기존의 연락처별 delete/POST 반복 호출보다 훨씬 빠르고 원자적으로 처리된다.
+    const syncPayload = merged.map(record => consultLocalRecordToServer(record, userCode));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    let syncResponse;
+    try {
+      syncResponse = await fetch(CONSULT_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: new URLSearchParams({ action: 'sync', userCode, records: JSON.stringify(syncPayload) }).toString(),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    /* Google Apps Script Web App은 일반 웹 브라우저에서 응답 CORS를 노출하지 않는다.
+       no-cors 응답은 opaque라 status/body를 읽을 수 없지만, 서버에는 정상 전송된다. */
+    const uploads = syncPayload; /* 서버에 병합 목록 전체를 한 번에 반영 */
+    /* 개별 연락처별 delete/insert 반복 호출은 사용하지 않는다. */
+
+    if (typeof openConsultStorageModal === 'function') openConsultStorageModal();
+    showBubble(`동기화 완료: ${merged.length}건 / 서버 반영 ${uploads.length}건`);
+  } catch (error) {
+    console.error('상담저장소 동기화 실패:', error);
+    showBubble('동기화에 실패했습니다');
+  } finally {
+    if (button) { button.disabled = false; button.textContent = '동기화'; }
+  }
+}
 function getConsultRecords() {
-  try { const value = JSON.parse(localStorage.getItem(CONSULT_STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
+  try { const value = JSON.parse(consultLocalStorage.getItem(CONSULT_STORAGE_KEY) || '[]'); return Array.isArray(value) ? value : []; }
   catch (_) { return []; }
 }
 function saveConsultRecord() {
@@ -3831,7 +3983,53 @@ function saveConsultRecord() {
   const hasStoredInput = Object.values(snapshot).some(value => String(value ?? '').trim() !== '');
   const hasMeaningfulData = phone || name || broker || memo || hasStoredInput;
   if (!hasMeaningfulData) return false;
-  const record = { phone, name, broker, memo, savedAt: new Date().toISOString(), storage: snapshot };
+  const formSnapshot = {};
+  [...document.querySelectorAll('input, select, textarea')].forEach((el, index) => {
+    const key = el.id || el.name || `field_${index}`;
+    if (el.type === 'radio' && !el.checked) return;
+    formSnapshot[key] = {
+      tag: el.tagName.toLowerCase(),
+      type: el.type || '',
+      name: el.name || '',
+      value: el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value,
+      checked: !!el.checked,
+      placeholder: el.placeholder || ''
+    };
+  });
+  const futureFields = Object.entries(formSnapshot)
+    .filter(([key, item]) => /장래|예상|future/i.test(`${key} ${item.name} ${item.placeholder}`))
+    .map(([key, item]) => `${key}=${item.value}`);
+  const futureSummary = futureFields.join('\n');
+  const readSnapshot = key => String(snapshot[key] || '');
+  const firstMortgage = (() => {
+    try { return JSON.parse(readSnapshot('DSR_mortgageData'))[0] || {}; } catch (_) { return {}; }
+  })();
+  const heldMortgage = (() => {
+    try {
+      const rows = JSON.parse(readSnapshot('DSR_mortgageData')) || [];
+      return rows.slice(1).map((row, index) => `보유대출${index + 1}: 금액=${row.amount || ''}, 금리=${row.rate || ''}, 기간=${row.term || ''}, 방식=${row.type || ''}`).join('\n');
+    } catch (_) { return ''; }
+  })();
+  const propertyInfo = [
+    readSnapshot('DSR_selectedAptInfo'),
+    readSnapshot('DSR_propertySettlementDate'),
+    readSnapshot('DSR_propertyInfoMemo'),
+    readSnapshot('DSR_ltvMarketPriceInput')
+  ].filter(Boolean).join('\n');
+  const record = {
+    phone, name, broker, memo,
+    needDate: readSnapshot('DSR_propertySettlementDate'),
+    needAmount: firstMortgage.amount || '',
+    loanType: firstMortgage.type || '',
+    heldLoans: heldMortgage,
+    propertyInfo,
+    savedAt: new Date().toISOString(),
+    storage: snapshot,
+    // 서버에서 내려받은 뒤 loadDsrSnapshotIntoForm()이 바로 복원할 수 있도록
+    // DSR_* 저장 스냅샷과 전체 폼 입력값을 하나의 JSON으로 합친다.
+    inputSnapshot: JSON.stringify({ ...snapshot, ...formSnapshot }),
+    futureSummary
+  };
   // 구분값이 있는 경우에만 같은 번호 상담을 교체한다. 번호와 이름이 모두 없으면 매번 새 기록으로 남긴다.
   const hasIdentifier = Boolean(phone || name);
   const records = hasIdentifier
@@ -3842,20 +4040,41 @@ function saveConsultRecord() {
       })
     : getConsultRecords();
   records.unshift(record);
-  localStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
-  if (window.AndroidBridge && typeof window.AndroidBridge.saveConsultRecord === 'function') {
-    try { window.AndroidBridge.saveConsultRecord(JSON.stringify(record)); } catch (_) {}
+  consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+  // Android WebView의 네이티브 캐시에도 저장한다. 구버전 브리지와 호환되도록
+  // saveConsultRecord/saveLocalRecord 두 이름을 모두 지원한다.
+  if (window.AndroidBridge) {
+    try {
+      const save = window.AndroidBridge.saveConsultRecord || window.AndroidBridge.saveLocalRecord;
+      if (typeof save === 'function') save.call(window.AndroidBridge, JSON.stringify(record));
+    } catch (_) {}
   }
   if (typeof showBubble === 'function') showBubble('상담저장소에 저장했습니다');
 }
 function openConsultStorageModal() {
-  const records = getConsultRecords();
+  let records = getConsultRecords();
+  // 앱 네이티브 캐시에만 남아 있는 기존 기록도 상담저장소 목록에 합친다.
+  if (window.AndroidBridge && typeof window.AndroidBridge.getLocalRecords === 'function') {
+    try {
+      const nativeRecords = JSON.parse(window.AndroidBridge.getLocalRecords() || '[]');
+      const byPhone = new Map(records.map(item => [consultPhoneKey(item.phone), item]));
+      nativeRecords.forEach(item => {
+        const key = consultPhoneKey(item.phone);
+        if (!key || !byPhone.has(key) || consultRecordTime(item) > consultRecordTime(byPhone.get(key))) byPhone.set(key, item);
+      });
+      records = [...byPhone.values()].sort((a, b) => consultRecordTime(b) - consultRecordTime(a));
+      consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+    } catch (_) {}
+  }
   let modal = document.getElementById('consultStorageModal');
   if (!modal) {
     modal = document.createElement('div'); modal.id = 'consultStorageModal'; modal.className = 'consult-storage-modal';
-    modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-close">닫기</button></div><div class="consult-storage-list"></div></div>';
+    modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-sync" id="consultSyncBtn">동기화</button></div><div class="consult-storage-list"></div></div>';
     document.body.appendChild(modal);
-    modal.querySelector('.consult-storage-close').addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) modal.style.display = 'none';
+    });
+    modal.querySelector('#consultSyncBtn').addEventListener('click', syncConsultRecords);
   }
   const list = modal.querySelector('.consult-storage-list');
   const search = modal.querySelector('.consult-storage-search');
@@ -3865,12 +4084,32 @@ function openConsultStorageModal() {
     list.innerHTML = filtered.length ? filtered.map(r => {
       const displayName = String(r.name || r.customerName || r.customer_name || '').trim() || '이름없음';
       const index = records.indexOf(r);
-      return `<button type="button" class="consult-storage-item" data-index="${index}"><b>${escapeHtml(displayName)}</b><span>${escapeHtml(r.phone || '연락처 없음')}</span><small>${escapeHtml(r.memo || '')}</small></button>`;
+      return `<div class="consult-storage-item" data-index="${index}" role="button" tabindex="0"><b>${escapeHtml(displayName)}</b><span>${escapeHtml(r.phone || '연락처 없음')}</span><button type="button" class="consult-storage-delete" data-index="${index}" aria-label="저장된 상담내용 삭제">×</button><small>${escapeHtml(r.memo || '')}</small></div>`;
     }).join('') : '<div class="consult-storage-empty">검색 결과가 없습니다.</div>';
-    list.querySelectorAll('.consult-storage-item').forEach(item => item.addEventListener('click', () => {
+    list.querySelectorAll('.consult-storage-item').forEach(item => item.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('.consult-storage-delete');
+      if (deleteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const deleteIndex = Number(deleteButton.dataset.index);
+        const deleteRecord = records[deleteIndex];
+        if (!deleteRecord) return;
+        if (!window.confirm('삭제하시겠습니까?')) return;
+        records.splice(deleteIndex, 1);
+        consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+        renderRecords();
+        if (typeof showBubble === 'function') showBubble('저장된 상담내용을 삭제했습니다');
+        return;
+      }
+
       const record = records[Number(item.dataset.index)];
       if (!record) return;
       loadDsrSnapshotIntoForm(record.storage || {});
+      // 서버 동기화 기록은 inputSnapshot 안에 DSR_* 키가 들어 있다.
+      // storage가 비어 있어도 서버에서 내려받은 입력값을 먼저 복원한다.
+      if ((!record.storage || Object.keys(record.storage).length === 0) && record.inputSnapshot) {
+        try { loadDsrSnapshotIntoForm(JSON.parse(record.inputSnapshot)); } catch (_) {}
+      }
       // 저장 당시 상담정보를 별도로 직접 복원해 UI/요약/팝업 모두 같은 값을 사용하게 한다.
       const fields = [['customerPhoneInput', record.phone], ['customerNameInput', record.name], ['customerBrokerInput', record.broker], ['customerInfoMemo', record.memo]];
       fields.forEach(([id, value]) => { const el = document.getElementById(id); if (el && value !== undefined) { el.value = value || ''; el.dispatchEvent(new Event('input', { bubbles: true })); } });
