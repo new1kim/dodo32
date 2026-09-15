@@ -2432,20 +2432,20 @@ function buildDsrSavedMemoText(storage = null) {
     : '없음';
 
   return [
-    '♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️',
+    '👉👉👉👉👉👉👉👉👉👉👉',
     '',
-    `♦️ 고객정보 : ${customerName} [ ${customerPhone} ] ( ${customerBroker} )`,
-    customerMemo ? `♦️ 고객정보 메모 : ${customerMemo}` : '♦️ 고객정보 메모 : 없음',
-    '♦️',
-    `♦️ 물건지 정보 : [ ${propertyName}, ${kbPrice} ]`,
-    `♦️ 소득정보 : [ ${incomeKind} ] [ ${incomeValue} ]`,
-    incomeMemo ? `♦️ 소득 메모 : ${incomeMemo}` : '♦️ 소득 메모 : 없음',
-    '♦️',
-    `♦️ 신청금액 - 본건대출금 [ ${firstAmt}, ${firstRate}%, ${firstTerm}개월, ${firstType} ]`,
-    firstMemo ? `♦️ 신청금액 메모 : ${firstMemo}` : '♦️ 신청금액 메모 : 없음',
-    '♦️',
-    `♦️ 보유대출 - 보유대출 현황 [ ${heldStatus} ]`,
-    `♦️ 보유대출 메모 : ${heldMemo}`
+    `👉 고객정보 : ${customerName} [ ${customerPhone} ] ( ${customerBroker} )`,
+    customerMemo ? `👉 고객정보 메모 : ${customerMemo}` : '👉 고객정보 메모 : 없음',
+    '👉',
+    `👉 물건지 정보 : [ ${propertyName}, ${kbPrice} ]`,
+    `👉 소득정보 : [ ${incomeKind} ] [ ${incomeValue} ]`,
+    incomeMemo ? `👉 소득 메모 : ${incomeMemo}` : '👉 소득 메모 : 없음',
+    '👉',
+    `👉 신청금액 - 본건대출금 [ ${firstAmt}, ${firstRate}%, ${firstTerm}개월, ${firstType} ]`,
+    firstMemo ? `👉 신청금액 메모 : ${firstMemo}` : '👉 신청금액 메모 : 없음',
+    '👉',
+    `👉 보유대출 - 보유대출 현황 [ ${heldStatus} ]`,
+    `👉 보유대출 메모 : ${heldMemo}`
   ].join('\n');
 }
 
@@ -4189,17 +4189,18 @@ function 대출정보텍스트생성() {
   // 복사 텍스트는 괄호 없이 쉼표로 구분해 읽기 쉽게 구성한다.
   const b = value => value || '';
   const lines = [];
-  const addMemo = value => { if (value) lines.push(` ♦️ ${b(value)}`); };
+  const addMemo = value => { if (value) lines.push(` 👉 ${b(value)}`); };
   const addIncome = (kind, income, future, age, converted, memo) => {
-    lines.push(` ♦️ ${[kind, income, future, age].filter(Boolean).join(', ')}`);
-    if (future && converted) lines.push(` ♦️ 장래예상소득 계산값, → ${b(converted)}`);
-    if (memo) lines.push(` ♦️ ${memo}`);
+    lines.push(` 👉 ${[kind, income, future, age].filter(Boolean).join(', ')}`);
+    if (future && converted) lines.push(` 👉 장래예상소득 계산값, ${b(converted)}`);
+    if (memo) lines.push(` 👉 ${memo}`);
   };
 
   lines.push('👤 고객정보');
-  lines.push(` ♦️ ${[val('customerNameInput'), val('customerPhoneInput')].filter(Boolean).join(', ')}`);
-  lines.push(` ♦️ ${b(val('customerBrokerInput'))}`);
-  if (val('customerInfoMemo')) lines.push(` ♦️ ${val('customerInfoMemo')}`);
+  lines.push(` 👉 ${[val('customerNameInput'), val('customerPhoneInput')].filter(Boolean).join(', ')}`);
+  const broker = val('customerBrokerInput');
+  if (broker) lines.push(` 👉 중개업소 -> ${broker}`);
+  if (val('customerInfoMemo')) lines.push(` 👉 ${val('customerInfoMemo')}`);
   lines.push('');
 
   const apt = selectedAptInfo || {};
@@ -4207,14 +4208,19 @@ function 대출정보텍스트생성() {
   const supply = apt.supplyPyeong ? `공급 ${apt.supplyPyeong}` : '';
   const dongHo = apt.dong && apt.ho ? `${apt.dong}동 ${apt.ho}호` : '';
   lines.push('🏢 물건지정보');
-  lines.push(` ♦️ ${[apt.aptName, area, supply].filter(Boolean).join(', ')}`);
-  lines.push(` ♦️ ${[apt.address, dongHo, apt.투기과열지구 ? '투기과열' : ''].filter(Boolean).join(', ')}`);
-  if (val('propertySettlementDate')) lines.push(` ♦️ 잔금일자 : ${val('propertySettlementDate')}`);
+  lines.push(` 👉 ${[apt.aptName, area, supply].filter(Boolean).join(', ')}`);
+  lines.push(` 👉 ${[apt.address, dongHo, apt.투기과열지구 ? '투기과열' : ''].filter(Boolean).join(', ')}`);
+  if (val('propertySettlementDate')) lines.push(` 👉 잔금일자 : ${val('propertySettlementDate')}`);
   const propertyMemo = cleanMemo(val('propertyInfoMemo'));
-  if (propertyMemo) lines.push(` ♦️ 물건지 정보  ${propertyMemo}`);
+  if (propertyMemo) lines.push(` 👉 물건지 정보  ${propertyMemo}`);
   lines.push('');
 
-  lines.push(`💰 소득정보  합산소득 - ${b(val('totalIncomeOutput'))}`);
+  const baseIncomeValue = parseFloat((val('baseIncomeInput') || '').replace(/,/g, '')) || 0;
+  const extraIncomeCount = typeof extraIncomeRowIndexes === 'function'
+    ? extraIncomeRowIndexes().filter(idx => (incomeRowState.get(idx)?.memoIncome || 0) > 0).length
+    : 0;
+  const incomeCount = (baseIncomeValue > 0 ? 1 : 0) + extraIncomeCount;
+  lines.push(`💰 소득정보${incomeCount >= 2 ? `  합산소득 - ${b(val('totalIncomeOutput'))}` : ''}`);
   const future = typeof applyRateCheck !== 'undefined' && applyRateCheck?.checked;
   const kind = typeof baseIncomeMode !== 'undefined' && baseIncomeMode === '신고' ? (baseDeclareType || '추정') : '근로소득';
   addIncome(kind, val('baseIncomeInput'), future ? '장래예상' : '', val('ageInput'), text('baseFutureIncomeConverted'), val('baseIncomeMemo'));
@@ -4225,20 +4231,31 @@ function 대출정보텍스트생성() {
   lines.push('');
 
   const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
-  lines.push(`💲 대출정보 · DSR ${text('DSR확인') || '-'}, DTI ${text('DIT확인') || '-'}, 신DTI ${text('신DTI확인') || '-'}`);
+  const hasMortgage = rows.some(row =>
+    row.querySelector('.mort-category-toggle.active') && !row.querySelector('.mort-exclude')?.checked
+  );
+  const ratioSummary = [`DSR ${text('DSR확인') || '-'}`, `DTI ${text('DIT확인') || '-'}`];
+  if (hasMortgage) ratioSummary.push(`신DTI ${text('신DTI확인') || '-'}`);
+  lines.push(`💲 대출정보 · ${ratioSummary.join(', ')}`);
   rows.forEach((row, index) => {
     const amount = row.querySelector('.mort-amt')?.value?.trim() || '';
     const rate = row.querySelector('.mort-rate')?.value?.trim() || '';
     const term = row.querySelector('.mort-term')?.value?.trim() || '';
+    const rateDisplay = rate ? (rate.endsWith('%') ? rate : `${rate}%`) : '';
+    const termDisplay = term ? (term.endsWith('개월') ? term : `${term}개월`) : '';
     const type = row.querySelector('.mort-type')?.value?.trim() || '';
     const grace = row.querySelector('.mort-grace-check')?.checked ? row.querySelector('.mort-grace-term')?.value?.trim() : '';
     const category = row.querySelector('.mort-category-toggle.active') ? '주담대' : '';
     if (index === 0) {
-      lines.push(` ♦️ 필요금액, ${[amount, rate, term, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
-      if (getMortgageRowMemo(row)) lines.push(` ♦️ ${getMortgageRowMemo(row)}`);
+      lines.push(` 👉 필요금액, ${[amount, rateDisplay, termDisplay, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
+      if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
     } else {
-      lines.push(` ♦️ 보유대출${index} -> ${[amount, rate, term, type, category].filter(Boolean).join(', ')}`);
-      if (getMortgageRowMemo(row)) lines.push(` ♦️ ${getMortgageRowMemo(row)}`);
+      const excludeChecked = row.querySelector('.mort-exclude')?.checked;
+      const loanDetails = excludeChecked
+        ? [category, amount, '(상환조건)']
+        : [category, amount, rateDisplay, termDisplay, type];
+      lines.push(` 👉 보유대출${index} -> ${loanDetails.filter(Boolean).join(', ')}`);
+      if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
     }
   });
   return lines.join('\n');
