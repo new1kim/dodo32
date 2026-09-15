@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#3355f5">
+<title>신분증 복사 도우미</title>
+<style>
+:root{
+  --primary:#3355f5;--primary-dark:#233ed6;--accent:#7c5cff;
+  --ink:#0f1729;--muted:#64748b;--muted-2:#94a3b8;
+  --line:#e7eaf3;--bg:#f2f4f9;--card:#fff;--surface-2:#eef1f8;
+  --success:#12b76a;--success-bg:#e9f9f1;
+  --r-lg:20px;--r-md:14px;--r-sm:10px;
+  --sh-sm:0 1px 2px rgba(15,23,42,.05);
+  --sh-md:0 10px 26px rgba(20,30,60,.08);
+  --sh-lg:0 18px 40px rgba(20,30,60,.14);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif}
+body{min-height:100vh}
+button,label,input{font:inherit}
+button{cursor:pointer}
+button:active,.upload:active,label.upload:active{transform:scale(.975)}
+.icon{width:1em;height:1em;display:block}
+.app{width:100%;max-width:520px;margin:auto;min-height:100vh;background:var(--bg)}
+
+/* ===== HEADER ===== */
+.top{
+  position:relative;overflow:hidden;color:#fff;padding:22px 18px 20px;
+  padding-top:max(22px,env(safe-area-inset-top));border-radius:0 0 28px 28px;
+  background:linear-gradient(150deg,var(--primary),var(--accent) 130%);
+}
+.top:before{
+  content:"";position:absolute;inset:-40% -20% auto auto;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);pointer-events:none;
+}
+.topbar{position:relative;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35)}
+.logo-icon .icon{width:23px;height:23px}
+.title{font-size:20px;font-weight:800;letter-spacing:-.4px}
+.subtitle{font-size:12px;opacity:.85;margin-top:3px}
+
+/* ===== LAYOUT / CARDS ===== */
+main{padding:16px 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;margin-bottom:12px;box-shadow:var(--sh-md)}
+.card-title{font-size:14.5px;font-weight:800;letter-spacing:-.2px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+
+/* ===== HOME: UPLOAD ===== */
+.hero-buttons{display:grid;gap:10px}
+.upload{
+  display:flex;align-items:center;gap:13px;padding:16px;border-radius:var(--r-md);border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink);transition:transform .12s ease;
+}
+.upload.primary{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:0;box-shadow:var(--sh-md)}
+.upload-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#fff;color:var(--primary);flex:0 0 42px;box-shadow:var(--sh-sm)}
+.upload-icon .icon{width:21px;height:21px}
+.upload.primary .upload-icon{color:var(--primary)}
+.upload b{display:block;font-size:14.5px;font-weight:800}
+.upload span{font-size:11.5px;opacity:.8;display:block;margin-top:3px}
+input[type=file]{display:none}
+
+/* ===== WORKSPACE / PHOTO ===== */
+#workspace{display:none}
+.photo-viewport{max-height:62vh;overflow:auto;border-radius:var(--r-md);-webkit-overflow-scrolling:touch;padding:34px;background:var(--surface-2)}
+.photo-box{position:relative;width:100%}
+.canvas-clip{position:relative;background:#0d1526;border-radius:var(--r-md);overflow:hidden}
+#sourceCanvas{width:100%;display:block}
+
+.corner-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+.toolbar-btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar-btn{display:flex;align-items:center;gap:6px;padding:9px 15px;border-radius:999px;border:0;background:var(--surface-2);color:var(--primary);font-weight:800;font-size:12.5px}
+.toolbar-btn .icon{width:15px;height:15px}
+.zoom-controls{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--surface-2);border-radius:999px;padding:6px}
+.zoom-controls button{width:32px;height:32px;border-radius:50%;border:0;display:grid;place-items:center;background:#fff;color:var(--primary);box-shadow:var(--sh-sm)}
+.zoom-controls button .icon{width:15px;height:15px}
+.zoom-controls span{font-size:12px;font-weight:800;color:var(--muted);min-width:40px;text-align:center}
+
+.manual-quad{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none}
+.manual-handles{position:absolute;inset:0;display:none}
+.corner-marker{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--primary);border:1.5px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.45);pointer-events:none}
+.corner-dot{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 3px 10px rgba(15,23,42,.35);touch-action:none;pointer-events:auto}
+/* 변 중간의 "구분바" - 모서리 하나씩이 아니라 변 전체(양쪽 모서리를 함께)를 밀어서
+   그 변만 넓히거나 좁힐 수 있게 해준다. 가로변은 눕힌 막대, 세로변은 세운 막대. */
+.edge-bar{position:absolute;background:#fff;border:3px solid var(--primary);box-shadow:0 3px 10px rgba(15,23,42,.35);touch-action:none;pointer-events:auto;border-radius:999px}
+.edge-bar-h{width:34px;height:14px;margin:-7px 0 0 -17px}
+.edge-bar-v{width:14px;height:34px;margin:-17px 0 0 -7px}
+
+.status{display:flex;align-items:center;gap:9px;background:#1c2740;color:#fff;padding:12px 13px;border-radius:var(--r-sm);margin-top:10px;font-size:12px}
+.spinner{width:17px;height:17px;flex:0 0 17px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.success{background:var(--success-bg);color:#0d8c56}
+
+/* ===== CONTROLS (색상/밝기/대비 - A4 미리보기 카드 안에 있음) ===== */
+/* container-type:inline-size로 이 요소 자신의 너비를 기준 삼는다(뷰포트 vw는 두 칸짜리
+   .two-col 안에서는 실제 칸 너비와 안 맞아서 좁을 때 여전히 넘칠 수 있다 - cqw는 정확히
+   이 세그먼트의 너비 기준이라 항상 맞는다). cqw 미지원 구형 브라우저는 위 고정값(폴백)을 쓴다. */
+/* flex:1 필수 - 컨테이너 쿼리는 이 요소 자신의 너비가 콘텐츠(cqw로 크기가 정해지는
+   버튼들)에 좌우되면 순환 참조라 크기를 0으로 접어버린다. flex:1로 너비를 레이아웃이
+   먼저 정하게 해서 이 순환을 끊는다. */
+.segment{display:flex;flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:3px;container-type:inline-size}
+.segment button{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;border:0;background:transparent;padding:9px 10px;border-radius:9px;color:var(--muted);font-weight:700;font-size:12px;white-space:nowrap;min-width:0}
+.segment button{gap:clamp(3px,3.5cqw,6px);padding:clamp(6px,5cqw,9px) clamp(3px,5.6cqw,10px);font-size:clamp(9.5px,6.7cqw,12px)}
+.segment button .icon{width:15px;height:15px;flex-shrink:0}
+.segment button .icon{width:clamp(11px,8.5cqw,15px);height:clamp(11px,8.5cqw,15px)}
+.segment button.active{background:#fff;color:var(--primary);box-shadow:var(--sh-sm)}
+.ctrl-row{display:flex;align-items:center;gap:12px;margin:14px 0}
+.ctrl-label{width:45px;font-size:12px;font-weight:700;color:var(--muted)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two-col .ctrl-row{margin:14px 0;gap:8px}
+.two-col .ctrl-label{width:32px}
+.range{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:var(--surface-2);outline:none}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 2px 6px rgba(15,23,42,.25);cursor:pointer}
+.range::-moz-range-track{height:6px;border-radius:999px;background:var(--surface-2)}
+.range::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--primary);box-shadow:0 2px 6px rgba(15,23,42,.25);cursor:pointer}
+.value{width:30px;text-align:right;font-size:11.5px;font-weight:700;color:var(--muted)}
+.reset-btn{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0}
+.reset-btn .icon{width:12px;height:12px}
+.reset-btn:active{background:var(--surface-2)}
+
+/* ===== A4 PREVIEW ===== */
+.a4-preview{display:none}
+.a4-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.a4-tag{font-size:10px;font-weight:700;color:var(--muted);background:var(--surface-2);padding:4px 9px;border-radius:999px}
+.a4-banner{display:flex;align-items:center;gap:5px;background:#eef1ff;border:1px solid #d7ddff;border-radius:var(--r-sm);padding:6px 8px;margin-bottom:8px;font-size:10px;font-weight:700;color:var(--primary-dark);line-height:1.3}
+.a4-banner .icon{width:12px;height:12px;flex-shrink:0}
+/* 화면 미리보기만 작게 줄인다(실제 인쇄/저장 크기와는 무관 - JS가 mm 단위로 따로 계산).
+   신분증이 상단에 배치되므로 용지의 아래쪽 절반은 항상 빈 여백이라, 그 부분은
+   overflow:hidden으로 잘라내 화면 공간을 낭비하지 않는다(위에서 A4 크기임을 이미 안내함). */
+.a4-wrap{
+  width:96%;margin:0 auto;background:var(--surface-2);padding:12px;border-radius:var(--r-md);
+  aspect-ratio:210/148.5;overflow:hidden;
+}
+.a4{
+  position:relative;width:100%;aspect-ratio:210/297;background:#fff;
+  box-shadow:0 6px 22px rgba(15,23,42,.16);overflow:hidden;border-radius:2px;
+  transform:scale(1.9);transform-origin:50% 22.0875%;
+}
+.id-output{
+  position:absolute;width:40.762%;height:auto;aspect-ratio:85.6/53.98;
+  left:29.619%;top:13%;background:#eee;overflow:hidden
+}
+.id-output img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+/* 화면 미리보기는 카드 부분을 확대해서 보여주므로(transform:scale) 이 눈금선이
+   확대 배율만큼 같이 커지면서 잘리거나 흐릿해진다 - 화면에서는 숨기고 인쇄에서만 쓴다. */
+.measure-w,.measure-h{display:none}
+.measure-w{position:absolute;top:calc(13% - 18px);left:29.619%;width:40.762%;border-top:1px solid #9aa7bb}
+.measure-w:before,.measure-w:after{content:"";position:absolute;height:8px;border-left:1px solid #9aa7bb;top:-4px}
+.measure-w:after{right:0}.measure-w span{position:absolute;left:50%;transform:translateX(-50%);top:-17px;background:#fff;padding:0 4px;font-size:9px;color:var(--muted)}
+.measure-h{position:absolute;left:calc(29.619% + 40.762% + 10px);top:13%;height:18.175%;border-left:1px solid #9aa7bb}
+.measure-h:before,.measure-h:after{content:"";position:absolute;width:8px;border-top:1px solid #9aa7bb;left:-4px}
+.measure-h:after{bottom:0}.measure-h span{position:absolute;left:3px;top:50%;transform:translateY(-50%);white-space:nowrap;background:#fff;padding:2px;font-size:9px;color:var(--muted)}
+
+/* ===== BUTTONS ===== */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;container-type:inline-size}
+.action{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:var(--r-sm);border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:800;font-size:13px;white-space:nowrap;min-width:0}
+.action{gap:clamp(4px,3.5cqw,7px);padding:clamp(9px,6.5cqw,13px);font-size:clamp(10.5px,6.5cqw,13px)}
+.action .icon{width:16px;height:16px;flex-shrink:0}
+.action .icon{width:clamp(12px,8cqw,16px);height:clamp(12px,8cqw,16px)}
+.action.primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--sh-sm)}
+.action.full{grid-column:1/-1}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,20px);background:var(--ink);color:#fff;border-radius:12px;padding:11px 16px;font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:50;white-space:nowrap;box-shadow:var(--sh-lg)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.small-note{font-size:10.5px;color:var(--muted-2);line-height:1.6;margin-top:10px}
+
+/* ===== BROWSER HINT ===== */
+.browser-hint{display:none;align-items:center;gap:10px;background:#1f2a44;color:#fff;padding:10px 14px;font-size:12px;font-weight:600;line-height:1.4}
+.browser-hint b{color:#8fb4ff}
+.browser-hint-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
+.browser-hint-actions button{border:0;border-radius:8px;font-weight:800;cursor:pointer}
+#openInChromeBtn{background:var(--primary);color:#fff;padding:7px 12px;font-size:12px;white-space:nowrap}
+#dismissBrowserHint{background:transparent;color:#aab4c8;font-size:15px;padding:4px 6px}
+
+@media(min-width:521px){body{padding:18px 0}.app{border-radius:28px;overflow:hidden;box-shadow:0 10px 40px rgba(20,30,60,.16)}}
+@media print{
+  /* (min-width:521px) 규칙이 screen 조건 없이 걸려 있어 인쇄 시에도 적용된다 - body의
+     상하 padding(18px×2 ≈ 9.5mm)이 A4 297mm에 더해지면서 그만큼이 2페이지로 밀려나가던
+     원인이었다. 인쇄에서는 반드시 0으로 되돌린다. */
+  body{background:#fff!important;padding:0!important}
+  .app{max-width:none;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  .top,main>.card:not(.printable),.toast{display:none!important}
+  main{padding:0}.printable{display:block!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
+  .a4-preview{display:block!important}
+  /* A4 용지(.a4-wrap) 한 장만 인쇄되게, 미리보기 아래 버튼·안내문 등은 전부 숨긴다 */
+  .a4-preview>*:not(.a4-wrap){display:none!important}
+  /* 화면 미리보기용 96% 폭 + aspect-ratio(210/148.5, 절반 높이로 잘라 보여주는 값)를
+     인쇄에서는 .a4의 실제 크기(210mm×297mm)와 정확히 맞춘다 */
+  .a4-wrap{width:210mm;margin:0;padding:0;background:#fff;aspect-ratio:auto;overflow:visible}
+  .a4{width:210mm;height:297mm;box-shadow:none;border-radius:0;transform:none}
+  .measure-w,.measure-h{display:none}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div id="browserHintBar" class="browser-hint" style="display:none">
+  <span>원활한 공유 기능을 위해 <b>크롬</b> 사용을 권장합니다.</span>
+  <div class="browser-hint-actions">
+    <button type="button" id="openInChromeBtn">크롬으로 열기</button>
+    <button type="button" id="dismissBrowserHint" aria-label="닫기">✕</button>
+  </div>
+</div>
+<header class="top">
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5"/>
+          <circle cx="8" cy="12" r="2.2"/>
+          <path d="M13 10.5h6M13 13.5h4"/>
+        </svg>
+      </div>
+      <div><div class="title">신분증 복사 도우미</div><div class="subtitle">신분증을 A4 용지에 깔끔하게 출력하세요.</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="card" id="homeCard">
+  <div class="card-title">신분증 준비</div>
+  <div class="hero-buttons">
+    <label class="upload primary">
+      <div class="upload-icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h3l1.4-2h7.2L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
+          <circle cx="12" cy="13" r="3.4"/>
+        </svg>
+      </div>
+      <div><b>카메라로 촬영하기</b><span>가로 촬영을 권장합니다!!!</span></div>
+      <input id="camera" type="file" accept="image/*" capture="environment">
+    </label>
+    <label class="upload">
+      <div class="upload-icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+          <circle cx="8.5" cy="9.5" r="1.6"/>
+          <path d="M21 15.5l-5.2-5-6 6"/>
+        </svg>
+      </div>
+      <div><b>사진 선택하기</b><span>갤러리에서 촬영한 사진을 불러오세요.</span></div>
+      <input id="gallery" type="file" accept="image/*">
+    </label>
+  </div>
+</section>
+
+<section class="card" id="workspace">
+  <div class="card-title">신분증 영역 조정</div>
+  <div class="photo-viewport" id="photoViewport">
+    <div class="photo-box" id="photoBox">
+      <div class="canvas-clip">
+        <canvas id="sourceCanvas"></canvas>
+      </div>
+      <svg id="manualQuad" class="manual-quad" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon id="manualPolygon" points="" fill="rgba(51,85,245,.16)" stroke="#5b9dff" stroke-width="1" vector-effect="non-scaling-stroke"></polygon>
+      </svg>
+      <div id="manualHandles" class="manual-handles">
+        <div class="corner-marker" data-idx="0"></div>
+        <div class="corner-marker" data-idx="1"></div>
+        <div class="corner-marker" data-idx="2"></div>
+        <div class="corner-marker" data-idx="3"></div>
+        <div class="edge-bar edge-bar-h" data-edge="top"></div>
+        <div class="edge-bar edge-bar-v" data-edge="right"></div>
+        <div class="edge-bar edge-bar-h" data-edge="bottom"></div>
+        <div class="edge-bar edge-bar-v" data-edge="left"></div>
+        <div class="corner-dot" data-idx="0"></div>
+        <div class="corner-dot" data-idx="1"></div>
+        <div class="corner-dot" data-idx="2"></div>
+        <div class="corner-dot" data-idx="3"></div>
+      </div>
+    </div>
+  </div>
+  <div class="corner-toolbar">
+    <div class="toolbar-btn-group">
+      <button type="button" id="manualFullBtn" class="toolbar-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 4H6a2 2 0 0 0-2 2v3"/><path d="M15 4h3a2 2 0 0 1 2 2v3"/>
+          <path d="M9 20H6a2 2 0 0 1-2-2v-3"/><path d="M15 20h3a2 2 0 0 0 2-2v-3"/>
+        </svg>전체 선택
+      </button>
+      <button type="button" id="redetectBtn" class="toolbar-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.35-4.35"/>
+        </svg>다시 인식
+      </button>
+    </div>
+    <div class="zoom-controls">
+      <button type="button" id="zoomOut" aria-label="축소">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+      </button>
+      <span id="zoomLevelText">100%</span>
+      <button type="button" id="zoomIn" aria-label="확대">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="scanStatus" class="status"><div class="spinner"></div><span>신분증 영역을 자동으로 찾고 있습니다...</span></div>
+</section>
+
+<section class="card printable">
+  <div class="a4-preview" id="a4Preview">
+    <div class="a4-head"><div class="card-title" style="margin:0">A4 미리보기</div><span class="a4-tag">A4 (210 × 297mm)</span></div>
+
+    <div class="a4-banner">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v3M12 3v2M16 3v3M8 18v3M16 18v3"/>
+      </svg>
+      A4 용지에 신분증 실물 크기에 맞게 인쇄·저장됩니다
+    </div>
+
+    <div class="a4-wrap">
+      <div class="a4">
+        <div class="measure-w"><span>85.6mm</span></div>
+        <div class="measure-h"><span>53.98mm</span></div>
+        <div class="id-output"><img id="outputImg" alt="인식된 신분증"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="ctrl-row"><span class="ctrl-label">색상</span><div class="segment">
+        <button id="colorBtn" class="active">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="12" r="6.5"/><circle cx="15" cy="12" r="6.5"/></svg>컬러
+        </button>
+        <button id="bwBtn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/></svg>흑백
+        </button>
+      </div></div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">방향</span>
+        <div class="segment">
+          <button type="button" id="orientLandscapeBtn" class="active">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>가로
+          </button>
+          <button type="button" id="orientPortraitBtn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2"/></svg>세로
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="ctrl-row"><span class="ctrl-label">밝기</span><input id="brightness" class="range" type="range" min="70" max="135" value="100"><span id="bv" class="value">0</span>
+      <button type="button" class="reset-btn" id="resetBrightness" aria-label="밝기 초기화" title="초기화">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 17v-5h5"/></svg>
+      </button>
+    </div>
+    <div class="ctrl-row"><span class="ctrl-label">대비</span><input id="contrast" class="range" type="range" min="70" max="145" value="100"><span id="cv" class="value">0</span>
+      <button type="button" class="reset-btn" id="resetContrast" aria-label="대비 초기화" title="초기화">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 17v-5h5"/></svg>
+      </button>
+    </div>
+
+    <div class="action-grid" style="margin-top:10px">
+      <button class="action primary" id="shareImageBtn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5.2-5-6 6"/>
+        </svg>이미지 공유
+      </button>
+      <button class="action primary" id="sharePdfBtn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4"/>
+        </svg>PDF 공유
+      </button>
+    </div>
+    <!-- PC에는 공유 시트가 없어서 인쇄로 바로 갈 방법이 없었다 - 모바일에는 이미 공유
+         메뉴의 인쇄가 있으니 중복이라 평소엔 숨기고, PC로 접속이 확인된 경우에만 보여준다. -->
+    <button type="button" class="action full" id="printBtn" style="display:none;margin-top:9px">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/>
+      </svg>바로인쇄
+    </button>
+    <div class="small-note">※ 공유 메뉴에서 <b>인쇄</b>를 선택하면 바로 인쇄할 수 있습니다. 인쇄 설정에서 배율을 <b>100%(실제 크기)</b>로 선택하세요 - '페이지에 맞춤'을 사용하면 크기가 달라질 수 있습니다.</div>
+  </div>
+</section>
+</main>
+
+<div id="toast" class="toast"></div>
+</div>
+
+<!-- OpenCV.js: 자동 사각형 검출과 원근 보정 -->
+<script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+<!-- jsPDF: PDF 저장 기능 -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+
+/* =========================================================
+   브라우저 환경 판별 (크롬 유도 배너 + 저장 차단 안내에서 공용으로 쓴다)
+   카카오톡/네이버 등 인앱 브라우저나 구형 웹뷰는 파일 공유(Web Share)뿐 아니라
+   다운로드 자체도 보안 정책상 막는 경우가 있다. 정식 크롬이 아니면 판별해서
+   상황에 맞게 크롬 실행(intent URL)을 권한다.
+   스마트상담도구 앱 자체 웹뷰는 대상에서 제외한다(window.AndroidBridge로 식별) -
+   그 안에서는 이미 네이티브 공유가 되므로 크롬으로 유도할 필요가 없다.
+   iOS는 크롬을 강제로 열 방법이 없어서(강제 실행 가능한 URL 스킴이 없음, 크롬
+   미설치 시 조용히 실패) 대상에서 제외한다 - 사파리 자체가 이미 공유를 잘 지원한다. */
+const IS_APP_WEBVIEW=!!window.AndroidBridge;
+const UA=navigator.userAgent;
+const IS_ANDROID=/Android/i.test(UA);
+const IS_IOS=/iPhone|iPad|iPod/i.test(UA);
+const IS_MOBILE=IS_ANDROID||IS_IOS;
+const IS_INAPP_BROWSER=/KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line\//i.test(UA);
+// 크롬 UA에는 "Chrome/"이 들어있지만, 삼성인터넷/웨일/오페라/UC브라우저 등도
+// 크로미움 기반이라 호환성 목적으로 똑같이 "Chrome/" 토큰을 끼워 넣는다 -
+// 그래서 다른 브라우저 고유 토큰이 없어야만 진짜 크롬으로 판단한다.
+const IS_OTHER_ANDROID_BROWSER=/SamsungBrowser|Whale|MiuiBrowser|HeyTapBrowser|UCBrowser|EdgA|OPR\/|; ?wv\)/i.test(UA);
+const IS_REAL_CHROME=/Chrome\//.test(UA) && !IS_OTHER_ANDROID_BROWSER && !IS_INAPP_BROWSER;
+
+function openInChrome(){
+  const scheme=location.protocol.replace(':','');
+  const withoutScheme=location.href.slice(location.protocol.length+2);
+  location.href=`intent://${withoutScheme}#Intent;scheme=${scheme};package=com.android.chrome;end`;
+}
+
+// message를 주면 그 문구로, 안 주면 기본 권장 문구로 배너를 띄운다.
+// dismissible=false면 "이번 세션엔 다시 안 봄" 저장 없이 그냥 닫기만 한다 - 실제
+// 저장 실패에 대한 대응 안내라서, 예전에 배너를 닫은 적 있어도 다시 보여줘야 한다.
+function showChromeHint(message, dismissible=true){
+  const bar=$('browserHintBar');
+  if(message) bar.querySelector('span').innerHTML=message;
+  bar.style.display='flex';
+  $('openInChromeBtn').onclick=openInChrome;
+  $('dismissBrowserHint').onclick=()=>{
+    bar.style.display='none';
+    if(dismissible) sessionStorage.setItem('browserHintDismissed','1');
+  };
+}
+
+(function initBrowserHint(){
+  if(IS_APP_WEBVIEW) return; // 앱 자체 웹뷰 - 네이티브 공유가 이미 되므로 불필요
+  if(!IS_ANDROID || IS_REAL_CHROME) return; // iOS는 강제 전환 수단이 없어 배너를 띄우지 않음
+  if(sessionStorage.getItem('browserHintDismissed')) return;
+  showChromeHint();
+})();
+
+let originalImage=null, processedDataURL=null, orientedDataURL=null, mode='color';
+let corners=null, cvReady=false, cardOrientation='landscape';
+let warpedCanvas=null, filterRAF=null;
+let manualDragIdx=null, zoomLevel=1;
+let manualDragEdge=null, edgeDragStart=null;
+// corners[a]-corners[b]로 이어지는 네 변과 그 이름(구분바 data-edge 값과 매칭)
+const EDGES=[{name:'top',a:0,b:1},{name:'right',a:1,b:2},{name:'bottom',a:2,b:3},{name:'left',a:3,b:0}];
+
+// ISO 신분증 실제 크기(mm)와 A4 용지 크기(mm). 세로 방향은 이 둘을 서로 바꿔서 쓴다.
+const CARD_W_MM=85.6, CARD_H_MM=53.98, PAGE_W_MM=210, PAGE_H_MM=297;
+// 실제 신분증(ISO/IEC 7810 ID-1)의 모서리 라운드 반지름. 미리보기·인쇄·이미지·PDF가
+// 전부 이 값 하나로 통일해서 실물과 같은 둥근 모서리로 나오게 한다.
+const CARD_CORNER_MM=3.18;
+
+// 신분증을 용지 중앙이 아니라 상단에 배치할 때 위쪽 여백(용지 높이 대비 비율).
+// 미리보기·이미지저장·PDF·인쇄가 전부 이 값 하나로 통일해서 항상 같은 위치에 나오게 한다.
+const CARD_TOP_MM = PAGE_H_MM * 0.13;
+
+// 모서리 "인식"은 화면 표시용으로 축소된 sourceCanvas(최대 1500px)에서 빠르게 하지만,
+// 실제 "원근보정" 결과물은 그보다 훨씬 큰 원본에서 다시 뽑아야 글자가 뭉개지지 않는다.
+// PROCESS_MAX: 원근보정에 쓸 고해상도 원본의 상한(너무 큰 사진에서 연산이 느려지는 것 방지).
+// CARD_TARGET_LONG_PX: 최종 신분증 이미지의 긴 변 픽셀 수(기존 1000px → 1400px로 상향).
+const PROCESS_MAX=2800;
+const CARD_TARGET_LONG_PX=1400;
+
+// 인식/드래그 UI는 원본 이미지 그대로 쓰기엔 느려서 sourceCanvas(축소본)에서 하지만,
+// 실제 보정은 이 함수로 만든 훨씬 큰 캔버스를 원본으로 삼는다.
+function buildHighResCanvas(img){
+  const scale=Math.min(1, PROCESS_MAX/img.naturalWidth, PROCESS_MAX/img.naturalHeight);
+  const c=document.createElement('canvas');
+  c.width=Math.round(img.naturalWidth*scale);
+  c.height=Math.round(img.naturalHeight*scale);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  return c;
+}
+
+function currentCardBoxMm(){
+  return cardOrientation==='landscape'
+    ? {w:CARD_W_MM, h:CARD_H_MM}
+    : {w:CARD_H_MM, h:CARD_W_MM};
+}
+
+function showToast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function setStatus(msg,ok=false){
+  $('scanStatus').innerHTML=ok?'<span style="font-size:17px">✓</span><span>'+msg+'</span>':'<div class="spinner"></div><span>'+msg+'</span>';
+  $('scanStatus').className='status '+(ok?'success':'');
+}
+function whenOpenCVReady(){
+  if(typeof cv!=='undefined' && cv.Mat){cvReady=true;return true}
+  return false;
+}
+// cvReady 여부를 폴링해서 기다린다(최대 timeoutMs). window의 load 이벤트를 기다리지 않고
+// 즉시(스크립트 실행 시점부터) 폴링을 시작해, opencv.js가 이미 로드돼 있으면 지연 없이 통과한다.
+function ensureCvReady(timeoutMs){
+  if(whenOpenCVReady())return Promise.resolve(true);
+  return new Promise(resolve=>{
+    const start=Date.now();
+    const timer=setInterval(()=>{
+      if(whenOpenCVReady()){clearInterval(timer);resolve(true)}
+      else if(Date.now()-start>timeoutMs){clearInterval(timer);resolve(false)}
+    },100);
+  });
+}
+
+function isAlreadyFullCardImage(canvas){
+  if(!canvas) return false;
+  const ratio = canvas.width / canvas.height;
+  const targetRatio = CARD_W_MM / CARD_H_MM;
+  return Math.abs(ratio - targetRatio) < 0.12;
+}
+
+function fitImageToCardAspect(sourceCanvas){
+  const cardRatio = CARD_W_MM / CARD_H_MM;
+  const targetWidth = CARD_TARGET_LONG_PX;
+  const targetHeight = Math.round(targetWidth / cardRatio);
+
+  const fitted = document.createElement('canvas');
+  fitted.width = targetWidth;
+  fitted.height = targetHeight;
+
+  const ctx = fitted.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, fitted.width, fitted.height);
+
+  const scale = Math.min(targetWidth / sourceCanvas.width, targetHeight / sourceCanvas.height);
+  const drawWidth = Math.round(sourceCanvas.width * scale);
+  const drawHeight = Math.round(sourceCanvas.height * scale);
+  const offsetX = (fitted.width - drawWidth) / 2;
+  const offsetY = (fitted.height - drawHeight) / 2;
+
+  ctx.drawImage(sourceCanvas, offsetX, offsetY, drawWidth, drawHeight);
+
+  return fitted;
+}
+
+function useDirectResizePath(){
+  setStatus('고화질로 보정하는 중입니다...');
+  // 상태 문구가 먼저 화면에 그려지게 한 프레임 미룬 뒤 무거운 작업을 시작한다.
+  requestAnimationFrame(()=>{
+    // 인식용 축소 캔버스가 아니라 원본에서 직접 고해상도로 리사이즈한다.
+    const hiRes = buildHighResCanvas(originalImage);
+    warpedCanvas = fitImageToCardAspect(hiRes);
+    applyFilterAndRender();
+    setStatus('신분증이 카드 전체를 채우고 있어 바로 사용합니다.', true);
+  });
+}
+
+$('camera').onchange=e=>{loadFile(e.target.files[0]); e.target.value=''};
+$('gallery').onchange=e=>{loadFile(e.target.files[0]); e.target.value=''};
+
+function loadFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=async()=>{
+      originalImage=img;
+      corners=null; warpedCanvas=null;
+      hideCornerOverlay();
+      setZoom(1);
+      $('workspace').style.display='block';
+      drawSource(img);
+
+      const canvas=$('sourceCanvas');
+      if(isAlreadyFullCardImage(canvas)){
+        corners=[
+          {x:0, y:0}, {x:canvas.width, y:0},
+          {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
+        ];
+        showCornerOverlay();
+        useDirectResizePath();
+        return;
+      }
+
+      setStatus('신분증 영역을 자동으로 찾고 있습니다...');
+      await new Promise(r=>setTimeout(r,50));
+      detectCard();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function drawSource(img){
+  const max=1500, scale=Math.min(1,max/img.naturalWidth,max/img.naturalHeight);
+  const c=$('sourceCanvas');
+  c.width=Math.round(img.naturalWidth*scale);
+  c.height=Math.round(img.naturalHeight*scale);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+}
+
+// 회전/기울어짐에 강한 Sum/Difference 기반 4점 정렬
+function orderPoints(pts){
+  const sums=pts.map(p=>p.x+p.y);
+  const diffs=pts.map(p=>p.y-p.x);
+  const tl=pts[sums.indexOf(Math.min(...sums))];
+  const br=pts[sums.indexOf(Math.max(...sums))];
+  const tr=pts[diffs.indexOf(Math.min(...diffs))];
+  const bl=pts[diffs.indexOf(Math.max(...diffs))];
+  return [tl,tr,br,bl];
+}
+
+function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+
+// 윤곽선(cnt)을 사각형 4점으로 변환한다.
+// 1) 먼저 고정 epsilon(0.02*둘레)으로 시도 - 대부분의 깨끗한 경계에서 바로 4점이 나온다(빠름).
+// 2) 4점이 안 나오면(잡음/둥근 모서리로 5점 이상 잡히는 경우) convex hull을 구한 뒤
+//    epsilon을 0.01~0.08까지 점점 키워가며 4점이 될 때까지 단순화한다 - 문서 스캐너에서
+//    널리 쓰이는 방식으로, 지그재그 경계나 둥근 모서리 신분증에서 인식률을 크게 높여준다.
+function polygonToQuad(cnt){
+  const peri=cv.arcLength(cnt, true);
+  const approx=new cv.Mat();
+  cv.approxPolyDP(cnt, approx, 0.02*peri, true);
+
+  if(approx.rows===4){
+    const pts=[];
+    for(let j=0;j<4;j++) pts.push({x:approx.intPtr(j,0)[0], y:approx.intPtr(j,0)[1]});
+    approx.delete();
+    return pts;
+  }
+  approx.delete();
+
+  const hull=new cv.Mat();
+  cv.convexHull(cnt, hull);
+  const hullPeri=cv.arcLength(hull, true);
+  let quad=null;
+
+  for(let eps=0.01; eps<=0.08; eps+=0.01){
+    const a=new cv.Mat();
+    cv.approxPolyDP(hull, a, eps*hullPeri, true);
+    if(a.rows===4){
+      quad=[];
+      for(let j=0;j<4;j++) quad.push({x:a.intPtr(j,0)[0], y:a.intPtr(j,0)[1]});
+      a.delete();
+      break;
+    }
+    a.delete();
+  }
+
+  hull.delete();
+  return quad;
+}
+
+// 후보 4점의 신뢰도 점수: ISO 신분증 비율(1.586)과의 유사도 + 화면 대비 크기.
+// 변이 너무 짧은(찌그러진) 사각형은 오검출로 보고 제외한다.
+function scoreQuad(pts, area, imgArea){
+  const o=orderPoints(pts);
+  const w1=distance(o[0],o[1]), w2=distance(o[3],o[2]);
+  const h1=distance(o[0],o[3]), h2=distance(o[1],o[2]);
+
+  if(Math.min(w1,w2,h1,h2)<10) return {o, score:-1};
+
+  // 대각선 두 개의 길이가 크게 다르면 실제 사각형이 아니라 나무결 같은 배경 잡음이
+  // 우연히 이어진 비뚤어진 사각형일 가능성이 높다 - 걸러낸다.
+  const diag1=distance(o[0],o[2]), diag2=distance(o[1],o[3]);
+  if(Math.abs(diag1-diag2)/((diag1+diag2)/2) > 0.35) return {o, score:-1};
+
+  // 신분증을 가로/세로 어느 방향으로 놓고 찍었는지 모르므로 두 방향 다 확인한다.
+  const ratio=((w1+w2)/2)/((h1+h2)/2);
+  const ratioScore=Math.max(
+    0,
+    1 - Math.abs(ratio-1.586)/0.45,
+    1 - Math.abs(ratio-0.630)/0.45
+  );
+  const areaScore=Math.min(1, area/(imgArea*0.25));
+
+  // 배경이 복잡한 사진(나무결 책상 등)에서는 "크기"보다 "신분증 비율에 얼마나
+  // 가까운가"가 훨씬 믿을 만한 신호라서 ratioScore 비중을 크게 둔다.
+  return {o, score:areaScore*0.3 + ratioScore*0.7};
+}
+
+// 주어진 Canny/모폴로지 파라미터로 한 번 검출을 시도해 그중 가장 그럴듯한 사각형을 반환한다.
+// blurSize를 키우면 나무결처럼 미세한 배경 무늬를 더 뭉개서 신분증의 굵은 경계선만 남긴다.
+function detectPass(gray, dw, dh, detectScale, cannyLow, cannyHigh, kernelSize, blurSize){
+  blurSize = blurSize || 5;
+  const blur=new cv.Mat(), edge=new cv.Mat(), closed=new cv.Mat();
+  const contours=new cv.MatVector(), hierarchy=new cv.Mat();
+
+  cv.GaussianBlur(gray, blur, new cv.Size(blurSize,blurSize), 0, 0, cv.BORDER_DEFAULT);
+  cv.Canny(blur, edge, cannyLow, cannyHigh);
+
+  // 모폴로지 연산으로 끊어진 테두리를 메움 (인식률 향상)
+  const kernel=cv.Mat.ones(kernelSize, kernelSize, cv.CV_8U);
+  cv.morphologyEx(edge, closed, cv.MORPH_CLOSE, kernel);
+
+  // RETR_EXTERNAL: 내부 요소(사진, 글자) 제외하고 최외곽 윤곽선만 검출
+  cv.findContours(closed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  let best=null, bestScore=-1;
+  const imgArea=dw*dh;
+
+  for(let i=0; i<contours.size(); i++){
+    const cnt=contours.get(i);
+    const area=Math.abs(cv.contourArea(cnt));
+
+    // 사진에서 신분증이 작게 찍힌 경우도 놓치지 않도록 최소 비율을 낮게 잡는다.
+    if(area>imgArea*0.03 && area<imgArea*0.95){
+      const quad=polygonToQuad(cnt);
+      if(quad){
+        const scaled=quad.map(p=>({x:p.x/detectScale, y:p.y/detectScale}));
+        const {o,score}=scoreQuad(scaled, area, imgArea);
+        if(score>bestScore){ bestScore=score; best=o; }
+      }
+    }
+    cnt.delete();
+  }
+
+  blur.delete(); edge.delete(); closed.delete(); kernel.delete();
+  contours.delete(); hierarchy.delete();
+
+  return {best, bestScore};
+}
+
+// 1차 검출은 속도를 위해 600px로 다운스케일한 이미지에서 이뤄지므로, 다시 원본
+// 해상도로 확대하면 경계가 살짝 뭉개져 모서리가 몇 픽셀씩 틀어질 수 있다.
+// 이를 보정하기 위해, 대략 찾은 사각형 주변만 원본 해상도로 잘라내 그 안에서
+// 한 번 더(카드가 프레임 대부분을 차지하는, 훨씬 유리한 조건으로) 정밀 재검출한다.
+function refineCornersInRoi(src, approxCorners, padRatio){
+  padRatio = padRatio || 0.12;
+  try{
+    const xs=approxCorners.map(p=>p.x), ys=approxCorners.map(p=>p.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs);
+    const minY=Math.min(...ys), maxY=Math.max(...ys);
+    const padX=(maxX-minX)*padRatio, padY=(maxY-minY)*padRatio;
+
+    const rx=Math.max(0, Math.floor(minX-padX));
+    const ry=Math.max(0, Math.floor(minY-padY));
+    const rw=Math.min(src.cols-rx, Math.ceil(maxX-minX+padX*2));
+    const rh=Math.min(src.rows-ry, Math.ceil(maxY-minY+padY*2));
+    if(rw<60 || rh<60) return null;
+
+    const roi=src.roi(new cv.Rect(rx, ry, rw, rh));
+    const roiScale=Math.min(1, 1000/Math.max(rw, rh));
+    const rdw=Math.round(rw*roiScale), rdh=Math.round(rh*roiScale);
+
+    const roiSmall=new cv.Mat();
+    cv.resize(roi, roiSmall, new cv.Size(rdw, rdh), 0, 0, cv.INTER_AREA);
+    const roiGray=new cv.Mat();
+    cv.cvtColor(roiSmall, roiGray, cv.COLOR_RGBA2GRAY);
+
+    let {best, bestScore}=detectPass(roiGray, rdw, rdh, roiScale, 30, 100, 3, 5);
+    if(!best || bestScore<0.4){
+      const mean=cv.mean(roiGray)[0];
+      const r2=detectPass(roiGray, rdw, rdh, roiScale, Math.max(10, mean*0.5), Math.min(255, mean*1.2), 5, 5);
+      if(!best || r2.bestScore>bestScore){ best=r2.best; bestScore=r2.bestScore; }
+    }
+
+    roi.delete(); roiSmall.delete(); roiGray.delete();
+
+    if(!best || bestScore<0.35) return null;
+    return best.map(p=>({x:p.x+rx, y:p.y+ry}));
+  }catch(e){ console.error(e); return null; }
+}
+
+// 원본 캔버스 전체를 대상으로 배경이 섞인 사진에서도 신분증 경계를 찾아내는
+// 3단계 탐지(고정 임계값 → 자동 임계값 → 강한 블러)를 한 번에 수행한다.
+// detectCard()와 redetectInSelection()(전체 영역에 가까운 상태에서 다시 인식할 때)이
+// 이 함수를 공유한다 - 배경이 섞인 경우에는 좁은 ROI 전용 로직보다 이쪽이 훨씬 잘 찾는다.
+function detectBestQuadInCanvas(origCanvas){
+  // 탐지 속도 극대화를 위해 600px 저해상도로 다운스케일하여 처리
+  const detectScale=Math.min(1, 600/Math.max(origCanvas.width, origCanvas.height));
+  const dw=Math.round(origCanvas.width*detectScale), dh=Math.round(origCanvas.height*detectScale);
+
+  const src=cv.imread(origCanvas);
+  const small=new cv.Mat();
+  cv.resize(src, small, new cv.Size(dw, dh), 0, 0, cv.INTER_AREA);
+
+  const gray=new cv.Mat();
+  cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
+
+  // 1차: 일반적인 조명/배경을 가정한 고정 임계값 (빠르고 대부분의 경우 충분)
+  let {best, bestScore}=detectPass(gray, dw, dh, detectScale, 40, 120, 3, 5);
+
+  // 1차 결과가 약하면(역광/저대비 등) 이미지 밝기에 맞춰 자동 계산한 임계값으로 재시도.
+  // (median 대신 평균 밝기를 사용 - 훨씬 가볍고 이 용도로는 충분히 정확함)
+  if(!best || bestScore<0.4){
+    const mean=cv.mean(gray)[0];
+    const autoLow=Math.max(10, Math.round(mean*0.5));
+    const autoHigh=Math.min(255, Math.round(mean*1.2));
+    const r2=detectPass(gray, dw, dh, detectScale, autoLow, autoHigh, 5, 5);
+    if(!best || r2.bestScore>bestScore){ best=r2.best; bestScore=r2.bestScore; }
+  }
+
+  // 3차: 나무결 책상처럼 배경 질감이 많아 위 두 번 다 자신 없는 결과일 때, 블러를
+  // 훨씬 크게 줘서 잔무늬를 지우고 신분증의 굵은 경계선만 남긴 뒤 다시 시도한다.
+  if(!best || bestScore<0.45){
+    const mean=cv.mean(gray)[0];
+    const r3=detectPass(gray, dw, dh, detectScale, Math.max(10, mean*0.5), Math.min(255, mean*1.2), 5, 9);
+    if(!best || r3.bestScore>bestScore){ best=r3.best; bestScore=r3.bestScore; }
+  }
+
+  small.delete(); gray.delete();
+
+  // 4차: 대략적인 위치 주변을 원본 해상도로 정밀 재검출 (테두리 틀어짐 보정)
+  if(best){
+    const refined=refineCornersInRoi(src, best);
+    if(refined) best=refined;
+  }
+
+  src.delete();
+
+  return {best, bestScore};
+}
+
+async function detectCard(){
+  const canvas=$('sourceCanvas');
+  if(isAlreadyFullCardImage(canvas)){
+    corners=[
+      {x:0, y:0}, {x:canvas.width, y:0},
+      {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
+    ];
+    showCornerOverlay();
+    useDirectResizePath();
+    return;
+  }
+
+  if(!(await ensureCvReady(8000))){manualFallback('OpenCV를 불러오지 못했습니다.');return}
+  try{
+    const {best, bestScore}=detectBestQuadInCanvas(canvas);
+
+    // 신뢰도가 너무 낮으면(배경 잡음을 잘못 짚었을 가능성) 억지로 보여주지 않고
+    // 바로 드래그로 직접 지정할 수 있게 넘긴다 - 틀린 결과를 자신 있게 보여주는 것보다
+    // 사용자가 직접 맞추게 하는 편이 훨씬 낫다.
+    if(best && bestScore>=0.35){
+      corners=best;
+      showCornerOverlay();
+      setStatus('신분증을 정상적으로 인식했습니다.', true);
+      warpAndColor();
+    }else manualFallback('자동 인식에 실패했습니다.');
+  }catch(err){console.error(err); manualFallback('자동 인식 중 문제가 발생했습니다.')}
+}
+
+// 사진 위에 항상 떠 있는 모서리 조정 UI(파란 점 4개 + 사각형 윤곽)를 보여준다.
+// 버튼을 눌러 별도 모드로 들어가는 방식이 아니라, corners가 정해지는 즉시 바로 표시되고
+// 언제든 드래그로 고칠 수 있다.
+function showCornerOverlay(){
+  $('manualHandles').style.display='block';
+  $('manualQuad').style.display='block';
+  renderManualOverlay();
+}
+
+function hideCornerOverlay(){
+  $('manualHandles').style.display='none';
+  $('manualQuad').style.display='none';
+}
+
+function manualFallback(msg){
+  setStatus(msg+' 파란 점을 드래그해 신분증 영역을 직접 지정해주세요.');
+
+  // 자동 인식이 아예 실패했어도 바로 조정할 수 있도록 화면 중앙 부근에 기본 사각형을 놓아준다.
+  const canvas=$('sourceCanvas');
+  const mx=canvas.width*0.15, my=canvas.height*0.15;
+  corners=[
+    {x:mx, y:my}, {x:canvas.width-mx, y:my},
+    {x:canvas.width-mx, y:canvas.height-my}, {x:mx, y:canvas.height-my}
+  ];
+  showCornerOverlay();
+
+  // OpenCV 자체가 아예 안 떴을 때는 warpAndColor()도 cv를 쓰므로 호출하지 않는다.
+  if(cvReady) warpAndColor();
+}
+
+// 원근 보정 + 컬러/흑백 변환(OpenCV 연산, 상대적으로 비용이 큼).
+// corners나 mode가 바뀔 때만 호출한다 - 결과는 warpedCanvas에 캐시해두고,
+// 밝기/대비 조절은 이 무거운 연산을 다시 타지 않도록 applyFilterAndRender()에서 따로 처리한다.
+function isNearlyWholeCardSelection(pts, canvas){
+  if(!pts || pts.length !== 4 || !canvas) return false;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const marginX = Math.max(w * 0.08, 16);
+  const marginY = Math.max(h * 0.08, 16);
+
+  const inside = pts.every((p, idx) => {
+    const nearLeft = (idx === 0 || idx === 3) ? p.x <= marginX : p.x >= w - marginX;
+    const nearTop = (idx === 0 || idx === 1) ? p.y <= marginY : p.y >= h - marginY;
+    return nearLeft && nearTop;
+  });
+
+  if(!inside) return false;
+
+  const ordered = orderPoints(pts);
+  const w1 = distance(ordered[0], ordered[1]);
+  const w2 = distance(ordered[3], ordered[2]);
+  const h1 = distance(ordered[0], ordered[3]);
+  const h2 = distance(ordered[1], ordered[2]);
+  const measuredRatio = ((w1 + w2) / 2) / ((h1 + h2) / 2 || 1);
+  const cardRatio = CARD_W_MM / CARD_H_MM;
+
+  return Math.abs(measuredRatio - cardRatio) < 0.28;
+}
+
+function warpAndColor(){
+  if(!corners)return;
+  const sourceCanvas=$('sourceCanvas');
+
+  // 카드가 이미 사진 전체를 차지하는 경우에는 원근 보정을 전부 건너뜀.
+  // 이 경우에 perspective transform을 다시 적용하면 비율이 미세하게 밀려서
+  // 찌그러져 보이므로, 그대로 직사각형 한 장으로 리사이즈해 붙이는 방식이 맞다.
+  if(isAlreadyFullCardImage(sourceCanvas) || isNearlyWholeCardSelection(corners, sourceCanvas)){
+    useDirectResizePath();
+    return;
+  }
+
+  setStatus('고화질로 보정하는 중입니다...');
+  // 상태 문구가 먼저 화면에 그려지게 한 프레임 미룬 뒤, 시간이 걸리는 원근보정을 시작한다.
+  requestAnimationFrame(()=>{
+    try{
+      // 모서리는 인식/드래그용 축소 캔버스(sourceCanvas) 기준 좌표다. 실제 보정은
+      // 원본에서 다시 뽑은 고해상도 캔버스로 하므로, 그 배율만큼 좌표를 함께 키운다.
+      const hiRes=buildHighResCanvas(originalImage);
+      const scaleUp=hiRes.width/sourceCanvas.width;
+      const hiResCorners=corners.map(p=>({x:p.x*scaleUp, y:p.y*scaleUp}));
+
+      const src=cv.imread(hiRes);
+      const pts=cv.matFromArray(4,1,cv.CV_32FC2,hiResCorners.flatMap(p=>[p.x,p.y]));
+
+      // 목적지 비율은 실측값을 그대로 쓰지 않고 신분증 실제 비율(85.6:53.98=1.586)에
+      // "스냅"한다. 실측 비율을 그대로 쓰면(이전 버전) warpAndColor 단계 자체는
+      // 안 찌그러지지만, 이후 A4 배치·PDF·이미지저장이 전부 정확히 1.586(가로) 또는
+      // 0.630(세로, =1/1.586) 비율의 칸에 맞춰 그리기 때문에, 실측 비율이 그 값과
+      // 조금이라도 다르면(전체 선택 시 여백이 살짝 섞이는 등) 거기서 다시 늘어나
+      // 찌그러져 보였다. 선택한 사각형이 "가로로 넓은지 세로로 긴지"만 보고 어느
+      // 방향인지 판단한 뒤, 그 방향의 정확한 신분증 비율로 강제로 펴서 이후 어떤
+      // 단계를 거쳐도 더 이상 왜곡이 생기지 않게 한다.
+      const w1=distance(hiResCorners[0], hiResCorners[1]), w2=distance(hiResCorners[3], hiResCorners[2]);
+      const h1=distance(hiResCorners[0], hiResCorners[3]), h2=distance(hiResCorners[1], hiResCorners[2]);
+      const measuredRatio=((w1+w2)/2)/((h1+h2)/2);
+
+      const CARD_RATIO=85.6/53.98;
+      let W, H;
+      if(measuredRatio>=1){ W=CARD_TARGET_LONG_PX; H=Math.round(W/CARD_RATIO); }
+      else{ H=CARD_TARGET_LONG_PX; W=Math.round(H/CARD_RATIO); }
+
+      const dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[0,0, W-1,0, W-1,H-1, 0,H-1]);
+      const M=cv.getPerspectiveTransform(pts,dstPts), dst=new cv.Mat();
+
+      cv.warpPerspective(src, dst, M, new cv.Size(W,H), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+      // 컬러/흑백은 여기서 처리하지 않는다 - applyFilterAndRender()의 CSS 필터로 옮겼다
+      // (아래 참고: "카드가 이미 전체를 채움" 경로는 이 함수를 아예 안 타서 흑백이 안 먹혔었다).
+
+      if(!warpedCanvas) warpedCanvas=document.createElement('canvas');
+      warpedCanvas.width=W; warpedCanvas.height=H;
+      cv.imshow(warpedCanvas, dst);
+
+      pts.delete(); dstPts.delete(); M.delete(); dst.delete(); src.delete();
+
+      applyFilterAndRender();
+      setStatus('보정이 완료되었습니다.', true);
+    }catch(e){console.error(e); showToast('이미지 보정에 실패했습니다. 다시 시도해주세요.')}
+  });
+}
+
+// 밝기/대비만 반영하는 가벼운 단계. 슬라이더를 움직일 때마다 이 함수만 다시 실행되므로
+// 매번 OpenCV 원근 보정을 다시 계산하던 이전 방식보다 훨씬 빠르게 반응한다.
+function applyFilterAndRender(){
+  if(!warpedCanvas)return;
+
+  // warpAndColor()/useDirectResizePath() 두 경로 모두 이미 정확한 신분증 비율·크기로
+  // warpedCanvas를 만들어주므로, 여기서 다시 고정 크기에 맞춰 축소·센터링할 필요가 없다
+  // (예전엔 1200px 고정 캔버스에 다시 맞춰 그렸는데, 그게 오히려 화질을 깎아먹고 있었다).
+  const tmp=document.createElement('canvas');
+  tmp.width=warpedCanvas.width; tmp.height=warpedCanvas.height;
+  const tc=tmp.getContext('2d');
+
+  // 컬러/흑백은 warpedCanvas(원근보정 또는 "그대로 리사이즈" 두 경로 모두 공통으로
+  // 거치는 지점)에서 여기 필터로 처리한다 - 두 경로 중 어느 쪽으로 만들어졌든
+  // 컬러 버튼이 항상 그대로 반응한다.
+  const b=$('brightness').value, c=$('contrast').value;
+  const grayscale = mode==='bw' ? ' grayscale(100%)' : '';
+  tc.filter=`brightness(${b}%) contrast(${c}%)${grayscale}`;
+  tc.drawImage(warpedCanvas, 0, 0);
+
+  processedDataURL=tmp.toDataURL('image/jpeg',0.92);
+  updateOrientedImage();
+}
+
+// 가로 모드면 processedDataURL을 그대로 쓰고, 세로 모드면 90도 회전한 이미지를
+// 만들어 orientedDataURL에 저장한다. 미리보기·이미지저장·PDF·인쇄가 전부
+// 이 값 하나만 보고 그리므로, 방향이 바뀌어도 어긋나는 곳 없이 항상 일치한다.
+function updateOrientedImage(){
+  if(!processedDataURL){ orientedDataURL=null; return; }
+
+  if(cardOrientation==='landscape'){
+    orientedDataURL=processedDataURL;
+    updateA4Layout();
+    return;
+  }
+
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');
+    c.width=img.height; c.height=img.width;
+    const ctx=c.getContext('2d');
+    ctx.translate(c.width/2, c.height/2);
+    ctx.rotate(Math.PI/2);
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+    orientedDataURL=c.toDataURL('image/jpeg', 0.92);
+    updateA4Layout();
+  };
+  img.src=processedDataURL;
+}
+
+// A4 미리보기(.id-output)의 크기·위치를 방향에 맞춰 다시 계산한다.
+// 가로/세로 어느 쪽이든 페이지 상단(CARD_TOP_MM), 가로는 중앙에 배치한다.
+function updateA4Layout(){
+  if(!orientedDataURL)return;
+
+  const {w,h}=currentCardBoxMm();
+  const leftPct=(PAGE_W_MM-w)/2/PAGE_W_MM*100;
+  const topPct=CARD_TOP_MM/PAGE_H_MM*100;
+  const widthPct=w/PAGE_W_MM*100;
+  const heightPct=h/PAGE_H_MM*100;
+
+  const out=document.querySelector('.id-output');
+  out.style.left=leftPct+'%';
+  out.style.top=topPct+'%';
+  out.style.width=widthPct+'%';
+  out.style.height='auto';
+  out.style.aspectRatio=`${w}/${h}`;
+  // border-radius의 %는 이 박스 자신의 가로/세로를 기준으로 계산되므로(가로세로 다른 %),
+  // 방향이 바뀌어도(w,h가 서로 바뀌어도) 항상 정확히 3.18mm 반지름이 나온다.
+  out.style.borderRadius=`${CARD_CORNER_MM/w*100}% / ${CARD_CORNER_MM/h*100}%`;
+
+  const mw=document.querySelector('.measure-w');
+  mw.style.left=leftPct+'%';
+  mw.style.width=widthPct+'%';
+  mw.style.top=`calc(${topPct}% - 18px)`;
+  mw.querySelector('span').textContent=w+'mm';
+
+  const mh=document.querySelector('.measure-h');
+  mh.style.left=`calc(${leftPct+widthPct}% + 10px)`;
+  mh.style.top=topPct+'%';
+  mh.style.height=heightPct+'%';
+  mh.querySelector('span').textContent=h+'mm';
+
+  $('outputImg').src=orientedDataURL;
+  $('a4Preview').style.display='block';
+}
+
+// 슬라이더를 빠르게 드래그할 때 매 input 이벤트마다 JPEG 인코딩(toDataURL)이 겹쳐 실행되지
+// 않도록 requestAnimationFrame으로 한 프레임에 한 번만 반영되게 묶는다.
+function scheduleFilterRender(){
+  if(filterRAF)return;
+  filterRAF=requestAnimationFrame(()=>{filterRAF=null; applyFilterAndRender();});
+}
+
+$('colorBtn').onclick=()=>{mode='color';$('colorBtn').classList.add('active');$('bwBtn').classList.remove('active');applyFilterAndRender()};
+$('bwBtn').onclick=()=>{mode='bw';$('bwBtn').classList.add('active');$('colorBtn').classList.remove('active');applyFilterAndRender()};
+$('brightness').oninput=e=>{$('bv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
+$('contrast').oninput=e=>{$('cv').textContent=Number(e.target.value)-100;scheduleFilterRender()};
+$('resetBrightness').onclick=()=>{$('brightness').value=100;$('bv').textContent='0';scheduleFilterRender()};
+$('resetContrast').onclick=()=>{$('contrast').value=100;$('cv').textContent='0';scheduleFilterRender()};
+$('manualFullBtn').onclick=selectFullArea;
+$('redetectBtn').onclick=redetectInSelection;
+$('zoomIn').onclick=()=>setZoom(zoomLevel+0.5);
+$('zoomOut').onclick=()=>setZoom(zoomLevel-0.5);
+$('orientLandscapeBtn').onclick=()=>{
+  cardOrientation='landscape';
+  $('orientLandscapeBtn').classList.add('active');
+  $('orientPortraitBtn').classList.remove('active');
+  updateOrientedImage();
+};
+$('orientPortraitBtn').onclick=()=>{
+  cardOrientation='portrait';
+  $('orientPortraitBtn').classList.add('active');
+  $('orientLandscapeBtn').classList.remove('active');
+  updateOrientedImage();
+};
+
+/* =========================================================
+   신분증 영역 조정 (항상 화면에 떠 있는 드래그 UI)
+========================================================= */
+
+// 확대 배율에 맞춰 photo-box 자체의 레이아웃 크기를 키운다(transform:scale이 아니라
+// 실제 width%를 늘리는 방식) - 그래야 바깥 photo-viewport의 overflow:auto가 스크롤
+// 가능한 영역으로 인식해서 확대된 부분을 손가락/스크롤로 이동하며 볼 수 있다.
+// 모서리 핸들·폴리곤은 모두 %기반이라 확대 배율과 무관하게 그대로 맞아떨어진다.
+function setZoom(z){
+  zoomLevel=Math.min(3, Math.max(1, z));
+  $('photoBox').style.width=(zoomLevel*100)+'%';
+  $('zoomLevelText').textContent=Math.round(zoomLevel*100)+'%';
+}
+
+function pointToPercent(p, canvas){
+  return {xPct:p.x/canvas.width*100, yPct:p.y/canvas.height*100};
+}
+
+// 손가락(핸들)이 모서리 자체를 가리지 않도록, 사각형 중심에서 그 모서리로 향하는
+// 방향(바깥쪽)을 단위벡터로 구한다. 큰 동그라미 핸들을 이 방향으로 살짝 띄워서
+// 실제 모서리 위치는 항상 손가락 옆(안쪽)에서 작은 점으로 보이게 한다.
+function cornerOutwardDir(idx, pts){
+  const cx=(pts[0].x+pts[1].x+pts[2].x+pts[3].x)/4;
+  const cy=(pts[0].y+pts[1].y+pts[2].y+pts[3].y)/4;
+  const dx=pts[idx].x-cx, dy=pts[idx].y-cy;
+  const len=Math.hypot(dx,dy)||1;
+  return {x:dx/len, y:dy/len};
+}
+
+// 핸들(동그라미)을 모서리로부터 화면상 이 거리(px)만큼 바깥으로 띄운다.
+// 확대(zoom)해도 항상 같은 화면 거리를 유지하도록 CSS transform으로 적용한다.
+const HANDLE_OFFSET_PX=24;
+
+function renderManualOverlay(){
+  if(!corners)return;
+  const canvas=$('sourceCanvas');
+  const pts=[];
+
+  document.querySelectorAll('#manualHandles .corner-marker').forEach(marker=>{
+    const idx=+marker.dataset.idx;
+    const {xPct,yPct}=pointToPercent(corners[idx], canvas);
+    marker.style.left=xPct+'%'; marker.style.top=yPct+'%';
+    pts[idx]=xPct+','+yPct;
+  });
+
+  document.querySelectorAll('#manualHandles .corner-dot').forEach(dot=>{
+    const idx=+dot.dataset.idx;
+    const {xPct,yPct}=pointToPercent(corners[idx], canvas);
+    const dir=cornerOutwardDir(idx, corners);
+    dot.style.left=xPct+'%'; dot.style.top=yPct+'%';
+    dot.style.transform=`translate(${dir.x*HANDLE_OFFSET_PX}px, ${dir.y*HANDLE_OFFSET_PX}px)`;
+  });
+
+  // 구분바는 변의 중점에 놓는다 - 변 자체가 이미 눈에 보이는 기준선이라
+  // 모서리 점처럼 바깥으로 띄울 필요 없이 그 위에 그대로 얹는다.
+  EDGES.forEach(edge=>{
+    const bar=document.querySelector(`#manualHandles .edge-bar[data-edge="${edge.name}"]`);
+    if(!bar)return;
+    const pA=corners[edge.a], pB=corners[edge.b];
+    const {xPct,yPct}=pointToPercent({x:(pA.x+pB.x)/2, y:(pA.y+pB.y)/2}, canvas);
+    bar.style.left=xPct+'%'; bar.style.top=yPct+'%';
+  });
+
+  $('manualPolygon').setAttribute('points', pts.join(' '));
+}
+
+// 신분증이 사진 전체를 거의 다 채우고 있을 때, 네 모서리를 사진 가장자리까지
+// 한 번에 밀어주는 단축 기능. 드래그와 마찬가지로 바로 반영된다.
+function selectFullArea(){
+  if(!originalImage){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  const canvas=$('sourceCanvas');
+  corners=[
+    {x:0, y:0}, {x:canvas.width, y:0},
+    {x:canvas.width, y:canvas.height}, {x:0, y:canvas.height}
+  ];
+  showCornerOverlay();
+  setStatus('사진 전체 영역을 신분증으로 지정했습니다.', true);
+  warpAndColor();
+}
+
+// 현재 선택 영역 안에서(혹은 그 근처에서) 신분증 테두리를 다시 찾는다.
+// 사용자가 손으로 대충 맞춰 놓은 뒤 "다시 인식"을 누르면, 그 영역을 30% 여유를 두고
+// 잘라내 원본 해상도로 정밀 재검출한다(refineCornersInRoi) - 배경 간섭이 거의 없는
+// 유리한 조건이라 첫 자동 인식보다 정확하다.
+// 다만 "전체 선택" 직후처럼 선택 영역이 사진 전체(또는 그에 가까움)라면, 이 좁은
+// ROI 전용 로직은 배경이 그대로 섞여 있어 잘 못 찾는다 - 이런 경우엔 배경이 섞인
+// 사진에도 강한 detectBestQuadInCanvas(3단계 탐지)로 전체를 다시 훑는다.
+async function redetectInSelection(){
+  if(!corners || !originalImage){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  if(!(await ensureCvReady(4000))){showToast('OpenCV를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');return}
+
+  const canvas=$('sourceCanvas');
+
+  try{
+    const xs=corners.map(p=>p.x), ys=corners.map(p=>p.y);
+    const boxW=Math.max(...xs)-Math.min(...xs), boxH=Math.max(...ys)-Math.min(...ys);
+    const coversWholePhoto = boxW>=canvas.width*0.9 && boxH>=canvas.height*0.9;
+
+    let refined=null, score=0;
+
+    if(coversWholePhoto){
+      const r=detectBestQuadInCanvas(canvas);
+      if(r.best && r.bestScore>=0.35){ refined=r.best; score=r.bestScore; }
+    }else{
+      const src=cv.imread(canvas);
+      refined=refineCornersInRoi(src, corners, 0.3);
+      src.delete();
+      score=refined ? 1 : 0; // refineCornersInRoi 내부에서 이미 신뢰도 기준으로 걸러줌
+    }
+
+    if(refined && score>0){
+      corners=refined;
+      renderManualOverlay();
+      setStatus('현재 영역에서 테두리를 다시 인식했습니다.', true);
+      warpAndColor();
+    }else{
+      showToast('현재 영역에서 더 정확한 경계를 찾지 못했습니다.');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('다시 인식 중 문제가 발생했습니다.');
+  }
+}
+
+document.querySelectorAll('#manualHandles .corner-dot').forEach(dot=>{
+  dot.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    dot.setPointerCapture(e.pointerId);
+    manualDragIdx=+dot.dataset.idx;
+  });
+});
+
+// 구분바를 잡으면 그 변의 두 모서리를 함께, 손가락이 움직인 만큼 그대로 평행 이동시킨다
+// (모서리 각각을 따로 옮기는 게 아니라 변 전체를 밀어서 그 쪽 크기만 조절하는 느낌).
+document.querySelectorAll('#manualHandles .edge-bar').forEach(bar=>{
+  bar.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    bar.setPointerCapture(e.pointerId);
+    const canvas=$('sourceCanvas');
+    const rect=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+    manualDragEdge=EDGES.find(edge=>edge.name===bar.dataset.edge);
+    edgeDragStart={
+      pointerX:(e.clientX-rect.left)*scaleX, pointerY:(e.clientY-rect.top)*scaleY,
+      a:{...corners[manualDragEdge.a]}, b:{...corners[manualDragEdge.b]}
+    };
+  });
+});
+
+$('manualHandles').addEventListener('pointermove', e=>{
+  if(!corners)return;
+  const canvas=$('sourceCanvas');
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+
+  if(manualDragEdge){
+    const curX=(e.clientX-rect.left)*scaleX, curY=(e.clientY-rect.top)*scaleY;
+    const dx=curX-edgeDragStart.pointerX, dy=curY-edgeDragStart.pointerY;
+    corners[manualDragEdge.a]={
+      x: Math.min(canvas.width, Math.max(0, edgeDragStart.a.x+dx)),
+      y: Math.min(canvas.height, Math.max(0, edgeDragStart.a.y+dy))
+    };
+    corners[manualDragEdge.b]={
+      x: Math.min(canvas.width, Math.max(0, edgeDragStart.b.x+dx)),
+      y: Math.min(canvas.height, Math.max(0, edgeDragStart.b.y+dy))
+    };
+    renderManualOverlay();
+    return;
+  }
+
+  if(manualDragIdx===null)return;
+
+  // 핸들은 모서리보다 바깥쪽에 떨어져 그려지므로, 손가락(핸들) 위치에서 그 오프셋만큼
+  // 안쪽으로 당긴 지점을 실제 모서리 좌표로 삼는다 - 핸들이 아니라 모서리가 항상
+  // 손가락 옆(안쪽)에서 같은 간격을 유지하며 따라오는 것처럼 느껴진다.
+  const dir=cornerOutwardDir(manualDragIdx, corners);
+  const fx=(e.clientX-rect.left)*scaleX - dir.x*HANDLE_OFFSET_PX*scaleX;
+  const fy=(e.clientY-rect.top)*scaleY - dir.y*HANDLE_OFFSET_PX*scaleY;
+
+  corners[manualDragIdx]={
+    x: Math.min(canvas.width, Math.max(0, fx)),
+    y: Math.min(canvas.height, Math.max(0, fy))
+  };
+  renderManualOverlay();
+});
+
+// 드래그를 끝낸(손을 뗀) 순간에만 실제 보정을 다시 계산한다 - 드래그 중에는
+// 점 위치만 가볍게 갱신하고, 무거운 원근 보정은 결과가 확정된 뒤 한 번만 수행한다.
+function commitCornerDrag(){
+  if(!corners)return;
+  corners=orderPoints(corners);
+  setStatus('신분증 영역을 직접 조정했습니다.', true);
+  warpAndColor();
+}
+
+$('manualHandles').addEventListener('pointerup', ()=>{
+  if(manualDragIdx!==null){ manualDragIdx=null; commitCornerDrag(); }
+  if(manualDragEdge){ manualDragEdge=null; edgeDragStart=null; commitCornerDrag(); }
+});
+$('manualHandles').addEventListener('pointercancel', ()=>{manualDragIdx=null; manualDragEdge=null; edgeDragStart=null});
+
+/* =========================================================
+   저장 (이미지 공유 / PDF 공유 - 형식별로 버튼을 바로 누르면 그 형식으로 공유)
+========================================================= */
+
+$('shareImageBtn').onclick=()=>{
+  if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  shareAsImage();
+};
+$('sharePdfBtn').onclick=()=>{
+  if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  shareAsPdf();
+};
+
+// PC는 공유 시트가 없어 인쇄로 갈 방법이 마땅치 않았다 - 모바일(공유 메뉴에 인쇄가 이미
+// 있음)에서는 숨기고, PC로 확인된 경우에만 버튼을 드러낸다.
+if(!IS_MOBILE){
+  $('printBtn').style.display='flex';
+}
+$('printBtn').onclick=()=>{
+  if(!processedDataURL){showToast('먼저 신분증 사진을 선택해주세요.');return}
+  window.print();
+};
+
+// 실제 카드처럼 둥근 모서리로 그리기 위한 라운드 사각형 경로(arcTo는 구형 웹뷰까지
+// 폭넓게 지원돼서, 최신 브라우저 전용인 ctx.roundRect() 대신 이걸 쓴다).
+function roundedRectPath(ctx, x, y, w, h, r){
+  r=Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+// A4 페이지 크기의 흰 캔버스 정중앙(방향에 맞춰)에 신분증 이미지를 그려 넣는다.
+// "이미지 공유"가 신분증만 잘린 사진이 아니라 A4 배치가 그대로 반영된 한 장이 되게 한다.
+function renderA4Canvas(){
+  if(!orientedDataURL){ showToast('먼저 신분증 사진을 선택해주세요.'); return Promise.resolve(null); }
+
+  const DPI=200, mmToPx=DPI/25.4;
+  const {w,h}=currentCardBoxMm();
+  const boxWpx=w*mmToPx, boxHpx=h*mmToPx;
+  const boxLeftPx=(PAGE_W_MM-w)/2*mmToPx, boxTopPx=CARD_TOP_MM*mmToPx;
+
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(PAGE_W_MM*mmToPx);
+  canvas.height=Math.round(PAGE_H_MM*mmToPx);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      // 미리보기(.id-output img, object-fit:contain)와 똑같이 이미지 실제 픽셀 비율을
+      // 그대로 유지한 채 칸 안에 맞춘다. w×h(mm)에 그냥 강제로 늘려 그리면, warpAndColor의
+      // Math.round()로 생긴 아주 미세한 비율 오차(약 0.1% 미만)만큼 카드가 살짝 찌그러져
+      // 나온다 - 미리보기는 contain이라 안 늘어나서 이 오차가 안 보이고 출력에서만 보였다.
+      const scale=Math.min(boxWpx/img.naturalWidth, boxHpx/img.naturalHeight);
+      const drawW=img.naturalWidth*scale, drawH=img.naturalHeight*scale;
+      const drawLeft=boxLeftPx+(boxWpx-drawW)/2, drawTop=boxTopPx+(boxHpx-drawH)/2;
+
+      ctx.save();
+      roundedRectPath(ctx, boxLeftPx, boxTopPx, boxWpx, boxHpx, CARD_CORNER_MM*mmToPx);
+      ctx.clip();
+      ctx.drawImage(img, drawLeft, drawTop, drawW, drawH);
+      ctx.restore();
+      resolve(canvas);
+    };
+    img.src=orientedDataURL;
+  });
+}
+
+// orientedDataURL(신분증 사진)의 네 모서리를 CARD_CORNER_MM 반지름으로 둥글게 잘라
+// 돌려준다(모서리는 투명 PNG). PDF에 넣을 때 jsPDF의 클리핑 API 대신 이 방식을 쓰는 이유는
+// jsPDF 버전에 상관없이 항상 동작하는, 이미지 공유와 완전히 같은 방식이라서다.
+// 실제 픽셀 크기도 함께 돌려준다 - buildIdPdf()가 이 값으로 원본 비율을 그대로 유지한 채
+// PDF에 배치할 수 있게(강제로 늘리지 않게) 하기 위함.
+function roundImageCorners(dataURL, mmW){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      c.width=img.width; c.height=img.height;
+      const ctx=c.getContext('2d');
+      roundedRectPath(ctx, 0, 0, c.width, c.height, img.width*(CARD_CORNER_MM/mmW));
+      ctx.clip();
+      ctx.drawImage(img, 0, 0);
+      resolve({ dataURL: c.toDataURL('image/png'), width: img.width, height: img.height });
+    };
+    img.src=dataURL;
+  });
+}
+
+async function shareAsImage(){
+  // PDF는 이미 있는 원본 이미지를 그대로 삽입만 하면 돼서 즉시 끝나지만, 이미지 공유는
+  // A4 전체 페이지 크기(200DPI, 약 1654×2339px)의 새 캔버스를 매번 그려서 JPEG로 다시
+  // 인코딩해야 해서 시간이 걸린다 - 그동안 화면이 멈춘 것처럼 보이지 않도록 안내한다.
+  showToast('이미지를 준비하고 있습니다...');
+  const canvas=await renderA4Canvas();
+  if(!canvas)return;
+  canvas.toBlob(blob=>{
+    if(blob) shareOrDownload(blob, '신분증_A4.jpg', 'image/jpeg');
+  }, 'image/jpeg', 0.92);
+}
+
+// jsPDF로 A4 페이지를 만들고 신분증 이미지를 정중앙(방향에 맞춰)에 배치한다.
+async function buildIdPdf(){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({ unit:'mm', format:'a4' });
+  const {w,h}=currentCardBoxMm();
+  const { dataURL: roundedDataURL, width: imgW, height: imgH } = await roundImageCorners(orientedDataURL, w);
+
+  // 미리보기(object-fit:contain)와 동일하게, 이미지 실제 픽셀 비율을 유지한 채 칸 안에
+  // 맞춘다 - w×h(mm)에 그냥 강제로 늘리면 반올림으로 생긴 미세한 비율 오차만큼 찌그러진다.
+  const scale=Math.min(w/imgW, h/imgH);
+  const drawW=imgW*scale, drawH=imgH*scale;
+  const left=(PAGE_W_MM-drawW)/2, top=CARD_TOP_MM+(h-drawH)/2;
+
+  doc.addImage(roundedDataURL, 'PNG', left, top, drawW, drawH);
+  return doc;
+}
+
+async function shareAsPdf(){
+  if(!orientedDataURL){ showToast('먼저 신분증 사진을 선택해주세요.'); return; }
+  if(!window.jspdf){ showToast('PDF 기능을 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+  try{
+    const doc=await buildIdPdf();
+    const blob=doc.output('blob');
+    shareOrDownload(blob, '신분증_A4.pdf', 'application/pdf');
+  }catch(e){ console.error(e); showToast('PDF 생성에 실패했습니다.'); }
+}
+
+// Blob을 base64 문자열로 바꾼다 - JavascriptInterface는 바이너리를 직접 못 넘기므로
+// 네이티브 브릿지로 파일을 보낼 땐 문자열로 인코딩해서 전달해야 한다.
+function blobToBase64(blob){
+  return new Promise((resolve, reject)=>{
+    const reader=new FileReader();
+    reader.onloadend=()=>resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror=reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// 파일을 공유한다. 우선순위:
+// 1) 스마트상담도구 앱(AndroidBridge.shareFile) - 이 앱의 WebView에서는 아래 2)/3)이
+//    JS 오류 하나 없이 조용히 아무 반응도 없이 실패하는 걸 로그로 확인했다(카메라 파일선택
+//    버튼이 처음에 그랬던 것과 같은 종류의 문제). 그래서 네이티브 Android 공유 인텐트를
+//    직접 실행해주는 다리(MainActivity.kt의 shareFile)를 새로 만들어 최우선으로 쓴다.
+// 2) 일반 브라우저의 표준 Web Share API
+// 3) 그마저도 안 되면 평범한 파일 다운로드로 대체
+// 앵커를 DOM에 잠깐 붙였다 클릭 후 제거한다 - 일부 브라우저는 DOM에 없는 앵커의
+// 프로그래매틱 클릭에서 download 속성을 무시하고 그냥 새 탭으로 열어버린다.
+function downloadBlob(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+async function shareOrDownload(blob, filename, mimeType){
+  if(window.AndroidBridge && window.AndroidBridge.shareFile){
+    try{
+      const base64=await blobToBase64(blob);
+      window.AndroidBridge.shareFile(base64, filename, mimeType);
+    }catch(e){
+      console.error(e);
+      showToast('공유 준비 중 문제가 발생했습니다.');
+    }
+    return;
+  }
+
+  // PC 웹은 공유 시트가 필요 없다 - 옆 사람에게 파일을 바로 건넬 방법이 애초에
+  // 없는 환경이라 navigator.share를 시도할 이유가 없고(지원하는 데스크톱 브라우저도
+  // 드물어서 오히려 다운로드가 안 되는 것처럼 보이는 원인이 되기도 했다), 그냥 바로
+  // 다운로드한다.
+  if(!IS_MOBILE){
+    downloadBlob(blob, filename);
+    showToast('파일을 다운로드했습니다.');
+    return;
+  }
+
+  // 다운로드로 넘어가기 전에 "왜" 못 쐈는지 콘솔에 남긴다 - Web Share는 브라우저/OS/
+  // 파일형식마다 지원 여부가 갈려서(https 여부, PDF 공유 지원 여부 등) 실패해도 대부분
+  // 예외 없이 조용히 canShare()가 false만 반환한다. 재현 시 콘솔을 보면 원인을 바로 알 수 있다.
+  if(!window.isSecureContext){
+    console.warn('[공유] navigator.share 미사용: https(보안 컨텍스트)가 아님 - location:', location.href);
+  }else if(!navigator.share){
+    console.warn('[공유] navigator.share 미지원 브라우저');
+  }else{
+    try{
+      const file=new File([blob], filename, {type:mimeType});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:'신분증'});
+        return;
+      }
+      console.warn('[공유] canShare(files)==false - 이 브라우저는 이 형식(', mimeType, ') 파일 공유를 지원하지 않음');
+    }catch(e){
+      if(e.name==='AbortError') return; // 사용자가 공유창을 닫음 - 정상적인 취소, 안내 불필요
+      console.error('[공유] navigator.share 실패:', e.name, e.message);
+    }
+  }
+
+  // Web Share를 못 쓰는 모바일 환경은 평범한 다운로드로 대체.
+  // 카카오톡 등 인앱 브라우저는 보안 정책상 다운로드 자체도 조용히 막는 경우가 있는데,
+  // 이건 브라우저가 의도적으로 막는 것이라 코드로 우회할 방법이 없다 - 그래서 다운로드는
+  // 일단 시도하되(막히지 않는 경우도 있으므로), 동시에 확실히 되는 크롬으로 바로 갈아탈
+  // 수 있는 안내를 띄운다. 예전에 크롬 권장 배너를 닫았어도(dismissible=false) 이건
+  // 실제 실패에 대한 대응이라 다시 보여준다.
+  if(IS_INAPP_BROWSER){
+    showChromeHint('카카오톡 등 인앱 브라우저에서는 보안 정책상 저장이 차단될 수 있습니다. 저장이 안 되면 크롬으로 열어 다시 시도해주세요.', false);
+  }else{
+    showToast('공유가 지원되지 않아 다운로드했습니다. 다운로드 폴더에서 열어 공유 버튼을 눌러주세요.');
+  }
+  downloadBlob(blob, filename);
+}
+</script>
+</body>
+</html>

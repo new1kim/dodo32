@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 신분증변환 화면의 카메라 촬영 임시 사진, 공유하기로 넘어온 PDF/이미지 파일이
+     저장되는 위치(앱 캐시 폴더 전체)를 FileProvider에 알려준다. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="idcard_photos" path="." />
+</paths>

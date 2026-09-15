@@ -1,0 +1,1604 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
+/* =========================================================
+   DSR/DTI 계산기 — Refined Design System (기능 동일, 시각만 개선)
+   ========================================================= */
+
+:root {
+  /* Brand — 차분한 인디고 */
+  --c-primary: #3a52b8;
+  --c-primary-light: #4c66d0;
+  --c-primary-dark: #2b3f96;
+  --c-primary-soft: #f0f2fd;
+  --c-primary-soft-border: #d6dcf7;
+
+  /* Semantic */
+  --c-success: #2f8a72;
+  --c-success-dark: #256e5b;
+  --c-success-soft: #eff8f5;
+  --c-success-text: #1f6455;
+  --c-danger: #cf5a4e;
+  --c-danger-dark: #b4453b;
+  --c-danger-soft: #fdf1ef;
+  --c-danger-text: #8f3a31;
+  --c-warning-text: #a5741f;
+
+  /* Neutrals — 살짝 차가운 무채색 */
+  --c-text: #151b26;
+  --c-text-body: #3b4554;
+  --c-text-muted: #77808f;
+  --c-text-faint: #a2aab7;
+  --c-border: #e4e7ee;
+  --c-line: #eef0f5;
+  --c-border-soft: #f2f4f8;
+  --c-surface: #ffffff;
+  --c-surface-muted: #f7f8fb;
+  --c-canvas: #eceef3;
+  --c-header-bg: #e2e7f4;
+  --c-header-text: #2c3550;
+  --c-subheader-bg: #eef1f8;
+  --c-subheader-text: #5b6472;
+
+  /* Radius */
+  --r-sm: 9px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+
+  /* Toggle button (선택된 상태) - 꽉 찬 사각형 그라데이션 버튼 */
+  --toggle-radius: 8px;
+  --toggle-gradient: linear-gradient(135deg, #4f6fe4 0%, #22c9c0 100%);
+  --toggle-shadow: 0 3px 8px rgba(34, 100, 200, 0.28);
+
+  --ltv-cell-horizontal-padding: 2px;
+
+  /* Shadow — 얕고 넓게 */
+  --sh-card: 0 1px 2px rgba(21, 27, 38, 0.04), 0 8px 20px -12px rgba(21, 27, 38, 0.18);
+  --sh-btn: none;
+
+  --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* -------------------- Base -------------------- */
+html {
+  height: 100%;
+  overflow: hidden; /* 실제 스크롤은 body 하나에서만 발생시킴 (가로/세로 통합) */
+}
+
+body {
+  height: 100%;
+  text-align: center;
+  font-family: var(--font-main);
+  background-color: var(--c-canvas);
+  background-image: radial-gradient(120% 60% at 50% 0%, #f4f6fa 0%, var(--c-canvas) 70%);
+  background-attachment: fixed;
+  color: var(--c-text);
+  margin: 0;
+  padding: 8px 7px 14px;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.2px;
+  /* 콘텐츠가 min-width(430px)보다 좁아지면 가로/세로 모두 이 요소 하나에서 스크롤 */
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* 스크롤바는 기본적으로 숨김 - .is-scrolling일 때만 노출 (JS로 토글) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+body.is-scrolling {
+  scrollbar-width: thin;
+}
+body.is-scrolling::-webkit-scrollbar-thumb {
+  background-color: rgba(21, 27, 38, 0.32);
+}
+
+.container {
+  min-width: 396px;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* -------------------- Tables (shared card look) -------------------- */
+table {
+  margin: 0 auto 4px auto;
+  max-width: 600px;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--c-surface);
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--sh-card);
+  border: 1.5px solid #b9e2f5 !important; /* 테이블 간 구분선 - 아주 연한 하늘색 */
+  overflow: hidden;
+}
+table:last-child { margin-bottom: 0; }
+
+/* 테이블 사이 구분선 - 맨 위 표에는 안 붙게 첫 번째는 제외 */
+.dsr-table-wrap {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--c-border);
+}
+.dsr-table-wrap:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* 테스트용 테이블 순서 선택기 - 테스트 끝나면 삭제 예정 */
+.table-order-test-panel {
+  margin: 10px auto 0;
+  max-width: 600px;
+  padding: 10px 12px;
+  border: 1px dashed var(--c-primary-soft-border);
+  border-radius: var(--r-md);
+  background: var(--c-primary-soft);
+}
+.table-order-test-panel label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-primary-dark);
+  margin-bottom: 6px;
+}
+.table-order-btn-row {
+  display: flex;
+  gap: 4px;
+}
+.table-order-btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 2px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.table-order-btn-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+.table-order-btn-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.table-order-btn.selected {
+  background: var(--c-primary);
+  border-color: var(--c-primary-dark);
+}
+.table-order-btn.selected .table-order-btn-num,
+.table-order-btn.selected .table-order-btn-label {
+  color: #ffffff;
+}
+
+td, th {
+  border: 1px solid var(--c-line) !important;
+  padding: 0; /* 텍스트/숫자가 꽉 차게 - 칸마다 필요한 곳만 별도로 여백을 준다 */
+  font-size: 13px;
+  vertical-align: middle;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+}
+
+/* Header rows */
+.table-header-row {
+  background-color: var(--c-header-bg) !important;
+  color: var(--c-header-text);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.table-subheader-row {
+  background-color: var(--c-subheader-bg) !important;
+  color: var(--c-subheader-text);
+  font-weight: 600;
+}
+
+td:first-child:not(.no-bg) {
+  background-color: var(--c-surface-muted) !important;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.no-bg { background-color: transparent !important; }
+
+/* -------------------- Inputs -------------------- */
+input[inputmode="numeric"],
+input[inputmode="decimal"],
+input[type="number"] {
+  padding: 0 !important;
+  min-height: 32px;
+}
+
+.ltv-cell input[inputmode="numeric"],
+.ltv-cell input[inputmode="decimal"] {
+  min-height: 34px;
+}
+
+.grace-term-input {
+  min-height: 24px !important;
+}
+
+.rate-popup-table input[inputmode="numeric"],
+.rate-popup-table input[inputmode="decimal"] {
+  min-height: 36px;
+}
+
+td input[type="text"], td input[type="number"], td select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 7px 4px;
+  font-size: 13px;
+  text-align: center;
+  background-color: var(--c-surface-muted);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  color: var(--c-text);
+  font-weight: 700;
+  font-family: inherit;
+}
+td input::placeholder { color: var(--c-text-faint); font-weight: 500; }
+td input:focus {
+  border-color: var(--c-primary-light);
+  background-color: var(--c-surface);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
+}
+/* 소득1의 연소득 입력칸 디자인을 소득2 이후 동적 행에도 동일하게 적용 (.income-input 클래스는 공용) */
+.income-input {
+  font-size: 15px !important;
+  font-weight: 700;
+  background-color: var(--c-surface);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--c-primary);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* -------------------- Buttons -------------------- */
+button {
+  width: 100%;
+  background-color: var(--c-primary);
+  border: none;
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+  box-shadow: var(--sh-btn);
+  font-family: inherit;
+  letter-spacing: -0.2px;
+}
+button:hover { background-color: var(--c-primary-dark); }
+button:active { background-color: var(--c-primary-dark); transform: scale(0.985); }
+
+.type-btn-group {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  background-color: #eaedf4;
+  border-radius: var(--r-sm);
+  padding: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.type-btn {
+  padding: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none !important;
+  background: transparent !important;
+  color: var(--c-text-muted) !important;
+  width: 33.33% !important;
+  height: 26px !important;
+  border-radius: 7px;
+  font-weight: 600;
+  box-shadow: none !important;
+  transition: all 0.18s ease;
+}
+.type-btn.active {
+  background: var(--toggle-gradient) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  box-shadow: var(--toggle-shadow) !important;
+}
+
+td:has(.type-btn-row) {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+.type-btn-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  gap: 4px;
+  width: 100%;
+}
+.type-btn-row .type-btn-group { flex: 1; }
+
+.mort-category-toggle {
+  flex: 0 0 auto;
+  width: auto !important;
+  padding: 0 6px;
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid var(--c-border) !important;
+  background: transparent !important;
+  color: var(--c-text-muted) !important;
+  height: 22px !important;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: none !important;
+  transition: all 0.18s ease;
+  align-self: center;
+}
+.mort-category-toggle.active {
+  background: var(--toggle-gradient) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: var(--toggle-shadow);
+}
+
+.add-btn {
+  background-color: var(--c-success);
+  color: white;
+  border: none;
+  padding: 6px 13px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: none;
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.add-btn:hover { background-color: var(--c-success-dark); }
+
+.reset-btn {
+  background-color: transparent;
+  color: var(--c-danger);
+  border: 1px solid rgba(207, 90, 78, 0.35);
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: none;
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.reset-btn:hover { background-color: var(--c-danger); color: #fff; border-color: var(--c-danger); }
+
+.copy-btn {
+  background-color: transparent;
+  color: var(--c-primary-dark);
+  border: 1px solid var(--c-primary-soft-border);
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: none;
+  width: auto;
+  box-sizing: border-box;
+  display: inline-block;
+  white-space: nowrap;
+}
+.copy-btn:hover { background-color: var(--c-primary); color: #fff; border-color: var(--c-primary); }
+
+/* 내용복사 버튼 - "텍스트로 복사" / "화면 캡쳐" 2개 버블 선택 팝업 (소액임차금액 버블과 같은 스타일).
+   left/top은 JS에서 fixed로 매번 계산 - table의 overflow:hidden에 잘리지 않도록 body 바로 아래로 옮겨서 렌더링 */
+.copy-menu-wrap { position: relative; display: inline-block; }
+.copy-menu-list {
+  display: none;
+  position: fixed;
+  transform: translateX(-50%);
+  gap: 7px;
+  z-index: 999;
+  padding-top: 6px; /* 말풍선 꼬리 자리 */
+}
+.copy-menu-list.open { display: flex; }
+.copy-menu-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.1);
+  z-index: -1;
+}
+.copy-menu-item {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.4);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.copy-menu-item:nth-child(1) { background: linear-gradient(135deg, #4f6fe4, #22c9c0); animation-delay: 0s; }
+.copy-menu-item:nth-child(2) { background: linear-gradient(135deg, #fb923c, #f43f5e); animation-delay: 0.05s; }
+.copy-menu-item:nth-child(3) { background: linear-gradient(135deg, #8b5cf6, #6366f1); animation-delay: 0.1s; font-size: 9.5px; letter-spacing: -0.3px; }
+.copy-menu-item:hover,
+.copy-menu-item:active { transform: scale(1.12); }
+
+/* -------------------- Section title bar -------------------- */
+.section-title-bar {
+  padding: 2px 6px;
+  text-align: center;
+  color: var(--c-header-text);
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  position: relative;
+}
+.section-title-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+/* 제목 텍스트를 브랜드 그라데이션으로 채운 그래픽 텍스트로 표시 (여러 곳에서 재사용) */
+.section-title-graphic {
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--toggle-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+.section-title-bar .section-title-graphic { font-size: 24px; line-height: 1; }
+.section-title-bar .add-btn {
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.section-title-bar .reset-btn {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* -------------------- Mortgage row layout -------------------- */
+.input-flex-col { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: stretch; }
+.input-flex-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.input-flex-row input {
+  min-width: 0 !important;
+  flex: 1 !important;
+  text-align: center !important;
+}
+.mort-amount-row { display: flex; justify-content: flex-start; align-items: center; gap: 6px; width: 100%; }
+.mort-amt { flex: 1; min-width: 0; text-align: center; }
+.mortgage-row.first-row .mort-amt { flex: 1; min-width: 0; text-align: center; }
+.mortgage-row.first-row .mort-amt {
+  font-size: 14px;
+  background-color: var(--c-surface);
+  border-color: var(--c-primary-soft-border);
+}
+
+/* 대출 행 바로 아래에 붙는 메모 전용 행 */
+.mortgage-memo-row td { border-top: none !important; padding: 3px 6px 6px !important; }
+.mort-memo {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-muted);
+  color: var(--c-text-muted);
+}
+.mort-memo:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--c-primary-light);
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
+}
+.mort-memo::placeholder { color: var(--c-text-faint); font-weight: 500; }
+
+.mort-exclude-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  background: var(--c-surface-muted);
+  border-radius: var(--r-sm);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  container-type: inline-size;
+}
+/* 체크박스를 칸 크기에 꽉 차게 - 칸(.mort-exclude-cell) 너비 기준 cqw 단위라 칸이
+   반응형으로 커지고 작아질 때 체크박스 크기도 함께 따라간다. */
+.mort-exclude {
+  width: clamp(16px, 85cqw, 48px) !important;
+  height: clamp(16px, 85cqw, 48px) !important;
+}
+
+.amount-btn {
+  width: 25px;
+  height: 25px;
+  font-size: 35px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.amount-plus { background-color: var(--c-success); color: white; font-weight: bold; }
+.amount-minus { background-color: var(--c-danger); color: white; font-weight: bold; }
+.amount-plus:hover { background-color: var(--c-success-dark); }
+.amount-minus:hover { background-color: var(--c-danger-dark); }
+
+.amount-btn-stack {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.amount-btn-stack .amount-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 35px;
+}
+
+.mort-amount-row--added { gap: 4px; }
+.mort-amount-row--added .mort-amt { flex: 2.5; }
+.mort-amount-row--added .mort-rate { flex: 1; min-width: 0; text-align: center; }
+
+.mortgage-row.first-row .input-flex-row { align-items: center; gap: 4px; }
+
+/* 6M / 5Y toggle switch */
+.mort-default-switch {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 0;
+  padding: 3px !important;
+  border-radius: var(--toggle-radius) !important;
+  background-color: #eaedf4 !important;
+  border: 1px solid var(--c-border) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  box-shadow: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.mort-default-switch:hover { box-shadow: none; }
+.mort-default-switch .switch-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 5px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: -1px !important;
+  border-radius: 5px !important;
+  color: var(--c-text-muted) !important;
+  line-height: 1.2 !important;
+  transition: all 0.18s ease;
+}
+.mort-default-switch .switch-label.active {
+  background: var(--toggle-gradient);
+  color: #fff !important;
+  box-shadow: var(--toggle-shadow);
+}
+
+.grace-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.mortgage-row:not(.first-row) .grace-cell { display: none; }
+
+.mort-grace-check {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0;
+}
+.grace-term-input {
+  width: 42%;
+  padding: 4px;
+  font-size: 11px;
+}
+
+/* -------------------- Notification bubble -------------------- */
+#bubble-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(19, 24, 34, 0.94);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 13px 24px;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.55);
+}
+
+/* -------------------- View buttons -------------------- */
+.view-btn-wrapper { display: flex; justify-content: flex-start; gap: 10px; margin-top: 6px; }
+.view-btn {
+  width: auto;
+  background-color: var(--c-primary);
+  border: none !important;
+  color: #ffffff;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  box-shadow: none;
+}
+.view-btn:hover { background-color: var(--c-primary-dark); color: #ffffff; }
+
+/* 저장/불러오기 슬롯 버튼: 짧게 누르면 불러오기, 길게 누르면 저장 - 오른쪽 끝으로 밀어붙임 */
+.slot-btn-group { display: flex; gap: 6px; margin-left: auto; }
+.slot-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: var(--r-pill);
+  background: var(--c-surface);
+  color: var(--c-text-body);
+  border: 1.5px solid var(--c-border);
+  box-shadow: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slot-btn:active { transform: scale(0.92); background: var(--c-primary-soft); }
+.slot-btn.slot-has-data { border-color: var(--c-primary-light); color: var(--c-primary-dark); }
+.slot-btn.slot-saving { background: var(--c-primary); border-color: var(--c-primary); color: #ffffff; }
+
+/* -------------------- DSR limit block -------------------- */
+.dsr-limit-table { margin-top: 0; font-size: 1px; }
+.dsr-label-cell {
+  background-color: var(--c-header-bg) !important;
+  color: var(--c-header-text);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+}
+.dsr-value-cell {
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  padding: 3px 4px !important;
+  transition: background-color 0.18s ease;
+}
+.dsr-value-cell:hover { background-color: var(--c-surface-muted); }
+.dsr-max-value-number {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  white-space: normal !important;
+}
+.dsr-max-value-number .dsr-main-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-primary-dark);
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.dsr-max-value-number .dsr-sub-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  line-height: 1.2;
+}
+
+/* Pill radio toggle (DSR limit % / LTV %) */
+.pill-toggle-group {
+  display: inline-flex;
+  background-color: #eaedf4;
+  border: 1px solid var(--c-border);
+  border-radius: var(--toggle-radius);
+  padding: 3px;
+  gap: 2px;
+}
+.pill-toggle-group.vertical { flex-direction: column; width: 100%; }
+.pill-toggle-group label {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background-color: transparent !important;
+  color: var(--c-text-muted) !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.18s ease;
+}
+/* JS/HTML의 인라인 색상보다 우선하도록 !important 사용 (기능은 그대로) */
+.pill-toggle-group label:has(input:checked) {
+  background: var(--toggle-gradient) !important;
+  color: #ffffff !important;
+  box-shadow: var(--toggle-shadow);
+}
+.pill-toggle-group input[type="radio"] { display: none; }
+
+#ltvRateToggleGroup { gap: 0; width: 100%; padding: 0; }
+
+/* DSR_40 / DSR_50 버튼: 위 .pill-toggle-group 공통 규칙으로 이미 꽉 찬 사각형 적용됨 */
+/* 셀(.ltv-cell) 폭 기준 cqw로 글자 크기/좌우 여백을 자동 조절 - 좁아져도 "80%" 등 내용이 잘리지 않게 함 */
+#ltvRateToggleGroup label {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px clamp(1px, 2cqw, 5px);
+  font-size: clamp(8px, 7cqw, 13px);
+  letter-spacing: clamp(-1px, -0.3cqw, 0px);
+  white-space: nowrap;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.dsr-toggle-caption {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  text-align: center;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+#dsrLimitToggleGroup {
+  border-radius: var(--toggle-radius);
+  padding: 0.9px 3px;
+  gap: 0.6px;
+}
+#dsrLimitToggleGroup label {
+  padding: 1.2px 3px;
+  border-radius: 5px;
+  font-size: 10px;
+}
+
+/* -------------------- LTV card -------------------- */
+.ltv-table { border-collapse: separate; }
+.ltv-cell {
+  width: 33.3%;
+  padding: 10px var(--ltv-cell-horizontal-padding);
+  background-color: var(--c-surface-muted);
+  vertical-align: middle;
+  text-align: center;
+  container-type: inline-size;
+}
+.ltv-cell + .ltv-cell { border-left: 1px solid var(--c-border) !important; }
+.ltv-cell input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  font-weight: 700;
+  text-align: center;
+}
+.ltv-market-price-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#marketPriceLookupBtn {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 7px 4px;
+  background-color: var(--c-primary);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#marketPriceLookupBtn:active { background-color: var(--c-primary-dark); transform: scale(0.97); }
+.minor-lease-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.minor-lease-input-wrap { position: relative; flex: 1; min-width: 0; }
+.minor-lease-input-wrap input[type="text"] { width: 100%; }
+.minor-lease-suggest-list {
+  display: none;
+  /* left/top은 JS에서 fixed로 매번 계산해 지정함 - table의 overflow:hidden +
+     container-type이 만드는 클리핑 컨테이닝 블록을 피하기 위해 body 바로 아래로
+     옮겨서 렌더링한다. 폭은 버블 콘텐츠에 맞춰 자동, 가로 중앙 정렬만 transform으로 처리 */
+  position: fixed;
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  z-index: 999;
+  gap: 8px;
+  padding-top: 8px; /* 말풍선 꼬리 자리 */
+}
+.minor-lease-suggest-list.open { display: flex; }
+/* 말풍선 꼬리 - 입력칸을 가리키도록 위쪽을 향한 다이아몬드 */
+.minor-lease-suggest-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: -2px -2px 4px -2px rgba(15, 23, 42, 0.1);
+  z-index: -1;
+}
+.minor-lease-suggest-item {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 8px 16px -6px rgba(15, 23, 42, 0.4);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.minor-lease-suggest-item:nth-child(1) { background: linear-gradient(135deg, #4f6fe4, #22c9c0); animation-delay: 0s; }
+.minor-lease-suggest-item:nth-child(2) { background: linear-gradient(135deg, #fb923c, #f43f5e); animation-delay: 0.05s; }
+.minor-lease-suggest-item:nth-child(3) { background: linear-gradient(135deg, #22c55e, #0d9488); animation-delay: 0.1s; }
+.minor-lease-suggest-item:nth-child(4) { background: linear-gradient(135deg, #a855f7, #6366f1); animation-delay: 0.15s; }
+.minor-lease-suggest-item:hover,
+.minor-lease-suggest-item.active {
+  transform: scale(1.14);
+  box-shadow: 0 10px 20px -6px rgba(15, 23, 42, 0.5);
+}
+@keyframes minorLeaseBubblePop {
+  0% { transform: scale(0.3); opacity: 0; }
+  65% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.minor-lease-reference-btn {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  background-color: #b98a34;
+}
+.minor-lease-reference-btn:hover { background-color: #9a6f22; }
+.ltv-stack { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.ltv-output {
+  color: var(--c-warning-text);
+  background-color: #fdf6e9 !important;
+}
+
+/* -------------------- Income table: 상단 제어 행 (소득 추가 / 소득정보입력 / 합산소득) -------------------- */
+.income-control-cell {
+  padding: 2px 5px !important;
+  text-align: center;
+  vertical-align: middle;
+}
+.income-control-cell-btn { text-align: center; }
+.income-control-cell-info {
+  border-left: 1px solid var(--c-border) !important;
+  text-align: left;
+  container-type: inline-size;
+}
+.income-control-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.income-add-btn {
+  padding: 3px 8px !important;
+  font-size: 12px !important; /* "대출 추가" 버튼(.add-btn 기본값)과 글자 크기 동일하게 맞춤 */
+}
+.income-control-title {
+  display: inline-block;
+  flex: 1 1 auto;
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* -------------------- Income row -------------------- */
+.income-label {
+  font-weight: bold;
+  letter-spacing: -0.5px;
+  vertical-align: middle;
+  text-align: center;
+  padding: 0 !important; /* 상하좌우 여백 없이 텍스트가 칸에 꽉 차게 */
+  container-type: inline-size;
+}
+.income-input-cell { vertical-align: middle; text-align: center; padding: 0 !important; container-type: inline-size; }
+.income-title { display: block; margin-right: 0; margin-bottom: 1px; vertical-align: middle; white-space: nowrap; text-align: center; font-size: clamp(10px, 17cqw, 15px); cursor: pointer; }
+.income-title:hover { text-decoration: underline; }
+.income-input-cell .income-input { width: 100%; text-align: center; padding: 7px 2px; vertical-align: middle; }
+.income-input-cell .income-input { font-size: clamp(7px, 12cqw, 10px); }
+/* 증빙 모드: 연소득 입력 + 장래예상을 한 칸 안에서 가로로 나란히 배치 */
+.income-cell-flex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+/* 장래예상 체크 시 나이/요율이 나타나도 연소득 입력칸이 눌려 작아지지 않도록 최소 폭을 보장 */
+.income-cell-flex .income-input { width: 130px; flex: 0 0 130px; }
+.income-cell-flex .future-income-row { width: auto; flex: 1 1 auto; min-width: 0; }
+/* 소득 행 바로 아래에 붙는 메모 전용 행 (대출 정보 메모 행과 동일한 스타일) */
+.income-memo-row td { border-top: none !important; padding: 3px 6px 6px !important; }
+.income-memo {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-muted);
+  color: var(--c-text-muted);
+}
+.income-memo:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--c-primary-light);
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.13);
+}
+.income-memo::placeholder { color: var(--c-text-faint); font-weight: 500; }
+.income-input:disabled,
+.declare-amount-input:disabled {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+}
+/* 차주가 건보/연금 추정소득일 때 배우자 행을 흐리게 비활성화 (합산 불가).
+   tr 자체에 opacity를 주면 자식에게도 곱연산으로 겹쳐 적용돼 합산소득 칸까지 흐려지므로,
+   칸(td) 단위로 적용하고 합산소득 칸(.income-result-cell)만 예외로 뺀다. */
+.income-row-blocked > td:not(.income-result-cell) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.income-settings-cell { vertical-align: middle; padding: 0 !important; border-left: 1px solid var(--c-border) !important; }
+.age-cell, .toggle-cell { text-align: center; vertical-align: middle; }
+.age-cell, .toggle-cell { container-type: inline-size; }
+.toggle-cell .rate-toggle-row { margin: 0; transform: none; }
+.toggle-cell .rate-display { display: block; margin-top: 2px; }
+.income-settings { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 0px; width: 100%; }
+.income-settings-top { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.income-settings .rate-toggle-row,
+.future-income-row .rate-toggle-row { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; }
+.income-settings label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
+.future-income-row .rate-toggle-row label { cursor: pointer; font-weight: 600; color: var(--c-text-muted); }
+.future-income-row .rate-toggle-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
+/* "장래예상" 라벨 아래에 예상효율을 줄바꿈해서 표시 (체크박스 옆에 세로로 쌓임) */
+.rate-toggle-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+/* 장래예상 체크박스 - (라벨+요율 2줄) - 나이입력을 한 줄에 왼쪽 정렬로 배치 (체크 전엔 나이/요율 숨김) */
+.future-income-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px 6px;
+  width: 100%;
+}
+.future-income-row .age-input {
+  width: 58px !important;
+  font-size: 13px !important;
+  flex: 0 0 auto;
+}
+.future-income-row .rate-display {
+  margin: 0;
+}
+/* 장래예상 체크 시 나이입력 오른쪽 남는 공간에 환산된 금액을 보여준다 */
+.future-income-converted {
+  flex: 1 1 auto;
+  min-width: 100px;
+  text-align: left;
+  color: #1d4ed8;
+  font-weight: 800;
+  font-size: clamp(12px, 16cqw, 15px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 예상효율 빨간색 표시 - 소득2 이후 동적 행도 동일하게 적용 (.rate-display 클래스는 공용) */
+.rate-display { display: block; text-align: left; color: var(--c-danger); font-weight: 700; line-height: 1; margin: 0; font-size: 11px; }
+.income-settings .rate-display { font-size: 11px; }
+.age-input { width: 100% !important; max-width: none; min-width: 0; max-height: none; text-align: center; padding: 0px 0; font-size: clamp(8px, 14cqw, 13px); }
+.age-input::-webkit-outer-spin-button,
+.age-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.age-input { -moz-appearance: textfield; appearance: textfield; }
+/* 합산 소득 - 라벨과 값을 하나의 배지(chip)로 묶어 오른쪽 정렬 */
+.income-result-badge {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  max-width: 100%;
+  padding: 5px 12px;
+  border-radius: var(--r-md);
+  background: var(--c-success-soft);
+  border: 1px solid #cbe5dc;
+  box-sizing: border-box;
+}
+.income-result-badge-label {
+  font-size: clamp(11px, 11cqw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--c-success-text);
+  opacity: 0.75;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+  text-align: center;
+  flex-shrink: 0; /* 값 입력칸 때문에 눌리지 않도록 */
+}
+.income-result-badge-value {
+  display: block;
+  /* width는 JS(자동계산)에서 size 속성을 자릿수에 맞게 갱신해 자동으로 늘고 줄게 함 */
+  width: auto;
+  min-width: 50px; /* 값이 없을 때도 칸이 너무 작아지지 않도록 최소값 */
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0 !important;
+  box-sizing: border-box;
+  border: none !important;
+  background: transparent !important;
+  color: var(--c-success-text);
+  font-size: clamp(12px, 13cqw, 19px);
+  font-weight: 800;
+  text-align: right;
+  line-height: 1.25;
+}
+
+/* -------------------- Income row: 증빙/신고 mode toggle (전용 칸에 세로로 배치) -------------------- */
+/* 이 칸(.income-mode-cell) 자체가 항상 빈칸이라 - 안의 토글은 숨겨져 있고, 실제 버블 팝업은
+   setupIncomeTitleBubble()이 document.body로 옮겨서 렌더링함(DSR_calculator_ui.js) - 칸을
+   통째로 접어서(display:none) 옆 연소득 입력칸이 그 공간을 대신 쓰도록 한다. */
+.income-mode-cell { display: none !important; }
+.income-mode-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.income-mode-toggle label {
+  padding: 2px 4px;
+  font-size: clamp(10px, 15cqw, 13px);
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* -------------------- "추정" 버튼에서 뜨는 카드/건보/연금 곡선(") 모양) 버블 팝업 --------------------
+   position/left/top은 JS에서 fixed로 매번 계산 - table의 overflow:hidden + 셀의
+   container-type이 만드는 클리핑을 피하기 위해 body 바로 아래로 옮겨서 렌더링한다. */
+.declare-type-bubble-list {
+  display: none;
+  position: fixed;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  z-index: 999;
+}
+.declare-type-bubble-list.open { display: flex; }
+.declare-type-bubble-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -5px rgba(15, 23, 42, 0.45);
+  border: 2px solid #ffffff;
+  transform: scale(0.4);
+  opacity: 0;
+  animation: minorLeaseBubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* 위/아래는 트리거 쪽에 가깝게, 가운데만 오른쪽으로 볼록 튀어나오게 - ")" 괄호 곡선 느낌.
+   position(순서)이 아니라 data-value로 색을 지정해 항목이 늘어나도(증빙/삭제 추가) 카드/건보/연금 색이 유지된다. */
+.declare-type-bubble-item[data-value="증빙"] { background: linear-gradient(135deg, #2563eb, #1d4ed8); margin-left: 2px; animation-delay: 0s; }
+.declare-type-bubble-item[data-value="카드"] { background: linear-gradient(135deg, #a855f7, #6366f1); margin-left: 14px; animation-delay: 0.05s; }
+.declare-type-bubble-item[data-value="건강"] { background: linear-gradient(135deg, #fb923c, #f43f5e); margin-left: 2px; animation-delay: 0.1s; }
+.declare-type-bubble-item[data-value="연금"] { background: linear-gradient(135deg, #22c55e, #0d9488); margin-left: 14px; animation-delay: 0.15s; }
+.declare-type-bubble-item[data-value="삭제"] { background: linear-gradient(135deg, #ef4444, #b91c1c); margin-left: 2px; animation-delay: 0.2s; }
+.declare-type-bubble-item[data-value="초기화"] { background: linear-gradient(135deg, #64748b, #334155); margin-left: 2px; animation-delay: 0.2s; }
+.declare-type-bubble-item:hover,
+.declare-type-bubble-item.active {
+  transform: scale(1.14);
+  box-shadow: 0 8px 18px -5px rgba(15, 23, 42, 0.55);
+}
+
+/* 소득1 버블만 마름모(다이아몬드) 배치로 변경: 위 카드/증빙, 가운데 건보(좌)·연금(우), 아래 초기화 */
+#baseDeclareTypeBubbleList.open {
+  display: grid;
+  grid-template-columns: 40px 40px;
+  grid-template-rows: repeat(3, 40px);
+  gap: 6px;
+  justify-items: center;
+  align-items: center;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="증빙"] {
+  grid-column: 1;
+  grid-row: 1;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="카드"] {
+  grid-column: 2;
+  grid-row: 1;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="건강"] {
+  grid-column: 1;
+  grid-row: 2;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="연금"] {
+  grid-column: 2;
+  grid-row: 2;
+  margin-left: 0;
+}
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="초기화"] {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  margin-left: 0;
+}
+
+/* -------------------- Income row: 신고소득(카드/건강/연금) - 같은 행 셀 교체 방식 -------------------- */
+/* 추정 모드도 증빙과 마찬가지로 칸 안의 구성(연사용액 입력 / 환산금액)을 가로로 나란히 배치 */
+.declare-cell-flex {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+.declare-cell-flex .declare-input-group { width: auto; flex: 1 1 auto; min-width: 50px; }
+.declare-cell-flex .declare-converted-output { width: auto; flex: 1 1 auto; min-width: 50px; }
+.declare-input-group {
+  display: flex;
+  flex-direction: column; /* 카드/건보/연금 선택기 바로 아랫줄에 연사용액 입력 */
+  align-items: center;
+  justify-content: center;
+  gap: 2px; /* 선택기-입력창 간 위아래 간격 최소화 */
+  box-sizing: border-box;
+}
+.declare-input-group .declare-type-toggle {
+  width: 100%;
+  padding: 1px;
+  gap: 0px;
+}
+.age-slot, .toggle-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.declare-input-group .declare-amount-input {
+  width: 100%;
+  box-sizing: border-box;
+  /* 증빙 모드의 #baseIncomeInput/#spouseIncomeInput과 칸 크기·글자 크기를 동일하게 맞춤 */
+  padding: 0 !important;
+  min-height: 32px !important;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+}
+.declare-converted-output {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 3px;
+  font-size: clamp(10px, 12cqw, 17px);
+  font-weight: 700;
+  text-align: center;
+  color: #6d28d9;
+  background: #f5f3ff !important;
+  border: 1px solid #ddd6fe;
+  border-radius: var(--r-sm);
+}
+.declare-type-toggle {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 1px;
+  gap: 0px;
+}
+.declare-type-toggle label {
+  flex: 1 1 0;      /* 버튼 3개가 동일한 너비로 나눠 갖도록 함 (좌우 크기 핵심) */
+  min-width: 0;
+  padding: 4px 1px; /* 좌우 값(1px)을 늘리면 버튼이 더 넓어짐 */
+  font-size: 11px;
+  text-align: center;
+}
+
+/* -------------------- Result readouts -------------------- */
+#DSR확인, #DIT확인, #신DTI확인, #월합계, #월원금, #월이자 { font-weight: 700; font-size: 14px; }
+#DSR확인, #DIT확인, #신DTI확인 { transition: background-color 0.3s; font-size: 21px; letter-spacing: -0.4px; }
+#월합계 { color: var(--c-primary); font-size: 15px; }
+
+/* -------------------- Card color tuning (구조/기능 동일, 색만 정돈) --------------------
+   제목줄(헤더)과 값을 입력/표시하는 작업줄이 한눈에 구분되도록, 테이블마다 정한 톤을
+   "제목줄(진하게) > 라벨/보조헤더줄(중간) > 입력·데이터 칸(흰색)" 3단계로 명확히 나눈다. */
+/* 본건 월 상환 요약: 기본 뉴트럴 + 파랑 포인트 */
+.summary-table:has(#월합계) {
+  border-color: #b9e2f5 !important;
+  background: var(--c-surface);
+}
+.summary-table:has(#월합계) .table-header-row td {
+  background: #dbe2f3 !important;
+  color: #2c3958 !important;
+  font-size: 12px;
+  font-weight: 800;
+}
+.summary-table:has(#월합계) tr:last-child td { background: #ffffff !important; }
+
+/* DSR 한도: 인디고 톤 */
+.dsr-limit-table {
+  border-color: #b9e2f5 !important;
+  background: #fdfdff;
+}
+.dsr-limit-table td.dsr-label-cell { background: #d9def9 !important; color: #303e93; font-weight: 800; }
+.dsr-limit-table .dsr-value-cell { background: #fdfdff; }
+.dsr-limit-table .dsr-value-cell:hover { background: #f6f7fe; }
+.dsr-limit-table .dsr-main-val { color: var(--c-primary-dark); }
+
+/* LTV: 담보 영역은 따뜻한 샌드 톤 */
+.ltv-table {
+  border-color: #b9e2f5 !important;
+  background: #fffdf9;
+}
+.ltv-table .ltv-cell { background: #fffdf9 !important; }
+.ltv-table .ltv-cell:first-child { background: #f6e7c4 !important; color: #7a5814; font-weight: 800; }
+.ltv-table .ltv-cell + .ltv-cell { border-left-color: #ece2cf !important; }
+.ltv-table .ltv-output { background: #fdf3e0 !important; color: #93641b; border-color: #e6cf9f !important; }
+
+/* KB시세 조회에서 시세를 선택하면 나타나는 행 - 아파트 정보(표시) + 물건지 주소(입력) */
+.selected-apt-row td {
+  background: #fffdf9 !important;
+  padding: 8px 10px !important;
+  white-space: normal !important;
+}
+.selected-apt-info {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a5814;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.2;
+  margin: 0;
+}
+.selected-apt-address-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 1px 0 0;
+}
+.selected-apt-address {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9c7b3a;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.2;
+}
+.apt-reg-badges { display: inline-flex; gap: 4px; }
+.apt-reg-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.apt-reg-badge-danger { background: #fdeceb; color: #c0392b; }
+.apt-reg-badge-warning { background: #fdf3e2; color: #b9762a; }
+
+/* DSR · DTI · 신DTI 결과표 */
+.summary-table:has(#DSR확인) {
+  border-color: #b9e2f5 !important;
+  background: #ffffff;
+}
+.summary-table:has(#DSR확인) .table-header-row td { background: #d9def9 !important; color: #303e93 !important; font-size: 16px; font-weight: 800; letter-spacing: 1px; padding: 8px 4px !important; }
+.summary-table:has(#DSR확인) tr:last-child td { background: #ffffff !important; padding: 7px 4px !important; }
+
+/* 연소득: 세이지 그린 - 제목줄(소득 추가/소득 정보)을 가장 진하게, 소득N 라벨 칸을 한 단계 연하게 */
+table:has(#baseIncomeInput) { border-color: #b9e2f5 !important; background: #fdfffe; }
+table:has(#baseIncomeInput) .income-control-cell { background: #cdeadb !important; }
+table:has(#baseIncomeInput) .income-label { background: #e3f4ec !important; color: var(--c-success-text); font-weight: 800; }
+table:has(#baseIncomeInput) .income-input { border-color: #cbe5dc; background: #fdfffe; }
+
+/* 대출 정보 - 제목 막대(진한 인디고) > 열 이름줄(옅은 인디고) > 실제 입력 행(흰색) */
+table:has(#mortgage-inputs) { border-color: #b9e2f5 !important; }
+table:has(#mortgage-inputs) .section-title-bar { background: #d9def9 !important; color: #303e93 !important; }
+table:has(#mortgage-inputs) .table-subheader-row td { background: #eceffb !important; color: #565f86 !important; font-weight: 700; }
+table:has(#mortgage-inputs) .mortgage-row td { background: #ffffff; }
+table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
+
+/* -------------------- Modals / popups -------------------- */
+#image-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(17, 22, 32, 0.62);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+#modal-image-credit {
+  display: none;
+  position: absolute;
+  top: 18px;
+  left: 0;
+  width: 100%;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+#image-modal img {
+  max-width: 92%;
+  max-height: 85%;
+  border-radius: var(--r-md);
+  border: 2px solid white;
+  box-shadow: 0 24px 50px -18px rgba(0, 0, 0, 0.6);
+}
+.text-popup-card {
+  background-color: var(--c-surface);
+  padding: 22px;
+  border-radius: 22px;
+  max-width: 92%;
+  width: 440px;
+  box-sizing: border-box;
+  box-shadow: 0 30px 60px -20px rgba(15, 20, 30, 0.4);
+  text-align: left;
+  cursor: default;
+  height: auto;
+  max-height: 85vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.text-popup-card::-webkit-scrollbar { display: none; }
+.text-popup-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-text);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c-border);
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+.text-popup-content { font-size: 13px; line-height: 1.65; color: var(--c-text-body); }
+.info-section { margin-bottom: 22px; }
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-primary-dark);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-list { list-style: none; padding: 0; margin: 0; }
+.info-list li { position: relative; padding-left: 14px; margin-bottom: 6px; color: var(--c-text-body); font-weight: 500; white-space: normal !important; }
+.info-list li::before { content: "•"; position: absolute; left: 2px; color: var(--c-text-faint); font-weight: bold; }
+.alert-box {
+  background-color: var(--c-danger-soft);
+  border-left: 3px solid var(--c-danger);
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+  color: var(--c-danger-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: normal !important;
+}
+.accent-box {
+  background-color: var(--c-success-soft);
+  border-left: 3px solid var(--c-success);
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+  color: var(--c-success-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: normal !important;
+}
+
+.rate-popup-table { width: 100%; margin: 10px 0; border-collapse: separate; border-spacing: 0 10px; }
+.rate-popup-table td { padding: 0; border: none !important; background: transparent !important; font-weight: normal !important; color: var(--c-text-body) !important; font-size: 14px; }
+.rate-popup-table input {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background-color: var(--c-surface);
+  box-sizing: border-box;
+}
+.rate-popup-table input:focus { outline: none; border-color: var(--c-primary-light); box-shadow: 0 0 0 3px rgba(58, 82, 184, 0.15); }
+.rate-popup-table thead tr { background-color: var(--c-border-soft); font-weight: bold; text-align: center; }
+
+.default-field-group { display: flex; gap: 8px; align-items: stretch; }
+.default-field {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface-muted);
+  padding: 9px;
+  box-shadow: none;
+}
+.default-field-label { font-size: 11px; font-weight: 700; color: var(--c-text-muted); margin-bottom: 5px; letter-spacing: -0.2px; }
+.default-field .rate-popup-table { margin: 0; border-spacing: 0; }
+.default-modal-actions { display: flex; gap: 8px; margin-top: 10px; }
+.default-modal-actions button { flex: 1; border: none; border-radius: var(--r-md); padding: 11px 12px; color: white; font-weight: 700; cursor: pointer; }
+.modal-actions { display: flex; gap: 8px; margin-top: 5px; }
+.modal-actions button { flex: 1; border: none; border-radius: var(--r-md); padding: 11px 12px; color: white; font-weight: 700; cursor: pointer; }
+.btn-neutral { background-color: #7b8493; }
+.btn-neutral:hover { background-color: #656d7b; }
+.btn-success { background-color: var(--c-success); }
+.btn-success:hover { background-color: var(--c-success-dark); }
+.btn-primary { background-color: var(--c-primary); }
+
+/* -------------------- Schedule modal -------------------- */
+#schedule-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; }
+#schedule-table th {
+  position: sticky;
+  top: 0;
+  background-color: var(--c-header-bg) !important;
+  color: var(--c-text-muted);
+  font-weight: bold;
+  padding: 9px 4px;
+  border: 1px solid var(--c-line);
+  z-index: 10;
+  box-shadow: 0 1px 0 var(--c-border);
+}
+#schedule-table td { padding: 6px 4px !important; font-size: 12px !important; }
+.year-divider td { border-bottom: 1px solid var(--c-border) !important; }
+.summary-table td { padding: 2px 4px !important; }
+.schedule-close-row { display: flex; align-items: center; margin-bottom: 8px; }
+.schedule-loan-info { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: var(--c-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

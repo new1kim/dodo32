@@ -1,0 +1,80 @@
+﻿<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>dodo32 ?뚯씪 ?곌껐 洹몃옒??/title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    if (!window.mermaid) {
+      document.querySelector('.mermaid').outerHTML = '<div class="error">Mermaid 라이브러리를 불러오지 못했습니다.<br>인터넷 연결을 확인한 뒤 다시 열어 주세요.</div>';
+      return;
+    }
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'neutral' });
+    mermaid.run({ querySelector: '.mermaid' }).catch(function (error) {
+      document.querySelector('.mermaid').outerHTML = '<div class="error">그래프 문법을 해석하지 못했습니다.<br><small>' + error.message + '</small></div>';
+      console.error(error);
+    });
+  });
+</script>
+<style>body{margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}header{padding:18px 24px;background:#0f172a;color:white}h1{font-size:20px;margin:0 0 6px}p{margin:0;color:#cbd5e1;font-size:13px}.wrap{padding:20px;overflow:auto}.mermaid{min-width:1100px;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:24px}.error{margin:20px;padding:18px;border:1px solid #ef4444;border-radius:8px;background:#fef2f2;color:#991b1b}</style>
+</head><body><header><h1>dodo32 ?꾨줈?앺듃 ?뚯씪 ?곌껐 洹몃옒??/h1><p>?ㅼ꽑: ?ㅼ젣 HTML/CSS/JS/API ?곌껐 쨌 ?뚯씪 ?⑥쐞???듭떖 援ъ“</p></header><div class="wrap"><pre class="mermaid">
+graph TD
+  classDef html fill:#dbeafe,stroke:#2563eb,color:#111827;
+  classDef js fill:#fef3c7,stroke:#d97706,color:#111827;
+  classDef css fill:#dcfce7,stroke:#16a34a,color:#111827;
+  classDef gas fill:#fce7f3,stroke:#db2777,color:#111827;
+  classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827;
+  index["index.html<br/>????쨌 iframe ?대퉬寃뚯씠??]:::html
+  auth["gate-auth.js<br/>?몄쬆/?묒냽 ?쒖뼱"]:::js
+  manifest["assets/manifest.json<br/>PWA 硫뷀??곗씠??]:::external
+  consult["Consult_Main.html<br/>?곷떞 怨꾩궛湲??붾㈃"]:::html
+  consultCss["Consult_style.css"]:::css
+  consultLogic["Consult_calculator_logic.js"]:::js
+  consultUi["Consult_calculator_ui.js"]:::js
+  dsr["DSR_Main.html<br/>DSR ?붾㈃"]:::html
+  dsrCss["DSR_style.css"]:::css
+  dsrLogic["DSR_calculator_logic.js"]:::js
+  dsrUi["DSR_calculator_ui.js"]:::js
+  dti["DTI.html"]:::html
+  calc["怨꾩궛湲?html"]:::html
+  date["?좎쭨怨꾩궛湲?html"]:::html
+  market["?쒖꽭議고쉶.html"]:::html
+  public["gonsi.html<br/>怨듭떆媛 議고쉶"]:::html
+  gas["?쒖꽭議고쉶_GAS.gs<br/>Google Apps Script API"]:::gas
+  note["?곷떞?쇱?.html"]:::html
+  idcard["IDCard.html"]:::html
+  scan["臾몄꽌?ㅼ틪.html / ?ъ쭊?ㅼ틪.html"]:::html
+  mcg["MCG.html"]:::html
+  min["*_logic.min.js<br/>諛고룷???뺤텞蹂?]:::js
+  package["package.json<br/>javascript-obfuscator"]:::external
+  obfuscate["obfuscate.js<br/>?쒕룆??鍮뚮뱶 ?꾧뎄"]:::js
+  data["op_gongsi_data/*.json<br/>怨듭떆媛 ?뺤쟻 ?곗씠??]:::external
+  cdn["?몃? CDN<br/>html2canvas 쨌 OpenCV 쨌 jsPDF 쨌 flatpickr"]:::external
+  index -->|loads| auth
+  index -->|loads| manifest
+  index -->|iframe?쇰줈 ?꾪솚| consult
+  index -->|iframe?쇰줈 ?꾪솚| dsr
+  index -->|iframe?쇰줈 ?꾪솚| dti
+  index -->|iframe?쇰줈 ?꾪솚| calc
+  index -->|iframe?쇰줈 ?꾪솚| date
+  index -->|iframe?쇰줈 ?꾪솚| market
+  index -->|iframe?쇰줈 ?꾪솚| public
+  index -->|iframe?쇰줈 ?꾪솚| note
+  index -->|iframe?쇰줈 ?꾪솚| idcard
+  index -->|iframe?쇰줈 ?꾪솚| scan
+  index -->|iframe?쇰줈 ?꾪솚| mcg
+  consult -->|stylesheet| consultCss
+  consult -->|script| consultLogic
+  consult -->|script| consultUi
+  dsr -->|stylesheet| dsrCss
+  dsr -->|script| dsrLogic
+  dsr -->|script| dsrUi
+  market -->|stylesheet 怨듭쑀| consultCss
+  public -->|API ?몄텧| gas
+  public -->|fetch| data
+  note -->|fetch/POST| gas
+  mcg -->|fetch/API| gas
+  scan -->|CDN script| cdn
+  idcard -->|CDN script| cdn
+  consult -->|罹≪쿂 湲곕뒫| cdn
+  dsr -->|罹≪쿂 湲곕뒫| cdn
+  obfuscate -->|devDependency| package
+</pre></div></body></html>

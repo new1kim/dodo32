@@ -1,0 +1,66 @@
+﻿graph TD
+  %% dodo32 ?꾨줈?앺듃??二쇱슂 ?뚯씪 ?곌껐 援ъ“
+  classDef html fill:#dbeafe,stroke:#2563eb,color:#111827;
+  classDef js fill:#fef3c7,stroke:#d97706,color:#111827;
+  classDef css fill:#dcfce7,stroke:#16a34a,color:#111827;
+  classDef gas fill:#fce7f3,stroke:#db2777,color:#111827;
+  classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827;
+
+  index["index.html<br/>????쨌 iframe ?대퉬寃뚯씠??]:::html
+  auth["gate-auth.js<br/>?몄쬆/?묒냽 ?쒖뼱"]:::js
+  manifest["assets/manifest.json<br/>PWA 硫뷀??곗씠??]:::external
+  consult["Consult_Main.html<br/>?곷떞 怨꾩궛湲??붾㈃"]:::html
+  consultCss["Consult_style.css"]:::css
+  consultLogic["Consult_calculator_logic.js"]:::js
+  consultUi["Consult_calculator_ui.js"]:::js
+  dsr["DSR_Main.html<br/>DSR ?붾㈃"]:::html
+  dsrCss["DSR_style.css"]:::css
+  dsrLogic["DSR_calculator_logic.js"]:::js
+  dsrUi["DSR_calculator_ui.js"]:::js
+  dti["DTI.html"]:::html
+  calc["怨꾩궛湲?html"]:::html
+  date["?좎쭨怨꾩궛湲?html"]:::html
+  market["?쒖꽭議고쉶.html"]:::html
+  public["gonsi.html<br/>怨듭떆媛 議고쉶"]:::html
+  gas["?쒖꽭議고쉶_GAS.gs<br/>Google Apps Script API"]:::gas
+  note["?곷떞?쇱?.html"]:::html
+  idcard["IDCard.html"]:::html
+  scan["臾몄꽌?ㅼ틪.html / ?ъ쭊?ㅼ틪.html"]:::html
+  mcg["MCG.html"]:::html
+  min["Consult/DSR *_logic.min.js<br/>諛고룷???뺤텞蹂?]:::js
+  package["package.json<br/>javascript-obfuscator"]:::external
+  obfuscate["obfuscate.js<br/>?쒕룆??鍮뚮뱶 ?꾧뎄"]:::js
+  data["op_gongsi_data/*.json<br/>怨듭떆媛 ?뺤쟻 ?곗씠??]:::external
+  cdn["?몃? CDN<br/>html2canvas 쨌 OpenCV 쨌 jsPDF 쨌 flatpickr"]:::external
+  index -->|loads| auth
+  index -->|loads| manifest
+  index -->|iframe?쇰줈 ?꾪솚| consult
+  index -->|iframe?쇰줈 ?꾪솚| dsr
+  index -->|iframe?쇰줈 ?꾪솚| dti
+  index -->|iframe?쇰줈 ?꾪솚| calc
+  index -->|iframe?쇰줈 ?꾪솚| date
+  index -->|iframe?쇰줈 ?꾪솚| market
+  index -->|iframe?쇰줈 ?꾪솚| public
+  index -->|iframe?쇰줈 ?꾪솚| note
+  index -->|iframe?쇰줈 ?꾪솚| idcard
+  index -->|iframe?쇰줈 ?꾪솚| scan
+  index -->|iframe?쇰줈 ?꾪솚| mcg
+  consult -->|stylesheet| consultCss
+  consult -->|script| consultLogic
+  consult -->|script| consultUi
+  consultLogic -->|湲곕뒫 蹂듭젣/諛고룷| min
+  dsr -->|stylesheet| dsrCss
+  dsr -->|script| dsrLogic
+  dsr -->|script| dsrUi
+  dsrLogic -->|湲곕뒫 蹂듭젣/諛고룷| min
+  market -->|stylesheet 怨듭쑀| consultCss
+  public -->|API ?몄텧| gas
+  public -->|fetch| data
+  note -->|fetch/POST| gas
+  mcg -->|fetch/API| gas
+  scan -->|CDN script| cdn
+  idcard -->|CDN script| cdn
+  consult -->|罹≪쿂 湲곕뒫| cdn
+  dsr -->|罹≪쿂 湲곕뒫| cdn
+  obfuscate -->|devDependency| package
+
