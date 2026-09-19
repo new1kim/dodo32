@@ -79,6 +79,11 @@ dependencies {
 tasks.register<Copy>("syncWebAssets") {
     from("D:/dodo32") {
         include(
+            // 상담 탭은 Android 프로젝트 내부 복사본이 아니라 D:\\dodo32 원본을 기준으로 매번 갱신한다.
+            "Consult_Main.html",
+            "Consult_calculator_logic.js",
+            "Consult_calculator_ui.js",
+            "Consult_style.css",
             "DSR_Main.html",
             "DSR_calculator_logic.min.js", // DSR_Main.html이 참조하는 건 난독화 버전
             "DSR_calculator_ui.js",
@@ -92,11 +97,17 @@ tasks.register<Copy>("syncWebAssets") {
             "계산기.html",
             "날짜계산기.html",
             "MCG.html",
-            "IDCard.html"
-
+            "IDCard.html",
+            "문서스캔.html"
         )
     }
     into("src/main/assets")
+}
+// D:\\dodo32 원본이 Android 프로젝트 밖에 있어 Gradle의 파일시각 캐시만으로는
+// 원본 갱신을 놓칠 수 있다. 앱 빌드 때마다 웹 자산을 다시 복사해 상담 화면이
+// 항상 현재 프로젝트 폴더의 최신 파일을 포함하도록 한다.
+tasks.named<Copy>("syncWebAssets") {
+    outputs.upToDateWhen { false }
 }
 tasks.named("preBuild") {
     dependsOn("syncWebAssets")

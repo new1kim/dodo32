@@ -50,16 +50,34 @@
                   <div class="info-tab-label">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></div>
                   <input type="text" id="customerBrokerInput" placeholder="중개업소 입력" inputmode="text" lang="ko" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                 </div>
-                <div class="customer-memo-row">
+                <div class="customer-memo-wrap" id="customerMemoWrap">
+                  <div class="customer-main-row">
                   <div class="property-loan-type-selector" id="propertyLoanTypeSelector" aria-label="구분">
-                    <button type="button" class="property-loan-type-btn" id="propertyLoanTypeToggle">구분</button>
-                    <div class="property-jeonse-guarantee-list" id="propertyJeonseGuaranteeList" hidden>
-                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="담보">담보</button>
-                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="도시보증">도보</button>
-                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="서울보증">서보</button>
+                    <button type="button" class="property-loan-type-btn active" id="propertyCategoryBtn">담보</button>
+                    <div class="property-jeonse-guarantee-list" id="propertyCategoryList" hidden>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-category="담보">담보</button>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-category="도보">도보</button>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-category="서보">서보</button>
                     </div>
                   </div>
-                  <textarea id="customerInfoMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                  <button type="button" class="housing-status-btn" id="housingStatusBtn">무주택</button>
+                  <div class="credit-score-fields" id="creditScoreFields" hidden>
+                    <label class="credit-score-field">
+                      <span class="credit-score-label">KCB</span>
+                      <input type="text" id="creditScoreKcbInput" inputmode="numeric" maxlength="3" placeholder="3자리" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    </label>
+                    <label class="credit-score-field">
+                      <span class="credit-score-label">NICE</span>
+                      <input type="text" id="creditScoreNiceInput" inputmode="numeric" maxlength="3" placeholder="3자리" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    </label>
+                    <!-- 신용점수 기준표에 따른 최대한도 라벨 (클릭 시 기준표 이미지) -->
+                    <button type="button" class="credit-score-limit" id="creditScoreLimitLabel" onclick="openImageModal('신용점수기준.png')">신용점수 미입력</button>
+                  </div>
+                    <textarea id="customerInfoMemo" class="income-memo customer-inline-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                  </div>
+                  <div class="customer-note-row">
+                    <textarea class="income-memo customer-jeonse-memo" id="customerJeonseMemo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                  </div>
                 </div>
               </div>
             </div>
@@ -84,34 +102,44 @@
               <td class="ltv-cell">
                 <div class="ltv-market-price-wrap">
                   <input type="text" inputmode="numeric" id="ltvMarketPriceInput" placeholder="시세 입력 (원)" autocomplete="off">
-                  <button type="button" id="marketPriceLookupBtn" onclick="openMarketPriceOverlay()">KB시세 조회</button>
+                  <div class="market-price-menu-wrap">
+                    <button type="button" id="marketPriceLookupBtn" onclick="toggleMarketPriceMenu()">KB시세 조회</button>
+                    <div class="market-price-menu" id="marketPriceMenu" hidden>
+                      <button type="button" onclick="openMarketPriceOverlay('kb')">KB시세</button>
+                      <button type="button" onclick="openMarketPriceOverlay('public')">공시가 조회</button>
+                    </div>
+                  </div>
                 </div>
               </td>
 
               <!-- 2번 & 4번 칸을 하나로 묶어 세로 간격 최소화 -->
               <td class="ltv-cell">
-                <div class="ltv-stack">
-                  <!-- 토글 버튼 영역 -->
-                  <div class="pill-toggle-group" id="ltvRateToggleGroup">
-                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="80">80%</label>
-                    <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="70" checked>70%</label>
-                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="60">60%</label>
-                    <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="40">40%</label>
-                  </div>
-
-                  <!-- 소액임차금액 입력 영역 -->
-                  <div class="minor-lease-input-row">
-                    <div class="minor-lease-input-wrap">
-                      <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액" autocomplete="off">
-                      <div class="minor-lease-suggest-list" id="minorLeaseSuggestList">
-                        <div class="minor-lease-suggest-item" data-value="55000000">5,500만</div>
-                        <div class="minor-lease-suggest-item" data-value="48000000">4,800만</div>
-                        <div class="minor-lease-suggest-item" data-value="28000000">2,800만</div>
-                        <div class="minor-lease-suggest-item" data-value="25000000">2,500만</div>
-                      </div>
+                  <div class="ltv-stack">
+                  <!-- 담보용 기존 LTV/소액임차 UI: 담보 분기에서는 현재 화면과 기능을 그대로 유지 -->
+                  <div class="property-sale-controls" id="propertySaleControls">
+                    <div class="pill-toggle-group" id="ltvRateToggleGroup">
+                      <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="80">80%</label>
+                      <label style="background-color: #2563eb; color: #ffffff;"><input type="radio" name="ltv_rate" value="70" checked>70%</label>
+                      <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="60">60%</label>
+                      <label style="background-color: transparent; color: #64748b;"><input type="radio" name="ltv_rate" value="40">40%</label>
                     </div>
-                    <!-- 나중에 참고 이미지를 연결할 버튼 -->
-                    <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+                    <div class="minor-lease-input-row">
+                      <div class="minor-lease-input-wrap">
+                        <input type="text" inputmode="numeric" id="ltvMinorLeaseInput" placeholder="소액임차금액" autocomplete="off">
+                        <div class="minor-lease-suggest-list" id="minorLeaseSuggestList">
+                          <div class="minor-lease-suggest-item" data-value="55000000">5,500만</div>
+                          <div class="minor-lease-suggest-item" data-value="48000000">4,800만</div>
+                          <div class="minor-lease-suggest-item" data-value="28000000">2,800만</div>
+                          <div class="minor-lease-suggest-item" data-value="25000000">2,500만</div>
+                        </div>
+                      </div>
+                      <button type="button" id="minorLeaseReferenceButton" class="minor-lease-reference-btn" onclick="openImageModal('소액임차보증금.png')">참고</button>
+                    </div>
+                  </div>
+                  <!-- 전세용 입력 UI: 기존 계산 입력칸과 같은 위치에서만 교체 표시 -->
+                  <div class="property-jeonse-controls" id="propertyJeonseControls" hidden>
+                    <input type="text" id="jeonseDepositInput" class="property-branch-input" inputmode="numeric" placeholder="보증금 입력" autocomplete="off">
+                    <input type="text" id="jeonseSeniorAmountInput" class="property-branch-input" inputmode="numeric" placeholder="선순위금액" autocomplete="off">
                   </div>
                 </div>
               </td>
@@ -137,15 +165,6 @@
                 <div class="property-extra-fields">
                   <!-- 달력으로만 선택하는 날짜: readonly로 모바일 키패드가 뜨지 않게 한다. -->
                   <input type="text" id="propertySettlementDate" class="mort-need-date" placeholder="잔금일자" readonly inputmode="none" autocomplete="off">
-                  <div class="property-loan-type-selector" id="propertyLoanTypeSelector" aria-label="대출종류">
-                    <span class="property-loan-type-label">대출종류</span>
-                    <button type="button" class="property-loan-type-btn active" data-loan-type="담보">담보</button>
-                    <button type="button" class="property-loan-type-btn" data-loan-type="전세">전세</button>
-                    <div class="property-jeonse-guarantee-list" id="propertyJeonseGuaranteeList" hidden>
-                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="도시보증">도시보증</button>
-                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="서울보증">서울보증</button>
-                    </div>
-                  </div>
                   <textarea id="propertyInfoMemo" class="income-memo property-info-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
                 </div>
               </td>
@@ -166,7 +185,7 @@
           <td class="no-bg" style="padding: 0;">
             <div class="info-tab">
               <button type="button" class="info-tab-header" id="incomeInfoTabBtn" aria-expanded="true">
-                <span>💰 소득정보<span id="incomeInfoSummary" class="info-tab-summary"></span></span>
+                <span>💰 소득정보<span id="incomeInfoSummary" class="info-tab-summary"></span><span id="incomeInfoHousingWarning" class="income-housing-warning" hidden>DSR 부부합산 불가</span></span>
                 <span class="info-tab-caret">▾</span>
               </button>
               <div class="info-tab-body info-tab-body-table open" id="incomeInfoTabBody">
@@ -559,6 +578,25 @@
               <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
               <button type="button" class="btn-primary" onclick="saveDefaultFirstRowData()">기본값 저장</button>
             </div>
+            <div class="consult-rate-cache-section">
+              <div class="consult-rate-cache-title">신한은행 금리</div>
+              <div id="consultRateCacheUpdatedAt" class="consult-rate-cache-updated">아직 조회되지 않았습니다.</div>
+              <button type="button" id="consultRateRefreshBtn" class="consult-rate-refresh-btn">금리확인</button>
+              <div class="consult-rate-table-block">
+                <div class="consult-rate-table-heading">담보 기준금리</div>
+                <table class="consult-rate-cache-table consult-rate-sale-table">
+                  <thead><tr><th>구분</th><th>6M</th><th>5Y</th></tr></thead>
+                  <tbody id="consultRateSaleTableBody"><tr><td colspan="3">조회값 없음</td></tr></tbody>
+                </table>
+              </div>
+              <div class="consult-rate-table-block consult-rate-jeonse-block">
+                <div class="consult-rate-table-heading">전세 상품별 기준금리</div>
+                <table class="consult-rate-cache-table consult-rate-jeonse-table">
+                  <thead><tr><th>상품</th><th>6M</th><th>2Y</th></tr></thead>
+                  <tbody id="consultRateJeonseTableBody"><tr><td colspan="3">조회값 없음</td></tr></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div class="info-section">
@@ -886,12 +924,27 @@
     });
 
     var incomeInfoSummary = document.getElementById('incomeInfoSummary');
+    var incomeInfoHousingWarning = document.getElementById('incomeInfoHousingWarning');
+    function updateIncomeInfoHousingWarning() {
+      var housing = window.localStorage.getItem('CONSULT_housingStatus') || '무주택';
+      var loanType = window.localStorage.getItem('CONSULT_DSR_propertyLoanType') || '';
+      var guarantee = window.localStorage.getItem('CONSULT_DSR_propertyJeonseGuarantee') || '';
+      // DSR 부부합산 불가는 전세 중 도시보증/서울보증 + 1주택일 때만 표시한다.
+      // 담보 분기 또는 무주택 전환 시에는 숨긴다.
+      var isCoveredJeonse = loanType === '전세' && (guarantee === '도시보증' || guarantee === '서울보증');
+      if (incomeInfoHousingWarning) {
+        incomeInfoHousingWarning.hidden = !(isCoveredJeonse && housing === '1주택');
+      }
+    }
     function updateIncomeInfoSummary() {
       var totalIncomeOutput = document.getElementById('totalIncomeOutput');
       var total = totalIncomeOutput ? totalIncomeOutput.value.trim() : '';
       incomeInfoSummary.textContent = total ? ' - 합산 ' + total + '원' : '';
     }
     window.addEventListener('DOMContentLoaded', updateIncomeInfoSummary);
+    window.addEventListener('DOMContentLoaded', updateIncomeInfoHousingWarning);
+    window.addEventListener('housingStatusChanged', updateIncomeInfoHousingWarning);
+    window.addEventListener('consultLoanTypeChanged', updateIncomeInfoHousingWarning);
   </script>
 
   <!-- 물건지정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 입력된 시세값을 같이 보여준다. -->
@@ -955,6 +1008,8 @@
     var loanInfoSummary = document.getElementById('loanInfoSummary');
     var loanInfoTabHeader = document.getElementById('loanInfoTabBtn');
     function updateLoanInfoSummary() {
+      var housingStatus = window.localStorage.getItem('CONSULT_housingStatus') || '무주택';
+      var isJeonse = window.localStorage.getItem('CONSULT_DSR_propertyLoanType') === '전세';
       var dsrVal = (document.getElementById('DSR확인') || {}).textContent || '';
       var dtiVal = (document.getElementById('DIT확인') || {}).textContent || '';
       var newDtiVal = (document.getElementById('신DTI확인') || {}).textContent || '';
@@ -962,21 +1017,29 @@
       dtiVal = dtiVal.trim();
       newDtiVal = newDtiVal.trim();
 
+      var guarantee = window.localStorage.getItem('CONSULT_DSR_propertyJeonseGuarantee') || '';
+      var isCoveredJeonse = isJeonse && (guarantee === '도시보증' || guarantee === '서울보증');
       var parts = [];
       var isDanger = false;
-      if (dsrVal && dsrVal !== '-') {
-        parts.push({ text: 'DSR ' + dsrVal, type: parseFloat(dsrVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
-        if (parseFloat(dsrVal) >= 40) isDanger = true;
+      // 담보 분기에서는 항상 DSR/DTI를 표시한다.
+      // 전세는 도시보증·서울보증 + 1주택인 경우에만 DSR을 표시한다.
+      var shouldShowDsr = !isJeonse || (isCoveredJeonse && housingStatus === '1주택');
+      function addRatio(label, value) {
+        if (!value || value === '-') return;
+        var ratio = parseFloat(value);
+        var type = Number.isFinite(ratio) && ratio < 40 ? 'safe-ratio' : 'danger-ratio';
+        parts.push({ text: `${label} ${value}`, type: type });
+        if (Number.isFinite(ratio) && ratio >= 40) isDanger = true;
       }
-      if (dtiVal && dtiVal !== '-') {
-        parts.push({ text: 'DTI ' + dtiVal, type: parseFloat(dtiVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
-        if (parseFloat(dtiVal) >= 40) isDanger = true;
-      }
-      var hasMortgageHeldLoan = !!document.querySelector('#mortgage-inputs .mort-category-toggle.active');
-      if (hasMortgageHeldLoan && newDtiVal && newDtiVal !== '-') {
-        parts.push({ text: '신DTI ' + newDtiVal, type: parseFloat(newDtiVal) < 40 ? 'safe-ratio' : 'danger-ratio' });
-        if (parseFloat(newDtiVal) >= 40) isDanger = true;
-      }
+      if (shouldShowDsr) addRatio('DSR', dsrVal);
+      addRatio('DTI', dtiVal);
+
+      // 대출행의 구분 버튼이 주담대인 경우에만 신DTI를 표시한다.
+      // active 클래스가 갱신되지 않는 경로도 있어 checked 상태를 함께 확인한다.
+      var hasMortgageHeldLoan = !!document.querySelector(
+        '#mortgage-inputs .mort-category-toggle.active, #mortgage-inputs .mort-loan-category option:checked[value="주담대"]'
+      );
+      if (hasMortgageHeldLoan) addRatio('신DTI', newDtiVal);
       loanInfoSummary.textContent = '';
       parts.forEach(function (part, index) {
         if (index > 0) loanInfoSummary.appendChild(document.createTextNode(' / '));
@@ -988,6 +1051,16 @@
       loanInfoTabHeader.classList.toggle('info-tab-header-danger', isDanger);
     }
     window.addEventListener('DOMContentLoaded', updateLoanInfoSummary);
+    window.addEventListener('housingStatusChanged', updateLoanInfoSummary);
+    window.addEventListener('consultLoanTypeChanged', updateLoanInfoSummary);
+
+    // 자동계산()이 결과 텍스트를 직접 바꾼 뒤에도 요약줄을 확실히 갱신한다.
+    // 기존에는 이벤트 시점과 계산 완료 시점이 어긋나 DTI만 남는 경우가 있었다.
+    var loanInfoSummaryObserver = new MutationObserver(updateLoanInfoSummary);
+    ['DSR확인', 'DIT확인', '신DTI확인'].forEach(function (id) {
+      var resultEl = document.getElementById(id);
+      if (resultEl) loanInfoSummaryObserver.observe(resultEl, { childList: true, characterData: true, subtree: true });
+    });
   </script>
 
   <!-- DSR정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 DSR 값을 같이 보여준다. -->
@@ -1037,6 +1110,34 @@
 
   <!-- KB 시세 조회 오버레이 열기/닫기 + 결과 적용 -->
   <script>
+    function getConsultLoanTypeForMarketPrice() {
+      // 상담 전용 저장소와 기존 키를 모두 확인해 WebView/복원 순서 차이를 흡수한다.
+      return String(window.localStorage.getItem('CONSULT_DSR_propertyLoanType') || window.localStorage.getItem('DSR_propertyLoanType') || '').trim();
+    }
+
+    function refreshMarketPriceBranch() {
+      var isJeonse = getConsultLoanTypeForMarketPrice() === '전세';
+      var button = document.getElementById('marketPriceLookupBtn');
+      var menu = document.getElementById('marketPriceMenu');
+      if (button) button.textContent = isJeonse ? '시세조회' : 'KB시세 조회';
+      if (menu && !isJeonse) menu.hidden = true;
+    }
+
+    function toggleMarketPriceMenu() {
+      var isJeonse = getConsultLoanTypeForMarketPrice() === '전세';
+      var menu = document.getElementById('marketPriceMenu');
+      if (!isJeonse) { openMarketPriceOverlay('kb'); return; }
+      if (menu) {
+        menu.hidden = !menu.hidden;
+        menu.style.display = menu.hidden ? 'none' : 'flex';
+        if (!menu.hidden) {
+          var rect = document.getElementById('marketPriceLookupBtn').getBoundingClientRect();
+          menu.style.left = Math.max(4, rect.left) + 'px';
+          menu.style.top = (rect.bottom + 4) + 'px';
+        }
+      }
+    }
+
     document.addEventListener('click', function (event) {
       var menu = document.getElementById('marketPriceMenu');
       var lookupButton = document.getElementById('marketPriceLookupBtn');
@@ -1046,10 +1147,15 @@
       menu.style.display = 'none';
     });
 
-    function openMarketPriceOverlay() {
+    function openMarketPriceOverlay(mode) {
       var overlay = document.getElementById('marketPriceOverlay');
       var frame = document.getElementById('marketPriceFrame');
-      frame.src = '시세조회.html';
+      var menu = document.getElementById('marketPriceMenu');
+      if (menu) {
+        menu.hidden = true;
+        menu.style.display = 'none';
+      }
+      frame.src = mode === 'public' ? 'gonsi.html?mode=public' : '시세조회.html?mode=kb';
       overlay.style.display = 'block';
     }
 
@@ -1059,6 +1165,10 @@
       overlay.style.display = 'none';
       frame.src = 'about:blank';
     }
+
+    window.addEventListener('DOMContentLoaded', refreshMarketPriceBranch);
+    window.addEventListener('storage', refreshMarketPriceBranch);
+    window.addEventListener('consultLoanTypeChanged', refreshMarketPriceBranch);
 
     window.addEventListener('message', function (e) {
       if (!e.data || !e.data.type) return;
@@ -1209,7 +1319,7 @@
                     item.dataset.phone = number;
                     item.dataset.name = displayName;
                     item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:14px;';
-                    item.textContent = icon + ' + (displayName ? displayName + ' (' + number + ')' : number);
+                    item.textContent = `${icon} ${displayName ? `${displayName} (${number})` : number}`;
                     return item.outerHTML;
                   }).join('');
                   dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
