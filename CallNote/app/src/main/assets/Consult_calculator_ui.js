@@ -3969,6 +3969,13 @@ function initPropertyExtraFields() {
   const calcCreditLimit = (category) => {
     const kcb = parseInt(consultLocalStorage.getItem('DSR_creditScoreKCB') || creditScoreKcb?.value || '', 10);
     const nice = parseInt(consultLocalStorage.getItem('DSR_creditScoreNICE') || creditScoreNice?.value || '', 10);
+
+    // 도시보증은 KCB 또는 NICE 중 하나만 기준을 충족해도 4.5억을 적용한다.
+    // 두 점수를 모두 입력해야 하는 기존 AND 조건을 도시보증에 한해 OR 조건으로 바꾼다.
+    if (category === '도보' && ((Number.isFinite(kcb) && kcb >= 805) || (Number.isFinite(nice) && nice >= 820))) {
+      return '최대 4.5억';
+    }
+
     if (!Number.isFinite(kcb) || !Number.isFinite(nice)) return '신용점수 미입력';
     // 주신보는 신용점수 기준을 따르지 않는다.
     const table = CREDIT_SCORE_TABLE[category];
