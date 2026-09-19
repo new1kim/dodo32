@@ -3948,53 +3948,55 @@ function initPropertyExtraFields() {
   const creditScoreKcb = document.getElementById('creditScoreKcbInput');
   const creditScoreNice = document.getElementById('creditScoreNiceInput');
   const creditScoreLimitLabel = document.getElementById('creditScoreLimitLabel');
-  // 신용점수기준.png 의 한도표. 각 행은 KCB/NICE 구간을 둘 다 만족해야 해당 한도가 적용된다.
-  // (위에서부터 먼저 맞는 구간 = 가장 큰 한도)
-  const CREDIT_SCORE_TABLE = {
+  // 신용점수기준.png의 판정 규칙.
+  // 도시보증(도보): 모든 행이 "둘중하나"이므로 KCB 또는 NICE 중 하나만 해당하면 적용한다.
+  // 서울보증(서보): 5억·4억은 "둘다만족", 3억·2억은 "둘중하나"이다.
+  // 서울보증의 기준은 5억·3억이 805/820, 4억이 710/775, 2억이 655/740이다.
+  const CREDIT_SCORE_RULES = {
     '도보': [
-      { kcb: 805, nice: 820, limit: '4.5억' },
-      { kcb: 655, nice: 740, limit: '1.5억' },
-      { kcb: 550, nice: 545, limit: '7천' },
-      { kcb: 0, nice: 0, limit: '취급불가' }
+      { limit: '4.5억', matches: (kcb, nice) => kcb >= 805 || nice >= 820 },
+      { limit: '1.5억', matches: (kcb, nice) => (kcb >= 655 && kcb <= 804) || (nice >= 740 && nice <= 819) },
+      { limit: '7천', matches: (kcb, nice) => (kcb >= 550 && kcb <= 654) || (nice >= 545 && nice <= 739) }
     ],
     '서보': [
-      { kcb: 805, nice: 820, limit: '5억' },
-      { kcb: 710, nice: 775, limit: '4억' },
-      { kcb: 805, nice: 820, limit: '3억' },
-      { kcb: 655, nice: 740, limit: '2억' },
-      { kcb: 0, nice: 0, limit: '취급불가' }
+      { limit: '5억', matches: (kcb, nice) => kcb >= 805 && nice >= 820 },
+      { limit: '4억', matches: (kcb, nice) => kcb >= 710 && nice >= 775 },
+      { limit: '3억', matches: (kcb, nice) => kcb >= 805 || nice >= 820 },
+      { limit: '2억', matches: (kcb, nice) => kcb >= 655 || nice >= 740 }
     ]
   };
   // 입력된 KCB/NICE 점수로 최대 한도 문자열을 돌려준다.
   const calcCreditLimit = (category) => {
-    const kcb = parseInt(consultLocalStorage.getItem('DSR_creditScoreKCB') || creditScoreKcb?.value || '', 10);
-    const nice = parseInt(consultLocalStorage.getItem('DSR_creditScoreNICE') || creditScoreNice?.value || '', 10);
+    const rawKcb = consultLocalStorage.getItem('DSR_creditScoreKCB') || creditScoreKcb?.value || '';
+    const rawNice = consultLocalStorage.getItem('DSR_creditScoreNICE') || creditScoreNice?.value || '';
+    const kcb = parseInt(rawKcb, 10);
+    const nice = parseInt(rawNice, 10);
+    const hasKcb = Number.isFinite(kcb);
+    const hasNice = Number.isFinite(nice);
 
-    // 도시보증은 KCB 또는 NICE 중 하나만 기준을 충족해도 4.5억을 적용한다.
-    // 두 점수를 모두 입력해야 하는 기존 AND 조건을 도시보증에 한해 OR 조건으로 바꾼다.
-    if (category === '도보' && ((Number.isFinite(kcb) && kcb >= 805) || (Number.isFinite(nice) && nice >= 820))) {
-      return '최대 4.5억';
-    }
-
-    if (!Number.isFinite(kcb) || !Number.isFinite(nice)) return '신용점수 미입력';
     // 주신보는 신용점수 기준을 따르지 않는다.
-    const table = CREDIT_SCORE_TABLE[category];
-    if (!table) return '';
-    for (const row of table) {
-      if (kcb >= row.kcb && nice >= row.nice) {
-        if (row.limit === '취급불가') return row.limit;
+    const rules = CREDIT_SCORE_RULES[category];
+    if (!rules) return '';
+    if (!hasKcb && !hasNice) return '신용점수 미입력';
+
+    // 입력된 점수만으로 판정한다. OR 행은 한 점수만 있어도 적용되고,
+    // AND 행은 KCB와 NICE를 모두 입력해 모두 만족해야 적용된다.
+    const safeKcb = hasKcb ? kcb : -Infinity;
+    const safeNice = hasNice ? nice : -Infinity;
+    for (const rule of rules) {
+      if (rule.matches(safeKcb, safeNice)) {
         // 1주택자는 계산된 한도가 2억을 초과할 때만 2억으로 제한한다.
-        if (housingStatus === '1주택' && category !== '담보') {
-          const limitManwon = row.limit === '4.5억' ? 45000
-            : row.limit === '5억' ? 50000
-            : row.limit === '4억' ? 40000
-            : row.limit === '3억' ? 30000
-            : row.limit === '2억' ? 20000
-            : row.limit === '1.5억' ? 15000
-            : row.limit === '7천' ? 7000 : 0;
+        if (housingStatus === '1주택') {
+          const limitManwon = rule.limit === '4.5억' ? 45000
+            : rule.limit === '5억' ? 50000
+            : rule.limit === '4억' ? 40000
+            : rule.limit === '3억' ? 30000
+            : rule.limit === '2억' ? 20000
+            : rule.limit === '1.5억' ? 15000
+            : rule.limit === '7천' ? 7000 : 0;
           if (limitManwon > 20000) return '최대 2억';
         }
-        return `최대 ${row.limit}`;
+        return `최대 ${rule.limit}`;
       }
     }
     return '취급불가';
