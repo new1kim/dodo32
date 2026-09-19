@@ -695,7 +695,7 @@ function adjustDsrToggleFontSize() {
 
 function getDefaultProfileValues(profile, savedData) {
   if (!savedData) return { rate: '', stRate: '', term: '' };
-  if (profile === '5Y') {
+  if (profile === '5Y' || profile === '2Y') {
     return {
       rate: savedData.fiveYearRate || savedData.rate || '',
       stRate: savedData.fiveYearStRate || savedData.stRate || '',
@@ -725,17 +725,19 @@ function applyDefaultProfileToRow(row, profile) {
 
   const profileSelect = row.querySelector('.mort-default-switch');
   if (profileSelect) {
-    profileSelect.dataset.profile = profile;
-    profileSelect.classList.toggle('active', profile === '5Y');
+    const isJeonseProfile = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
+    const secondProfile = isJeonseProfile ? '2Y' : '5Y';
+    profileSelect.dataset.profile = profile === '5Y' && isJeonseProfile ? '2Y' : profile;
+    profileSelect.classList.toggle('active', profileSelect.dataset.profile === secondProfile);
     profileSelect.querySelectorAll('.switch-label').forEach(label => {
       const labelValue = label.textContent.trim();
-      const isActive = profile === '5Y' ? labelValue === '5Y' : labelValue === '6M';
+      const isActive = (profile === '5Y' || profile === '2Y') ? labelValue === (profile === '2Y' ? '2Y' : '5Y') : labelValue === '6M';
       label.classList.toggle('active', isActive);
     });
   }
 
   if (rateInput || stRateInput || termInput) {
-    showBubble(profile === '5Y' ? '5Y 기본값 적용' : '6M 기본값 적용');
+    showBubble(profile === '2Y' ? '2Y 기본값 적용' : profile === '5Y' ? '5Y 기본값 적용' : '6M 기본값 적용');
     if (typeof 자동계산 === 'function') 자동계산();
   }
 }
@@ -782,9 +784,16 @@ function bindMortgageRowEvents(row) {
   const profileSelect = row.querySelector('.mort-default-switch');
   if (profileSelect) {
     profileSelect.addEventListener('click', () => {
-      const nextProfile = profileSelect.dataset.profile === '6M' ? '5Y' : '6M';
+      const isJeonse = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
+      const secondProfile = isJeonse ? '2Y' : '5Y';
+      const currentProfile = profileSelect.dataset.profile === '5Y' && isJeonse ? '2Y' : (profileSelect.dataset.profile || '6M');
+      const nextProfile = currentProfile === '6M' ? secondProfile : '6M';
       profileSelect.dataset.profile = nextProfile;
-      profileSelect.classList.toggle('active', nextProfile === '5Y');
+      profileSelect.querySelectorAll('.switch-label').forEach((label, index) => {
+        label.textContent = index === 0 ? '6M' : secondProfile;
+        label.classList.toggle('active', index === 0 ? nextProfile === '6M' : nextProfile === secondProfile);
+      });
+      profileSelect.classList.toggle('active', nextProfile === secondProfile);
       applyDefaultProfileToRow(row, nextProfile);
       if (typeof saveDSRInputs === 'function') saveDSRInputs();
     });
@@ -1734,6 +1743,7 @@ function applyIncomeRowMode(index) {
     refreshRadioToggleStyles(`#declareTypeToggle_${index}`);
   }
   const isDeclare = st.mode === '신고';
+  const isJeonseBranch = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
   if (els.incomeInput) els.incomeInput.style.display = isDeclare ? 'none' : '';
   if (els.declareInputGroup) els.declareInputGroup.style.display = isDeclare ? 'flex' : 'none';
   if (els.declareAmountInput) {
@@ -1742,10 +1752,19 @@ function applyIncomeRowMode(index) {
     const amt = st.memoDeclareAmounts[st.declareType] || 0;
     els.declareAmountInput.value = amt > 0 ? amt.toLocaleString() : '';
   }
-  // 장래예상(체크박스+나이+요율) 한 줄은 추정 모드에서는 숨기고, 증빙 모드에서는 체크박스만
-  // 항상 보이다가 체크했을 때만 나이/요율이 옆에 나타난다.
-  if (els.futureIncomeRow) els.futureIncomeRow.style.display = isDeclare ? 'none' : '';
-  const showAgeAndRate = !isDeclare && els.applyRateCheck && els.applyRateCheck.checked;
+  // 전세 분기에서는 소득2 이상 행의 장래예상을 비활성화하고 숨긴다.
+  // 담보 분기에서는 기존처럼 장래예상 버튼을 사용할 수 있다.
+  if (els.applyRateCheck) {
+    els.applyRateCheck.disabled = isJeonseBranch;
+    if (isJeonseBranch) els.applyRateCheck.checked = false;
+  }
+  const extraRateButton = document.getElementById(`applyRateBtn_${index}`);
+  if (extraRateButton) {
+    extraRateButton.disabled = isJeonseBranch;
+    extraRateButton.classList.toggle('active', !isJeonseBranch && els.applyRateCheck?.checked);
+  }
+  if (els.futureIncomeRow) els.futureIncomeRow.style.display = (isDeclare || isJeonseBranch) ? 'none' : '';
+  const showAgeAndRate = !isDeclare && !isJeonseBranch && els.applyRateCheck && els.applyRateCheck.checked;
   if (els.ageInput) els.ageInput.style.display = showAgeAndRate ? '' : 'none';
   if (els.rateDisplay) els.rateDisplay.style.display = showAgeAndRate ? '' : 'none';
   if (els.declareConvertedOutput) els.declareConvertedOutput.style.display = isDeclare ? '' : 'none';
@@ -1863,13 +1882,24 @@ function isOtherIncomeBlocked() {
 
 function applyOtherRowsBlock() {
   const blocked = isOtherIncomeBlocked();
+  const isJeonseBranch = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
   extraIncomeRowIndexes().forEach(idx => {
     const els = getRowEls(idx);
-    [els.incomeInput, els.declareAmountInput, els.ageInput, els.applyRateCheck, ...els.modeRadios].forEach(el => {
+    [els.incomeInput, els.declareAmountInput, els.ageInput, ...els.modeRadios].forEach(el => {
       if (el) el.disabled = blocked;
     });
+    if (els.applyRateCheck) {
+      els.applyRateCheck.disabled = blocked || isJeonseBranch;
+      if (isJeonseBranch) els.applyRateCheck.checked = false;
+    }
+    const rateButton = document.getElementById(`applyRateBtn_${idx}`);
+    if (rateButton) {
+      rateButton.disabled = blocked || isJeonseBranch;
+      rateButton.classList.toggle('active', !blocked && !isJeonseBranch && els.applyRateCheck?.checked);
+    }
     if (els.row) els.row.classList.toggle('income-row-blocked', blocked);
-    updateRowIncomeCalc(idx); // blocked 여부에 맞춰 합산 포함/제외를 다시 반영
+    // 구분 전환 시 숨김/표시 상태도 즉시 갱신해 담보에서는 기존 버튼을 복원한다.
+    applyIncomeRowMode(idx);
   });
   if (blocked && !otherRowsWereBlocked) {
     showBubble('건보/연금 소득은 다른 소득에 합산이 불가합니다');
@@ -2896,6 +2926,13 @@ function saveDSRInputs() {
   // 복원(불러오기) 중에는 자동저장 금지 - 복원 이벤트로 인해 이전 화면 상태가
   // 저장 키를 덮어써 불러온 스냅샷이 파괴되는 것을 방지한다.
   if (__dsrRestoring) return;
+  // 구분값은 일반 입력 selector에 포함되지 않으므로 저장 시 명시적으로 보장한다.
+  const category = document.getElementById('propertyCategoryBtn')?.textContent?.trim();
+  const currentLoanType = consultLocalStorage.getItem('DSR_propertyLoanType')
+    || (category === '담보' ? '담보' : '전세');
+  const currentGuarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+  consultLocalStorage.setItem('DSR_propertyLoanType', currentLoanType);
+  consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', currentGuarantee);
   consultLocalStorage.setItem('DSR_selectedAptInfo', selectedAptInfo ? JSON.stringify(selectedAptInfo) : '');
   document.querySelectorAll(TEXT_NUMBER_INPUT_SELECTOR).forEach(input => {
     if (input.id) consultLocalStorage.setItem(`DSR_${input.id}`, input.value);
@@ -3055,6 +3092,10 @@ function loadDSRInputs() {
   if (typeof updatePropertyInfoSummary === 'function') updatePropertyInfoSummary();
   if (typeof updateLoanInfoSummary === 'function') updateLoanInfoSummary();
   if (typeof updateDsrInfoSummary === 'function') updateDsrInfoSummary();
+
+  // 복원된 DSR_propertyLoanType/보증값을 기준으로 구분 UI와 전세 분기를 다시 적용한다.
+  window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
+  window.dispatchEvent(new CustomEvent('housingStatusChanged'));
 }
 
 function loadMortgageRows() {
@@ -3851,7 +3892,215 @@ function initLtvAmountTransfer() {
 function initPropertyExtraFields() {
   const settlementInput = document.getElementById('propertySettlementDate');
   const propertyMemo = document.getElementById('propertyInfoMemo');
+  const categoryList = document.getElementById('propertyCategoryList');
   if (!settlementInput) return;
+
+  // 메모 앞 "구분" 선택값은 다음 물건지정보 연동을 위해 별도 저장한다.
+  // 버튼 표시명 <-> 저장값(기존 분기 유지) 매핑: 담보 / 전세+주신보=주신보, 도시보증=도보, 서울보증=서보
+  const savedLoanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+  const savedGuarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+  const categoryBtn = document.getElementById('propertyCategoryBtn');
+  const categoryButtons = categoryList?.querySelectorAll('[data-category]') || [];
+  const housingStatusBtn = document.getElementById('housingStatusBtn');
+  let housingStatus = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
+  const refreshHousingStatus = (isJeonse) => {
+    if (!housingStatusBtn) return;
+
+    // 전세에서 선택한 1주택 상태는 저장해 두되, 매매 분기에서는 적용하지 않는다.
+    // 따라서 매매로 전환하면 버튼을 숨기고 화면상 상태도 무주택으로 비활성화한다.
+    // 다시 전세로 돌아오면 저장된 housingStatus(1주택/무주택)를 복원한다.
+    housingStatusBtn.hidden = !isJeonse;
+    housingStatusBtn.textContent = isJeonse ? housingStatus : '무주택';
+    if (housingStatusBtn.parentElement) {
+      housingStatusBtn.parentElement.classList.toggle(
+        'is-housing-status-active',
+        isJeonse && housingStatus === '1주택'
+      );
+    }
+  };
+  if (housingStatusBtn) {
+    refreshHousingStatus(true);
+    housingStatusBtn.addEventListener('click', () => {
+      // 매매 분기에서는 버튼이 숨겨져 있으므로 저장 상태를 변경하지 않는다.
+      if (housingStatusBtn.hidden) return;
+
+      housingStatus = housingStatus === '무주택' ? '1주택' : '무주택';
+      refreshHousingStatus(true);
+      consultLocalStorage.setItem('CONSULT_housingStatus', housingStatus);
+      window.dispatchEvent(new CustomEvent('housingStatusChanged'));
+      refreshCreditLimit();
+      saveDSRInputs();
+    });
+  }
+  const categoryToStorage = { '담보': ['담보', ''], '주신보': ['전세', '주신보'], '도보': ['전세', '도시보증'], '서보': ['전세', '서울보증'] };
+  const currentCategory = () => {
+    const loanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+    const guarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+    if (loanType === '전세') {
+      if (guarantee === '도시보증') return '도보';
+      if (guarantee === '서울보증') return '서보';
+      return '주신보';
+    }
+    return '담보';
+  };
+  // KCB / NICE 신용점수 입력칸: 전세 상품(주신보/도보/서보)일 때만 보인다.
+  const creditScoreFields = document.getElementById('creditScoreFields');
+  const creditScoreKcb = document.getElementById('creditScoreKcbInput');
+  const creditScoreNice = document.getElementById('creditScoreNiceInput');
+  const creditScoreLimitLabel = document.getElementById('creditScoreLimitLabel');
+  // 신용점수기준.png 의 한도표. 각 행은 KCB/NICE 구간을 둘 다 만족해야 해당 한도가 적용된다.
+  // (위에서부터 먼저 맞는 구간 = 가장 큰 한도)
+  const CREDIT_SCORE_TABLE = {
+    '도보': [
+      { kcb: 805, nice: 820, limit: '4.5억' },
+      { kcb: 655, nice: 740, limit: '1.5억' },
+      { kcb: 550, nice: 545, limit: '7천' },
+      { kcb: 0, nice: 0, limit: '취급불가' }
+    ],
+    '서보': [
+      { kcb: 805, nice: 820, limit: '5억' },
+      { kcb: 710, nice: 775, limit: '4억' },
+      { kcb: 805, nice: 820, limit: '3억' },
+      { kcb: 655, nice: 740, limit: '2억' },
+      { kcb: 0, nice: 0, limit: '취급불가' }
+    ]
+  };
+  // 입력된 KCB/NICE 점수로 최대 한도 문자열을 돌려준다.
+  const calcCreditLimit = (category) => {
+    const kcb = parseInt(consultLocalStorage.getItem('DSR_creditScoreKCB') || creditScoreKcb?.value || '', 10);
+    const nice = parseInt(consultLocalStorage.getItem('DSR_creditScoreNICE') || creditScoreNice?.value || '', 10);
+    if (!Number.isFinite(kcb) || !Number.isFinite(nice)) return '신용점수 미입력';
+    // 주신보는 신용점수 기준을 따르지 않는다.
+    const table = CREDIT_SCORE_TABLE[category];
+    if (!table) return '';
+    for (const row of table) {
+      if (kcb >= row.kcb && nice >= row.nice) {
+        if (row.limit === '취급불가') return row.limit;
+        // 1주택자는 계산된 한도가 2억을 초과할 때만 2억으로 제한한다.
+        if (housingStatus === '1주택' && category !== '담보') {
+          const limitManwon = row.limit === '4.5억' ? 45000
+            : row.limit === '5억' ? 50000
+            : row.limit === '4억' ? 40000
+            : row.limit === '3억' ? 30000
+            : row.limit === '2억' ? 20000
+            : row.limit === '1.5억' ? 15000
+            : row.limit === '7천' ? 7000 : 0;
+          if (limitManwon > 20000) return '최대 2억';
+        }
+        return `최대 ${row.limit}`;
+      }
+    }
+    return '취급불가';
+  };
+  const refreshCreditLimit = () => {
+    if (!creditScoreLimitLabel) return;
+    creditScoreLimitLabel.textContent = calcCreditLimit(currentCategory());
+  };
+  const memoWrap = document.getElementById('customerMemoWrap');
+  const customerJeonseMemo = document.getElementById('customerJeonseMemo');
+  const customerInlineMemo = document.getElementById('customerInfoMemo');
+  const propertySaleControls = document.getElementById('propertySaleControls');
+  const propertyJeonseControls = document.getElementById('propertyJeonseControls');
+  const maxAmountTab = document.querySelector('[data-table-key="dsr-limit"]');
+  const jeonseDepositInput = document.getElementById('jeonseDepositInput');
+  const jeonseSeniorAmountInput = document.getElementById('jeonseSeniorAmountInput');
+  const ltvMaxAmountOutput = document.getElementById('ltvMaxAmountOutput');
+  const refreshPropertyBranch = (category) => {
+    const isJeonse = category === '주신보' || category === '도보' || category === '서보';
+    if (propertySaleControls) propertySaleControls.hidden = isJeonse;
+    // 전세 계산식은 테스트 단계이므로 운영 물건지정보탭에서는
+    // 보증금·선순위 입력과 계산 결과를 숨긴다.
+    if (propertyJeonseControls) propertyJeonseControls.hidden = true;
+    if (jeonseDepositInput) jeonseDepositInput.hidden = isJeonse;
+    if (jeonseSeniorAmountInput) jeonseSeniorAmountInput.hidden = isJeonse;
+    if (ltvMaxAmountOutput) ltvMaxAmountOutput.hidden = isJeonse;
+  };
+  const refreshLoanType = () => {
+    const category = currentCategory();
+    const isJeonse = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
+    const futureIncomeRow = document.getElementById('baseFutureIncomeRow');
+    if (futureIncomeRow) futureIncomeRow.hidden = isJeonse;
+    if (categoryBtn) categoryBtn.textContent = category;
+    categoryButtons.forEach(button => {
+      button.classList.toggle('active', button.dataset.category === category);
+      // 전세 분기에서는 주신보 선택 버튼을 숨긴다.
+      button.hidden = isJeonse && button.dataset.category === '주신보';
+    });
+    // 담보일 땐 숨김, 전세 상품일 땐 표시
+    const isMaeme = consultLocalStorage.getItem('DSR_propertyLoanType') !== '전세';
+    if (creditScoreFields) creditScoreFields.hidden = isMaeme;
+    if (maxAmountTab) maxAmountTab.hidden = isJeonse;
+    refreshHousingStatus(!isMaeme);
+    // 전세 상품일 때는 랩퍼에 클래스를 주어 메모가 다음 줄로 내려가게 한다.
+    // (CSS :has() 의존 없이 모든 WebView에서 동일하게 동작하도록 JS로 토글한다)
+    if (memoWrap) memoWrap.classList.toggle('is-jeonse-category', !isMaeme);
+    if (customerJeonseMemo && customerInlineMemo) {
+      if (!isMaeme && customerInlineMemo.value && !customerJeonseMemo.value) customerJeonseMemo.value = customerInlineMemo.value;
+      if (isMaeme && customerJeonseMemo.value && !customerInlineMemo.value) customerInlineMemo.value = customerJeonseMemo.value;
+      if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(isMaeme ? customerInlineMemo : customerJeonseMemo);
+    }
+    refreshPropertyBranch(category);
+    refreshCreditLimit();
+  };
+  if (customerJeonseMemo && customerInlineMemo) {
+    customerJeonseMemo.addEventListener('input', () => {
+      customerInlineMemo.value = customerJeonseMemo.value;
+      if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(customerJeonseMemo);
+    });
+    customerInlineMemo.addEventListener('input', () => {
+      customerJeonseMemo.value = customerInlineMemo.value;
+    });
+  }
+  if (categoryBtn && categoryList) {
+    categoryBtn.addEventListener('click', () => { categoryList.hidden = !categoryList.hidden; });
+  }
+  categoryButtons.forEach(button => button.addEventListener('click', () => {
+    const previousLoanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+    const [loanType, guarantee] = categoryToStorage[button.dataset.category] || ['담보', ''];
+    consultLocalStorage.setItem('DSR_propertyLoanType', loanType);
+    consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', guarantee);
+    if (categoryList) categoryList.hidden = true;
+    refreshLoanType();
+    window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
+    if (typeof refreshMarketPriceBranch === 'function') refreshMarketPriceBranch();
+    saveDSRInputs();
+  }));
+  consultLocalStorage.setItem('DSR_propertyLoanType', savedLoanType);
+  consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', savedGuarantee);
+  refreshLoanType();
+  // 구분 변경/복원 시 동일한 전세·담보 UI 갱신을 사용한다.
+  window.addEventListener('consultLoanTypeChanged', refreshLoanType);
+  window.addEventListener('housingStatusChanged', refreshLoanType);
+  const formatBranchAmount = (value) => {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits ? Number(digits).toLocaleString('ko-KR') : '';
+  };
+  if (jeonseDepositInput) jeonseDepositInput.value = formatBranchAmount(consultLocalStorage.getItem('DSR_jeonseDepositInput'));
+  if (jeonseSeniorAmountInput) jeonseSeniorAmountInput.value = formatBranchAmount(consultLocalStorage.getItem('DSR_jeonseSeniorAmountInput'));
+  [jeonseDepositInput, jeonseSeniorAmountInput].forEach((input) => {
+    if (!input) return;
+    input.addEventListener('input', () => {
+      input.value = formatBranchAmount(input.value);
+      consultLocalStorage.setItem(`DSR_${input.id}`, input.value);
+      if (typeof saveDSRInputs === 'function') saveDSRInputs();
+    });
+  });
+
+  // KCB / NICE 저장값 복원 + 입력 중 숫자만 3자리로 제한
+  ['kcb', 'nice'].forEach((key) => {
+    const input = key === 'kcb' ? creditScoreKcb : creditScoreNice;
+    if (!input) return;
+    const savedScore = consultLocalStorage.getItem(key === 'kcb' ? 'DSR_creditScoreKCB' : 'DSR_creditScoreNICE');
+    if (savedScore) input.value = savedScore;
+    input.addEventListener('input', () => {
+      const digits = input.value.replace(/\D/g, '').slice(0, 3);
+      input.value = digits;
+      consultLocalStorage.setItem(key === 'kcb' ? 'DSR_creditScoreKCB' : 'DSR_creditScoreNICE', digits);
+      refreshCreditLimit();
+      if (typeof saveDSRInputs === 'function') saveDSRInputs();
+    });
+  });
+  refreshCreditLimit();
 
   // 저장된 값이 있으면 복원한다 (초기화 시에는 아래 선택초기화 후킹이 지운다).
   const savedDate = consultLocalStorage.getItem('DSR_propertySettlementDate');
@@ -3870,6 +4119,18 @@ function initPropertyExtraFields() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       settlementInput.value = '';
+      consultLocalStorage.removeItem('DSR_propertyLoanType');
+      consultLocalStorage.removeItem('DSR_propertyJeonseGuarantee');
+      consultLocalStorage.removeItem('DSR_creditScoreKCB');
+      consultLocalStorage.removeItem('DSR_creditScoreNICE');
+      consultLocalStorage.removeItem('DSR_jeonseDepositInput');
+      consultLocalStorage.removeItem('DSR_jeonseSeniorAmountInput');
+      if (jeonseDepositInput) jeonseDepositInput.value = '';
+      if (jeonseSeniorAmountInput) jeonseSeniorAmountInput.value = '';
+      if (creditScoreKcb) creditScoreKcb.value = '';
+      if (creditScoreNice) creditScoreNice.value = '';
+      if (categoryList) categoryList.hidden = true;
+      refreshLoanType();
       if (propertyMemo) {
         propertyMemo.value = '';
         if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
@@ -3881,6 +4142,40 @@ function initPropertyExtraFields() {
 window.addEventListener('DOMContentLoaded', initPropertyExtraFields);
 window.addEventListener('DOMContentLoaded', initLtvAmountTransfer);
 window.addEventListener('DOMContentLoaded', init);
+
+/* ───────────────── 전세 전용 표시 보정 ─────────────────
+   기존 계산 함수/계산 로직은 수정하지 않고, 화면 상태만 분기한다.
+   전세: 본건 금리 프로필을 6M/2Y로 표시하고 상환방식을 만기일시(기존 값은 만기)로 선택한다.
+   담보: 기존 6M/5Y 표시와 원리금 선택을 복원한다. */
+function refreshJeonseMortgageUi() {
+  const isJeonse = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
+  const firstRow = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
+  if (!firstRow) return;
+
+  const profileButton = firstRow.querySelector('.mort-default-switch');
+  if (profileButton) {
+    const labels = profileButton.querySelectorAll('.switch-label');
+    if (labels[0]) labels[0].textContent = '6M';
+    if (labels[1]) labels[1].textContent = isJeonse ? '2Y' : '5Y';
+    profileButton.dataset.profile = isJeonse && profileButton.dataset.profile === '5Y' ? '2Y' : (!isJeonse && profileButton.dataset.profile === '2Y' ? '5Y' : profileButton.dataset.profile);
+    labels.forEach((label, index) => label.classList.toggle('active', index === 0 ? profileButton.dataset.profile === '6M' : profileButton.dataset.profile === (isJeonse ? '2Y' : '5Y')));
+    profileButton.setAttribute('aria-label', isJeonse ? '6M/2Y 전환' : '6M/5Y 전환');
+  }
+
+  if (isJeonse) {
+    const maturityButton = firstRow.querySelector('.type-btn[onclick*="\'만기\'"]');
+    if (maturityButton && typeof setMortgageRepaymentType === 'function') {
+      setMortgageRepaymentType(maturityButton, '만기');
+    }
+  } else {
+    const principalInterestButton = firstRow.querySelector('.type-btn[onclick*="\'원리금\'"]');
+    if (principalInterestButton && typeof setMortgageRepaymentType === 'function') {
+      setMortgageRepaymentType(principalInterestButton, '원리금');
+    }
+  }
+}
+window.addEventListener('DOMContentLoaded', () => setTimeout(refreshJeonseMortgageUi, 0));
+window.addEventListener('consultLoanTypeChanged', refreshJeonseMortgageUi);
 /* ───────────────── 상담 전용 저장소 ───────────────── */
 const CONSULT_STORAGE_KEY = '상담저장소';
 const CONSULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwnijhKF5l5r_BupFxu-Dcz0jkjOcDZPS7nWdjLkBB95wO_sUZ44ucrG-9g3BGTeTRd/exec';
@@ -4058,6 +4353,7 @@ function saveConsultRecord() {
   })();
   const propertyInfo = [
     readSnapshot('DSR_selectedAptInfo'),
+    readSnapshot('DSR_propertyLoanType') ? `대출종류=${readSnapshot('DSR_propertyLoanType')}${readSnapshot('DSR_propertyJeonseGuarantee') ? `(${readSnapshot('DSR_propertyJeonseGuarantee')})` : ''}` : '',
     readSnapshot('DSR_propertySettlementDate'),
     readSnapshot('DSR_propertyInfoMemo'),
     readSnapshot('DSR_ltvMarketPriceInput')
@@ -4065,6 +4361,8 @@ function saveConsultRecord() {
   const record = {
     phone, name, broker, memo,
     needDate: readSnapshot('DSR_propertySettlementDate'),
+    loanCategory: readSnapshot('DSR_propertyLoanType') || '담보',
+    guaranteeType: readSnapshot('DSR_propertyJeonseGuarantee'),
     needAmount: firstMortgage.amount || '',
     loanType: firstMortgage.type || '',
     heldLoans: heldMortgage,
@@ -4150,7 +4448,15 @@ function openConsultStorageModal() {
 
       const record = records[Number(item.dataset.index)];
       if (!record) return;
-      loadDsrSnapshotIntoForm(record.storage || {});
+      // 구버전 저장 기록처럼 storage에 구분 키가 없는 경우에도 최상위 구분값을 복원한다.
+      const recordSnapshot = { ...(record.storage || {}) };
+      if (!recordSnapshot.DSR_propertyLoanType && record.loanCategory) {
+        recordSnapshot.DSR_propertyLoanType = ['담보'].includes(record.loanCategory) ? '담보' : '전세';
+      }
+      if (!recordSnapshot.DSR_propertyJeonseGuarantee && record.guaranteeType) {
+        recordSnapshot.DSR_propertyJeonseGuarantee = record.guaranteeType;
+      }
+      loadDsrSnapshotIntoForm(recordSnapshot);
       // 서버 동기화 기록은 inputSnapshot 안에 DSR_* 키가 들어 있다.
       // storage가 비어 있어도 서버에서 내려받은 입력값을 먼저 복원한다.
       if ((!record.storage || Object.keys(record.storage).length === 0) && record.inputSnapshot) {
@@ -4222,7 +4528,7 @@ function 대출정보텍스트생성() {
   const incomeCount = (baseIncomeValue > 0 ? 1 : 0) + extraIncomeCount;
   lines.push(`💰 소득정보${incomeCount >= 2 ? `  합산소득 - ${b(val('totalIncomeOutput'))}` : ''}`);
   const future = typeof applyRateCheck !== 'undefined' && applyRateCheck?.checked;
-  const kind = typeof baseIncomeMode !== 'undefined' && baseIncomeMode === '신고' ? (baseDeclareType || '추정') : '근로소득';
+  const kind = typeof baseIncomeMode !== 'undefined' && baseIncomeMode === '신고' ? (typeof baseDeclareType !== 'undefined' ? baseDeclareType : '추정') : '근로소득';
   addIncome(kind, val('baseIncomeInput'), future ? '장래예상' : '', val('ageInput'), text('baseFutureIncomeConverted'), val('baseIncomeMemo'));
   if (typeof extraIncomeRowIndexes === 'function') extraIncomeRowIndexes().forEach(idx => {
     const st = incomeRowState.get(idx); const els = getRowEls(idx);
@@ -4244,10 +4550,12 @@ function 대출정보텍스트생성() {
     const rateDisplay = rate ? (rate.endsWith('%') ? rate : `${rate}%`) : '';
     const termDisplay = term ? (term.endsWith('개월') ? term : `${term}개월`) : '';
     const type = row.querySelector('.mort-type')?.value?.trim() || '';
+    const profile = row.querySelector('.mort-default-profile')?.value === '5Y' ? '5년' : '6개월';
     const grace = row.querySelector('.mort-grace-check')?.checked ? row.querySelector('.mort-grace-term')?.value?.trim() : '';
     const category = row.querySelector('.mort-category-toggle.active') ? '주담대' : '';
     if (index === 0) {
-      lines.push(` 👉 필요금액, ${[amount, rateDisplay, termDisplay, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
+      lines.push(` 👉 필요금액, ${[amount, rateDisplay, termDisplay].filter(Boolean).join(', ')}`);
+      lines.push(` 👉 ${[rateDisplay, termDisplay, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
       if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
     } else {
       const excludeChecked = row.querySelector('.mort-exclude')?.checked;
@@ -4260,3 +4568,233 @@ function 대출정보텍스트생성() {
   });
   return lines.join('\n');
 }
+
+/* ───────────────── 금리표가공 하루 1회 조회/저장 ─────────────────
+   계산 로직은 건드리지 않고, 금리 원자료를 상담 화면 전용 localStorage에 캐시한다.
+   한국시간 09:50 전에는 조회하지 않으며, 09:50 이후에도 같은 날짜에는 한 번만 요청한다. */
+const CONSULT_RATE_SHEET_ID = '10fehqfYPhiKwOI6amMNX9lxmsxox3M5SKyW3MaAJH9w';
+const CONSULT_RATE_SHEET_NAME = '금리표가공';
+const CONSULT_RATE_CACHE_KEY = 'CONSULT_RATE_TABLE_CACHE';
+const CONSULT_RATE_CACHE_DATE_KEY = 'CONSULT_RATE_TABLE_CACHE_DATE';
+
+function consultKstNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(new Date()).reduce((out, part) => {
+    if (part.type !== 'literal') out[part.type] = part.value;
+    return out;
+  }, {});
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
+}
+
+function parseGoogleVisualizationResponse(text) {
+  const match = String(text).match(/setResponse\((.*)\);?\s*$/s);
+  if (!match) throw new Error('금리표 응답 형식을 읽을 수 없습니다.');
+  return JSON.parse(match[1]);
+}
+
+function googleSheetCellValue(table, rowIndex = 0, colIndex = 0) {
+  const row = table?.rows?.[rowIndex];
+  const cell = row?.c?.[colIndex];
+  return cell && cell.v !== null && cell.v !== undefined ? String(cell.v).trim() : '';
+}
+
+// 구글시트 금리값은 화면/입력값 모두 소수점 둘째 자리까지 반올림한다.
+function normalizeConsultRateValue(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const numeric = Number.parseFloat(text.replace(/%/g, '').replace(/,/g, ''));
+  return Number.isFinite(numeric) ? String(Number(numeric.toFixed(2))) : text;
+}
+
+function normalizeConsultRates(rates) {
+  if (!rates || typeof rates !== 'object') return rates;
+  const normalized = { ...rates };
+  ['sale6M', 'sale5Y', 'jusinbo6M', 'jusinbo2Y', 'dosi6M', 'dosi2Y', 'seoul6M', 'seoul2Y']
+    .forEach(key => { normalized[key] = normalizeConsultRateValue(rates[key]); });
+  return normalized;
+}
+
+function getNormalizedConsultRateCache() {
+  const cachedRates = getStoredJson(CONSULT_RATE_CACHE_KEY, null);
+  if (!cachedRates) return null;
+  const normalizedRates = normalizeConsultRates(cachedRates);
+  // 기존 저장값도 읽는 즉시 반올림된 값으로 다시 저장해 저장소 자체를 정리한다.
+  if (JSON.stringify(cachedRates) !== JSON.stringify(normalizedRates)) {
+    consultLocalStorage.setItem(CONSULT_RATE_CACHE_KEY, JSON.stringify(normalizedRates));
+  }
+  return normalizedRates;
+}
+
+async function fetchConsultRateCell(cellAddress) {
+  const url = `https://docs.google.com/spreadsheets/d/${CONSULT_RATE_SHEET_ID}/gviz/tq?tqx=out:json&gid=100298208&range=${encodeURIComponent(cellAddress)}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`금리표 ${cellAddress} HTTP ${response.status}`);
+  const payload = parseGoogleVisualizationResponse(await response.text());
+  return googleSheetCellValue(payload.table);
+}
+
+function hasConsultRateValues(rates) {
+  if (!rates || typeof rates !== 'object') return false;
+  return ['sale6M', 'sale5Y', 'jusinbo6M', 'jusinbo2Y', 'dosi6M', 'dosi2Y', 'seoul6M', 'seoul2Y']
+    .some(key => String(rates[key] ?? '').trim() !== '');
+}
+
+async function fetchConsultRatesOnceDaily(force = false) {
+  const now = consultKstNow();
+  // force(금리확인 버튼을 직접 누른 경우)일 땐 시간 조건을 우회해 즉시 조회한다.
+  if (!force && (now.hour < 9 || (now.hour === 9 && now.minute < 50))) return null;
+  const cachedDate = consultLocalStorage.getItem(CONSULT_RATE_CACHE_DATE_KEY);
+  const cachedRates = getNormalizedConsultRateCache();
+  // 오늘 날짜로 기록되어 있어도 실제 금리값이 비어 있으면 캐시 완료로 취급하지 않고 재조회한다.
+  if (!force && cachedDate === now.date && hasConsultRateValues(cachedRates)) return cachedRates;
+
+  try {
+    // 전체 범위 조회는 빈 행/병합셀 때문에 상대 행 인덱스가 달라질 수 있어,
+    // 요청받은 셀 주소를 각각 직접 조회한다.
+    const [sale6M, sale5Y, jusinbo6M, jusinbo2Y, dosi6M, dosi2Y, seoul6M, seoul2Y] = await Promise.all([
+      fetchConsultRateCell('H14'), fetchConsultRateCell('I14'),
+      fetchConsultRateCell('C6'), fetchConsultRateCell('D6'),
+      fetchConsultRateCell('C14'), fetchConsultRateCell('D14'),
+      fetchConsultRateCell('C22'), fetchConsultRateCell('D22')
+    ]);
+    const rates = normalizeConsultRates({
+      sale6M, sale5Y, jusinbo6M, jusinbo2Y, dosi6M, dosi2Y, seoul6M, seoul2Y,
+      fetchedAtKST: `${now.date} ${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`
+    });
+    // 응답은 왔지만 실제 값이 하나도 없으면 날짜 캐시를 기록하지 않아 다음 진입 때 재시도한다.
+    if (!hasConsultRateValues(rates)) throw new Error('금리표에 읽을 값이 없습니다.');
+    consultLocalStorage.setItem(CONSULT_RATE_CACHE_KEY, JSON.stringify(rates));
+    consultLocalStorage.setItem(CONSULT_RATE_CACHE_DATE_KEY, now.date);
+    return rates;
+  } catch (error) {
+    console.warn('금리표가공 조회 실패:', error);
+    // 기존 정상 캐시는 유지하되, 실패한 날의 조회 완료 날짜는 저장하지 않아 다음 진입 때 재시도한다.
+    return hasConsultRateValues(cachedRates) ? cachedRates : null;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetchConsultRatesOnceDaily();
+});
+
+/* ───────────────── 저장된 금리표 → 본건 금리입력창 적용 ─────────────────
+   기존 계산 로직은 수정하지 않고, 금리 프로필 선택 후 입력값만 별도로 적용한다. */
+function consultCachedRateValue(category, profile) {
+  const rates = getNormalizedConsultRateCache();
+  if (!rates) return '';
+  if (category === '담보') return profile === '5Y' ? rates.sale5Y : rates.sale6M;
+  if (category === '주신보') return profile === '2Y' ? rates.jusinbo2Y : rates.jusinbo6M;
+  if (category === '도보') return profile === '2Y' ? rates.dosi2Y : rates.dosi6M;
+  if (category === '서보') return profile === '2Y' ? rates.seoul2Y : rates.seoul6M;
+  return '';
+}
+
+function consultCurrentRateCategory() {
+  const loanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+  const guarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+  if (loanType !== '전세') return '담보';
+  if (guarantee === '도시보증') return '도보';
+  if (guarantee === '서울보증') return '서보';
+  return '주신보';
+}
+
+function applyConsultCachedRateToFirstRow() {
+  const row = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
+  if (!row) return;
+
+  const loanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+  const housingStatus = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
+  const profile = row.querySelector('.mort-default-profile')?.value || row.querySelector('.mort-default-switch')?.dataset.profile || '6M';
+  const stRateInput = row.querySelector('.mort-st-rate');
+  const termInput = row.querySelector('.mort-term');
+
+  // 구분과 금리 프로필에 따라 본건 대출의 ST금리/기간을 적용한다.
+  // 담보: 6M=ST 3%, 5Y=ST 1.5%, 기간 360개월
+  // 전세: 무주택=ST 0%, 1주택=ST 1.2%, 기간 24개월
+  if (stRateInput) {
+    const stRate = loanType === '전세'
+      ? (housingStatus === '1주택' ? '1.2' : '0')
+      : (profile === '5Y' ? '1.5' : '3');
+    stRateInput.value = stRate;
+    stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (termInput) {
+    termInput.value = loanType === '전세' ? '24' : '360';
+    termInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  const value = consultCachedRateValue(consultCurrentRateCategory(), profile);
+  const rateInput = row.querySelector('.mort-rate');
+  if (!value || !rateInput) return;
+  rateInput.value = String(value);
+  rateInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function bindConsultCachedRateToProfile() {
+  const row = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
+  const profileButton = row?.querySelector('.mort-default-switch');
+  if (!profileButton || profileButton.dataset.cachedRateBound === 'true') return;
+  profileButton.dataset.cachedRateBound = 'true';
+  profileButton.addEventListener('click', () => setTimeout(applyConsultCachedRateToFirstRow, 0));
+  applyConsultCachedRateToFirstRow();
+}
+
+window.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+  bindConsultCachedRateToProfile();
+  applyConsultCachedRateToFirstRow();
+}, 0));
+window.addEventListener('consultLoanTypeChanged', () => setTimeout(() => {
+  bindConsultCachedRateToProfile();
+  applyConsultCachedRateToFirstRow();
+  applyOtherRowsBlock();
+}, 0));
+window.addEventListener('housingStatusChanged', () => setTimeout(applyConsultCachedRateToFirstRow, 0));
+
+function renderConsultRateCacheTable() {
+  const saleBody = document.getElementById('consultRateSaleTableBody');
+  const jeonseBody = document.getElementById('consultRateJeonseTableBody');
+  const updated = document.getElementById('consultRateCacheUpdatedAt');
+  if (!saleBody || !jeonseBody) return;
+  const rates = getNormalizedConsultRateCache();
+  if (!rates) {
+    saleBody.innerHTML = '<tr><td colspan="3">조회값 없음</td></tr>';
+    jeonseBody.innerHTML = '<tr><td colspan="3">조회값 없음</td></tr>';
+    if (updated) updated.textContent = '아직 조회되지 않았습니다.';
+    return;
+  }
+  saleBody.innerHTML = `<tr><td>담보</td><td>${rates.sale6M || '-'}</td><td>${rates.sale5Y || '-'}</td></tr>`;
+  jeonseBody.innerHTML = [
+    ['주신보', rates.jusinbo6M, rates.jusinbo2Y],
+    ['도시보증', rates.dosi6M, rates.dosi2Y],
+    ['서울보증', rates.seoul6M, rates.seoul2Y]
+  ].map(row => `<tr><td>${row[0]}</td><td>${row[1] || '-'}</td><td>${row[2] || '-'}</td></tr>`).join('');
+  if (updated) updated.textContent = rates.fetchedAtKST ? `마지막 조회: ${rates.fetchedAtKST}` : '';
+}
+
+// 버튼이 모달 내부에 있어 생성/표시 시점이 달라질 수 있으므로,
+// 요소에 직접 바인딩하지 않고 document 클릭 위임으로 처리한다.
+document.addEventListener('click', async (event) => {
+  const target = event.target.closest && event.target.closest('#consultRateRefreshBtn, .bottom-view-btn[onclick="openTextModal()"]');
+  if (!target) return;
+
+  if (target.id === 'consultRateRefreshBtn') {
+    if (target.disabled) return;
+    target.disabled = true;
+    target.textContent = '조회 중...';
+    try {
+      await fetchConsultRatesOnceDaily(true);
+      renderConsultRateCacheTable();
+      if (typeof showBubble === 'function') showBubble('금리표를 갱신했습니다');
+    } finally {
+      target.disabled = false;
+      target.textContent = '금리확인';
+    }
+    return;
+  }
+
+  setTimeout(renderConsultRateCacheTable, 0);
+});
+
+window.addEventListener('DOMContentLoaded', renderConsultRateCacheTable);

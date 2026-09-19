@@ -883,7 +883,7 @@ function setSelectedAptInfo(info) {
 
 // 시세입력 테이블 맨 아래 - 선택된 아파트 정보를 보여주는 행을 갱신한다.
 // selectedAptInfo가 없으면(아직 KB시세 조회로 선택한 적 없으면) 행 자체를 숨긴다.
-const APT_PRICE_FIELD_LABELS = { '매매하한가': '하한가', '매매일반가': '일반가', '매매상한가': '상한가' };
+const APT_PRICE_FIELD_LABELS = { '담보하한가': '하한가', '담보일반가': '일반가', '담보상한가': '상한가' };
 
 function renderSelectedAptRow() {
   const row = document.getElementById('selectedAptRow');
@@ -3851,7 +3851,61 @@ function initLtvAmountTransfer() {
 function initPropertyExtraFields() {
   const settlementInput = document.getElementById('propertySettlementDate');
   const propertyMemo = document.getElementById('propertyInfoMemo');
+  const loanTypeSelector = document.getElementById('propertyLoanTypeSelector');
+  const guaranteeList = document.getElementById('propertyJeonseGuaranteeList');
   if (!settlementInput) return;
+
+  // 메모 앞 "구분" 버튼: 평소엔 현재 분기(담보 / 전세(주·도·서))를 버튼명으로 보여주고,
+  // 클릭하면 담보·주신보·도보·서보 4개의 선택지가 펼쳐진다. 선택 완료 시 팝업이 닫힌다.
+  const savedLoanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+  const savedGuarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+  const toggleButton = loanTypeSelector?.querySelector('#propertyLoanTypeToggle');
+  const guaranteeButtons = guaranteeList?.querySelectorAll('[data-guarantee]') || [];
+  // 저장값(매/전세 + 보증구분) → 버튼에 표시할 짧은 이름
+  const refreshLoanType = () => {
+    const loanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
+    const guarantee = consultLocalStorage.getItem('DSR_propertyJeonseGuarantee') || '';
+    const shortName = { 주신보: '주', 도시보증: '도', 서울보증: '서' }[guarantee] || '';
+    const label = loanType === '전세' && shortName ? `전세(${shortName})` : '담보';
+    if (toggleButton) toggleButton.textContent = label;
+    if (guaranteeList) guaranteeList.hidden = true; // 평소엔 선택지를 감춘다
+    guaranteeButtons.forEach(button => {
+      button.classList.toggle('active',
+        (button.dataset.guarantee === '담보' && loanType === '담보')
+        || (button.dataset.guarantee !== '담보' && loanType === '전세' && button.dataset.guarantee === guarantee));
+      // 전세 분기에서는 주신보 선택 버튼을 숨긴다.
+      button.hidden = loanType === '전세' && button.dataset.guarantee === '주신보';
+    });
+  };
+  // "구분" 버튼 클릭 → 선택지 팝업 토글
+  if (toggleButton) {
+    toggleButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (guaranteeList) guaranteeList.hidden = !guaranteeList.hidden;
+    });
+  }
+  // 선택지 클릭 → 값 저장 후 팝업 닫기
+  guaranteeButtons.forEach(button => button.addEventListener('click', () => {
+    const guarantee = button.dataset.guarantee;
+    if (guarantee === '담보') {
+      consultLocalStorage.setItem('DSR_propertyLoanType', '담보');
+      consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', '');
+    } else {
+      consultLocalStorage.setItem('DSR_propertyLoanType', '전세');
+      consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', guarantee);
+    }
+    refreshLoanType();
+    saveDSRInputs();
+  }));
+  // 선택지 바깥을 누르면 팝업 닫기
+  document.addEventListener('click', (e) => {
+    if (!guaranteeList || guaranteeList.hidden) return;
+    if (loanTypeSelector && loanTypeSelector.contains(e.target)) return;
+    guaranteeList.hidden = true;
+  });
+  consultLocalStorage.setItem('DSR_propertyLoanType', savedLoanType);
+  consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', savedGuarantee);
+  refreshLoanType();
 
   // 저장된 값이 있으면 복원한다 (초기화 시에는 아래 선택초기화 후킹이 지운다).
   const savedDate = consultLocalStorage.getItem('DSR_propertySettlementDate');
@@ -3870,6 +3924,9 @@ function initPropertyExtraFields() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       settlementInput.value = '';
+      consultLocalStorage.removeItem('DSR_propertyLoanType');
+      consultLocalStorage.removeItem('DSR_propertyJeonseGuarantee');
+      refreshLoanType();
       if (propertyMemo) {
         propertyMemo.value = '';
         if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(propertyMemo);
@@ -4058,6 +4115,7 @@ function saveConsultRecord() {
   })();
   const propertyInfo = [
     readSnapshot('DSR_selectedAptInfo'),
+    readSnapshot('DSR_propertyLoanType') ? `대출종류=${readSnapshot('DSR_propertyLoanType')}${readSnapshot('DSR_propertyJeonseGuarantee') ? `(${readSnapshot('DSR_propertyJeonseGuarantee')})` : ''}` : '',
     readSnapshot('DSR_propertySettlementDate'),
     readSnapshot('DSR_propertyInfoMemo'),
     readSnapshot('DSR_ltvMarketPriceInput')
@@ -4065,6 +4123,8 @@ function saveConsultRecord() {
   const record = {
     phone, name, broker, memo,
     needDate: readSnapshot('DSR_propertySettlementDate'),
+    loanCategory: readSnapshot('DSR_propertyLoanType') || '담보',
+    guaranteeType: readSnapshot('DSR_propertyJeonseGuarantee'),
     needAmount: firstMortgage.amount || '',
     loanType: firstMortgage.type || '',
     heldLoans: heldMortgage,

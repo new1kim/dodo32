@@ -945,18 +945,31 @@ select:focus {
 
         </div>
 
+        <div id="calcResult" class="card calc-result">
+            <div class="card-title"><strong>⑥ 계산값</strong></div>
+            <div class="calc-row"><div class="calc-line"><span>공시가격 × 130%</span><span id="calcHousePrice">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('house')" style="display:none;">이 결과 적용</button></div></div>
+            <div class="calc-row"><div class="calc-line"><span>공시가격 × 130% × 90%</span><span id="calcSeoulGuarantee">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('seoul')" style="display:none;">이 결과 적용</button></div></div>
+            <div class="calc-row"><div class="calc-line"><span>공시가격 × 140% × 90%</span><span id="calcJusinboDosi">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('jusinboDosi')" style="display:none;">이 결과 적용</button></div></div>
+            <div class="calc-row"><div class="calc-line"><span>공시가격 × 100%</span><span id="calcJusinbo">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('jusinbo')" style="display:none;">이 결과 적용</button></div></div>
+        </div>
+
+            </div>
+
+            <button type="button" id="publicPriceApplyBtn" class="search-btn" onclick="applyPublicPropertyPrice()" style="display:none; width:100%; margin-top:12px;">이 결과 적용하기</button>
+
     </div>
 
+    <script>
+    let pendingPublicPropertyPrice = null;
 
-</div>
+    function applyPublicPropertyPrice() {
+        if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
+        window.parent.postMessage(pendingPublicPropertyPrice, '*');
+    }
 
-
-
-<script>
-
-/* =========================================================
-   전역 변수
-========================================================= */
+    /* =========================================================
+       전역 변수
+    ========================================================= */
 
 const GAS_BASE_URL =
     'https://script.google.com/macros/s/AKfycbxIB_jOSdlZNLWpMdsX4j_fpOalfUnC1UI0ysIY7IblKNb9zo--Q2D58WcbTkA-1lOf/exec';
@@ -2217,6 +2230,27 @@ function displayPriceResult(data) {
         .getElementById("priceResult")
         .classList.add("show");
 
+    updateCalcResult(data.price);
+
+    // 결과를 먼저 화면에 표시하고, 사용자가 확인 버튼을 눌렀을 때만 부모로 전달한다.
+    if (window.parent && window.parent !== window && new URLSearchParams(window.location.search).get('mode') === 'public') {
+        pendingPublicPropertyPrice = {
+            type: 'publicPropertyPrice',
+            value: Number(data.price) || 0,
+            aptName: data.building || selectedAddressData?.buildingName || '',
+            address: selectedAddressData?.roadAddress || selectedAddressData?.jibunAddress || '',
+            typeLabel: getTypeLabel(data.type),
+            pyeong: data.area || '',
+            exclusiveSqm: data.area || '',
+            supplyPyeong: '',
+            priceField: data.year ? `${data.year}년 공시가격` : '공시가격',
+            dong: data.dong || '',
+            ho: data.ho || '',
+            publicPrice: Number(data.price) || 0
+        };
+        const applyButton = document.getElementById('publicPriceApplyBtn');
+        if (applyButton) applyButton.style.display = 'block';
+    }
 
     /*
      * 결과로 이동
@@ -2234,6 +2268,26 @@ function displayPriceResult(data) {
 /* =========================================================
    결과 숨기기
 ========================================================= */
+
+function updateCalcResult(price) {
+    const base = Number(price);
+    const toWon = value => Math.round(value).toLocaleString('ko-KR') + '원';
+    document.getElementById('calcHousePrice').textContent = toWon(base * 1.30);
+    document.getElementById('calcSeoulGuarantee').textContent = toWon(base * 1.30 * 0.90);
+    document.getElementById('calcJusinboDosi').textContent = toWon(base * 1.40 * 0.90);
+    document.getElementById('calcJusinbo').textContent = toWon(base);
+    document.getElementById('calcResult').classList.add('show');
+    document.querySelectorAll('.calc-apply-btn').forEach(button => { button.style.display = 'inline-block'; });
+}
+
+function applyCalculatedPublicPrice(calcKey) {
+    if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
+    const ids = { house: 'calcHousePrice', seoul: 'calcSeoulGuarantee', jusinboDosi: 'calcJusinboDosi', jusinbo: 'calcJusinbo' };
+    const selectedValue = document.getElementById(ids[calcKey])?.textContent || '';
+    const numericValue = Number(selectedValue.replace(/[^0-9]/g, '')) || 0;
+    if (!numericValue) return;
+    window.parent.postMessage({ ...pendingPublicPropertyPrice, value: numericValue, publicPrice: numericValue, priceField: `공시가격 계산값 (${selectedValue})` }, '*');
+}
 
 function hidePriceResult() {
 

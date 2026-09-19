@@ -4,6 +4,7 @@ function doGet(e) {
     var userCode = e.parameter.userCode ? e.parameter.userCode.toString().trim().toUpperCase() : "공통";
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
     var sheet = ss.getSheetByName(userCode);
         if (sheet) ensureConsultSheetLayout_(sheet);
 

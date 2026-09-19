@@ -50,7 +50,17 @@
                   <div class="info-tab-label">중개업소<button type="button" class="field-clear-btn" id="clearBrokerBtn" aria-label="중개업소 지우기">×</button></div>
                   <input type="text" id="customerBrokerInput" placeholder="중개업소 입력" inputmode="text" lang="ko" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                 </div>
-                <textarea id="customerInfoMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                <div class="customer-memo-row">
+                  <div class="property-loan-type-selector" id="propertyLoanTypeSelector" aria-label="구분">
+                    <button type="button" class="property-loan-type-btn" id="propertyLoanTypeToggle">구분</button>
+                    <div class="property-jeonse-guarantee-list" id="propertyJeonseGuaranteeList" hidden>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="담보">담보</button>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="도시보증">도보</button>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="서울보증">서보</button>
+                    </div>
+                  </div>
+                  <textarea id="customerInfoMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                </div>
               </div>
             </div>
           </td>
@@ -127,6 +137,15 @@
                 <div class="property-extra-fields">
                   <!-- 달력으로만 선택하는 날짜: readonly로 모바일 키패드가 뜨지 않게 한다. -->
                   <input type="text" id="propertySettlementDate" class="mort-need-date" placeholder="잔금일자" readonly inputmode="none" autocomplete="off">
+                  <div class="property-loan-type-selector" id="propertyLoanTypeSelector" aria-label="대출종류">
+                    <span class="property-loan-type-label">대출종류</span>
+                    <button type="button" class="property-loan-type-btn active" data-loan-type="담보">담보</button>
+                    <button type="button" class="property-loan-type-btn" data-loan-type="전세">전세</button>
+                    <div class="property-jeonse-guarantee-list" id="propertyJeonseGuaranteeList" hidden>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="도시보증">도시보증</button>
+                      <button type="button" class="property-jeonse-guarantee-btn" data-guarantee="서울보증">서울보증</button>
+                    </div>
+                  </div>
                   <textarea id="propertyInfoMemo" class="income-memo property-info-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
                 </div>
               </td>
@@ -614,8 +633,8 @@
   </div>
 
   <!-- KB 시세 조회 전체화면 오버레이 -->
-  <div id="marketPriceOverlay" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
-    <iframe id="marketPriceFrame" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
+  <div id="marketPriceOverlay" onclick="closeMarketPriceOverlay()" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
+    <iframe id="marketPriceFrame" src="about:blank" onclick="event.stopPropagation()" style="width:100%; height:100%; border:none;"></iframe>
   </div>
 
   <!-- 필요일자(본건 대출정보) 클릭 시 뜨는 달력 -->
@@ -784,7 +803,7 @@
       if (!Array.isArray(records)) records = [];
 
       if (records.length === 0) {
-        dropdown.innerHTML = '<div style="padding:12px 14px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
+        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:12px 14px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
       } else {
         dropdown.innerHTML = records.map(function (r) {
           var dir = String(r.direction || '').toUpperCase();
@@ -799,6 +818,7 @@
             + ' style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:14px;">'
             + icon + ' &nbsp;' + label + '</div>';
         }).join('');
+        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
       }
 
       var rect = activeCallLogInput.getBoundingClientRect();
@@ -807,6 +827,11 @@
       dropdown.style.width = Math.max(rect.width, 220) + 'px';
       dropdown.style.display = 'block';
 
+      var closeButton = dropdown.querySelector('.call-log-close button');
+      if (closeButton) closeButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        dropdown.style.display = 'none';
+      });
       dropdown.querySelectorAll('.call-log-item').forEach(function (item) {
         item.addEventListener('click', function () {
           // 연락처는 하이픈 자동 포맷 리스너가 붙어 있어, .value 직접 대입 대신 input 이벤트를 발생시킨다
@@ -1012,6 +1037,15 @@
 
   <!-- KB 시세 조회 오버레이 열기/닫기 + 결과 적용 -->
   <script>
+    document.addEventListener('click', function (event) {
+      var menu = document.getElementById('marketPriceMenu');
+      var lookupButton = document.getElementById('marketPriceLookupBtn');
+      if (!menu || menu.hidden) return;
+      if (menu.contains(event.target) || (lookupButton && lookupButton.contains(event.target))) return;
+      menu.hidden = true;
+      menu.style.display = 'none';
+    });
+
     function openMarketPriceOverlay() {
       var overlay = document.getElementById('marketPriceOverlay');
       var frame = document.getElementById('marketPriceFrame');
@@ -1034,7 +1068,7 @@
         return;
       }
 
-      if (e.data.type === 'kbMarketPrice') {
+      if (e.data.type === 'kbMarketPrice' || e.data.type === 'publicPropertyPrice') {
         var input = document.getElementById('ltvMarketPriceInput');
         if (input) {
           input.value = String(e.data.value);
@@ -1163,7 +1197,7 @@
                 var records = [];
                 try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()) || []; } catch (error) { records = []; }
                 if (!Array.isArray(records) || !records.length) {
-                  dropdown.innerHTML = '<div style="padding:12px;color:#64748b;font-size:13px">최근 통화기록이 없습니다.</div>';
+                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:12px;color:#64748b;font-size:13px">최근 통화기록이 없습니다.</div>';
                 } else {
                   dropdown.innerHTML = records.map(function (record) {
                     var number = String(record.phone || record.number || '');
@@ -1178,12 +1212,18 @@
                     item.textContent = icon + ' + (displayName ? displayName + ' (' + number + ')' : number);
                     return item.outerHTML;
                   }).join('');
+                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
                 }
                 var rect = anchor.getBoundingClientRect();
                 dropdown.style.left = rect.left + window.scrollX + 'px';
                 dropdown.style.top = rect.bottom + window.scrollY + 4 + 'px';
                 dropdown.style.width = Math.max(rect.width, 240) + 'px';
                 dropdown.style.display = 'block';
+                var closeButton = dropdown.querySelector('.consult-call-log-close button');
+                if (closeButton) closeButton.addEventListener('click', function (event) {
+                  event.stopPropagation();
+                  dropdown.style.display = 'none';
+                });
                 dropdown.querySelectorAll('.consult-call-log-item').forEach(function (item) {
                   item.addEventListener('click', function () {
                     phone.value = item.dataset.phone || '';
@@ -1199,6 +1239,17 @@
 
               if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCustomerInfoFeatures, { once: true });
               else initCustomerInfoFeatures();
+              window.closeRecentCallLogPopup = function () {
+                var closed = false;
+                ['callLogDropdown', 'consultCallLogDropdown'].forEach(function (id) {
+                  var popup = document.getElementById(id);
+                  if (popup && popup.style.display === 'block') {
+                    popup.style.display = 'none';
+                    closed = true;
+                  }
+                });
+                return closed;
+              };
               document.addEventListener('click', function (event) {
                 var dropdown = document.getElementById('consultCallLogDropdown');
                 if (!dropdown || dropdown.style.display !== 'block') return;

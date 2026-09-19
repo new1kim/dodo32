@@ -34,6 +34,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -142,6 +143,17 @@ class MainActivity : AppCompatActivity() {
         webView = WebView(this)
         setupWebView()
         setContentView(buildRootView())
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                webView.evaluateJavascript("window.closeRecentCallLogPopup ? window.closeRecentCallLogPopup() : false;") { result ->
+                    if (result != "true") {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
 
         // 상태바 영역 배경이 흰색이라, 시스템 글자(시간/배터리 등)도 밝은색이면 안 보임 -
         // "이 영역은 밝은 배경"이라고 명시해서 시스템이 어두운 글자로 그리게 한다
