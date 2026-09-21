@@ -11,19 +11,11 @@
   <link rel="manifest" href="assets/manifest.json">
   <meta name="theme-color" content="#3a52b8">
 
+  <!-- AdSense 사이트 검토용 코드: 광고 단위가 없는 빈 공간은 만들지 않습니다. -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2319245008057207"
+       crossorigin="anonymous"></script>
 
-
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2319245008057207"
-     crossorigin="anonymous"></script>
-
-
-
-
-
-
-
-<style>
+  <style>
     body, html {
       margin: 0;
       padding: 0;
@@ -34,7 +26,7 @@
       user-select: none;
       -webkit-touch-callout: none;
     }
-    
+
     /* 상단 버튼 컨테이너 */
     .button-container {
       display: flex;
@@ -73,7 +65,7 @@
     .visitor-counter:hover {
       background-color: #bfdbfe;
     }
-    
+
     .visitor-counter:active {
       transform: scale(0.97);
     }
@@ -149,8 +141,8 @@
       -webkit-touch-callout: none;
       touch-action: manipulation;
       flex-shrink: 0;
-    }  
-    
+    }
+
     .button-container button.nav-btn:hover {
       background-color: #e2e8f0;
       color: #1e293b;
@@ -252,23 +244,11 @@
       display: none !important;
     }
 
-    /* 버튼 아래 애드센스 광고 영역. 광고가 로드되지 않아도 한 행 높이를 유지한다. */
-    .ad-space {
-      width: 100%;
-      min-height: 30px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #ffffff;
-      flex-shrink: 0;
-    }
-
     /* 프레임들을 감싸는 메인 래퍼 */
     .main-wrapper {
       display: flex;
       width: 100%;
-      height: calc(100% - 84px); /* 상단 버튼 54px + 광고 영역 30px */
+      height: calc(100% - 54px); /* 상단 버튼 54px */
       gap: 0;
       overflow: hidden;
       position: relative;
@@ -1334,19 +1314,6 @@
     <div class="frame-toggle-group locked-content" id="frameToggleGroup">
       <button type="button" class="frame-toggle" data-target="calc-container" data-usage-item="계산기 표시 전환" aria-pressed="true">계산기</button>
     </div>
-  </div>
-
-  <!-- 애드센스 광고를 넣을 자리: 광고 단위 코드를 아래 영역 안에 추가하세요. -->
-  <div class="ad-space" aria-label="광고 영역">
-    <!--
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-2319245008057207"
-         data-ad-slot="광고단위-ID"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    -->
   </div>
 
   <div class="main-wrapper locked-content">
