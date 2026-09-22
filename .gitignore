@@ -20,6 +20,10 @@
 !gate-auth.js
 !ads.txt
 
+# 빌드 도우미 / 규칙 문서
+!CLAUDE.md
+!build_android.ps1
+
 # 상담 화면 세트
 !Consult_Main.html
 !Consult_calculator_logic.js

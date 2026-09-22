@@ -14,22 +14,22 @@
   (근거: `CallNote/app/src/main/java/com/example/callnote/AssetSyncManager.kt`)
 - 즉 **루트의 파일을 지우면 그대로 앱이 깨진다.** 커밋 전 반드시 아래 2번을 확인한다.
 
-### 앱이 실제로 사용하는 파일 (AssetSyncManager.FILES, 21개)
+### 앱이 실제로 사용하는 파일 (AssetSyncManager.FILES)
 ```
 Consult_Main.html              Consult_calculator_logic.js
 Consult_calculator_ui.js       Consult_style.css
 DSR_Main.html                  DSR_calculator_logic.js
 DSR_calculator_ui.js           DSR_style.css
 시세조회.html                   소액임차보증금.png
-장래예상소득증가율.png           상담일지.html
-DTI.html                       신용점수기준.png
-계산기.html                     날짜계산기.html
-MCG.html                       IDCard.html
-문서스캔.html
+장래예상소득증가율.png           DTI.html
+신용점수기준.png                계산기.html
+날짜계산기.html                 MCG.html
+IDCard.html                    문서스캔.html
 ```
 추가로 root에 있어야 하는 것: `index.html`, `gonsi.html`, `op_gongsi_data/`(~1,936개 JSON)
 
-> `gonsi.html`은 `op_gongsi_data/*.json`(오피스텔 정적자료)에 의존한다. 이 폴더를 지우면 공시가격 오피스텔 조회가 죽는다.
+> - `상담일지.html`은 **2026-09-22 제거됨** (화면·코드 모두). 전화 수신 팝업은 `Consult_Main.html`로 연결된다.
+> - `gonsi.html`은 `op_gongsi_data/*.json`에 의존하며, 용량 때문에 **GitHub 동기화 대상이 아니라 APK 번들 전용**이다.
 
 ---
 
@@ -44,6 +44,105 @@ C:\Program Files\Git\cmd\git.exe status --short
   (2026-09-22 기준 `상담일지.html`, `사용설명서.html`, `사진스캔.html`,
    `DSR_calculator_logic.min.js` 가 작업트리에서 삭제된 상태로 잡혀 있었음 — 복구 필요 여부 확인 대상)
 - `.gitignore`가 있어도 **이미 추적 중인 파일은 계속 추적된다.** 삭제 방지는 `git status` 육안 확인만이 확실하다.
+
+---
+
+## 2-B. ⚠️ 안드로이드 빌드 잠금 (가장 자주 막히는 지점)
+
+### 증상
+```
+java.io.IOException: Unable to delete directory '...\app\build\...'
+  Failed to delete some children.
+Caused by: java.nio.file.AccessDeniedException
+```
+또는
+```
+Execution failed for task ':app:dexBuilderDebug'.
+Execution failed for task ':app:generateDebugBuildConfig'.
+```
+
+### 원인 (2026-09-22 실제 진단)
+**컴파일 오류가 아니다.** 코드는 정상인데 **오래된 Gradle/Kotlin 데몬이 빌드 폴더 핸들을 놓지 않아**
+새 빌드가 이전 산출물을 지우지 못하는 것이다.
+
+```
+1) 터미널에서 빌드  → Gradle/Kotlin 데몬 생성(그 폴더를 "사용 중"으로 등록)
+2) Android Studio 실행 → 기존 데몬을 물려받아 재사용
+3) 이후 빌드       → Gradle이 이전 산출물 삭제 시도
+                   → 데몬이 계속 잡고 있음 → AccessDeniedException
+```
+
+**판별법:** 문제 폴더가 **비어 있는데도** 삭제가 안 되면 100% 이 잠금이다.
+(PowerShell에서는 지워지는데 Gradle(Java)만 실패하는 것도 같은 증거)
+
+### ✅ 복구 절차 — 이 순서를 반드시 지킬 것
+
+**가장 빠른 방법 (스크립트 한 줄):**
+```powershell
+cd d:\dodo32
+.\build_android.ps1          # 데몬 정리 -> 빌드까지 자동
+```
+| 옵션 | 동작 |
+|---|---|
+| (없음) | 데몬 정리 후 빌드 |
+| `-Clean` | build 폴더까지 삭제 후 빌드 (증상이 심할 때) |
+| `-LockOnly` | 잠금 정리만 (빌드 안 함) |
+| `-Diagnose` | 무엇이 잡고 있는지 확인만 |
+
+**수동으로 할 경우:**
+```powershell
+cd d:\dodo32\CallNote
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+
+# 1) 데몬을 반드시 먼저 죽인다 (이걸 빼먹으면 아래 삭제도 실패한다)
+.\gradlew.bat --stop
+Start-Sleep -Seconds 4
+
+# 2) 빌드 폴더 삭제
+Remove-Item "app\build","build" -Recurse -Force -ErrorAction SilentlyContinue
+
+# 3) 재빌드
+.\gradlew.bat assembleDebug
+```
+
+**성공 기준:** `BUILD SUCCESSFUL` + `app\build\outputs\apk\debug\*.apk` 생성
+
+**실측 (2026-09-22):** 데몬 2개가 떠 있는 상태에서 `build_android.ps1` 실행 → 정상 빌드 확인.
+
+### 🔁 예방 규칙 (시간 낭비를 막는 핵심)
+
+1. **빌드는 한 곳에서만 한다.**
+   | 상황 | 할 일 |
+   |---|---|
+   | Studio로 작업 중 | Studio 안에서 `Build → Rebuild Project` |
+   | 터미널로만 작업 | Studio **종료 후** `gradlew assembleDebug` |
+
+2. **Studio 자동빌드를 끈다** (켜져 있으면 저장할 때마다 충돌).
+   ```
+   File → Settings → Build, Execution, Deployment → Compiler
+     → "Build project automatically" 체크 해제
+   ```
+
+3. **터미널 빌드 전에는 항상 `--stop` 을 습관으로.**
+   ```powershell
+   .\gradlew.bat --stop; .\gradlew.bat assembleDebug
+   ```
+
+4. 빌드 실패가 나면 **먼저 코드를 의심하지 말고 데몬을 의심한다.**
+   `AccessDeniedException` / `Unable to delete directory` 가 보이면 코드 문제가 아니다.
+
+### JDK 경로 (터미널 빌드 시 필요)
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+```
+`java` 가 PATH에 없으므로 위 설정을 매번 넣어야 한다.
+
+### 빠른 진단 명령 (원인 확인용)
+```powershell
+# 떠 있는 데몬/Studio 확인
+Get-Process | Where-Object { $_.ProcessName -match 'java|kotlin|studio' } |
+  Select-Object Id, ProcessName, StartTime
+```
 
 ---
 

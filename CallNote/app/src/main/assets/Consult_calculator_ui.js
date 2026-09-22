@@ -3983,7 +3983,7 @@ function initPropertyExtraFields() {
     // 주신보는 신용점수 기준을 따르지 않는다.
     const rules = CREDIT_SCORE_RULES[category];
     if (!rules) return '';
-    if (!hasKcb && !hasNice) return '신용점수 미입력';
+    if (!hasKcb && !hasNice) return '신용 미입력';
 
     // 입력된 점수만으로 판정한다. OR 행은 한 점수만 있어도 적용되고,
     // AND 행은 KCB와 NICE를 모두 입력해 모두 만족해야 적용된다.
