@@ -52,8 +52,10 @@
   }
 
   // 로그인 상태에 따라 화면을 바꾼다.
-  //   - 로그인 안 됨: 로그인 카드를 화면 "중앙"에 띄워 바로 입력하게 한다.
-  //   - 로그인 됨: 카드를 닫고, 우상단에 작은 "이름 + 로그아웃" 칩만 남긴다.
+  //   - 로그인 됨: 로그인 카드를 닫고, 우상단에 작은 "이름 + 로그아웃" 칩을 남긴다.
+  //   - 로그인 안 됨: index.html 처럼 자체 이름 입력창(#user-name-input)이 있는 화면에서는
+  //     중앙 모달을 자동으로 띄우지 않는다(두 입력이 겹치지 않게).
+  //     그런 입력창이 없는 단독 화면에서만 중앙 로그인 카드를 자동 표시한다.
   function applyAuthState(user) {
     var box = document.getElementById('dodo-auth-box');
     if (box) {
@@ -66,8 +68,8 @@
         hideLoginModal();
       } else {
         box.style.display = 'none';
-        // 로그인 안 됐으면 중앙 로그인 카드를 자동으로 띄운다.
-        showLoginModal();
+        var hasOwnGate = !!document.getElementById('user-name-input');
+        if (!hasOwnGate) showLoginModal();
       }
     }
   }
@@ -144,6 +146,62 @@
     if (modal) modal.style.display = 'none';
   }
 
+  /* 이름 입력칸에 이메일을 받았을 때 쓰는 진입점.
+     - 이미 가입된 이메일이면 비밀번호를 물어 로그인,
+     - 미가입이면 비밀번호를 물어 회원가입을 진행한다.
+     비밀번호 입력은 모달로 처리한다(프롬프트보다 안전하고 모바일에 친화적). */
+  function promptPassword(email, mode) {
+    return new Promise(function (resolve, reject) {
+      var modal = buildLoginModal();
+      modal.style.display = 'flex';
+      modal.querySelector('#dodo-auth-email').value = email;
+      var passInput = modal.querySelector('#dodo-auth-pass');
+      var msg = modal.querySelector('#dodo-auth-msg');
+      msg.textContent = mode === 'signup' ? '신규 가입입니다. 비밀번호를 6자 이상 입력하세요.' : '';
+      passInput.value = '';
+      setTimeout(function () { passInput.focus(); }, 30);
+
+      // 기존 submit 로직을 건드리지 않고, 버튼 클릭을 가로채 이 약속(promise)을 완결한다.
+      function cleanup() {
+        loginBtn.removeEventListener('click', loginHandler, true);
+        signupBtn.removeEventListener('click', signupHandler, true);
+      }
+      var loginBtn = modal.querySelector('#dodo-auth-login-btn');
+      var signupBtn = modal.querySelector('#dodo-auth-signup-btn');
+      function attempt(signUp) {
+        var emailVal = modal.querySelector('#dodo-auth-email').value.trim();
+        var pass = passInput.value;
+        if (!emailVal || !pass) { msg.textContent = '이메일과 비밀번호를 입력하세요.'; return; }
+        var action = signUp ? fb().auth.createUserWithEmailAndPassword(emailVal, pass)
+                            : fb().auth.signInWithEmailAndPassword(emailVal, pass);
+        action.then(function (cred) {
+          cleanup();
+          hideLoginModal();
+          resolve(cred.user);
+        }).catch(function (err) {
+          msg.textContent = authErrorMessage(err);
+        });
+      }
+      function loginHandler(e) { e.stopImmediatePropagation(); e.preventDefault(); attempt(false); }
+      function signupHandler(e) { e.stopImmediatePropagation(); e.preventDefault(); attempt(true); }
+      loginBtn.addEventListener('click', loginHandler, true);
+      signupBtn.addEventListener('click', signupHandler, true);
+    });
+  }
+
+  /* 이메일로 로그인 시도 → 실패하면 회원가입 폼을 띄운다. */
+  function signInOrPrompt(email) {
+    if (!ready()) return Promise.reject(new Error('not ready'));
+    // 먼저 비밀번호 로그인 모달을 띄운다. (신규/기존 공통)
+    return promptPassword(email, 'signin').catch(function (err) {
+      var code = String(err && err.code || '');
+      if (code.indexOf('user-not-found') !== -1) {
+        return promptPassword(email, 'signup');
+      }
+      throw err;
+    });
+  }
+
   // 로그인/로그아웃 버튼이 있는 상단 박스를 만든다.
   // 상담 화면 우상단에 작게 붙는다.
   function buildAuthBox() {
@@ -166,9 +224,13 @@
 
   function init() {
     if (!ready()) return;
-    buildAuthBox();
+    // index.html 셸의 iframe 안에서는 index.html 이 로그인을 전담한다.
+    // 여기서 또 박스/모달을 띄우면 중복되므로, 최상위 창일 때만 UI를 만든다.
+    var embedded = false;
+    try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+    if (!embedded) buildAuthBox();
     fb().auth.onAuthStateChanged(function (user) {
-      applyAuthState(user);
+      if (!embedded) applyAuthState(user);
       if (user) {
         // 기존 화면과 호환: 로그인한 사용자의 표시 이름을 calc_user_name 에 채운다.
         var name = displayNameOf(user);
@@ -194,6 +256,7 @@
     showLogin: showLoginModal,
     hideLogin: hideLoginModal,
     isReady: ready,
+    signInOrPrompt: signInOrPrompt,
     currentUser: function () { return ready() ? fb().auth.currentUser : null; },
     uid: function () { return ready() && fb().auth.currentUser ? fb().auth.currentUser.uid : null; },
     displayName: function () { return ready() && fb().auth.currentUser ? displayNameOf(fb().auth.currentUser) : ''; }
