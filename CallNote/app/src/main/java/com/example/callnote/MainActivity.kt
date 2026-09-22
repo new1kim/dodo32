@@ -51,14 +51,15 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
-    // 앱에서 오갈 수 있는 9개 화면. 평소 실행은 DSR, 전화 수신 팝업의 "상담일지 열기"를 거치면
-    // CONSULTING이 먼저 뜬다. 나머지는 우측 상단 메뉴 버튼으로 수동 이동.
+    // 앱에서 오갈 수 있는 화면들. 평소 실행은 상담(Consult_Main.html)이고,
+    // 전화 수신 팝업의 "상담하기"를 거치면 같은 상담 화면에 통화 정보가 자동 주입된다.
+    // 나머지는 우측 상단 메뉴 버튼으로 수동 이동.
     private enum class Page(val fileName: String, val menuLabel: String) {
         // 상담(Consult_Main.html)은 웹 index.html의 "상담" 버튼과 같은 화면 - 탭 맨 왼쪽에 온다.
         // DSR 탭(DSR_Main.html)과는 완전히 독립된 별도 세트(Consult_*)를 참조한다.
+        // 전화 수신 팝업의 "상담하기"도 이 화면으로 온다(예전의 상담일지.html 경로는 제거됨).
         CONSULT("Consult_Main.html", "상담"),
         DSR("DSR_Main.html", "DSR 계산"),
-        CONSULTING("상담일지.html", "상담일지"),
         DTI("DTI.html", "DTI 계산"),
         DATE_CALC("날짜계산기.html", "날짜계산"),
         // 공시가조회(gonsi.html)는 법정동코드별 시세 JSON(op_gongsi_data/, 약 1900개 파일)을
@@ -95,13 +96,12 @@ class MainActivity : AppCompatActivity() {
             .build()
     }
 
-    // 상담일지 화면으로 전화 데이터를 넘겨야 하는데 아직 그 화면이 로딩 중일 때 잠깐 들고 있는 자리.
-    // onPageFinished에서 상담일지 로딩이 끝나는 걸 확인한 뒤 실제로 주입한다.
-    private var pendingCallData: Triple<String, String, String>? = null
+    // 상담(Consult_Main.html) 화면으로 전화 데이터를 넘겨야 하는데 아직 로딩 중일 때 잠깐 들고 있는 자리.
+    // onPageFinished에서 로딩이 끝나는 걸 확인한 뒤 실제로 주입한다.
     private var pendingConsultCallData: Triple<String, String, String>? = null
     private var pendingConsultLoadExisting = false
-    // DSR 계산기의 "상담일지 전달"이 넘긴 값(JSON 문자열). 위 pendingCallData와 같은 이유로
-    // 상담일지 화면 로딩이 끝날 때까지 들고 있다가 onPageFinished에서 주입한다.
+    // DSR 계산기의 "상담 전달"이 넘긴 값(JSON 문자열). 위 pendingConsultCallData와 같은 이유로
+    // 상담 화면 로딩이 끝날 때까지 들고 있다가 onPageFinished에서 주입한다.
     private var pendingConsultingPayload: String? = null
 
     // checkPermissions()가 띄운 설정 화면 때문에 Activity가 백그라운드로 밀려났다 돌아온 경우 표시.
@@ -166,10 +166,10 @@ class MainActivity : AppCompatActivity() {
         checkPermissions()
         ensureUserCode()
         ConsultSyncWorker.schedulePeriodic(this) // 하루 4회 상담내역 로컬 캐시 동기화 예약(이미 예약돼 있으면 무시됨)
-        AssetSyncManager.syncInBackground(this) // DSR/상담일지 화면 파일을 GitHub 원본에서 백그라운드로 최신화 시도
+        AssetSyncManager.syncInBackground(this) // 각 화면 파일을 GitHub 원본에서 백그라운드로 최신화 시도
 
-        // 평소 실행(아이콘 탭)은 DSR 계산기가 기본 화면. 전화 수신 팝업의 "상담일지 열기"를 거쳐
-        // 들어온 경우(인텐트에 PHONE extra가 있음)에는 상담일지를 먼저 띄운다.
+        // 평소 실행(아이콘 탭)은 상담(Consult_Main.html). 전화 수신 팝업의 "상담하기"를 거쳐
+        // 들어온 경우(인텐트에 PHONE extra가 있음)에도 같은 상담 화면에 통화 정보를 주입한다.
         val phone = intent?.getStringExtra("PHONE")
         if (phone != null) {
             openConsultWithCall(
@@ -205,22 +205,14 @@ class MainActivity : AppCompatActivity() {
             }
             Log.d("CallNote", "openPage ${page.name} -> $url")
             webView.loadUrl(url)
-        } else if (page == Page.CONSULTING) {
-            // 이미 상담일지 화면이 떠 있으면 새로고침 없이 바로 데이터만 주입
-            injectPendingCallDataIfReady()
-            injectPendingConsultingPayload()
         } else if (page == Page.CONSULT) {
+            // 이미 상담 화면이 떠 있으면 새로고침 없이 바로 통화 데이터만 주입
             injectPendingConsultCallDataIfReady()
         }
         updateTabHighlight()
     }
 
-    // 전화 수신 팝업의 "상담일지 열기"를 거쳐 들어온 경우 전용 - 전화 데이터를 같이 넘긴다
-    private fun openConsultingWithCall(phone: String, name: String, memo: String) {
-        pendingCallData = Triple(phone, name, memo)
-        openPage(Page.CONSULTING)
-    }
-
+    // 전화 수신 팝업의 "상담하기"를 거쳐 들어온 경우 전용 - 전화 데이터를 같이 넘긴다
     private fun openConsultWithCall(phone: String, name: String, memo: String, loadExisting: Boolean = false) {
         pendingConsultCallData = Triple(phone, name, memo)
         pendingConsultLoadExisting = loadExisting
@@ -265,7 +257,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(Color.parseColor("#1e293b"))
         }
-        Page.values().filter { it != Page.CONSULTING }.forEach { page ->
+        Page.values().forEach { page ->
             val tab = TextView(this).apply {
                 text = page.menuLabel
                 textSize = 13f
@@ -390,13 +382,9 @@ class MainActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 webViewLoaded = true
                 // 최초 실행 때 네이티브 다이얼로그에서 저장한 사용자 이름을
-                // 모든 WebView 화면의 localStorage에도 주입한다. 상담일지.html뿐 아니라
-                // 동기화 버튼이 있는 Consult_Main.html도 같은 이름을 사용해야 한다.
+                // 모든 WebView 화면의 localStorage에도 주입한다. Consult_Main.html도
+                // 동기화 버튼에서 같은 이름을 사용해야 한다.
                 syncUserCodeToWebView()
-                if (currentPage == Page.CONSULTING) {
-                    injectPendingCallDataIfReady()
-                    injectPendingConsultingPayload()
-                }
                 if (currentPage == Page.CONSULT) {
                     injectPendingConsultCallDataIfReady()
                     injectPendingConsultingPayloadForMain()
@@ -474,18 +462,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun injectPendingCallDataIfReady() {
-        if (!webViewLoaded || currentPage != Page.CONSULTING) return
-        val (phone, name, memo) = pendingCallData ?: return
-        val safePhone = phone.replace("'", "")
-        val safeName = name.replace("'", "")
-        val safeMemo = memo.replace("\n", " ").replace("'", "")
-        val js = "javascript:injectCallData('$safePhone', '$safeName', '$safeMemo');"
-        webView.evaluateJavascript(js, null)
-        pendingCallData = null
-    }
-
-    // DSR 화면에 "상담일지 전달" 메시지를 받아 네이티브로 넘기는 리스너를 심는다.
+    // DSR 화면에 "상담 전달" 메시지를 받아 네이티브로 넘기는 리스너를 심는다.
     //
     // 화면 파일(DSR_calculator_ui.js)은 GitHub 캐시가 있으면 그쪽을 먼저 쓰기 때문에(AssetSyncManager),
     // APK만 다시 빌드해서는 폰의 화면 파일이 갱신되지 않는다. 그래서 화면 파일이 옛것이어도
@@ -507,26 +484,13 @@ class MainActivity : AppCompatActivity() {
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
-        Log.d("CallNote", "DSR 화면에 상담일지 전달 리스너 설치")
+        Log.d("CallNote", "DSR 화면에 상담 전달 리스너 설치")
     }
 
-    // DSR에서 넘어온 값을 상담일지 화면에 넣는다. 상담일지.html은 웹에서 쓰던 것과 같은
-    // message 이벤트 리스너로 이 값을 받으므로, 전용 함수를 새로 만들지 않고 그 화면이
-    // 자기 자신에게 postMessage 하도록 시킨다(받는 쪽 코드를 웹과 앱이 그대로 공유).
-    // 페이지의 입력칸 복원(loadConsultingInputs)이 끝난 뒤인 onPageFinished에서 부르므로
+    // DSR에서 넘어온 값을 상담 화면(Consult_Main.html)에 넣는다. 그 화면은 웹에서 쓰던 것과 같은
+    // message 이벤트 리스너로 이 값을 받으므로, 전용 함수를 새로 만들지 않고
+    // customerInfoMemo 입력칸에 직접 넣어 input 이벤트를 일으킨다(받는 쪽 코드를 웹과 앱이 그대로 공유).
     // 기존에 적어둔 상담내용 뒤에 이어붙는다.
-    private fun injectPendingConsultingPayload() {
-        val payload = pendingConsultingPayload ?: return
-        if (!webViewLoaded || currentPage != Page.CONSULTING) {
-            Log.d("CallNote", "상담일지 전달 대기중 (loaded=$webViewLoaded, page=$currentPage)")
-            return
-        }
-        pendingConsultingPayload = null
-        // payload는 웹에서 JSON.stringify로 만든 값이라 그대로 JS 객체 리터럴로 쓸 수 있다.
-        webView.evaluateJavascript("window.postMessage($payload, '*');", null)
-        Log.d("CallNote", "상담일지 전달 주입 완료")
-    }
-
     private fun injectPendingConsultingPayloadForMain() {
         val payload = pendingConsultingPayload ?: return
         if (!webViewLoaded || currentPage != Page.CONSULT) return
@@ -535,16 +499,16 @@ class MainActivity : AppCompatActivity() {
         webView.evaluateJavascript(js, null)
     }
 
-    // 웹뷰(상담일지.html)와 네이티브 로컬 캐시를 잇는 창구
+    // 웹뷰(Consult_Main.html)와 네이티브 로컬 캐시를 잇는 창구
     private inner class WebAppBridge {
-        // DSR 계산기의 "상담일지 전달" 버튼. 웹에서는 부모 프레임(index.html)이 받아 중계하지만
+        // DSR 계산기의 "상담 전달" 버튼. 웹에서는 부모 프레임(index.html)이 받아 중계하지만
         // 앱은 화면 하나를 통째로 띄우는 구조라 부모 프레임이 없어 그 경로가 통하지 않는다.
-        // 여기서 상담일지 화면으로 바꾸고, 로딩이 끝나면 넘겨받은 값을 그 화면에 주입한다.
+        // 여기서 상담 화면으로 바꾸고, 로딩이 끝나면 넘겨받은 값을 그 화면에 주입한다.
         // @JavascriptInterface 메서드는 UI 스레드가 아닌 별도 스레드에서 불리므로,
         // WebView를 건드리는 openPage는 반드시 runOnUiThread로 감싸야 한다.
         @JavascriptInterface
         fun openConsultingWith(payloadJson: String) {
-            Log.d("CallNote", "상담일지 전달 요청 받음 (${payloadJson.length}자)")
+            Log.d("CallNote", "상담 전달 요청 받음 (${payloadJson.length}자)")
             runOnUiThread {
                 pendingConsultingPayload = payloadJson
                 openPage(Page.CONSULT)
@@ -661,7 +625,7 @@ class MainActivity : AppCompatActivity() {
                 if (rawNumber.isBlank()) continue
 
                 val type = c.getInt(typeIdx)
-                // 1순위: 상담일지에 등록된 이름(업무상 더 의미 있는 이름일 수 있음)
+                // 1순위: 상담에서 저장된 이름(업무상 더 의미 있는 이름일 수 있음)
                 // 2순위: 폰 연락처에 저장된 이름 — 전화기 통화목록에 뜨는 것과 동일하게 보이도록
                 val cachedName = LocalConsultCache.findByPhone(context, rawNumber)?.optString("name", "").orEmpty()
                 val displayName = cachedName.ifEmpty { resolveContactName(context, rawNumber) }
@@ -700,7 +664,7 @@ class MainActivity : AppCompatActivity() {
     private fun syncUserCodeToWebView() {
         val userCode = prefs.getString("user_code", "")?.trim().orEmpty()
         if (userCode.isEmpty()) return
-        // 동기화의 기준은 상담일지 입력칸이 아니라 WebView localStorage다.
+        // 동기화의 기준은 상담 입력칸이 아니라 WebView localStorage다.
         // Consult_Main.html처럼 입력칸이 없는 화면에서도 같은 사용자 이름을 사용한다.
         val quotedUserCode = JSONObject.quote(userCode)
         val js = "(function(){" +
@@ -713,7 +677,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 팝업을 거치지 않고 나중에 앱을 직접 열었을 때, CallReceiver가 기억해둔 통화중 번호가 있으면
-    // 연락처 칸을 채우고, 상담일지 히스토리 검색도 화면에 띄우지 않은 채 미리 해둠(조용한 백그라운드 준비)
+    // 연락처 칸을 채우고, 상담 히스토리 검색도 화면에 띄우지 않은 채 미리 해둠(조용한 백그라운드 준비)
     private fun fillActiveCallPhoneIfAny() {
         if (!webViewLoaded) return
         val phone = prefs.getString("active_call_phone", "")?.trim().orEmpty()

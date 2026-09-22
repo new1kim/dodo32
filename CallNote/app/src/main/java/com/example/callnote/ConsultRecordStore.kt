@@ -3,7 +3,7 @@ import android.content.Context
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
-/** Consult_Main.html 전용 상담저장소. 상담일지 LocalConsultCache와 분리한다. */
+/** Consult_Main.html 전용 상담저장소. 예전 상담일지용 LocalConsultCache와 분리한다. */
 object ConsultRecordStore {
     private const val TAG = "CallNote"
     private const val FILE_NAME = "consult_main_records.json"

@@ -71,7 +71,7 @@
                       <input type="text" id="creditScoreNiceInput" inputmode="numeric" maxlength="3" placeholder="3자리" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                     </label>
                     <!-- 신용점수 기준표에 따른 최대한도 라벨 (클릭 시 기준표 이미지) -->
-                    <button type="button" class="credit-score-limit" id="creditScoreLimitLabel" onclick="openImageModal('신용점수기준.png')">신용점수 미입력</button>
+                    <button type="button" class="credit-score-limit" id="creditScoreLimitLabel" onclick="openImageModal('신용점수기준.png')">신용 미입력</button>
                   </div>
                     <textarea id="customerInfoMemo" class="income-memo customer-inline-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
                   </div>
@@ -671,8 +671,8 @@
   </div>
 
   <!-- KB 시세 조회 전체화면 오버레이 -->
-  <div id="marketPriceOverlay" onclick="closeMarketPriceOverlay()" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
-    <iframe id="marketPriceFrame" src="about:blank" onclick="event.stopPropagation()" style="width:100%; height:100%; border:none;"></iframe>
+    <div id="marketPriceOverlay" onclick="closeMarketPriceOverlay()" style="display:none; position:fixed; inset:0; z-index:3000; background:#fff;">
+    <iframe id="marketPriceFrame" title="시세 조회" src="about:blank" onclick="event.stopPropagation()" style="width:100%; height:100%; border:none;"></iframe>
   </div>
 
   <!-- 필요일자(본건 대출정보) 클릭 시 뜨는 달력 -->
@@ -1207,10 +1207,10 @@
             ho: e.data.ho || ''
           });
         }
-                closeMarketPriceOverlay();
-              }
-            });
-         </script>
+        closeMarketPriceOverlay();
+      }
+    });
+  </script>
 
           
           <!-- 고객정보 기능 보강: 상담일지와 동일한 입력/초기화/최근 통화 동작 -->

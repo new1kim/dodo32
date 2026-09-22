@@ -2196,7 +2196,13 @@ function 선택초기화() {
   nextIncomeRowIndex = 2;
   otherRowsWereBlocked = false;
 
-  if (ltvMarketPriceInput) ltvMarketPriceInput.value = "";
+  if (ltvMarketPriceInput) {
+    ltvMarketPriceInput.value = "";
+    // 초기화에서는 value를 직접 비우므로 input 이벤트가 발생하지 않는다.
+    // 물건지정보 탭 제목줄의 시세 요약도 즉시 다시 계산한다.
+    ltvMarketPriceInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (typeof updatePropertyInfoSummary === 'function') updatePropertyInfoSummary();
   const ltvMaxAmountOutput = document.getElementById("ltvMaxAmountOutput");
   if (ltvMaxAmountOutput) ltvMaxAmountOutput.value = "";
   if (ltvMinorLeaseInput) ltvMinorLeaseInput.value = "";
@@ -4525,6 +4531,8 @@ function 대출정보텍스트생성() {
   lines.push('🏢 물건지정보');
   lines.push(` 👉 ${[apt.aptName, area, supply].filter(Boolean).join(', ')}`);
   lines.push(` 👉 ${[apt.address, dongHo, apt.투기과열지구 ? '투기과열' : ''].filter(Boolean).join(', ')}`);
+  const propertyKbPrice = val('ltvMarketPriceInput');
+  if (propertyKbPrice) lines.push(` 👉 KB시세 : ${propertyKbPrice}`);
   if (val('propertySettlementDate')) lines.push(` 👉 잔금일자 : ${val('propertySettlementDate')}`);
   const propertyMemo = cleanMemo(val('propertyInfoMemo'));
   if (propertyMemo) lines.push(` 👉 물건지 정보  ${propertyMemo}`);

@@ -85,13 +85,12 @@ tasks.register<Copy>("syncWebAssets") {
             "Consult_calculator_ui.js",
             "Consult_style.css",
             "DSR_Main.html",
-            "DSR_calculator_logic.min.js", // DSR_Main.html이 참조하는 건 난독화 버전
+            "DSR_calculator_logic.js", // DSR_Main.html이 참조하는 건 원본(.js)이다 - min 버전 아님
             "DSR_calculator_ui.js",
             "DSR_style.css",
             "시세조회.html",
             "소액임차보증금.png",
             "장래예상소득증가율.png",
-            "상담일지.html",
             "DTI.html",
             "신용점수기준.png",
             "계산기.html",

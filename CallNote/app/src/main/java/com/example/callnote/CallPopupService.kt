@@ -40,7 +40,7 @@ class CallPopupService : Service() {
     // 번호를 못 가져왔을 때 이유 — "PERMISSION"(통화기록 권한 없음) / "UNKNOWN"(그 외, 타이밍 등)
     private var noNumberReason = "UNKNOWN"
 
-    // "상담일지 열기" 버튼이 클릭 시점 기준 최신 정보로 앱을 열 수 있도록 유지하는 상태
+    // "상담하기" 버튼이 클릭 시점 기준 최신 정보로 앱을 열 수 있도록 유지하는 상태
     private var currentPhone = ""
     private var currentName = ""
     private var currentMemo = ""
@@ -234,7 +234,7 @@ class CallPopupService : Service() {
     }
 
     // 카드의 빈 영역(제목/메모 부분)을 드래그하면 팝업이 움직이고, 뗀 위치가 저장돼서 다음 전화부터 그대로 뜸.
-    // 버튼(✕, 상담일지 열기) 위에서는 자체 클릭 처리가 우선되므로 드래그와 충돌하지 않음.
+    // 버튼(✕, 상담하기) 위에서는 자체 클릭 처리가 우선되므로 드래그와 충돌하지 않음.
     private fun enableDragToMove(target: View, layoutParams: WindowManager.LayoutParams) {
         var initialX = 0
         var initialY = 0
@@ -307,7 +307,6 @@ class CallPopupService : Service() {
         // 로컬 캐시만 조회 — 하루 4회 자동 동기화 + "로컬에 저장" 수동 동기화로 이미 최신 상태를 유지하니
         // 여기서 굳이 서버까지 다시 왕복할 필요 없음(속도도 빠르고 서버 부담도 없음)
         // 최근 Consult_Main.html이 저장한 로컬 저장소를 기준으로 번호를 조회한다.
-        // 기존 상담일지.html/Google Sheet 캐시는 사용하지 않는다.
         val cached = ConsultRecordStore.findByPhone(this, phoneNumber)
         if (cached != null) {
             Log.d(TAG, "consult cache hit for $phoneNumber")

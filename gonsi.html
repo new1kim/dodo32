@@ -1218,6 +1218,168 @@ select:focus {
 const GAS_BASE_URL =
     'https://script.google.com/macros/s/AKfycbxIB_jOSdlZNLWpMdsX4j_fpOalfUnC1UI0ysIY7IblKNb9zo--Q2D58WcbTkA-1lOf/exec';
 
+/* =========================================================
+   ★ 카카오 직접 호출 (GAS 우회)
+   실측 결과 카카오 로컬 API는 앱 origin(https://appassets.androidx.startup)에서
+   CORS를 허용한다(Authorization 커스텀 헤더의 preflight까지 통과).
+   → 주소검색·건물명검색에서 GAS 콜드스타트(0.5~3초)를 없앨 수 있다.
+
+   ★ VWorld(공시가격)는 CORS를 막으므로 GAS를 계속 거쳐야 한다.
+   (서버에서는 200 정상, 브라우저에서는 No Access-Control-Allow-Origin)
+   그래서 이 파일은 "카카오는 직접, VWorld는 GAS" 하이브리드로 동작한다.
+   ========================================================= */
+const KAKAO_API_KEY = '40ff77c743e30864998d253cf262c62c';
+// 카카오 로컬 API는 서버 호출에도 등록된 웹 플랫폼 도메인이 담긴 KA 헤더를 요구한다.
+const KAKAO_KA = 'sdk/1.0.0 os/javascript lang/ko-KR device/pc origin/https://new1kim.github.io';
+
+// 카카오가 도메인 정책을 바꾸거나 WebView가 막을 때를 대비한 비상 스위치(강제 GAS)
+const USE_GAS_DIRECTLY = false;
+
+// 한글 파라미터 "키"까지 반드시 인코딩해야 한다(.gs buildUrl과 동일 규칙)
+function buildQuery(params) {
+    return Object.keys(params)
+        .map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+        .join('&');
+}
+
+// 기존 GAS 경로 — 카카오/VWorld 모두의 공통 폴백
+function gasFetch(action, params) {
+    const q = buildQuery(Object.assign({ action: action }, params || {}));
+    return fetch(GAS_BASE_URL + '?' + q).then(function(res) {
+        if (!res.ok) throw new Error('GAS HTTP ' + res.status);
+        return res.json();
+    });
+}
+
+/* ---------------------------------------------------------
+   응답 캐시 — 같은 조회의 GAS/VWorld 왕복을 제거한다.
+   키별로 Promise를 캐시해 동시 호출도 1회만 나가게 한다.
+   --------------------------------------------------------- */
+const _jsonCache = new Map();
+function cached(key, loader) {
+    if (_jsonCache.has(key)) return _jsonCache.get(key);
+    const p = loader();
+    // 실패한 요청은 캐시에서 제거해 다음 시도가 다시 나가게 한다
+    p.catch(function() { _jsonCache.delete(key); });
+    _jsonCache.set(key, p);
+    return p;
+}
+
+/* ---------------------------------------------------------
+   카카오 주소검색 — 직접 호출, 실패 시 GAS 폴백
+   기존 GAS 응답 스키마({ results: [...] })를 그대로 유지한다.
+   --------------------------------------------------------- */
+function normalizeDoc(doc) {
+    const addr = doc.address || {};
+    const road = doc.road_address;
+
+    // PNU = 법정동코드(10) + 대장구분(1) + 본번(4) + 부번(4)
+    // (.gs buildPnu와 동일 규칙 — VWorld 조회에 필요)
+    function pad4(v) {
+        const digits = String(v || '0').replace(/\D/g, '') || '0';
+        return ('0000' + digits).slice(-4);
+    }
+
+    const pnu = addr.b_code
+        ? addr.b_code + (addr.mountain_yn === 'Y' ? '2' : '1')
+          + pad4(addr.main_address_no) + pad4(addr.sub_address_no)
+        : '';
+
+    return {
+        roadAddress: road ? road.address_name : doc.address_name,
+        jibunAddress: addr.address_name,
+        buildingName: road ? (road.building_name || '') : '',
+        legalDongCode: addr.b_code,
+        pnu: pnu
+    };
+}
+
+function fetchAddressSearch(keyword) {
+    return cached('addr:' + keyword, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetch('https://dapi.kakao.com/v2/local/search/address.json?' +
+                    buildQuery({ query: keyword }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    const results = (json.documents || [])
+                        .filter(function(d) { return d.address; })
+                        .map(normalizeDoc);
+                    return { results: results };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 주소검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('addressSearch', { keyword: keyword });
+                });
+        }
+        return gasFetch('addressSearch', { keyword: keyword });
+    });
+}
+
+/* ---------------------------------------------------------
+   카카오 키워드(장소)검색 — 직접 호출, 실패 시 GAS 폴백
+   --------------------------------------------------------- */
+function fetchNameSearch(keyword) {
+    return cached('name:' + keyword, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetch('https://dapi.kakao.com/v2/local/search/keyword.json?' +
+                    buildQuery({ query: keyword, size: 15 }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    // 상가/음식점 등 잡음을 빼고 주거시설만 남긴다(.gs handleNameSearch와 동일)
+                    const results = (json.documents || [])
+                        .filter(function(d) {
+                            return d.category_name && d.category_name.indexOf('주거시설') !== -1;
+                        })
+                        .map(function(d) {
+                            return {
+                                placeName: d.place_name,
+                                roadAddress: d.road_address_name || d.address_name,
+                                jibunAddress: d.address_name,
+                                categoryName: d.category_name.split('>').pop().trim()
+                            };
+                        });
+                    return { results: results };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 건물명검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('nameSearch', { keyword: keyword });
+                });
+        }
+        return gasFetch('nameSearch', { keyword: keyword });
+    });
+}
+
+/* ---------------------------------------------------------
+   VWorld 공시가격 — CORS 차단이라 GAS 경유(기존 그대로)
+   다만 PNU+연도 단위로 캐시해 반복 조회의 왕복을 없앤다.
+   --------------------------------------------------------- */
+function fetchAptRecordsCached(pnu, stdrYear) {
+    const key = 'apt:' + pnu + ':' + (stdrYear || '');
+    return cached(key, function() {
+        return gasFetch('aptPrice', { pnu: pnu, stdrYear: stdrYear || '' })
+            .then(function(data) { return data.items || []; });
+    });
+}
+
+function fetchHouseRecordsCached(pnu) {
+    return cached('house:' + pnu, function() {
+        return gasFetch('housePrice', { pnu: pnu })
+            .then(function(data) { return data.items || []; });
+    });
+}
+
 const OP_DATA_BASE = 'op_gongsi_data/';
 
 // 오피스텔 정적 데이터의 고시연도. 새 연도 자료로 op_gongsi_data를 다시 만들면 이 값도 같이 바꾼다.
@@ -1241,11 +1403,15 @@ let pendingUnitSelection = null;
 
 // 띄어쓰기 없이 붙여쓴 도로명/지번 주소를 표준 형식으로 보정
 // 예: "명지로60번길19-5" -> "명지로60번길 19-5", "석우동53" -> "석우동 53"
+// 매번 재컴파일되지 않도록 정규식을 파일 상수로 올려 둔다.
+const ADDR_TIGHTEN_RE = /(로|길|동)(?=\d[\d-]*$)/;
+const WS_RE = /\s+/g;
+
 function normalizeAddress(raw) {
 
     return raw
-        .replace(/(로|길|동)(?=\d[\d-]*$)/, '$1 ')
-        .replace(/\s+/g, ' ')
+        .replace(ADDR_TIGHTEN_RE, '$1 ')
+        .replace(WS_RE, ' ')
         .trim();
 }
 
@@ -1389,8 +1555,7 @@ function searchAddress() {
     );
 
 
-    fetch(GAS_BASE_URL + '?action=addressSearch&keyword=' + encodeURIComponent(keyword))
-        .then(res => res.json())
+    fetchAddressSearch(keyword)
         .then(data => {
 
             if (data.error) {
@@ -1438,8 +1603,7 @@ function searchByBuildingName(keyword) {
         false
     );
 
-    fetch(GAS_BASE_URL + '?action=nameSearch&keyword=' + encodeURIComponent(keyword))
-        .then(res => res.json())
+    fetchNameSearch(keyword)
         .then(data => {
 
             if (data.error) {
@@ -1543,11 +1707,15 @@ function displayAddressSearchResults(results) {
 
     /*
      * 검색 결과 위치로 이동
+     * innerHTML 교체 직후 동기 scrollIntoView는 레이아웃이 불안정해
+     * 모바일에서 튀는 경우가 있어 한 프레임 미뤄 안정된 뒤 스크롤한다.
      */
 
-    area.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+    requestAnimationFrame(function() {
+        area.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
     });
 }
 
@@ -1641,8 +1809,7 @@ function selectNameSearchResult(item) {
         false
     );
 
-    fetch(GAS_BASE_URL + '?action=addressSearch&keyword=' + encodeURIComponent(item.roadAddress))
-        .then(res => res.json())
+    fetchAddressSearch(item.roadAddress)
         .then(data => {
 
             if (data.error || !data.results || data.results.length === 0) {
@@ -1751,23 +1918,12 @@ function selectAddress(data) {
 ========================================================= */
 
 function fetchAptRecords(pnu, stdrYear) {
-
-    let url = GAS_BASE_URL + '?action=aptPrice&pnu=' + encodeURIComponent(pnu);
-
-    if (stdrYear) {
-        url += '&stdrYear=' + encodeURIComponent(stdrYear);
-    }
-
-    return fetch(url)
-        .then(res => res.json())
-        .then(data => data.items || []);
+    // PNU+연도 단위 캐시 — 같은 조건 재조회 시 GAS 왕복을 없앤다.
+    return fetchAptRecordsCached(pnu, stdrYear);
 }
 
 function fetchHouseRecords(pnu) {
-
-    return fetch(GAS_BASE_URL + '?action=housePrice&pnu=' + encodeURIComponent(pnu))
-        .then(res => res.json())
-        .then(data => data.items || []);
+    return fetchHouseRecordsCached(pnu);
 }
 
 function fetchOfficeBuilding(data) {
@@ -2311,15 +2467,10 @@ function searchPrice() {
 
         showLoadingPopup("공시가격을 조회하고 있습니다...");
 
-        fetch(
-            GAS_BASE_URL +
-            '?action=aptPrice&pnu=' + encodeURIComponent(selectedAddressData.pnu) +
-            '&stdrYear=' + encodeURIComponent(year)
-        )
-            .then(res => res.json())
-            .then(data => {
+        fetchAptRecords(selectedAddressData.pnu, year)
+            .then(items => {
 
-                const record = (data.items || []).find(r =>
+                const record = (items || []).find(r =>
                     r.dongNm === dongVal && r.hoNm === hoVal
                 );
 

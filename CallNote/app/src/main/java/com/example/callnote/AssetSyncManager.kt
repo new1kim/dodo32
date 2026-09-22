@@ -8,7 +8,7 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-// DSR계산기/상담일지 화면 파일들을 GitHub 원본 저장소(new1kim/dodo32, main 브랜치, 공개)에서
+// 화면 파일들을 GitHub 원본 저장소(new1kim/dodo32, main 브랜치, 공개)에서
 // 받아와 로컬 캐시에 반영한다. 화면을 띄울 때는 2단계 우선순위를 따른다:
 //   1) 지난 실행 때까지 받아둔 완전한 캐시  2) (캐시가 아예 없을 때만) APK에 번들된 원본
 // 이번 실행 중에 받은 최신본은 대기실에 쌓아뒀다가 "다음 실행" 시작 때 반영된다(promotePendingCache).
@@ -45,11 +45,11 @@ object AssetSyncManager {
     const val ASSETS_PATH_PREFIX = "/assets/"
     const val CACHE_PATH_PREFIX = "/cache/"
 
-    // 앱에서 쓰는 9개 화면(상담/DSR/상담일지/DTI/날짜계산/MCG/대출계산기/신분증변환/문서스캔)과 그 의존 파일 전체.
+    // 앱에서 쓰는 8개 화면(상담/DSR/DTI/날짜계산/공시가조회/MCG/신분증변환/문서스캔)과 그 의존 파일 전체.
     // 날짜계산기.html은 폰트·flatpickr를 jsdelivr CDN에서 받으므로 오프라인이면 일부 기능이 저하될 수 있음(기존 웹의 동작과 동일).
     private val FILES = listOf(
         // ── 상담 화면 세트 (Consult_*) ─────────────────────────────
-        // 상담일지.html안에 임베드된 상담용 화면. DSR 세트와 이름만 다르고 각자 독립해서 동작한다.
+        // DSR 세트와 이름만 다르고 각자 독립해서 동작한다.
         "Consult_Main.html",
         "Consult_calculator_logic.js", // Consult_Main.html은 원본(.js)을 참조한다 - 난독화 버전이 아님
         "Consult_calculator_ui.js",
@@ -64,7 +64,6 @@ object AssetSyncManager {
         "시세조회.html",
         "소액임차보증금.png",
         "장래예상소득증가율.png",
-        "상담일지.html",
         "DTI.html",
         "신용점수기준.png",
         "계산기.html",

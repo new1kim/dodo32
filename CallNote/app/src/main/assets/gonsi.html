@@ -47,6 +47,31 @@ body {
     margin-bottom: 18px;
 }
 
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.gonsi-back-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dfe6ef;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+}
+.gonsi-back-btn:active { transform: scale(.94); }
+
 .header h1 {
     margin: 0;
     font-size: 24px;
@@ -58,6 +83,29 @@ body {
     margin: 7px 0 0;
     font-size: 13px;
     color: #777;
+}
+
+.direct-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 7px 13px 7px 7px;
+    border-radius: 999px;
+    border: 1px solid #dfe6ef;
+    background: #fff;
+    color: #333;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+}
+
+.direct-link-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
 
 
@@ -178,6 +226,73 @@ body {
 
 
 /* =========================================================
+   LOADING POPUP
+========================================================= */
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.18);
+    z-index: 9999;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-popup {
+    position: relative;
+    width: min(230px, calc(100vw - 40px));
+    padding: 26px 18px 20px;
+    background: #fff;
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+    text-align: center;
+}
+
+.loading-popup::after {
+    content: "";
+    position: absolute;
+    left: 28px;
+    bottom: -11px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-right: 1px solid rgba(17, 24, 39, 0.08);
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+    transform: rotate(45deg);
+    border-radius: 0 0 5px 0;
+}
+
+.loading-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 12px;
+    border: 4px solid rgba(34, 34, 34, 0.12);
+    border-top-color: #222;
+    border-radius: 50%;
+    animation: loading-spin 0.9s linear infinite;
+}
+
+@keyframes loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #222;
+    letter-spacing: -0.2px;
+}
+
+
+/* =========================================================
    SEARCH RESULTS
 ========================================================= */
 
@@ -285,14 +400,6 @@ body {
    PROPERTY TYPE
 ========================================================= */
 
-.property-type-area {
-    display: none;
-}
-
-.property-type-area.show {
-    display: block;
-}
-
 .type-badge {
     display: inline-flex;
     align-items: center;
@@ -307,22 +414,6 @@ body {
     font-size: 12px;
     font-weight: 700;
 }
-
-.type-description {
-    margin-top: 12px;
-
-    padding: 12px;
-
-    border-radius: 8px;
-
-    background: #f7f8fa;
-
-    font-size: 12px;
-    color: #666;
-
-    line-height: 1.6;
-}
-
 
 /* =========================================================
    UNIT SELECT
@@ -403,6 +494,59 @@ select:focus {
 
 .price-result.show {
     display: block;
+}
+
+
+/* =========================================================
+   CALC RESULT (공시가격 기반 계산값)
+========================================================= */
+
+.calc-result {
+    display: none;
+}
+
+.calc-result.show {
+    display: block;
+}
+
+.calc-row {
+    padding: 11px 0;
+
+    border-bottom: 1px solid #eee;
+}
+
+.calc-row:last-child {
+    border-bottom: 0;
+}
+
+.calc-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.calc-formula {
+    font-size: 13px;
+    color: #888;
+}
+
+.calc-value {
+    font-size: 13px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.calc-note {
+    margin-top: 4px;
+
+    font-size: 11px;
+    font-weight: 400;
+    color: #aaa;
+
+    line-height: 1.5;
 }
 
 .price-box {
@@ -533,6 +677,13 @@ select:focus {
 
 <body>
 
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite" aria-busy="true">
+    <div class="loading-popup">
+        <div class="loading-spinner"></div>
+        <div id="loadingText" class="loading-text">조회 중입니다...</div>
+    </div>
+</div>
+
 <div class="container">
 
 
@@ -542,13 +693,33 @@ select:focus {
 
     <div class="header">
 
-        <h1>
-            부동산 공시가격 조회
-        </h1>
+        <div class="header-row">
+
+            <button type="button" class="gonsi-back-btn" aria-label="이전 화면으로 돌아가기" onclick="closeGonsiView()">‹</button>
+
+            <h1>
+                부동산 공시가격 조회
+            </h1>
+
+            <a
+                class="direct-link-btn"
+                href="https://www.realtyprice.kr/notice/main/main.do"
+                target="_blank"
+                rel="noopener noreferrer">
+
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="50" fill="#fff"/>
+                    <path d="M50 3A47 47 0 0 1 50 97A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 3Z" fill="#cd2e3a"/>
+                    <path d="M50 97A47 47 0 0 1 50 3A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 97Z" fill="#003478"/>
+                </svg>
+
+                직접조회
+            </a>
+
+        </div>
 
         <p>
-            주소를 검색하여 공동주택·개별주택·오피스텔의
-            가격 정보를 조회합니다.
+            공동주택·개별주택·오피스텔 공시가를 조회합니다.
         </p>
 
     </div>
@@ -593,9 +764,9 @@ select:focus {
 
         <div class="help-text">
 
-            예) 도로명, 지번주소, 건물명칭<br>
-            예) 주소 검색이 제일정확함.
-        
+            예) 도로명, 지번, 지역+건물명칭<br>
+            예) 주소 검색이 제일 정확함.
+
 
         </div>
 
@@ -650,6 +821,11 @@ select:focus {
                 선택한 주소
             </strong>
 
+            <span
+                id="selectedAddressTypeBadge"
+                class="type-badge">
+            </span>
+
         </div>
 
 
@@ -674,6 +850,22 @@ select:focus {
                 class="address-value">
             </div>
 
+
+            <div
+                id="selectedBuildingNameRow"
+                style="display:none;">
+
+                <div class="address-label">
+                    건물명
+                </div>
+
+                <div
+                    id="selectedBuildingName"
+                    class="address-value">
+                </div>
+
+            </div>
+
         </div>
 
     </div>
@@ -681,38 +873,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 4. 부동산 유형
-    ====================================================== -->
-
-    <div
-        id="propertyTypeArea"
-        class="card property-type-area">
-
-        <div class="card-title">
-
-            <strong>
-                ③ 부동산 유형
-            </strong>
-
-            <span
-                id="propertyTypeBadge"
-                class="type-badge">
-            </span>
-
-        </div>
-
-
-        <div
-            id="propertyTypeDescription"
-            class="type-description">
-        </div>
-
-    </div>
-
-
-
-    <!-- =====================================================
-         STEP 5. 동 / 층 / 호
+         STEP 4. 동 / 층 / 호
     ====================================================== -->
 
     <div
@@ -722,7 +883,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ④ 동·호 선택
+                ③ 동·호 선택
             </strong>
 
         </div>
@@ -775,7 +936,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 6. 연도 + 조회
+         STEP 5. 연도 + 조회
     ====================================================== -->
 
     <div
@@ -785,7 +946,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ⑤ 조회 조건
+                ④ 기준연도
             </strong>
 
         </div>
@@ -794,10 +955,6 @@ select:focus {
         <div class="select-row">
 
             <div class="select-box">
-
-                <label>
-                    기준연도
-                </label>
 
                 <select id="yearSelect">
 
@@ -824,7 +981,7 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 7. 결과
+         STEP 6. 결과
     ====================================================== -->
 
     <div
@@ -834,7 +991,7 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ⑥ 조회 결과
+                ⑤ 조회 결과
             </strong>
 
         </div>
@@ -935,27 +1092,91 @@ select:focus {
         </table>
 
 
-        <div class="notice">
 
-            ※ 공동주택은 국토교통부 공동주택가격,
-            개별주택은 국토교통부 개별주택가격(이상 VWorld API)을,
-            오피스텔은 국세청 기준시가(자체 보유 자료, 2026-01-01 고시)를 조회합니다.<br>
+    </div>
 
-            ※ 건물 유형은 공동주택 → 개별주택 → 오피스텔 순으로 자료 존재 여부를 확인하여 자동 판별합니다.
+
+
+    <!-- =====================================================
+         STEP 7. 계산값
+    ====================================================== -->
+
+    <div
+        id="calcResult"
+        class="card calc-result">
+
+        <div class="card-title">
+
+            <strong>
+                ⑥ 계산값
+            </strong>
 
         </div>
 
-        <div id="calcResult" class="card calc-result">
-            <div class="card-title"><strong>⑥ 계산값</strong></div>
-            <div class="calc-row"><div class="calc-line"><span>공시가격 × 130%</span><span id="calcHousePrice">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('house')" style="display:none;">이 결과 적용</button></div></div>
-            <div class="calc-row"><div class="calc-line"><span>공시가격 × 130% × 90%</span><span id="calcSeoulGuarantee">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('seoul')" style="display:none;">이 결과 적용</button></div></div>
-            <div class="calc-row"><div class="calc-line"><span>공시가격 × 140% × 90%</span><span id="calcJusinboDosi">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('jusinboDosi')" style="display:none;">이 결과 적용</button></div></div>
-            <div class="calc-row"><div class="calc-line"><span>공시가격 × 100%</span><span id="calcJusinbo">-</span><button type="button" class="search-btn calc-apply-btn" onclick="applyCalculatedPublicPrice('jusinbo')" style="display:none;">이 결과 적용</button></div></div>
-        </div>
 
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130%</span>
+                <span id="calcHousePrice" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="house" onclick="applyCalculatedPublicPrice('house')" style="display:none;">이 결과 적용</button>
             </div>
 
-            <button type="button" id="publicPriceApplyBtn" class="search-btn" onclick="applyPublicPropertyPrice()" style="display:none; width:100%; margin-top:12px;">이 결과 적용하기</button>
+            <div class="calc-note">
+                서울보증 주택가격 - 아파트·오피스텔에 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130% × 90%</span>
+                <span id="calcSeoulGuarantee" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="seoul" onclick="applyCalculatedPublicPrice('seoul')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                서울보증 - 선순위(유) 모든 물건 적용<br>
+                선순위(무) APT·오피 제외 모두 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 140% × 90%</span>
+                <span id="calcJusinboDosi" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="jusinboDosi" onclick="applyCalculatedPublicPrice('jusinboDosi')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                주신보, 도시보증
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 100%</span>
+                <span id="calcJusinbo" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="jusinbo" onclick="applyCalculatedPublicPrice('jusinbo')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                단독주택(주신보)
+            </div>
+
+        </div>
+
+        </div>
+
+        <button type="button" id="publicPriceApplyBtn" class="search-btn" onclick="applyPublicPropertyPrice()" style="display:none; width:100%; margin-top:12px;">이 결과 적용하기</button>
 
     </div>
 
@@ -967,12 +1188,197 @@ select:focus {
         window.parent.postMessage(pendingPublicPropertyPrice, '*');
     }
 
-    /* =========================================================
-       전역 변수
-    ========================================================= */
+    function applyCalculatedPublicPrice(calcKey) {
+        if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
+        const calcValues = {
+            house: document.getElementById('calcHousePrice')?.textContent || '',
+            seoul: document.getElementById('calcSeoulGuarantee')?.textContent || '',
+            jusinboDosi: document.getElementById('calcJusinboDosi')?.textContent || '',
+            jusinbo: document.getElementById('calcJusinbo')?.textContent || ''
+        };
+        const selectedValue = calcValues[calcKey];
+        const numericValue = Number(String(selectedValue).replace(/[^0-9]/g, '')) || 0;
+        if (!numericValue) return;
+        window.parent.postMessage({ ...pendingPublicPropertyPrice, value: numericValue, publicPrice: numericValue, priceField: `공시가격 계산값 (${selectedValue})` }, '*');
+    }
+
+    function closeGonsiView() {
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'kbMarketPriceClose' }, '*');
+        return;
+    }
+    if (window.history.length > 1) window.history.back();
+}
+
+
+/* =========================================================
+   전역 변수
+========================================================= */
 
 const GAS_BASE_URL =
     'https://script.google.com/macros/s/AKfycbxIB_jOSdlZNLWpMdsX4j_fpOalfUnC1UI0ysIY7IblKNb9zo--Q2D58WcbTkA-1lOf/exec';
+
+/* =========================================================
+   ★ 카카오 직접 호출 (GAS 우회)
+   실측 결과 카카오 로컬 API는 앱 origin(https://appassets.androidx.startup)에서
+   CORS를 허용한다(Authorization 커스텀 헤더의 preflight까지 통과).
+   → 주소검색·건물명검색에서 GAS 콜드스타트(0.5~3초)를 없앨 수 있다.
+
+   ★ VWorld(공시가격)는 CORS를 막으므로 GAS를 계속 거쳐야 한다.
+   (서버에서는 200 정상, 브라우저에서는 No Access-Control-Allow-Origin)
+   그래서 이 파일은 "카카오는 직접, VWorld는 GAS" 하이브리드로 동작한다.
+   ========================================================= */
+const KAKAO_API_KEY = '40ff77c743e30864998d253cf262c62c';
+// 카카오 로컬 API는 서버 호출에도 등록된 웹 플랫폼 도메인이 담긴 KA 헤더를 요구한다.
+const KAKAO_KA = 'sdk/1.0.0 os/javascript lang/ko-KR device/pc origin/https://new1kim.github.io';
+
+// 카카오가 도메인 정책을 바꾸거나 WebView가 막을 때를 대비한 비상 스위치(강제 GAS)
+const USE_GAS_DIRECTLY = false;
+
+// 한글 파라미터 "키"까지 반드시 인코딩해야 한다(.gs buildUrl과 동일 규칙)
+function buildQuery(params) {
+    return Object.keys(params)
+        .map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+        .join('&');
+}
+
+// 기존 GAS 경로 — 카카오/VWorld 모두의 공통 폴백
+function gasFetch(action, params) {
+    const q = buildQuery(Object.assign({ action: action }, params || {}));
+    return fetch(GAS_BASE_URL + '?' + q).then(function(res) {
+        if (!res.ok) throw new Error('GAS HTTP ' + res.status);
+        return res.json();
+    });
+}
+
+/* ---------------------------------------------------------
+   응답 캐시 — 같은 조회의 GAS/VWorld 왕복을 제거한다.
+   키별로 Promise를 캐시해 동시 호출도 1회만 나가게 한다.
+   --------------------------------------------------------- */
+const _jsonCache = new Map();
+function cached(key, loader) {
+    if (_jsonCache.has(key)) return _jsonCache.get(key);
+    const p = loader();
+    // 실패한 요청은 캐시에서 제거해 다음 시도가 다시 나가게 한다
+    p.catch(function() { _jsonCache.delete(key); });
+    _jsonCache.set(key, p);
+    return p;
+}
+
+/* ---------------------------------------------------------
+   카카오 주소검색 — 직접 호출, 실패 시 GAS 폴백
+   기존 GAS 응답 스키마({ results: [...] })를 그대로 유지한다.
+   --------------------------------------------------------- */
+function normalizeDoc(doc) {
+    const addr = doc.address || {};
+    const road = doc.road_address;
+
+    // PNU = 법정동코드(10) + 대장구분(1) + 본번(4) + 부번(4)
+    // (.gs buildPnu와 동일 규칙 — VWorld 조회에 필요)
+    function pad4(v) {
+        const digits = String(v || '0').replace(/\D/g, '') || '0';
+        return ('0000' + digits).slice(-4);
+    }
+
+    const pnu = addr.b_code
+        ? addr.b_code + (addr.mountain_yn === 'Y' ? '2' : '1')
+          + pad4(addr.main_address_no) + pad4(addr.sub_address_no)
+        : '';
+
+    return {
+        roadAddress: road ? road.address_name : doc.address_name,
+        jibunAddress: addr.address_name,
+        buildingName: road ? (road.building_name || '') : '',
+        legalDongCode: addr.b_code,
+        pnu: pnu
+    };
+}
+
+function fetchAddressSearch(keyword) {
+    return cached('addr:' + keyword, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetch('https://dapi.kakao.com/v2/local/search/address.json?' +
+                    buildQuery({ query: keyword }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    const results = (json.documents || [])
+                        .filter(function(d) { return d.address; })
+                        .map(normalizeDoc);
+                    return { results: results };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 주소검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('addressSearch', { keyword: keyword });
+                });
+        }
+        return gasFetch('addressSearch', { keyword: keyword });
+    });
+}
+
+/* ---------------------------------------------------------
+   카카오 키워드(장소)검색 — 직접 호출, 실패 시 GAS 폴백
+   --------------------------------------------------------- */
+function fetchNameSearch(keyword) {
+    return cached('name:' + keyword, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetch('https://dapi.kakao.com/v2/local/search/keyword.json?' +
+                    buildQuery({ query: keyword, size: 15 }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    // 상가/음식점 등 잡음을 빼고 주거시설만 남긴다(.gs handleNameSearch와 동일)
+                    const results = (json.documents || [])
+                        .filter(function(d) {
+                            return d.category_name && d.category_name.indexOf('주거시설') !== -1;
+                        })
+                        .map(function(d) {
+                            return {
+                                placeName: d.place_name,
+                                roadAddress: d.road_address_name || d.address_name,
+                                jibunAddress: d.address_name,
+                                categoryName: d.category_name.split('>').pop().trim()
+                            };
+                        });
+                    return { results: results };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 건물명검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('nameSearch', { keyword: keyword });
+                });
+        }
+        return gasFetch('nameSearch', { keyword: keyword });
+    });
+}
+
+/* ---------------------------------------------------------
+   VWorld 공시가격 — CORS 차단이라 GAS 경유(기존 그대로)
+   다만 PNU+연도 단위로 캐시해 반복 조회의 왕복을 없앤다.
+   --------------------------------------------------------- */
+function fetchAptRecordsCached(pnu, stdrYear) {
+    const key = 'apt:' + pnu + ':' + (stdrYear || '');
+    return cached(key, function() {
+        return gasFetch('aptPrice', { pnu: pnu, stdrYear: stdrYear || '' })
+            .then(function(data) { return data.items || []; });
+    });
+}
+
+function fetchHouseRecordsCached(pnu) {
+    return cached('house:' + pnu, function() {
+        return gasFetch('housePrice', { pnu: pnu })
+            .then(function(data) { return data.items || []; });
+    });
+}
 
 const OP_DATA_BASE = 'op_gongsi_data/';
 
@@ -997,11 +1403,15 @@ let pendingUnitSelection = null;
 
 // 띄어쓰기 없이 붙여쓴 도로명/지번 주소를 표준 형식으로 보정
 // 예: "명지로60번길19-5" -> "명지로60번길 19-5", "석우동53" -> "석우동 53"
+// 매번 재컴파일되지 않도록 정규식을 파일 상수로 올려 둔다.
+const ADDR_TIGHTEN_RE = /(로|길|동)(?=\d[\d-]*$)/;
+const WS_RE = /\s+/g;
+
 function normalizeAddress(raw) {
 
     return raw
-        .replace(/(로|길|동)(?=\d[\d-]*$)/, '$1 ')
-        .replace(/\s+/g, ' ')
+        .replace(ADDR_TIGHTEN_RE, '$1 ')
+        .replace(WS_RE, ' ')
         .trim();
 }
 
@@ -1087,7 +1497,8 @@ function resetResultAreas() {
     officeBuilding = null;
 
     document.getElementById("selectedAddress").classList.remove("show");
-    document.getElementById("propertyTypeArea").classList.remove("show");
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
     document.getElementById("unitArea").classList.remove("show");
     document.getElementById("yearArea").classList.remove("show");
 
@@ -1136,6 +1547,7 @@ function searchAddress() {
         .getElementById("searchResults")
         .classList.remove("show");
 
+    showLoadingPopup("주소를 검색하고 있습니다...");
 
     showStatus(
         "주소를 검색하고 있습니다...",
@@ -1143,8 +1555,7 @@ function searchAddress() {
     );
 
 
-    fetch(GAS_BASE_URL + '?action=addressSearch&keyword=' + encodeURIComponent(keyword))
-        .then(res => res.json())
+    fetchAddressSearch(keyword)
         .then(data => {
 
             if (data.error) {
@@ -1172,6 +1583,9 @@ function searchAddress() {
         })
         .catch(() => {
             showStatus("주소 검색 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
         });
 }
 
@@ -1182,13 +1596,14 @@ function searchAddress() {
  */
 function searchByBuildingName(keyword) {
 
+    showLoadingPopup("건물명을 검색하고 있습니다...");
+
     showStatus(
         "건물명으로 검색하고 있습니다...",
         false
     );
 
-    fetch(GAS_BASE_URL + '?action=nameSearch&keyword=' + encodeURIComponent(keyword))
-        .then(res => res.json())
+    fetchNameSearch(keyword)
         .then(data => {
 
             if (data.error) {
@@ -1212,6 +1627,9 @@ function searchByBuildingName(keyword) {
         })
         .catch(() => {
             showStatus("건물명 검색 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
         });
 }
 
@@ -1289,11 +1707,15 @@ function displayAddressSearchResults(results) {
 
     /*
      * 검색 결과 위치로 이동
+     * innerHTML 교체 직후 동기 scrollIntoView는 레이아웃이 불안정해
+     * 모바일에서 튀는 경우가 있어 한 프레임 미뤄 안정된 뒤 스크롤한다.
      */
 
-    area.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+    requestAnimationFrame(function() {
+        area.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
     });
 }
 
@@ -1380,13 +1802,14 @@ function selectNameSearchResult(item) {
         .getElementById("searchResults")
         .classList.remove("show");
 
+    showLoadingPopup("주소 정보를 확인하고 있습니다...");
+
     showStatus(
         "주소 정보를 확인하고 있습니다...",
         false
     );
 
-    fetch(GAS_BASE_URL + '?action=addressSearch&keyword=' + encodeURIComponent(item.roadAddress))
-        .then(res => res.json())
+    fetchAddressSearch(item.roadAddress)
         .then(data => {
 
             if (data.error || !data.results || data.results.length === 0) {
@@ -1405,6 +1828,9 @@ function selectNameSearchResult(item) {
         })
         .catch(() => {
             showStatus("주소 확인 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
         });
 }
 
@@ -1438,6 +1864,11 @@ function selectAddress(data) {
         data.jibunAddress;
 
 
+    // 유형·건물명은 아직 판별 전이므로 일단 비워둔다(applyPropertyType에서 채움)
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
+
+
     document
         .getElementById("selectedAddress")
         .classList.add("show");
@@ -1458,7 +1889,6 @@ function selectAddress(data) {
 
     hidePriceResult();
 
-    document.getElementById("propertyTypeArea").classList.remove("show");
     document.getElementById("unitArea").classList.remove("show");
     document.getElementById("yearArea").classList.remove("show");
 
@@ -1488,23 +1918,12 @@ function selectAddress(data) {
 ========================================================= */
 
 function fetchAptRecords(pnu, stdrYear) {
-
-    let url = GAS_BASE_URL + '?action=aptPrice&pnu=' + encodeURIComponent(pnu);
-
-    if (stdrYear) {
-        url += '&stdrYear=' + encodeURIComponent(stdrYear);
-    }
-
-    return fetch(url)
-        .then(res => res.json())
-        .then(data => data.items || []);
+    // PNU+연도 단위 캐시 — 같은 조건 재조회 시 GAS 왕복을 없앤다.
+    return fetchAptRecordsCached(pnu, stdrYear);
 }
 
 function fetchHouseRecords(pnu) {
-
-    return fetch(GAS_BASE_URL + '?action=housePrice&pnu=' + encodeURIComponent(pnu))
-        .then(res => res.json())
-        .then(data => data.items || []);
+    return fetchHouseRecordsCached(pnu);
 }
 
 function fetchOfficeBuilding(data) {
@@ -1565,6 +1984,7 @@ function setYearOptions(years, selectedYear) {
 
 function detectPropertyType(data) {
 
+    showLoadingPopup("건물 유형을 확인하고 있습니다...");
     showStatus("건물 유형을 확인하고 있습니다...", false);
 
     /*
@@ -1649,6 +2069,9 @@ function detectPropertyType(data) {
         .catch(() => {
             hideStatus();
             showStatus("공시가격 조회 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
         });
 }
 
@@ -1663,63 +2086,45 @@ function getTypeLabel(type) {
     return type;
 }
 
+// 카드 ②(선택한 주소)에 표시할 건물명을 유형별로 가져온다.
+// 유형 판별 단계(detectPropertyType)에서 이미 받아둔 데이터라 별도 조회 없이 바로 쓸 수 있다.
+function getBuildingName(type) {
+
+    if (type === "공동주택") {
+        return aptRecords.length > 0 ? aptRecords[0].aphusNm : "";
+    }
+
+    if (type === "오피스텔") {
+        return officeBuilding ? officeBuilding.name : "";
+    }
+
+    if (type === "개별주택") {
+        return selectedAddressData.buildingName || "";
+    }
+
+    return "";
+}
+
 function applyPropertyType(type) {
 
     currentBuildingType = type;
 
-    const area =
-        document.getElementById(
-            "propertyTypeArea"
-        );
-
-
-    const badge =
-        document.getElementById(
-            "propertyTypeBadge"
-        );
-
-
-    const description =
-        document.getElementById(
-            "propertyTypeDescription"
-        );
-
-
-    badge.textContent =
-        getTypeLabel(type);
-
-
     /*
-     * 유형별 설명
+     * 카드 ②(선택한 주소)에 유형·건물명을 표시한다
      */
 
-    if (type === "공동주택") {
+    document.getElementById("selectedAddressTypeBadge").textContent =
+        getTypeLabel(type);
 
-        description.textContent =
-            "아파트·연립주택·다세대주택 등 공동주택으로 확인되었습니다. " +
-            "동·호를 선택하여 공동주택 공시가격을 조회합니다.";
+    const buildingName = getBuildingName(type);
+    const buildingNameRow = document.getElementById("selectedBuildingNameRow");
 
+    if (buildingName) {
+        document.getElementById("selectedBuildingName").textContent = buildingName;
+        buildingNameRow.style.display = "";
+    } else {
+        buildingNameRow.style.display = "none";
     }
-
-    else if (type === "개별주택") {
-
-        description.textContent =
-            "단독주택·다가구주택 등 개별주택으로 확인되었습니다. " +
-            "해당 주소의 개별주택가격을 조회합니다.";
-
-    }
-
-    else if (type === "오피스텔") {
-
-        description.textContent =
-            "오피스텔로 확인되었습니다. " +
-            "동·호를 선택하여 국세청 기준시가를 조회합니다. " +
-            "(" + OFFICE_DATA_YEAR + "년 1월 1일 고시 자료 기준)";
-
-    }
-
-
-    area.classList.add("show");
 
 
     /*
@@ -1843,12 +2248,18 @@ function setupUnitSelection(type) {
     /*
      * 동이 하나뿐이면(구분없음 포함) 바로 선택하고 호 목록까지 채워 둔다.
      * 검색어에 동·호를 함께 입력해 뒀다면 그 값으로 자동 선택한다.
+     * (API가 내려주는 값이 "103"/"103동"/"0103"처럼 표기가 다를 수 있어
+     * findMatchingUnitOption으로 느슨하게 비교한다)
      */
 
-    if (pendingUnitSelection && pendingUnitSelection.dong !== null &&
-        dongNames.includes(pendingUnitSelection.dong)) {
+    const matchedDong =
+        pendingUnitSelection
+            ? findMatchingUnitOption(dongNames, pendingUnitSelection.dong)
+            : null;
 
-        dong.value = pendingUnitSelection.dong;
+    if (matchedDong !== null) {
+
+        dong.value = matchedDong;
         populateHo(dong.value);
 
     } else if (autoSelectIfSingle(dong)) {
@@ -1856,14 +2267,52 @@ function setupUnitSelection(type) {
         populateHo(dong.value);
     }
 
-    if (pendingUnitSelection && isChosen(dong) &&
-        Array.from(ho.options).some(o => o.value === pendingUnitSelection.ho)) {
+    if (pendingUnitSelection && isChosen(dong)) {
 
-        ho.value = pendingUnitSelection.ho;
-        searchPrice();
+        const hoValues =
+            Array.from(ho.options).map(o => o.value);
+
+        const matchedHo =
+            findMatchingUnitOption(hoValues, pendingUnitSelection.ho);
+
+        if (matchedHo !== null) {
+
+            ho.value = matchedHo;
+            searchPrice();
+        }
     }
 
     pendingUnitSelection = null;
+}
+
+
+// 동/호 값을 느슨하게 비교하기 위해 앞뒤 공백, "동"/"호" 접미사, 앞자리 0을 없앤다.
+// (검색어에서 파싱한 값과 API가 실제로 내려주는 표기가 정확히 일치하지 않아도
+// 같은 동·호로 인식할 수 있게 하기 위함)
+function normalizeUnitToken(value) {
+
+    return String(value)
+        .trim()
+        .replace(/[동호]$/, "")
+        .replace(/^0+(?=\d)/, "");
+}
+
+// options(select의 실제 값 목록) 중에서 target과 느슨하게 일치하는 실제 값을 찾는다.
+// 반환값은 select에 그대로 대입할 수 있는 "실제 옵션 값"이어야 하므로,
+// 정규화한 문자열이 아니라 원본 옵션 값을 돌려준다.
+function findMatchingUnitOption(options, target) {
+
+    if (target === null || target === undefined) {
+        return null;
+    }
+
+    const normTarget = normalizeUnitToken(target);
+
+    const found = options.find(
+        v => normalizeUnitToken(v) === normTarget
+    );
+
+    return found !== undefined ? found : null;
 }
 
 
@@ -2016,15 +2465,12 @@ function searchPrice() {
          * 매칭된 항목에서 그대로 가져와 표시만 한다.
          */
 
-        fetch(
-            GAS_BASE_URL +
-            '?action=aptPrice&pnu=' + encodeURIComponent(selectedAddressData.pnu) +
-            '&stdrYear=' + encodeURIComponent(year)
-        )
-            .then(res => res.json())
-            .then(data => {
+        showLoadingPopup("공시가격을 조회하고 있습니다...");
 
-                const record = (data.items || []).find(r =>
+        fetchAptRecords(selectedAddressData.pnu, year)
+            .then(items => {
+
+                const record = (items || []).find(r =>
                     r.dongNm === dongVal && r.hoNm === hoVal
                 );
 
@@ -2048,6 +2494,9 @@ function searchPrice() {
             })
             .catch(() => {
                 showStatus("공시가격 조회 중 오류가 발생했습니다.", true);
+            })
+            .finally(() => {
+                hideLoadingPopup();
             });
 
         return;
@@ -2230,6 +2679,7 @@ function displayPriceResult(data) {
         .getElementById("priceResult")
         .classList.add("show");
 
+
     updateCalcResult(data.price);
 
     // 결과를 먼저 화면에 표시하고, 사용자가 확인 버튼을 눌렀을 때만 부모로 전달한다.
@@ -2249,7 +2699,8 @@ function displayPriceResult(data) {
             publicPrice: Number(data.price) || 0
         };
         const applyButton = document.getElementById('publicPriceApplyBtn');
-        if (applyButton) applyButton.style.display = 'block';
+        if (applyButton) applyButton.style.display = 'none';
+        document.querySelectorAll('.calc-apply-btn').forEach(button => { button.style.display = 'inline-block'; });
     }
 
     /*
@@ -2266,33 +2717,47 @@ function displayPriceResult(data) {
 
 
 /* =========================================================
-   결과 숨기기
+   6. 계산값 (공시가격 기반 대출 관련 산식)
 ========================================================= */
 
 function updateCalcResult(price) {
+
     const base = Number(price);
-    const toWon = value => Math.round(value).toLocaleString('ko-KR') + '원';
-    document.getElementById('calcHousePrice').textContent = toWon(base * 1.30);
-    document.getElementById('calcSeoulGuarantee').textContent = toWon(base * 1.30 * 0.90);
-    document.getElementById('calcJusinboDosi').textContent = toWon(base * 1.40 * 0.90);
-    document.getElementById('calcJusinbo').textContent = toWon(base);
-    document.getElementById('calcResult').classList.add('show');
-    document.querySelectorAll('.calc-apply-btn').forEach(button => { button.style.display = 'inline-block'; });
+
+    function toWon(value) {
+        return Math.round(value).toLocaleString("ko-KR") + "원";
+    }
+
+    document.getElementById("calcHousePrice").textContent =
+        toWon(base * 1.30);
+
+    document.getElementById("calcSeoulGuarantee").textContent =
+        toWon(base * 1.30 * 0.90);
+
+    document.getElementById("calcJusinboDosi").textContent =
+        toWon(base * 1.40 * 0.90);
+
+    document.getElementById("calcJusinbo").textContent =
+        toWon(base * 1.00);
+
+    document
+        .getElementById("calcResult")
+        .classList.add("show");
 }
 
-function applyCalculatedPublicPrice(calcKey) {
-    if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
-    const ids = { house: 'calcHousePrice', seoul: 'calcSeoulGuarantee', jusinboDosi: 'calcJusinboDosi', jusinbo: 'calcJusinbo' };
-    const selectedValue = document.getElementById(ids[calcKey])?.textContent || '';
-    const numericValue = Number(selectedValue.replace(/[^0-9]/g, '')) || 0;
-    if (!numericValue) return;
-    window.parent.postMessage({ ...pendingPublicPropertyPrice, value: numericValue, publicPrice: numericValue, priceField: `공시가격 계산값 (${selectedValue})` }, '*');
-}
+
+/* =========================================================
+   결과 숨기기
+========================================================= */
 
 function hidePriceResult() {
 
     document
         .getElementById("priceResult")
+        .classList.remove("show");
+
+    document
+        .getElementById("calcResult")
         .classList.remove("show");
 }
 
@@ -2300,6 +2765,43 @@ function hidePriceResult() {
 /* =========================================================
    상태 메시지
 ========================================================= */
+
+// 검색 흐름이 여러 단계로 이어질 때(예: 주소 검색 → 건물 유형 확인) 각 단계가
+// 독립적으로 show/hide를 호출한다. 단순 on/off라면, 안쪽 단계가 막 띄운 팝업을
+// 바깥쪽 단계의 완료 처리가 곧바로 꺼버려서 화면이 깜빡이며 사라지는 문제가 있었다.
+// 그래서 몇 번 띄워졌는지 세어서, 그 횟수만큼 다 닫혀야 실제로 감추도록 한다.
+let loadingPopupDepth = 0;
+
+function showLoadingPopup(message) {
+
+    loadingPopupDepth++;
+
+    const overlay =
+        document.getElementById("loadingOverlay");
+
+    const text =
+        document.getElementById("loadingText");
+
+    text.textContent =
+        message || "조회 중입니다...";
+
+    overlay.classList.add("show");
+}
+
+
+function hideLoadingPopup() {
+
+    loadingPopupDepth =
+        Math.max(0, loadingPopupDepth - 1);
+
+    if (loadingPopupDepth === 0) {
+
+        document
+            .getElementById("loadingOverlay")
+            .classList.remove("show");
+    }
+}
+
 
 function showStatus(
     message,
