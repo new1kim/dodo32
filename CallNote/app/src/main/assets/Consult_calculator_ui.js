@@ -4204,16 +4204,58 @@ function consultPhoneKey(phone) {
 function consultRecordTime(record) {
   const value = String(record?.savedAt || record?.dateTime || '').trim();
   if (!value) return 0;
-  let time = Date.parse(value);
-  if (Number.isFinite(time)) return time;
 
-  // Google Sheet 표시 형식(yy.MM.dd HH:mm:ss)은 Date.parse가 브라우저/WebView마다
-  // 다르게 처리될 수 있으므로 직접 파싱한다.
-  const match = value.match(/^(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if (!match) return 0;
-  const year = Number(match[1]) + (Number(match[1]) < 70 ? 2000 : 1900);
-  time = new Date(year, Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]), Number(match[6] || 0)).getTime();
+  // 시트 표시형식(yy.MM.dd HH:mm:ss)을 먼저 정규식으로 잡는다.
+  // Date.parse를 먼저 시도하면 브라우저/WebView마다 이 형식을 제멋대로(혹은 아예 다르게)
+  // 해석해 서버 기록 시간이 엉뚱해질 수 있다. 시트 형식이면 항상 정규식으로 파싱한다.
+  const sheetMatch = value.match(/^(\d{2})[./-](\d{1,2})[./-](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (sheetMatch) {
+    const year = Number(sheetMatch[1]) + (Number(sheetMatch[1]) < 70 ? 2000 : 1900);
+    const t = new Date(year, Number(sheetMatch[2]) - 1, Number(sheetMatch[3]), Number(sheetMatch[4]), Number(sheetMatch[5]), Number(sheetMatch[6] || 0)).getTime();
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  // ISO 등 표준 형식만 Date.parse에 맡긴다.
+  const time = Date.parse(value);
   return Number.isFinite(time) ? time : 0;
+}
+/* 병합/정렬에서 비교할 때마다 날짜 문자열을 다시 파싱하지 않도록
+   시간값을 1회만 계산해 부착한다(정렬 comparator는 n log n번 호출되므로 비용이 크다). */
+function consultWithTime(record) {
+  if (!record || Object.prototype.hasOwnProperty.call(record, '__time')) return record;
+  try { Object.defineProperty(record, '__time', { value: consultRecordTime(record), enumerable: false, configurable: true }); }
+  catch (_) { record.__time = consultRecordTime(record); }
+  return record;
+}
+function consultRecordTimeCached(record) {
+  if (record && Number.isFinite(record.__time)) return record.__time;
+  return consultRecordTime(record);
+}
+/* 동기화에서 서버 기록과 로컬 기록을 같은 규칙으로 병합한다.
+   saveConsultRecord와 동일하게 폰번호를 우선 키로 쓰고, 폰번호가 없으면
+   이름을 폴백 키로 사용한다(두 곳의 병합 기준을 일치시켜 중복 누적을 막는다). */
+function consultMergeKey(record) {
+  const phone = consultPhoneKey(record && record.phone);
+  if (phone) return `p:${phone}`;
+  const name = String((record && record.name) || '').trim();
+  return name ? `n:${name}` : '';
+}
+function consultMergeRecords(serverRecords, localRecords) {
+  const byKey = new Map();
+  const noKey = [];
+  [...serverRecords, ...localRecords].forEach(raw => {
+    const record = consultWithTime(raw);
+    const key = consultMergeKey(record);
+    if (!key) { noKey.push(record); return; }
+    const previous = byKey.get(key);
+    // 서버 기록을 먼저 넣고, 로컬은 "엄격하게 더 최신"일 때만 교체한다.
+    // (시간이 같거나 파싱 실패로 둘 다 0이면 서버 값을 유지 — 서버가 공용 최신본이기 때문)
+    if (!previous || consultRecordTimeCached(record) > consultRecordTimeCached(previous)) {
+      byKey.set(key, record);
+    }
+  });
+  return [...byKey.values(), ...noKey]
+    .sort((a, b) => consultRecordTimeCached(b) - consultRecordTimeCached(a));
 }
 function consultServerRecordToLocal(record) {
   let storage = record.storage || {};
@@ -4235,6 +4277,9 @@ function consultServerRecordToLocal(record) {
   };
 }
 function consultLocalRecordToServer(record, userCode) {
+  // 서버(doPost action=sync)는 fullRecord 열을 쓰지 않으므로 전송하지 않는다.
+  // inputSnapshot도 storage가 있으면 그걸 쓰므로 fullRecord 중복 전송을 제거해
+  // 레코드당 페이로드를 줄인다(100건이면 POST 왕복이 눈에 띄게 가벼워진다).
   return {
     userCode,
     dateTime: record.savedAt || new Date().toISOString(),
@@ -4248,11 +4293,11 @@ function consultLocalRecordToServer(record, userCode) {
     futureSummary: record.futureSummary || '',
     inputSnapshot: record.inputSnapshot || JSON.stringify(record.storage || {}),
     propertyInfo: record.propertyInfo || '',
-    heldLoans: record.heldLoans || '',
-    fullRecord: JSON.stringify(record)
+    heldLoans: record.heldLoans || ''
   };
 }
-function consultReadServerRecords(userCode) {
+/* JSONP 조회/전송 공통 실행기. sync와 delete가 같은 정리 로직을 공유한다. */
+function consultJsonp(userCode, action, extraParams, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const callbackName = `__consultSync_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement('script');
@@ -4260,12 +4305,43 @@ function consultReadServerRecords(userCode) {
       delete window[callbackName];
       script.remove();
     };
-    const timer = setTimeout(() => { cleanup(); reject(new Error('서버 조회 시간 초과')); }, 20000);
-    window[callbackName] = data => { clearTimeout(timer); cleanup(); resolve(Array.isArray(data) ? data : []); };
-    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('서버 조회 실패')); };
-    script.src = `${CONSULT_WEB_APP_URL}?action=read&userCode=${encodeURIComponent(userCode)}&callback=${callbackName}&t=${Date.now()}`;
+    const timer = setTimeout(() => { cleanup(); reject(new Error('서버 응답 시간 초과')); }, timeoutMs);
+    window[callbackName] = data => { clearTimeout(timer); cleanup(); resolve(data); };
+    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('서버 요청 실패')); };
+    const params = new URLSearchParams({ action, userCode, callback: callbackName, t: Date.now(), ...(extraParams || {}) });
+    script.src = `${CONSULT_WEB_APP_URL}?${params.toString()}`;
     document.head.appendChild(script);
   });
+}
+function consultReadServerRecords(userCode) {
+  return consultJsonp(userCode, 'read', null).then(data => (Array.isArray(data) ? data : []));
+}
+/* 삭제한 상담을 서버에서도 지운다. 서버(.gs)에 이미 있는 action=delete 를 사용한다.
+   이게 없으면 다음 동기화 때 서버의 옛 기록이 다시 병합되어 삭제가 되살아난다. */
+function consultDeleteServerRecord(record) {
+  const userCode = consultUserCode();
+  if (!userCode || !record) return Promise.resolve();
+  return consultJsonp(userCode, 'delete', {
+    dateTime: record.savedAt || record.dateTime || '',
+    name: record.name || ''
+  }, 15000).catch(error => { console.warn('서버 삭제 실패:', error); });
+}
+/* JSONP(GET)가 URL 길이 등으로 실패할 때 쓰는 POST 폴백.
+   no-cors라 응답은 못 읽지만 서버 반영 자체는 보장한다(기존 방식). */
+async function consultPostSync(userCode, syncPayload) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    await fetch(CONSULT_WEB_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: new URLSearchParams({ action: 'sync', userCode, records: JSON.stringify(syncPayload) }).toString(),
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 async function syncConsultRecords() {
   const userCode = consultUserCode();
@@ -4276,49 +4352,44 @@ async function syncConsultRecords() {
   const button = document.getElementById('consultSyncBtn');
   if (button) { button.disabled = true; button.textContent = '동기화 중...'; }
   try {
-    const serverRecords = await consultReadServerRecords(userCode);
-    const localRecords = getConsultRecords();
-    const mergedByPhone = new Map();
-    const withoutPhone = [];
-
-    [...serverRecords.map(consultServerRecordToLocal), ...localRecords].forEach(record => {
-      const phone = consultPhoneKey(record.phone);
-      if (!phone) { withoutPhone.push(record); return; }
-      const previous = mergedByPhone.get(phone);
-      if (!previous || consultRecordTime(record) >= consultRecordTime(previous)) {
-        mergedByPhone.set(phone, record);
-      }
-    });
-
-    const merged = [...mergedByPhone.values(), ...withoutPhone]
-      .sort((a, b) => consultRecordTime(b) - consultRecordTime(a))
-      .slice(0, 100);
-    consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(merged));
-
-    // 병합된 최종 목록을 한 번의 요청으로 서버에 보낸다.
-    // 기존의 연락처별 delete/POST 반복 호출보다 훨씬 빠르고 원자적으로 처리된다.
-    const syncPayload = merged.map(record => consultLocalRecordToServer(record, userCode));
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
-    let syncResponse;
+    // 서버 조회가 실패해도(콜백 포맷 문제·URL 길이 등) 동기화 전체를 죽이지 않는다.
+    // 조회 실패 시에는 빈 목록으로 진행해, 최소한 내 기록 업로드는 계속한다.
+    let serverRecords = [];
     try {
-      syncResponse = await fetch(CONSULT_WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: new URLSearchParams({ action: 'sync', userCode, records: JSON.stringify(syncPayload) }).toString(),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
+      const rawServer = await consultReadServerRecords(userCode);
+      console.log(`[동기화] userCode="${userCode}" 서버 조회 ${rawServer.length}건`);
+      serverRecords = rawServer.map(consultServerRecordToLocal);
+    } catch (readError) {
+      console.warn('서버 조회 실패, 로컬만으로 진행:', readError);
+      serverRecords = [];
     }
-    /* Google Apps Script Web App은 일반 웹 브라우저에서 응답 CORS를 노출하지 않는다.
-       no-cors 응답은 opaque라 status/body를 읽을 수 없지만, 서버에는 정상 전송된다. */
-    const uploads = syncPayload; /* 서버에 병합 목록 전체를 한 번에 반영 */
-    /* 개별 연락처별 delete/insert 반복 호출은 사용하지 않는다. */
+    const localRecords = getConsultRecords();
+    console.log(`[동기화] 로컬 ${localRecords.length}건 + 서버 ${serverRecords.length}건 병합`);
+    // 병합 → 최신순 정렬. 시간값은 1회만 계산한다(#2).
+    const mergedAll = consultMergeRecords(serverRecords, localRecords);
+    console.log(`[동기화] 병합 결과 ${mergedAll.length}건`, mergedAll.map(r => `${r.name || '(이름없음)'}/${r.phone || '(번호없음)'} @${r.savedAt || ''}`));
+    // 화면(localStorage)에는 최신 100건만 보관하지만, 서버 업로드는 자르지 않는다.
+    // 잘라서 올리면 101건째부터 서버에서도 조용히 사라진다(#8).
+    consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(mergedAll.slice(0, 100)));
+
+    // 병합된 최종 목록 전체를 서버에 반영한다.
+    // 동기화는 항상 POST(no-cors)로 보낸다.
+    // - JSONP(GET)는 records 를 URL에 담아야 해서, 기록이 많으면 URL 길이 초과로
+    //   script.onerror(서버 요청 실패)가 났다. POST는 URL 길이 제한이 없다.
+    // - 응답을 읽지 못하므로 반영 건수는 전송한 개수로 표시한다(완료 안내에만 사용).
+    const syncPayload = mergedAll.map(record => consultLocalRecordToServer(record, userCode));
+    let serverCount = syncPayload.length;
+    try {
+      await consultPostSync(userCode, syncPayload);
+    } catch (postError) {
+      console.warn('서버 반영 실패:', postError);
+      serverCount = -1;
+    }
 
     if (typeof openConsultStorageModal === 'function') openConsultStorageModal();
-    showBubble(`동기화 완료: ${merged.length}건 / 서버 반영 ${uploads.length}건`);
+    showBubble(serverCount < 0
+      ? `동기화 완료: ${mergedAll.length}건 (서버 반영 확인 안 됨)`
+      : `동기화 완료: ${mergedAll.length}건 / 서버 반영 ${serverCount}건`);
   } catch (error) {
     console.error('상담저장소 동기화 실패:', error);
     showBubble('동기화에 실패했습니다');
@@ -4411,21 +4482,25 @@ function saveConsultRecord() {
   if (typeof showBubble === 'function') showBubble('상담저장소에 저장했습니다');
 }
 function openConsultStorageModal() {
+  let modal = document.getElementById('consultStorageModal');
+  // 이미 열려 있고 렌더 함수를 보관 중이면, 네이티브 재조회/전체 재구성 없이
+  // 목록만 새로 그린다(#1). 동기화 버튼은 모달이 이미 열린 상태에서 눌리므로
+  // 이 경로로 들어와 불필요한 전체 재렌더를 건너뛴다.
+  if (modal && typeof modal.__consultRenderRecords === 'function') {
+    modal.__consultRenderRecords();
+    modal.style.display = 'flex';
+    return;
+  }
+
   let records = getConsultRecords();
   // 앱 네이티브 캐시에만 남아 있는 기존 기록도 상담저장소 목록에 합친다.
   if (window.AndroidBridge && typeof window.AndroidBridge.getLocalRecords === 'function') {
     try {
       const nativeRecords = JSON.parse(window.AndroidBridge.getLocalRecords() || '[]');
-      const byPhone = new Map(records.map(item => [consultPhoneKey(item.phone), item]));
-      nativeRecords.forEach(item => {
-        const key = consultPhoneKey(item.phone);
-        if (!key || !byPhone.has(key) || consultRecordTime(item) > consultRecordTime(byPhone.get(key))) byPhone.set(key, item);
-      });
-      records = [...byPhone.values()].sort((a, b) => consultRecordTime(b) - consultRecordTime(a));
+      records = consultMergeRecords(nativeRecords, records);
       consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
     } catch (_) {}
   }
-  let modal = document.getElementById('consultStorageModal');
   if (!modal) {
     modal = document.createElement('div'); modal.id = 'consultStorageModal'; modal.className = 'consult-storage-modal';
     modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-sync" id="consultSyncBtn">동기화</button></div><div class="consult-storage-list"></div></div>';
@@ -4456,6 +4531,8 @@ function openConsultStorageModal() {
         if (!window.confirm('삭제하시겠습니까?')) return;
         records.splice(deleteIndex, 1);
         consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify(records.slice(0, 100)));
+        // 서버에도 삭제를 전파해야 다음 동기화 때 되살아나지 않는다(#6).
+        consultDeleteServerRecord(deleteRecord);
         renderRecords();
         if (typeof showBubble === 'function') showBubble('저장된 상담내용을 삭제했습니다');
         return;
@@ -4463,6 +4540,8 @@ function openConsultStorageModal() {
 
       const record = records[Number(item.dataset.index)];
       if (!record) return;
+      // 저장된 상담 복원 진단용 로그 (서버에서 내려온 기록인지 확인)
+      console.log('[불러오기] 선택:', record.name, '/ storage키수:', Object.keys(record.storage || {}).length, '/ inputSnapshot길이:', String(record.inputSnapshot || '').length, '/ fullRecord:', !!record.fullRecord);
       // 구버전 저장 기록처럼 storage에 구분 키가 없는 경우에도 최상위 구분값을 복원한다.
       const recordSnapshot = { ...(record.storage || {}) };
       if (!recordSnapshot.DSR_propertyLoanType && record.loanCategory) {
@@ -4487,6 +4566,12 @@ function openConsultStorageModal() {
     }));
   };
   if (search && !search.dataset.bound) { search.dataset.bound = 'true'; search.addEventListener('input', renderRecords); }
+  // 모달 엘리먼트에 렌더 함수를 보관해, 다음 호출(예: 동기화 후)에서
+  // 전체 재구성 없이 목록만 다시 그릴 수 있게 한다(#1).
+  modal.__consultRenderRecords = () => {
+    records = getConsultRecords();
+    renderRecords();
+  };
   renderRecords();
   modal.style.display = 'flex';
 }
@@ -4494,6 +4579,49 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('consultSaveBtn')?.addEventListener('click', saveConsultRecord);
   document.getElementById('consultLoadBtn')?.addEventListener('click', openConsultStorageModal);
 });
+
+/* ───────────────── Firebase(Firestore) 연동 브리지 ─────────────────
+   로그인한 사용자에게만 적용된다. 로그인 안 됐거나 Firebase 미준비면
+   기존 localStorage/GAS 경로가 그대로 동작한다(하위호환).
+
+   1) 저장: saveConsultRecord 가 만든 레코드를 Firestore 에도 저장
+   2) 불러오기: Firestore 기록을 로컬 캐시로 내려받아 기존 모달에 합쳐 보여줌 */
+(function () {
+  function firestoreReady() {
+    return !!(window.DodoConsult && window.DodoConsult.available());
+  }
+
+  // 저장 버튼: 기존 저장(로컬) 후 Firestore 에도 반영
+  window.addEventListener('DOMContentLoaded', function () {
+    var saveBtn = document.getElementById('consultSaveBtn');
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', function () {
+      if (!firestoreReady()) return;
+      // saveConsultRecord 는 방금 로컬에 저장했으므로, 최신 1건을 Firestore 로 올린다.
+      setTimeout(function () {
+        try {
+          var recs = getConsultRecords();
+          if (recs && recs.length) {
+            window.DodoConsult.save(recs[0]).then(function () {
+              if (typeof showBubble === 'function') showBubble('Firestore에도 저장했습니다');
+            }).catch(function (e) { console.warn('Firestore 저장 실패:', e); });
+          }
+        } catch (e) { console.warn('Firestore 저장 브리지 오류:', e); }
+      }, 0);
+    });
+  });
+
+  // 불러오기 버튼: Firestore 기록을 먼저 로컬 캐시로 내려받은 뒤 모달을 연다.
+  window.addEventListener('DOMContentLoaded', function () {
+    var loadBtn = document.getElementById('consultLoadBtn');
+    if (!loadBtn) return;
+    loadBtn.addEventListener('click', function () {
+      if (!firestoreReady()) return;
+      // Firestore → 로컬 캐시 동기화 (실패해도 기존 캐시로 계속 진행)
+      window.DodoConsult.exportToLocal().catch(function (e) { console.warn('Firestore 불러오기 실패:', e); });
+    });
+  });
+})();
 
 
 /* 내용복사 출력 형식 재정의 */

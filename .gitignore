@@ -18,7 +18,17 @@
 !.gitignore
 !index.html
 !gate-auth.js
+!firebase-init.js
+!firebase-auth-ui.js
+!firestore-consult-store.js
+!firestore-usage.js
 !ads.txt
+
+# Firebase 설정 (배포 소스 + 규칙). 시크릿(서비스계정/결제키)은 별도로 .env/함수 환경변수로만 둔다.
+!firebase.json
+!.firebaserc
+!firestore.rules
+!firestore.indexes.json
 
 # 빌드 도우미 / 규칙 문서
 !CLAUDE.md
@@ -52,6 +62,10 @@
 !장래예상소득증가율.png
 !신용점수기준.png
 !24년담보인정비율.png
+
+# Firebase SDK vendor 사본 (오프라인 동작용). 번들/배포에 포함된다.
+!vendor/
+!vendor/**
 
 # 오피스텔 공시 정적자료 (gonsi.html이 의존)
 !op_gongsi_data/

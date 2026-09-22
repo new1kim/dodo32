@@ -54,6 +54,13 @@ object AssetSyncManager {
         "Consult_calculator_logic.js", // Consult_Main.html은 원본(.js)을 참조한다 - 난독화 버전이 아님
         "Consult_calculator_ui.js",
         "Consult_style.css",
+        "firebase-init.js", // Firebase 초기화 모듈(Consult_Main.html이 로드)
+        "firebase-auth-ui.js", // Firebase 로그인 UI
+        "firestore-consult-store.js", // 상담내용 Firestore 저장/불러오기
+        "firestore-usage.js", // 사용내역 Firestore 기록
+        "vendor/firebase-app-compat.js", // Firebase SDK(compat)
+        "vendor/firebase-auth-compat.js",
+        "vendor/firebase-firestore-compat.js",
         // ── DSR 화면 세트 (DSR_*) ──────────────────
         // Consult 세트와 완전히 분리된 별도 버전. 서로의 파일을 참조하지 않으므로 한쪽을 고쳐도
         // 다른 쪽 화면은 영향을 받지 않는다.
