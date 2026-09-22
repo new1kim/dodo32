@@ -2162,10 +2162,13 @@ function isChosen(select) {
 }
 
 // 동/호를 하나만 고를 수 있으면(구분없음 포함) 바로 선택해 준다.
+// 자동 선택도 사용자가 고른 것과 동일하게 취급되도록 change 이벤트를 실제로
+// 발생시킨다. (이벤트를 안 쏘면 onchange에 걸린 조회 로직이 누락된다)
 function autoSelectIfSingle(select) {
 
     if (select.options.length === 2) {
         select.selectedIndex = 1;
+        select.dispatchEvent(new Event("change"));
         return true;
     }
 
@@ -2225,9 +2228,9 @@ function setupUnitSelection(type) {
 
         addOptions(ho, hos);
 
-        if (autoSelectIfSingle(ho)) {
-            ho.onchange && ho.onchange();
-        }
+        // 호가 하나뿐이면 바로 선택한다(자동 선택 시 change 이벤트가 발생하므로
+        // 별도로 onchange를 다시 호출하지 않는다).
+        autoSelectIfSingle(ho);
     };
 
 
@@ -2264,10 +2267,28 @@ function setupUnitSelection(type) {
 
     } else if (autoSelectIfSingle(dong)) {
 
-        populateHo(dong.value);
+        // autoSelectIfSingle이 change 이벤트를 쏘면서 dong.onchange → populateHo가
+        // 이미 실행되므로 여기서 또 호출하지 않는다. 동이 "구분없음"이라 호 목록이
+        // 동 값에 묶이지 않고 전체에서 구성되어야 하는 경우도 이 흐름으로 처리된다.
     }
 
-    if (pendingUnitSelection && isChosen(dong)) {
+    /*
+     * 동이 "구분없음" 하나뿐인 단지(동 목록에 값이 ""인 항목만 있는 경우)는
+     * 동 선택 자체가 의미가 없으므로, 동 컬럼을 숨기고 호 선택만 남긴다.
+     * 이렇게 해야 사용자가 "동 선택" 안내문구에 막히지 않고 호를 고를 수 있다.
+     */
+
+    const dongBox = dong.closest(".select-box");
+
+    if (dongBox) {
+
+        const onlyEmptyDong =
+            dongNames.length === 1 && dongNames[0] === "";
+
+        dongBox.style.display = onlyEmptyDong ? "none" : "";
+    }
+
+    if (pendingUnitSelection && isChosen(ho)) {
 
         const hoValues =
             Array.from(ho.options).map(o => o.value);
@@ -2359,7 +2380,12 @@ function maybeSearchPrice() {
     const dong = document.getElementById("dongSelect");
     const ho = document.getElementById("hoSelect");
 
-    if (isChosen(dong) && isChosen(ho)) {
+    // 동 구분이 없는 단지(동 목록이 "구분없음" 하나뿐)는 동 선택을 요구하지 않고
+    // 호 선택만으로 바로 조회한다.
+    const dongRequired =
+        !(dong.options.length === 2 && dong.options[1].value === "");
+
+    if ((!dongRequired || isChosen(dong)) && isChosen(ho)) {
         searchPrice();
     }
 }
@@ -2401,6 +2427,8 @@ function searchPrice() {
     /*
      * 공동주택 / 오피스텔은 동·호 확인 (값이 빈 문자열이어도 "구분없음"을
      * 실제로 고른 것일 수 있으므로 selectedIndex로 판단한다)
+     * 단, 동 구분이 없는 단지(동 목록이 "구분없음" 하나뿐)는 동은 검사하지 않고
+     * 호 선택만 필수로 본다.
      */
 
     if (
@@ -2408,7 +2436,10 @@ function searchPrice() {
         type === "오피스텔"
     ) {
 
-        if (!isChosen(dong) || !isChosen(ho)) {
+        const dongRequired =
+            !(dong.options.length === 2 && dong.options[1].value === "");
+
+        if ((dongRequired && !isChosen(dong)) || !isChosen(ho)) {
 
             showStatus(
                 "동·호를 선택해주세요.",
