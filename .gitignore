@@ -18,17 +18,7 @@
 !.gitignore
 !index.html
 !gate-auth.js
-!firebase-init.js
-!firebase-auth-ui.js
-!firestore-consult-store.js
-!firestore-usage.js
 !ads.txt
-
-# Firebase 설정 (배포 소스 + 규칙). 시크릿(서비스계정/결제키)은 별도로 .env/함수 환경변수로만 둔다.
-!firebase.json
-!.firebaserc
-!firestore.rules
-!firestore.indexes.json
 
 # 빌드 도우미 / 규칙 문서
 !CLAUDE.md
@@ -62,10 +52,6 @@
 !장래예상소득증가율.png
 !신용점수기준.png
 !24년담보인정비율.png
-
-# Firebase SDK vendor 사본 (오프라인 동작용). 번들/배포에 포함된다.
-!vendor/
-!vendor/**
 
 # 오피스텔 공시 정적자료 (gonsi.html이 의존)
 !op_gongsi_data/
@@ -237,3 +223,26 @@ CallNote/.idea/
 #   로컬에서 .gs 편집 -> 구글 Apps Script 에디터에 붙여넣기 -> 저장/배포
 # ============================================================
 *.gs
+# ============================================================
+# Firebase (로그인/상담저장/사용내역/결제) - 절대 커밋 금지 (맨 끝 = 항상 우선)
+#
+# Firebase 연동은 "로컬에서만" 작업한다. GitHub(main)에는 올리지 않는다.
+# 앱/웹 배포는 Firebase Hosting 으로 별도 진행한다.
+#
+# 공개 repo 이므로 firebaseConfig 의 apiKey 자체는 공개 값이지만,
+# 프로젝트 구성/규칙/벤더 SDK 사본을 배포 소스에 섞지 않기 위해 통째로 제외한다.
+# ============================================================
+firebase-init.js
+firebase-auth-ui.js
+firestore-consult-store.js
+firestore-usage.js
+firebase.json
+.firebaserc
+firestore.rules
+firestore.indexes.json
+vendor/
+CallNote/app/src/main/assets/firebase-init.js
+CallNote/app/src/main/assets/firebase-auth-ui.js
+CallNote/app/src/main/assets/firestore-consult-store.js
+CallNote/app/src/main/assets/firestore-usage.js
+CallNote/app/src/main/assets/vendor/
