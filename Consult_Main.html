@@ -695,17 +695,6 @@
   <!-- JavaScript 파일 연결 -->
   <script src="Consult_calculator_logic.js"></script>
   <script src="Consult_calculator_ui.js"></script>
-
-  <!-- Firebase SDK (compat 빌드). 로컬 vendor 사본을 우선 로드하고, 없을 때만 CDN 으로 폴백하려면
-       아래 src 를 CDN URL 로 바꾸면 된다. vendor 사본을 앱 번들/배포에 포함하면 오프라인에서도 동작한다. -->
-  <script src="vendor/firebase-app-compat.js"></script>
-  <script src="vendor/firebase-auth-compat.js"></script>
-  <script src="vendor/firebase-firestore-compat.js"></script>
-  <!-- Firebase 연동 모듈 (위 firebase 전역이 준비된 뒤 로드해야 함) -->
-  <script src="firebase-init.js"></script>
-  <script src="firebase-auth-ui.js"></script>
-  <script src="firestore-consult-store.js"></script>
-  <script src="firestore-usage.js"></script>
   <script>
     (function () {
       function parseDisplayValue(rawText) {

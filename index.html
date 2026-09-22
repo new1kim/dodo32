@@ -387,11 +387,6 @@
 
     /* PC 및 태블릿 환경(768px 이상): 3개 프레임 모두 표시 (기본 flex 레이아웃 그대로 사용) */
   </style>
-  <!-- 인증: Firebase SDK (compat) + 초기화. 로그인 UI는 index.html이 담당한다. -->
-  <script src="vendor/firebase-app-compat.js"></script>
-  <script src="vendor/firebase-auth-compat.js"></script>
-  <script src="vendor/firebase-firestore-compat.js"></script>
-  <script src="firebase-init.js"></script>
   <!-- 인증 OFF 상태의 최신 사용량 기록 코드가 브라우저 캐시에 남지 않도록 버전을 명시한다. -->
   <script src="gate-auth.js?v=usage-off-1"></script>
   <script>
@@ -857,24 +852,6 @@
     window.addEventListener('DOMContentLoaded', initPages, { once: true });
     window.addEventListener('load', initPages, { once: true });
 
-    /* Firebase 로그인 상태 변화 반영.
-       로그인하면 그 사용자의 이름을 calc_user_name 에 저장하고 앱으로 진입한다.
-       (firebase-auth-ui.js 가 calc_user_name 은 이미 채우지만, 이 화면은 "진입"까지 필요하다)
-       로그아웃하면 이름을 지우고 다시 이름/로그인 입력을 요구한다. */
-    window.addEventListener('dodoAuthChanged', function (e) {
-      var user = e && e.detail ? e.detail.user : null;
-      if (user) {
-        var name = (window.DodoAuth && window.DodoAuth.displayName && window.DodoAuth.displayName()) || '';
-        if (!name) name = String(user.email || '').split('@')[0];
-        try { writeStoredText(STORAGE_KEYS.userName, name); } catch (err) {}
-        try { proceedToApp(name); } catch (err) { console.error('[로그인 진입 실패]', err); }
-      } else {
-        // 로그아웃: 저장된 이름을 지우고 이름/로그인 입력을 다시 보여준다.
-        try { removeStoredText(STORAGE_KEYS.userName); } catch (err) {}
-        try { showNameRequired(); } catch (err) {}
-      }
-    });
-
     /* 아직 아무것도 안 띄운 프레임에만 기본 화면을 채운다.
        판단 기준은 src 속성이 아니라 data-page다 - loadPage는 location.replace로 옮기기
        때문에 src 속성이 계속 ''로 남아, 그걸 보면 이미 띄워둔 MCG·날짜계산 같은 화면을
@@ -990,28 +967,6 @@
 
       const submitBtn = document.querySelector('.user-submit-btn');
       const counterEl = document.getElementById('today-count');
-
-      // ── Firebase 로그인 우선 ─────────────────────────────────────
-      // 이름 입력칸에는 "이메일"을 받는다. 비밀번호는 두 번째 로그인 시부터 필요하며,
-      // 처음 입력한 이메일은 회원가입(비번은 별도 입력창)으로 이어진다.
-      // 임시로: 이메일이면 로그인 시도 → 실패하면 회원가입 폼을 띄운다.
-      if (window.DodoAuth && window.DodoAuth.isReady && window.DodoAuth.isReady()) {
-        // 이메일 형식이 아니면 기존(이름만 기록) 방식으로 계속 진행한다.
-        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(name)) {
-          if (submitBtn) submitBtn.disabled = true;
-          if (counterEl) counterEl.textContent = "로그인 확인중...";
-          try {
-            await window.DodoAuth.signInOrPrompt(name);
-            // 로그인/가입 성공은 onAuthStateChanged 가 처리해 calc_user_name 을 채우고 진입한다.
-          } catch (err) {
-            console.warn('[Firebase 로그인 실패]', err);
-            if (counterEl) counterEl.textContent = "이름 입력 필요";
-          } finally {
-            if (submitBtn) submitBtn.disabled = false;
-          }
-          return;
-        }
-      }
 
       if (!GATE_ENABLED) {
         // 인증 기능 OFF: Google Apps Script의 register를 호출하지 않고 즉시 진입한다.
