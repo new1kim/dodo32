@@ -191,7 +191,7 @@
         /* --- 결과 테이블 : 영업일 / 단순일수 / 제외일수 --- */
         .result-table-wrap {
             margin-bottom: 26px;
-            padding: 14px 14px 12px;
+            padding: 10px 14px 8px;
             background: var(--card);
             border: 1.5px solid var(--line);
             border-radius: 6px;
@@ -214,7 +214,7 @@
         }
 
         .result-table td {
-            padding: 12px 4px 2px;
+            padding: 8px 4px 2px;
             text-align: center;
             font-family: 'Noto Serif KR', serif;
             font-size: 22px;
@@ -347,24 +347,31 @@
             table-layout: fixed;
         }
 
-        .qc-result-table th {
-            padding: 0 4px 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--ink-soft);
-            letter-spacing: 0.02em;
-            text-align: center;
-            border-bottom: 1px solid var(--line);
-        }
-
         .qc-result-table td {
-            padding: 10px 4px 2px;
+            padding: 4px;
+            height: 30px;
+            vertical-align: middle;
             text-align: center;
             font-family: 'Noto Serif KR', serif;
             font-size: 18px;
             font-weight: 700;
             color: var(--receipt-blue);
             font-variant-numeric: tabular-nums;
+        }
+
+        .qc-result-table td.qc-result-label-cell {
+            padding: 4px;
+            height: 30px;
+            vertical-align: middle;
+            border-top: 1px solid var(--line);
+        }
+
+        .qc-result-label-cell span {
+            font-family: 'Pretendard', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
         }
 
         .quick-calc-date-display {
@@ -594,7 +601,7 @@
                 padding: 4px 1px;
             }
 
-            .result-table-wrap { padding: 12px 8px 10px; }
+            .result-table-wrap { padding: 8px 8px 6px; }
             .result-table td { font-size: 19px; }
             .result-table td.hero { font-size: 24px; }
 
@@ -608,7 +615,6 @@
         <div class="calculator-header">
             <h2>영업일 계산기</h2>
             <div class="rule"></div>
-            <p class="header-subtitle">접수일과 실행일을 선택하면<br>영업일수를 자동으로 계산합니다.</p>
         </div>
 
         <div class="ledger">
@@ -672,27 +678,18 @@
             <!-- 3) 맨 아래 접수가능일 결과 테이블 (1개의 행) -->
             <div class="qc-result-table-wrap">
                 <table class="qc-result-table">
-                    <thead>
-                        <tr>
-                            <th id="receiptDateLabel">접수가능일</th>
-                        </tr>
-                    </thead>
                     <tbody>
                         <tr>
                             <td><span id="receiptDate">-</span></td>
+                        </tr>
+                        <tr>
+                            <td class="qc-result-label-cell"><span id="receiptDateLabel">접수가능일</span></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-
         <div class="notice">
-            <div class="notice-list">
-                <div class="notice-row"><strong>주택금융</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
-                <div class="notice-row"><strong>도시보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 60일 ]</div>
-                <div class="notice-row"><strong>서울보증</strong> 접수일 제외 ~ 실행일 포함 [ 10일 ~ 45일 ]</div>
-                <div class="notice-row"><strong>주 담 대</strong> 접수일 제외 ~ 실행일 포함 [ 영업 30일 ~ 단순 60일 ]</div>
-            </div>
             <p class="notice-footnote">접수일자는 제외하고 계산합니다.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
         </div>
     </div>
