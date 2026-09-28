@@ -101,10 +101,23 @@
         }
 
         .ledger {
-            border-top: 1px solid var(--line);
-            border-bottom: 1px solid var(--line);
             padding: 0;
             margin-bottom: 26px;
+            background: var(--card);
+            border: 1.5px solid var(--line);
+            border-radius: 6px;
+        }
+
+        /* 0행: 블록 제목 (날짜구간 날짜계산) */
+        .ledger-block-title {
+            padding: 11px 10px 9px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--line);
+            background: rgba(169, 129, 47, 0.06);
         }
 
         /* 1행: 제목행 (접수일 | 구분 | 실행일) */
@@ -190,11 +203,10 @@
 
         /* --- 결과 테이블 : 영업일 / 단순일수 / 제외일수 --- */
         .result-table-wrap {
-            margin-bottom: 26px;
             padding: 10px 14px 8px;
-            background: var(--card);
-            border: 1.5px solid var(--line);
-            border-radius: 6px;
+            background: transparent;
+            border-top: 1px solid var(--line);
+            border-radius: 0;
         }
 
         .result-table {
@@ -281,19 +293,19 @@
 
         /* --- 실행일 기준 접수가능일 빠른 계산 (신규) --- */
         .quick-calc {
-            margin-bottom: 26px;
-            padding: 18px 16px;
-            border: 1px dashed var(--line);
+            margin-bottom: 20px;
+            padding: 14px 14px;
+            border: 1px solid var(--line);
             border-radius: 6px;
-            background: rgba(169, 129, 47, 0.05);
+            background: rgba(169, 129, 47, 0.04);
         }
 
         .quick-calc-title {
             font-size: 12px;
             font-weight: 700;
             color: var(--gold);
-            letter-spacing: 0.02em;
-            margin-bottom: 14px;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
             text-align: center;
         }
 
@@ -318,18 +330,31 @@
             text-align: center;
         }
 
-        /* 역산 영역: 1) 실행일 선택 (단독 행) */
+        /* 역산 영역: 실행일 라벨 + 선택기를 한 행로 배치 */
         .qc-exec-wrap {
-            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: stretch;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         .qc-exec-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            padding: 0 18px;
             font-size: 13px;
             font-weight: 700;
-            color: var(--ink-soft);
-            margin-bottom: 6px;
-            text-align: center;
+            color: var(--gold);
+            background: rgba(169, 129, 47, 0.10);
+            border: 1px solid rgba(169, 129, 47, 0.32);
+            border-radius: 4px;
             letter-spacing: 0.04em;
+            white-space: nowrap;
+            word-break: keep-all;
+            user-select: none;
         }
 
         /* 3) 결과 테이블 (하단 배치, 1개 행) */
@@ -377,18 +402,24 @@
         .quick-calc-date-display {
             width: 100%;
             text-align: center;
-            padding: 8px 4px;
+            padding: 7px 4px;
             font-size: 14px;
             font-weight: 600;
             font-family: 'Noto Serif KR', serif;
-            color: var(--exec-red);
+            color: var(--ink);
+            background: var(--card);
             border: 1px solid var(--line);
             border-radius: 4px;
-            background: var(--card);
             cursor: pointer;
             white-space: normal;
             word-break: keep-all;
             line-height: 1.3;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .quick-calc-date-display:not(.placeholder):hover {
+            border-color: var(--gold);
+            background: #ffffff;
         }
 
         .quick-calc-date-display.placeholder {
@@ -408,6 +439,11 @@
             grid-area: 1 / 1;
         }
 
+        /* 날짜 표시용 레이어가 실제 flatpickr 입력의 클릭을 가로채지 않도록 한다. */
+        .quick-calc-picker-wrap .quick-calc-date-display {
+            pointer-events: none;
+        }
+
         .quick-calc-picker-wrap input[type="text"] {
             width: 100%;
             height: 100%;
@@ -419,11 +455,205 @@
             cursor: pointer;
         }
 
+        /* --- 구간별 필렛 + 날짜 카드 --- */
+        .qc-range-group + .qc-range-group {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--line);
+        }
+
+        .qc-range-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .qc-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 24px;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--gold);
+            background: rgba(169, 129, 47, 0.10);
+            border: 1px solid rgba(169, 129, 47, 0.32);
+            border-radius: 999px;
+        }
+
+        .qc-pill.biz,
+        .qc-pill.mid,
+        .qc-pill.end { background: rgba(169, 129, 47, 0.10); }
+
+        .qc-range-caption {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        /* 구간 바 */
+        .qc-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+        }
+
+        .qc-value-badge {
+            display: inline-block;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        .qc-value-badge.empty {
+            color: #b7ae9a;
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 500;
+            font-size: 12.5px;
+        }
+
+        .qc-range-item {
+            flex: 1 1 0;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .qc-range-item strong {
+            display: block;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* 계산된 날짜가 휴일(주말/공휴일)이면 빨간색으로 경고 */
+        .qc-range-item strong.is-holiday { color: var(--stamp); }
+
+        /* 휴일 이름 표시 */
+        .qc-holiday-name {
+            display: block;
+            font-family: 'Pretendard', sans-serif;
+            font-size: 10.5px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--stamp);
+            margin-top: 2px;
+        }
+
+        .qc-holiday-name:empty { display: none; }
+
+        /* 기준 미달 안내 문구 */
+        .qc-missing {
+            display: block;
+            font-family: 'Pretendard', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--stamp);
+            margin-top: 3px;
+        }
+
+        .qc-missing:empty { display: none; }
+
+        .qc-range-arrow {
+            flex: 0 0 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 특수문자 대신 CSS로 그린 양방향 구간 표시선 */
+        .qc-range-arrow .range-line {
+            display: block;
+            width: 38px;
+            height: 1px;
+            background: var(--gold);
+            position: relative;
+        }
+
+        .qc-range-arrow .range-line::before,
+        .qc-range-arrow .range-line::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 7px;
+            height: 7px;
+            border-top: 1.5px solid var(--gold);
+            border-bottom: 1.5px solid var(--gold);
+            transform: translateY(-50%);
+        }
+
+        .qc-range-arrow .range-line::before {
+            left: -1px;
+            border-right: 1.5px solid var(--gold);
+            transform: translateY(-50%) rotate(45deg);
+        }
+
+        .qc-range-arrow .range-line::after {
+            right: -1px;
+            border-left: 1.5px solid var(--gold);
+            transform: translateY(-50%) rotate(45deg);
+        }
+
+        .qc-range-arrow .bar { width: 42px; height: 1px; background: var(--line); position: relative; }
+
+        .qc-range-arrow .bar::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: -3px;
+            border: 3.5px solid transparent;
+            border-right-color: var(--line);
+        }
+
+        .qc-range-arrow .bar::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: -3px;
+            border: 3.5px solid transparent;
+            border-left-color: var(--line);
+        }
+
+        .qc-range-arrow span {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: rgba(255, 255, 255, 0.72);
+        }
+
+        .qc-range-arrow .sym {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+        }
+
+        .quick-calc-hint {
+            margin: 12px 2px 0;
+            font-size: 11px;
+            color: #8b8570;
+            line-height: 1.6;
+        }
+
         .quick-calc-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin-top: 12px;
+            display: none;
         }
 
         .day-select-btn {
@@ -466,14 +696,23 @@
         }
 
         @media (max-width: 480px) {
-            .quick-calc { padding: 14px 12px; }
+            .quick-calc { padding: 12px 10px; }
             .qc-result-table td { font-size: 16px; }
-            .day-select-btn { font-size: 11.5px; padding: 8px 2px; }
+            .qc-exec-label { padding: 0 9px; font-size: 12px; }
+            .qc-pill { height: 22px; font-size: 11px; padding: 0 10px; }
+            .qc-range-caption { font-size: 10.5px; }
+            .qc-range-item strong { font-size: 13px; }
+            .qc-range { padding: 9px 8px; gap: 5px; }
+            .qc-range-arrow { flex-basis: 28px; }
+            .qc-range-arrow .range-line { width: 24px; }
+            .qc-range-arrow .bar { width: 22px; }
+            .qc-range-arrow .sym { font-size: 14px; }
+            .qc-holiday-name { font-size: 9.5px; }
         }
 
         .notice {
-            margin-top: 22px;
-            padding-top: 16px;
+            margin-top: 16px;
+            padding-top: 12px;
             border-top: 1px solid var(--line);
             font-size: 11.5px;
             color: #8b8570;
@@ -503,6 +742,14 @@
         }
 
         /* --- 달력 스타일 커스텀 --- */
+        /* body에 붙인 달력을 viewport 기준으로 고정 배치 */
+        .flatpickr-calendar {
+            position: fixed !important;
+            z-index: 9999 !important;
+        }
+
+        .flatpickr-calendar .flatpickr-day { overflow: visible; }
+
         .flatpickr-day.prevMonthDay,
         .flatpickr-day.nextMonthDay {
             visibility: hidden !important;
@@ -612,12 +859,14 @@
 <body>
 
     <div class="calculator-container">
-        <div class="calculator-header">
-            <h2>영업일 계산기</h2>
-            <div class="rule"></div>
-        </div>
+        <!-- <div class="calculator-header"> -->
+            <!-- <h2>영업일 계산기</h2> -->
+            <!-- <div class="rule"></div> -->
+        <!-- </div> -->
 
         <div class="ledger">
+            <div class="ledger-block-title">날짜 구간 계산</div>
+
             <!-- 첫번째: 제목행 -->
             <div class="ledger-title-row">
                 <div class="ledger-title-cell">접수일</div>
@@ -634,29 +883,30 @@
                     <input type="text" id="endDate" readonly placeholder="날짜 선택">
                 </div>
             </div>
-        </div>
 
-        <div class="result-table-wrap">
-            <table class="result-table">
-                <thead>
-                    <tr>
-                        <th>영업일</th>
-                        <th>단순일수</th>
-                        <th>제외일수</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="hero"><span id="businessDays">-</span></td>
-                        <td><span id="totalDays">-</span></td>
-                        <td><span id="excludedDays">-</span></td>
-                    </tr>
-                </tbody>
-            </table>
+            <!-- 세번째: 결과 (영업일 / 단순일수 / 제외일수) -->
+            <div class="result-table-wrap">
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>영업일</th>
+                            <th>단순일수</th>
+                            <th>제외일수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="hero"><span id="businessDays">-</span></td>
+                            <td><span id="totalDays">-</span></td>
+                            <td><span id="excludedDays">-</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="quick-calc">
-            <div class="quick-calc-title">실행일 기준 접수가능일 계산</div>
+            <div class="quick-calc-title">실행일 기준 접수 가능 날짜 확인</div>
 
             <!-- 1) 실행일 선택 (1개 행) -->
             <div class="qc-exec-wrap">
@@ -667,16 +917,87 @@
                 </div>
             </div>
 
-            <!-- 2) 구분 선택 버튼 (2x2) -->
+            <!-- 2) 구간별 접수가능일 (필렛 + 날짜 카드) -->
+            <div class="qc-range-group">
+                <div class="qc-range-head">
+                    <!-- <span class="qc-pill biz">단순 60일 부터 ~ 영업 10일 까지</span> -->
+                    <!-- [미사용] <button type="button" class="qc-biz-toggle" data-fix="1" hidden>영업일접수 보기</button> -->
+                </div>
+                <div class="qc-range">
+                    <div class="qc-range-item" data-start-item="1">
+                        <span class="qc-range-caption">60일 부터</span>
+                        <strong data-range="s1">-</strong>
+                        <span class="qc-holiday-name" data-hname="s1"></span>
+                        <span class="qc-missing" data-emiss="s1"></span>
+                    </div>
+                    <div class="qc-range-arrow">
+                        <span class="range-line" aria-hidden="true"></span>
+                    </div>
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">영업 10일 까지</span>
+                        <strong data-range="e1">-</strong>
+                        <span class="qc-holiday-name" data-hname="e1"></span>
+                        <span class="qc-missing" data-emiss="e1"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qc-range-group">
+                <div class="qc-range-head">
+                    <!-- <span class="qc-pill mid">단순 45일 부터 ~ 영업 30일 까지</span> -->
+                    <!-- [미사용] <button type="button" class="qc-biz-toggle" data-fix="2" hidden>영업일접수 보기</button> -->
+                </div>
+                <div class="qc-range">
+                    <div class="qc-range-item" data-start-item="2">
+                        <span class="qc-range-caption">45일 부터</span>
+                        <strong data-range="s2">-</strong>
+                        <span class="qc-holiday-name" data-hname="s2"></span>
+                        <span class="qc-missing" data-emiss="s2"></span>
+                    </div>
+                    <div class="qc-range-arrow">
+                        <span class="range-line" aria-hidden="true"></span>
+                    </div>
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">영업 30일 까지</span>
+                        <strong data-range="e2">-</strong>
+                        <span class="qc-holiday-name" data-hname="e2"></span>
+                        <span class="qc-missing" data-emiss="e2"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qc-range-group">
+                <div class="qc-range-head">
+                    <!-- <span class="qc-pill end">단순 60일 부터 ~ 영업 30일 까지</span> -->
+                    <!-- [미사용] <button type="button" class="qc-biz-toggle" data-fix="3" hidden>영업일접수 보기</button> -->
+                </div>
+                <div class="qc-range">
+                    <div class="qc-range-item" data-start-item="3">
+                        <span class="qc-range-caption">60일 부터</span>
+                        <strong data-range="s3">-</strong>
+                        <span class="qc-holiday-name" data-hname="s3"></span>
+                        <span class="qc-missing" data-emiss="s3"></span>
+                    </div>
+                    <div class="qc-range-arrow">
+                        <span class="range-line" aria-hidden="true"></span>
+                    </div>
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">영업 30일 까지</span>
+                        <strong data-range="e3">-</strong>
+                        <span class="qc-holiday-name" data-hname="e3"></span>
+                        <span class="qc-missing" data-emiss="e3"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3) 기존 단일 결과 테이블 (숨김 처리) -->
             <div class="quick-calc-buttons">
                 <button type="button" class="day-select-btn" data-mode="biz10">영업10일 이상</button>
                 <button type="button" class="day-select-btn" data-mode="biz30">영업30일 이상</button>
                 <button type="button" class="day-select-btn" data-mode="simple45">45일 이하</button>
                 <button type="button" class="day-select-btn" data-mode="simple60">60일 이하</button>
             </div>
-
-            <!-- 3) 맨 아래 접수가능일 결과 테이블 (1개의 행) -->
-            <div class="qc-result-table-wrap">
+            <div class="qc-result-table-wrap" style="display: none;">
                 <table class="qc-result-table">
                     <tbody>
                         <tr>
@@ -689,8 +1010,68 @@
                 </table>
             </div>
         </div>
+        <div class="quick-calc">
+            <div class="quick-calc-title">접수일 기준 실행 가능 날짜 확인</div>
+
+            <!-- 1) 접수일 선택 (1개 행) -->
+            <div class="qc-exec-wrap">
+                <div class="qc-exec-label">접수일</div>
+                <div class="quick-calc-picker-wrap">
+                    <div class="quick-calc-date-display placeholder" id="rcptDateDisplay">날짜 선택</div>
+                    <input type="text" id="rcptDate" readonly>
+                </div>
+            </div>
+
+            <!-- 2) 구간별 실행일 -->
+            <div class="qc-range-group">
+                <div class="qc-range-head">
+                    <!-- <span class="qc-pill biz">30영업일 이상 부터 ~ 단순 60일 이하 구간</span> -->
+                </div>
+                <div class="qc-range">
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">30영업일 부터</span>
+                        <strong data-rrange="r1">-</strong>
+                        <span class="qc-holiday-name" data-rhname="r1"></span>
+                        <span class="qc-missing" data-rmiss="r1"></span>
+                    </div>
+                    <div class="qc-range-arrow">
+                        <span class="range-line" aria-hidden="true"></span>
+                    </div>
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">60일 까지</span>
+                        <strong data-rrange="r2">-</strong>
+                        <span class="qc-holiday-name" data-rhname="r2"></span>
+                        <span class="qc-missing" data-rmiss="r2"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qc-range-group">
+                <div class="qc-range-head">
+                    <!-- <span class="qc-pill mid">30영업일 이상 부터 ~ 단순 45일 이하 구간</span> -->
+                </div>
+                <div class="qc-range">
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">30영업일 기준</span>
+                        <strong data-rrange="r3">-</strong>
+                        <span class="qc-holiday-name" data-rhname="r3"></span>
+                        <span class="qc-missing" data-rmiss="r3"></span>
+                    </div>
+                    <div class="qc-range-arrow">
+                        <span class="range-line" aria-hidden="true"></span>
+                    </div>
+                    <div class="qc-range-item">
+                        <span class="qc-range-caption">45일 까지</span>
+                        <strong data-rrange="r4">-</strong>
+                        <span class="qc-holiday-name" data-rhname="r4"></span>
+                        <span class="qc-missing" data-rmiss="r4"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="notice">
-            <p class="notice-footnote">접수일자는 제외하고 계산합니다.<br>주말·법정공휴일·대체공휴일은 영업일수에서 제외됩니다.</p>
+            <p class="notice-footnote">접수일 제외, "주말·법정·대체" 휴일 영업일수에서 제외<br></p>
         </div>
     </div>
 
@@ -734,8 +1115,17 @@
             return !!holidayData[dateStr];
         }
 
-        function toDateString(date) {
+        // 공휴일 키 조작용 (4자리 연도)
+        function toFullDateString(date) {
             const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 화면 표시용 (2자리 연도)
+        function toDateString(date) {
+            const year = String(date.getFullYear()).slice(-2);
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
@@ -747,13 +1137,44 @@
             return `${toDateString(date)} (${WEEKDAY_KO[date.getDay()]})`;
         }
 
+        // 달력을 입력창 아래에 붙이고, 화면 밖으로 나가지 않도록 viewport 안으로 보정한다
+        function positionCalendar(calendarEl, inputEl) {
+            if (!calendarEl || !inputEl) return;
+
+            calendarEl.style.position = 'fixed';
+            calendarEl.style.right = 'auto';
+            calendarEl.style.bottom = 'auto';
+            calendarEl.style.margin = '0';
+
+            const margin = 8;
+            const gap = 4;
+            const inputRect = inputEl.getBoundingClientRect();
+            const calWidth = calendarEl.offsetWidth;
+            const calHeight = calendarEl.offsetHeight;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            let left = inputRect.left;
+            if (left + calWidth + margin > vw) left = vw - calWidth - margin;
+            if (left < margin) left = margin;
+
+            let top = inputRect.bottom + gap;
+            if (top + calHeight + margin > vh) {
+                const above = inputRect.top - calHeight - gap;
+                top = above >= margin ? above : Math.max(margin, vh - calHeight - margin);
+            }
+
+            calendarEl.style.left = Math.round(left) + 'px';
+            calendarEl.style.top = Math.round(top) + 'px';
+        }
+
         // 실행일부터 거꾸로 영업일을 count 개 채우는 접수가능일을 찾는다 (실행일 포함, 접수가능일 제외)
         function findDateByBusinessDaysBack(endDate, count) {
             let cur = new Date(endDate.getTime());
             let remaining = count;
             while (remaining > 0) {
                 const dayOfWeek = cur.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toDateString(cur))) {
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toFullDateString(cur))) {
                     remaining--;
                     if (remaining === 0) break;
                 }
@@ -770,6 +1191,58 @@
             return cur;
         }
 
+        // 접수일로부터 정방향으로 단순 일수(count) 뒤 날짜를 찾는다 (접수일 제외)
+        function findDateBySimpleDaysForward(startDate, count) {
+            const cur = new Date(startDate.getTime());
+            cur.setDate(cur.getDate() + count);
+            return cur;
+        }
+
+        // 접수일로부터 정방향으로 영업일 count 개 뒤 날짜를 찾는다 (접수일 제외)
+        function findDateByBusinessDaysForward(startDate, count) {
+            const cur = new Date(startDate.getTime());
+            let remaining = count;
+            while (remaining > 0) {
+                cur.setDate(cur.getDate() + 1);
+                const dayOfWeek = cur.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toFullDateString(cur))) {
+                    remaining--;
+                }
+            }
+            return cur;
+        }
+
+        // 시작일 다음날부터 종료일까지의 영업일 수를 센다 (시작일 제외, 종료일 포함)
+        function countBusinessDaysBetween(startDate, endDate) {
+            if (!startDate || !endDate || startDate > endDate) return 0;
+
+            let count = 0;
+            const cur = new Date(startDate.getTime());
+            while (cur < endDate) {
+                cur.setDate(cur.getDate() + 1);
+                const dayOfWeek = cur.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toFullDateString(cur))) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // ==========================================================
+        // [미사용] 접수 시작일을 영업일로 보정하는 헬퍼
+        // ==========================================================
+        // function adjustToBusinessDayOnOrAfter(date) {
+        //     const cur = new Date(date.getTime());
+        //     for (let i = 0; i < 15; i++) {
+        //         const dayOfWeek = cur.getDay();
+        //         if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(toDateString(cur))) {
+        //             return cur;
+        //         }
+        //         cur.setDate(cur.getDate() + 1);
+        //     }
+        //     return cur;
+        // }
+
         // 접수일자는 제외하고 계산 (start 다음 날 ~ end 구간을 카운트)
         function calculateBusinessDays(startDate, endDate) {
             let start = new Date(startDate);
@@ -783,10 +1256,7 @@
 
             while (curDate <= end) {
                 const dayOfWeek = curDate.getDay();
-                const year = curDate.getFullYear();
-                const month = String(curDate.getMonth() + 1).padStart(2, '0');
-                const day = String(curDate.getDate()).padStart(2, '0');
-                const dateString = `${year}-${month}-${day}`;
+                const dateString = toFullDateString(curDate);
                 if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(dateString)) {
                     businessDays++;
                 }
@@ -800,24 +1270,34 @@
                 locale: "ko",
                 dateFormat: "Y-m-d",
                 disableMobile: true,
+                // 달력을 body에 붙여 카드의 overflow/z-index 영향을 받지 않게 한다.
+                // static:true는 입력 래퍼 내부에 달력을 넣으므로 모바일에서 잘릴 수 있다.
+                appendTo: document.body,
+                onClose: function(selectedDates, dateStr, instance) {
+                    instance.calendarContainer.style.left = '';
+                    instance.calendarContainer.style.top = '';
+                },
+                onOpen: function(selectedDates, dateStr, instance) {
+                    // flatpickr 인스턴스의 실제 원본 입력 요소는 `input`이다.
+                    const inputEl = instance.altInput || instance.input;
+                    requestAnimationFrame(() => positionCalendar(instance.calendarContainer, inputEl));
+                },
                 onDayCreate: function(dObj, dStr, fp, dayElem) {
                     const date = dayElem.dateObj;
-                    const dateString = fp.formatDate(date, "Y-m-d");
                     const dayOfWeek = date.getDay();
 
                     if (dayOfWeek === 6) dayElem.classList.add('sat');
                     else if (dayOfWeek === 0) dayElem.classList.add('sun');
 
-                    if (isHoliday(dateString)) {
-                        dayElem.classList.add('holiday');
-                        const holidayLabel = getHolidayLabel(dateString);
-                        if (holidayLabel) {
-                            const labelElem = document.createElement('span');
-                            labelElem.className = 'holiday-label';
-                            labelElem.innerText = holidayLabel;
-                            dayElem.appendChild(labelElem);
-                        }
-                    }
+                    if (dayOfWeek === 0 || dayOfWeek === 6) return;
+                    const holidayName = getHolidayLabel(toFullDateString(date));
+                    if (!holidayName) return;
+
+                    dayElem.classList.add('holiday');
+                    const labelElem = document.createElement('span');
+                    labelElem.className = 'holiday-label';
+                    labelElem.innerText = holidayName;
+                    dayElem.appendChild(labelElem);
                 },
                 onChange: function() {
                     triggerCalculation();
@@ -825,21 +1305,16 @@
             };
 
             async function initializeCalendar() {
-                const year = new Date().getFullYear();
-                try {
-                    await fetchHolidayData(year - 1, year + 2);
-                } catch (error) {
-                    console.warn('Holiday fetch failed:', error);
-                }
-
-                flatpickr("#startDate", {
+                // 공휴일 API 응답을 기다리느라 날짜 선택기 자체가 늦게 생성되지 않도록
+                // 달력은 먼저 생성하고 공휴일 데이터는 백그라운드에서 보강한다.
+                const startPicker = flatpickr("#startDate", {
                     ...pickerConfig,
                     defaultDate: "today"
                 });
 
-                flatpickr("#endDate", pickerConfig);
+                const endPicker = flatpickr("#endDate", pickerConfig);
 
-                flatpickr("#execDate", {
+                const execPicker = flatpickr("#execDate", {
                     ...pickerConfig,
                     onChange: function(selectedDates) {
                         const displayEl = document.getElementById('execDateDisplay');
@@ -850,6 +1325,27 @@
                         triggerReceiptCalculation();
                     }
                 });
+
+                const rcptPicker = flatpickr("#rcptDate", {
+                    ...pickerConfig,
+                    onChange: function(selectedDates) {
+                        const displayEl = document.getElementById('rcptDateDisplay');
+                        if (selectedDates[0]) {
+                            displayEl.innerText = toDateStringWithWeekday(selectedDates[0]);
+                            displayEl.classList.remove('placeholder');
+                        }
+                        renderReceiptRange(document.getElementById('rcptDate').value);
+                    }
+                });
+
+                const year = new Date().getFullYear();
+                try {
+                    await fetchHolidayData(year - 1, year + 2);
+                    // 이미 열린 달력도 공휴일 표시를 즉시 반영한다.
+                    [startPicker, endPicker, execPicker, rcptPicker].forEach(picker => picker.redraw());
+                } catch (error) {
+                    console.warn('Holiday fetch failed:', error);
+                }
             }
 
             initializeCalendar();
@@ -869,6 +1365,140 @@
                 }
             }
 
+            // ==========================================================
+            // [미사용] 영업일접수/휴일접수 토글 상태
+            // ==========================================================
+            // const bizFixApplied = { 1: false, 2: false, 3: false };
+
+            // 구간 정의: 시작일/마감일 역산 함수 (순수 단순일수 + 영업일 역산)
+            const rangeDefinitions = {
+                s1: (d) => findDateBySimpleDaysBack(d, 60),
+                e1: (d) => findDateByBusinessDaysBack(d, 10),
+                s2: (d) => findDateBySimpleDaysBack(d, 45),
+                e2: (d) => findDateByBusinessDaysBack(d, 30),
+                s3: (d) => findDateBySimpleDaysBack(d, 60),
+                e3: (d) => findDateByBusinessDaysBack(d, 30)
+            };
+
+            // ==========================================================
+            // [미사용] 영업일 판정 함수
+            // ==========================================================
+            // function isBusinessDay(date) {
+            //     const dow = date.getDay();
+            //     return dow !== 0 && dow !== 6 && !isHoliday(toDateString(date));
+            // }
+
+            function renderMatrix(execVal) {
+                const execDate = execVal ? new Date(execVal) : null;
+                const results = {};
+
+                Object.keys(rangeDefinitions).forEach(key => {
+                    const date = execDate ? rangeDefinitions[key](execDate) : null;
+                    results[key] = date;
+                    const el = document.querySelector(`[data-range="${key}"]`);
+                    el.innerText = date ? toDateStringWithWeekday(date) : '-';
+                    // 주말/법정공휴일/대체공휴일이면 빨간색으로 표시
+                    const nameEl = document.querySelector(`[data-hname="${key}"]`);
+                    if (date) {
+                        const dayOfWeek = date.getDay();
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        const dateString = toFullDateString(date);
+                        const holidayName = getHolidayLabel(dateString);
+                        const isHolidayDate = !!holidayName;
+                        el.classList.toggle('is-holiday', isWeekend || isHolidayDate);
+
+                        // 휴일 이름 표시 (법정공휴일/대체공휴일만, 주말은 제외)
+                        nameEl.innerText = holidayName || '';
+                    } else {
+                        el.classList.remove('is-holiday');
+                        nameEl.innerText = '';
+                    }
+                });
+
+                // 기준일이 마감일보다 늦으면 계산상 구간이 성립하지 않음
+                const executionRangePairs = [['s1', 'e1'], ['s2', 'e2'], ['s3', 'e3']];
+                executionRangePairs.forEach(([startKey, endKey]) => {
+                    const startDate = results[startKey];
+                    const endDate = results[endKey];
+                    const startMissingEl = document.querySelector(`[data-emiss="${startKey}"]`);
+                    const endMissingEl = document.querySelector(`[data-emiss="${endKey}"]`);
+
+                    if (!startDate || !endDate) {
+                        startMissingEl.innerText = '';
+                        endMissingEl.innerText = '';
+                        return;
+                    }
+
+                    if (startDate > endDate) {
+                        startMissingEl.innerText = '구간 없음';
+                        endMissingEl.innerText = '구간 없음';
+                    } else {
+                        startMissingEl.innerText = '';
+                        endMissingEl.innerText = '';
+                    }
+                });
+
+                // [미사용] 각 구간의 접수 가능 기간(일수) 계산
+                /* ['1', '2', '3'].forEach(idx => {
+                    const el = document.querySelector(`[data-span="${idx}"]`);
+                    const start = results[`s${idx}`];
+                    const end = results[`e${idx}`];
+                    if (!start || !end) {
+                        el.innerText = '-';
+                        return;
+                    }
+                    const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    el.innerText = `${days}일`;
+                }); */
+
+                // 접수가능일 시작이 영업일이 아니면 '영업일기준' 버튼 노출
+                /* [미사용] 버튼 노출 로직 */
+                /* ['1', '2', '3'].forEach(idx => {
+                    const item = document.querySelector(`[data-start-item="${idx}"]`);
+                    const btn = document.querySelector(`.qc-biz-toggle[data-fix="${idx}"]`);
+                    const start = results[`s${idx}`];
+
+                    if (!start) {
+                        btn.hidden = true;
+                        item.classList.remove('needs-fix');
+                        return;
+                    }
+
+                    if (isBusinessDay(start) && !bizFixApplied[idx]) {
+                        // 원래 시작일이 영업일이면 보정 불필요 → 버튼 숨김
+                        btn.hidden = true;
+                        item.classList.remove('needs-fix');
+                        return;
+                    }
+
+                    // 영업일이 아닌 경우: 버튼을 항상 노출
+                    // 버튼은 '클릭 시 전환될 기준'을 안내한다
+                    //   - 현재 휴일접수(순수 단순일수) 표시 중: '영업일접수 보기' (금색)
+                    //   - 현재 영업일접수(보정) 표시 중    : '휴일접수 보기'  (옅은 빨강)
+                    btn.hidden = false;
+                    item.classList.add('needs-fix');
+
+                    if (bizFixApplied[idx]) {
+                        btn.classList.add('active');
+                        btn.innerText = '휴일접수 보기';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.innerText = '영업일접수 보기';
+                    }
+                }); */
+            }
+
+            // ==========================================================
+            // [미사용] 토글 버튼 클릭 핸들러
+            // ==========================================================
+            // document.querySelectorAll('.qc-biz-toggle').forEach(btn => {
+            //     btn.addEventListener('click', function() {
+            //         const idx = this.dataset.fix;
+            //         bizFixApplied[idx] = !bizFixApplied[idx];
+            //         renderMatrix(document.getElementById('execDate').value);
+            //     });
+            // });
+
             let selectedMode = null;
             const dayButtons = document.querySelectorAll('.day-select-btn');
             dayButtons.forEach(btn => {
@@ -884,6 +1514,7 @@
                 const execVal = document.getElementById('execDate').value;
                 const resultEl = document.getElementById('receiptDate');
                 const labelEl = document.getElementById('receiptDateLabel');
+                renderMatrix(execVal);
                 if (!execVal || !selectedMode) {
                     resultEl.innerText = '-';
                     return;
@@ -905,6 +1536,86 @@
                 resultEl.innerText = toDateStringWithWeekday(receiptDate);
                 labelEl.innerText = labelText;
             }
+
+            // 접수일 기준: 좌 = 영업 30일, 우 = 단순 60/45일
+            // 좌(영업 30일)가 우(단순 60/45일)보다 늦으면 계산상 기준 미달 → '구간 없음'
+            const receiptRangeDefinitions = {
+                r1: (d) => findDateByBusinessDaysForward(d, 30),
+                r2: (d) => findDateBySimpleDaysForward(d, 60),
+                r3: (d) => findDateByBusinessDaysForward(d, 30),
+                r4: (d) => findDateBySimpleDaysForward(d, 45)
+            };
+
+            // 구간별 미달 문구 (좌 = 기준일, 우 = 마감일)
+            const receiptMissingLabels = {
+                r1: { left: '영업일 기준 미달', right: '60일 기준 미달' },
+                r2: { left: '', right: '' },
+                r3: { left: '영업일 기준 미달', right: '45일 기준 미달' },
+                r4: { left: '', right: '' }
+            };
+
+            function renderReceiptRange(rcptVal) {
+                const rcptDate = rcptVal ? new Date(rcptVal) : null;
+
+                const results = {};
+
+                Object.keys(receiptRangeDefinitions).forEach(key => {
+                    const date = rcptDate ? receiptRangeDefinitions[key](rcptDate) : null;
+                    results[key] = date;
+                    const el = document.querySelector(`[data-rrange="${key}"]`);
+                    const nameEl = document.querySelector(`[data-rhname="${key}"]`);
+                    el.innerText = date ? toDateStringWithWeekday(date) : '-';
+
+                    if (date) {
+                        const dayOfWeek = date.getDay();
+                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        const holidayName = getHolidayLabel(toFullDateString(date));
+                        el.classList.toggle('is-holiday', isWeekend || !!holidayName);
+                        nameEl.innerText = holidayName || '';
+                    } else {
+                        el.classList.remove('is-holiday');
+                        nameEl.innerText = '';
+                    }
+                });
+
+                // 기준 미달 판정 (접수일 제외 기준)
+                //  - r1: 접수일 + 30영업일이 접수일 + 60일보다 늦으면 60일 기준 미달
+                //  - r3: 접수일 + 30영업일이 접수일 + 45일보다 늦으면 45일 기준 미달
+                const pairs = [
+                    { bizKey: 'r1', simpleKey: 'r2', days: 60 },
+                    { bizKey: 'r3', simpleKey: 'r4', days: 45 }
+                ];
+
+                pairs.forEach(({ bizKey, simpleKey, days }) => {
+                    const bizDate = results[bizKey];
+                    const simpleDate = results[simpleKey];
+                    const bizMissEl = document.querySelector(`[data-rmiss="${bizKey}"]`);
+                    const simpleMissEl = document.querySelector(`[data-rmiss="${simpleKey}"]`);
+
+                    if (!bizDate || !simpleDate) {
+                        bizMissEl.innerText = '';
+                        simpleMissEl.innerText = '';
+                        return;
+                    }
+
+                    // 단순일수 마감일까지 남은 영업일을 세어 30영업일에 못 미치면 기준 미달
+                    const businessDaysUntilDeadline = countBusinessDaysBetween(rcptDate, simpleDate);
+                    const isMissing = bizDate > simpleDate || businessDaysUntilDeadline < 30;
+
+                    if (isMissing) {
+                        bizMissEl.innerText = '영업일 기준 미달';
+                        simpleMissEl.innerText = `${days}일 기준 미달`;
+                        return;
+                    }
+
+                    bizMissEl.innerText = '';
+                    simpleMissEl.innerText = '';
+                });
+            }
+
+            // 초기 렌더: 실행일 선택 전에는 모든 값/버튼을 초기 상태로
+            renderMatrix('');
+            renderReceiptRange('');
         });
     </script>
 </body>
