@@ -103,35 +103,53 @@
         .ledger {
             border-top: 1px solid var(--line);
             border-bottom: 1px solid var(--line);
-            padding: 4px 0;
+            padding: 0;
             margin-bottom: 26px;
         }
 
-        .ledger-row {
-            display: flex;
+        /* 1행: 제목행 (접수일 | 구분 | 실행일) */
+        .ledger-title-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 2px;
+            gap: 8px;
+            padding: 10px 6px 8px;
+            border-bottom: 1px dashed var(--line);
+            background: rgba(169, 129, 47, 0.04);
         }
 
-        .ledger-row + .ledger-row {
-            border-top: 1px dashed var(--line);
-        }
-
-        .ledger-row label {
-            flex: 0 0 auto;
+        .ledger-title-cell {
+            text-align: center;
             font-size: 13px;
             font-weight: 700;
             color: var(--ink-soft);
-            letter-spacing: 0.02em;
+            letter-spacing: 0.04em;
         }
 
-        .ledger-row input[type="text"] {
-            flex: 1;
+        .ledger-title-divider {
+            color: var(--line);
+            font-size: 13px;
+            user-select: none;
+            padding: 0 4px;
+        }
+
+        /* 2행: 날짜선택행 (접수일 날짜입력 | ~ | 실행일 날짜입력) */
+        .ledger-date-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 6px;
+        }
+
+        .ledger-date-cell {
+            min-width: 0;
+        }
+
+        .ledger-date-cell input[type="text"] {
             width: 100%;
-            text-align: right;
-            padding: 6px 4px;
+            text-align: center;
+            padding: 6px 2px;
             font-size: 16px;
             font-weight: 600;
             font-family: 'Noto Serif KR', serif;
@@ -143,15 +161,23 @@
             transition: border-color 0.2s, color 0.2s;
         }
 
-        .ledger-row input[type="text"]::placeholder {
+        .ledger-date-cell input[type="text"]::placeholder {
             font-family: 'Pretendard', sans-serif;
             font-weight: 400;
             color: #b7ae9a;
+            font-size: 13px;
         }
 
-        .ledger-row input[type="text"]:focus {
+        .ledger-date-cell input[type="text"]:focus {
             outline: none;
             border-bottom-color: var(--gold);
+        }
+
+        .ledger-date-divider {
+            color: var(--line);
+            font-size: 14px;
+            user-select: none;
+            padding: 0 4px;
         }
 
         #startDate {
@@ -160,6 +186,51 @@
 
         #endDate {
             color: var(--exec-red);
+        }
+
+        /* --- 결과 테이블 : 영업일 / 단순일수 / 제외일수 --- */
+        .result-table-wrap {
+            margin-bottom: 26px;
+            padding: 14px 14px 12px;
+            background: var(--card);
+            border: 1.5px solid var(--line);
+            border-radius: 6px;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .result-table th {
+            padding: 0 4px 9px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+            text-align: center;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .result-table td {
+            padding: 12px 4px 2px;
+            text-align: center;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--ink);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .result-table th + th,
+        .result-table td + td {
+            border-left: 1px dashed var(--line);
+        }
+
+        .result-table td.hero {
+            color: var(--gold);
+            font-size: 28px;
         }
 
         .result-box {
@@ -247,6 +318,55 @@
             text-align: center;
         }
 
+        /* 역산 영역: 1) 실행일 선택 (단독 행) */
+        .qc-exec-wrap {
+            margin-bottom: 12px;
+        }
+
+        .qc-exec-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
+            text-align: center;
+            letter-spacing: 0.04em;
+        }
+
+        /* 3) 결과 테이블 (하단 배치, 1개 행) */
+        .qc-result-table-wrap {
+            margin-top: 14px;
+            padding: 12px 14px 10px;
+            background: var(--card);
+            border: 1.5px solid var(--line);
+            border-radius: 6px;
+        }
+
+        .qc-result-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .qc-result-table th {
+            padding: 0 4px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+            text-align: center;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .qc-result-table td {
+            padding: 10px 4px 2px;
+            text-align: center;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--receipt-blue);
+            font-variant-numeric: tabular-nums;
+        }
+
         .quick-calc-date-display {
             width: 100%;
             text-align: center;
@@ -293,13 +413,15 @@
         }
 
         .quick-calc-buttons {
-            flex: 1.2 1 0;
-            gap: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 12px;
         }
 
         .day-select-btn {
             width: 100%;
-            padding: 6px 4px;
+            padding: 8px 4px;
             font-size: 12px;
             font-weight: 700;
             font-family: inherit;
@@ -333,68 +455,13 @@
             border-radius: 4px;
             background: var(--card);
             font-variant-numeric: tabular-nums;
+            line-height: 1.3;
         }
 
         @media (max-width: 480px) {
-            .quick-calc-row {
-                flex-wrap: wrap;
-            }
-            .quick-calc-col {
-                flex: 1 1 100%;
-            }
-        }
-
-        /* --- 결재 스탬프 (signature element) --- */
-        .stamp {
-            position: relative;
-            width: 88px;
-            height: 88px;
-            border-radius: 50%;
-            border: 2.5px solid var(--stamp);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--stamp);
-            mix-blend-mode: multiply;
-            opacity: 0;
-            transform: rotate(-10deg) scale(0.85);
-            transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.34,1.56,.64,1);
-        }
-
-        .stamp::after {
-            content: "";
-            position: absolute;
-            inset: 6px;
-            border: 1px solid var(--stamp);
-            border-radius: 50%;
-        }
-
-        .stamp.show {
-            opacity: 0.85;
-            transform: rotate(-8deg) scale(1);
-        }
-
-        .stamp-ring-text {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .stamp-value {
-            font-family: 'Noto Serif KR', serif;
-            font-size: 20px;
-            font-weight: 900;
-            line-height: 1;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .stamp-unit {
-            font-size: 10px;
-            font-weight: 700;
-            margin-top: 2px;
-            letter-spacing: 0.05em;
+            .quick-calc { padding: 14px 12px; }
+            .qc-result-table td { font-size: 16px; }
+            .day-select-btn { font-size: 11.5px; padding: 8px 2px; }
         }
 
         .notice {
@@ -510,22 +577,28 @@
 
             h2 { font-size: 21px; }
 
-            .result-box {
-                gap: 10px;
+            .ledger-title-row {
+                padding: 8px 4px 6px;
             }
 
-            .stamp {
-                width: 76px;
-                height: 76px;
+            .ledger-title-cell {
+                font-size: 12px;
             }
 
-            .stamp-value { font-size: 17px; }
+            .ledger-date-row {
+                padding: 8px 4px;
+            }
 
-            #totalDays { font-size: 19px; }
-        }
+            .ledger-date-cell input[type="text"] {
+                font-size: 14.5px;
+                padding: 4px 1px;
+            }
 
-        @media (prefers-reduced-motion: reduce) {
-            .stamp { transition: none; }
+            .result-table-wrap { padding: 12px 8px 10px; }
+            .result-table td { font-size: 19px; }
+            .result-table td.hero { font-size: 24px; }
+
+            .result-box { gap: 10px; }
         }
     </style>
 </head>
@@ -539,50 +612,77 @@
         </div>
 
         <div class="ledger">
-            <div class="ledger-row">
-                <label for="startDate">접수일</label>
-                <input type="text" id="startDate" readonly placeholder="날짜 선택">
+            <!-- 첫번째: 제목행 -->
+            <div class="ledger-title-row">
+                <div class="ledger-title-cell">접수일</div>
+                <div class="ledger-title-divider">~</div>
+                <div class="ledger-title-cell">실행일</div>
             </div>
-            <div class="ledger-row ledger-result-row">
-                <div class="result-box">
-                    <div class="result-item plain">
-                        <span class="result-label">단순 일수</span>
-                        <span class="result-value" id="totalDays">-</span>
-                    </div>
-                    <div class="result-item">
-                        <div class="stamp" id="stampWrap">
-                            <span class="stamp-value" id="businessDays">-</span>
-                            <span class="stamp-unit">영업일</span>
-                        </div>
-                    </div>
+            <!-- 두번째: 날짜선택행 -->
+            <div class="ledger-date-row">
+                <div class="ledger-date-cell">
+                    <input type="text" id="startDate" readonly placeholder="날짜 선택">
+                </div>
+                <div class="ledger-date-divider">~</div>
+                <div class="ledger-date-cell">
+                    <input type="text" id="endDate" readonly placeholder="날짜 선택">
                 </div>
             </div>
-            <div class="ledger-row">
-                <label for="endDate">실행일</label>
-                <input type="text" id="endDate" readonly placeholder="날짜 선택">
-            </div>
+        </div>
+
+        <div class="result-table-wrap">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>영업일</th>
+                        <th>단순일수</th>
+                        <th>제외일수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="hero"><span id="businessDays">-</span></td>
+                        <td><span id="totalDays">-</span></td>
+                        <td><span id="excludedDays">-</span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="quick-calc">
             <div class="quick-calc-title">실행일 기준 접수가능일 계산</div>
-            <div class="quick-calc-row">
-                <div class="quick-calc-col">
-                    <label for="execDate">실행일</label>
-                    <div class="quick-calc-picker-wrap">
-                        <div class="quick-calc-date-display placeholder" id="execDateDisplay">날짜 선택</div>
-                        <input type="text" id="execDate" readonly>
-                    </div>
+
+            <!-- 1) 실행일 선택 (1개 행) -->
+            <div class="qc-exec-wrap">
+                <div class="qc-exec-label">실행일</div>
+                <div class="quick-calc-picker-wrap">
+                    <div class="quick-calc-date-display placeholder" id="execDateDisplay">날짜 선택</div>
+                    <input type="text" id="execDate" readonly>
                 </div>
-                <div class="quick-calc-col quick-calc-buttons">
-                    <button type="button" class="day-select-btn" data-mode="biz10">영업10일 이상</button>
-                    <button type="button" class="day-select-btn" data-mode="biz30">영업30일 이상</button>
-                    <button type="button" class="day-select-btn" data-mode="simple45">45일 이하</button>
-                    <button type="button" class="day-select-btn" data-mode="simple60">60일 이하</button>
-                </div>
-                <div class="quick-calc-col">
-                    <div class="quick-calc-result" id="receiptDate">-</div>
-                    <label id="receiptDateLabel">까지 접수가능</label>
-                </div>
+            </div>
+
+            <!-- 2) 구분 선택 버튼 (2x2) -->
+            <div class="quick-calc-buttons">
+                <button type="button" class="day-select-btn" data-mode="biz10">영업10일 이상</button>
+                <button type="button" class="day-select-btn" data-mode="biz30">영업30일 이상</button>
+                <button type="button" class="day-select-btn" data-mode="simple45">45일 이하</button>
+                <button type="button" class="day-select-btn" data-mode="simple60">60일 이하</button>
+            </div>
+
+            <!-- 3) 맨 아래 접수가능일 결과 테이블 (1개의 행) -->
+            <div class="qc-result-table-wrap">
+                <table class="qc-result-table">
+                    <thead>
+                        <tr>
+                            <th id="receiptDateLabel">접수가능일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span id="receiptDate">-</span></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -677,7 +777,7 @@
         function calculateBusinessDays(startDate, endDate) {
             let start = new Date(startDate);
             let end = new Date(endDate);
-            if (start > end) return { total: 0, business: 0 };
+            if (start > end) return { total: 0, business: 0, excluded: 0 };
 
             let totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
             let businessDays = 0;
@@ -695,7 +795,7 @@
                 }
                 curDate.setDate(curDate.getDate() + 1);
             }
-            return { total: totalDays, business: businessDays };
+            return { total: totalDays, business: businessDays, excluded: totalDays - businessDays };
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -760,14 +860,15 @@
             function triggerCalculation() {
                 const startVal = document.getElementById('startDate').value;
                 const endVal = document.getElementById('endDate').value;
-                const stampEl = document.getElementById('stampWrap');
                 if (startVal && endVal) {
                     const result = calculateBusinessDays(startVal, endVal);
-                    document.getElementById('totalDays').innerText = result.total + "일";
+                    document.getElementById('totalDays').innerText = result.total;
                     document.getElementById('businessDays').innerText = result.business;
-                    stampEl.classList.add('show');
+                    document.getElementById('excludedDays').innerText = result.excluded;
                 } else {
-                    stampEl.classList.remove('show');
+                    document.getElementById('totalDays').innerText = '-';
+                    document.getElementById('businessDays').innerText = '-';
+                    document.getElementById('excludedDays').innerText = '-';
                 }
             }
 
