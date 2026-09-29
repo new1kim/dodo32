@@ -1546,11 +1546,12 @@
                 r4: (d) => findDateBySimpleDaysForward(d, 45)
             };
 
-            // 구간별 미달 문구 (좌 = 기준일, 우 = 마감일)
+            // 구간별 미달 문구 (좌 = 영업일 기준일, 우 = 단순일수 마감일)
+            // 영업 30일이 단순일수 마감일보다 늦으면 양쪽에 각각 기준 초과/미달을 표시한다.
             const receiptMissingLabels = {
-                r1: { left: '영업일 기준 미달', right: '60일 기준 미달' },
+                r1: { left: '60일 기준 초과', right: '30영업일 기준 미달' },
                 r2: { left: '', right: '' },
-                r3: { left: '영업일 기준 미달', right: '45일 기준 미달' },
+                r3: { left: '45일 기준 초과', right: '30영업일 기준 미달' },
                 r4: { left: '', right: '' }
             };
 
@@ -1603,8 +1604,10 @@
                     const isMissing = bizDate > simpleDate || businessDaysUntilDeadline < 30;
 
                     if (isMissing) {
-                        bizMissEl.innerText = '영업일 기준 미달';
-                        simpleMissEl.innerText = `${days}일 기준 미달`;
+                        // 영업 30일 날짜는 단순일수 기준을 초과하고,
+                        // 단순일수 날짜는 영업 30일 기준에 미달한다.
+                        bizMissEl.innerText = receiptMissingLabels[bizKey].left;
+                        simpleMissEl.innerText = receiptMissingLabels[simpleKey].right;
                         return;
                     }
 
