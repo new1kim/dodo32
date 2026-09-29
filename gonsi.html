@@ -537,14 +537,43 @@ select:focus {
 
 /* =========================================================
    YEAR
-========================================================= */
-
+   =========================================================
+   ④ 전용 카드를 없애고 ④ 조회 결과 제목 줄 오른쪽에 붙였다.
+   라벨("기준연도")은 공간을 아끼기 위해 숨기고, select 자체만 놓는다.
+   ------------------------------------------------------- */
 .year-area {
     display: none;
+    flex: 0 0 auto;
 }
 
 .year-area.show {
     display: block;
+}
+
+/* select-box 없이 select만 바로 쓸 수 있게 최소 크기를 준다 */
+.year-area select {
+    width: auto;
+    min-width: 92px;
+    height: 34px;
+    padding: 0 26px 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #fff;
+}
+
+/* ④ 조회 결과 제목 줄 — 제목 텍스트 바로 옆에 기준연도 select 를 붙인다.
+   (기존 .card-title 은 space-between 이라 오른쪽 끝으로 밀리므로
+    이 줄만 space-between 을 해제하고 텍스트 뒤에 바로 붙인다) */
+.price-title-row {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+@media (max-width: 360px) {
+    .year-area select {
+        min-width: 78px;
+        padding: 0 22px 0 8px;
+    }
 }
 
 
@@ -558,6 +587,11 @@ select:focus {
 
 .price-result.show {
     display: block;
+}
+
+/* 유형만 정해지고 아직 조회가 안 된 상태 — 제목 줄(기준연도 select)만 보인다 */
+.price-result.shell-only .price-body {
+    display: none;
 }
 
 
@@ -1005,27 +1039,42 @@ select:focus {
 
 
     <!-- =====================================================
-         STEP 5. 연도 + 조회
+         STEP 4. (기준연도는 조회 결과 제목 줄로 이동했습니다)
+
+         ④ 카드 하나를 통째로 덜어내지 않고, 사용자가 연도를 바꾸는 대상
+         ("지금 보이는 결과")과 같은 카드에 두는 편이 자연스럽습니다.
+         아래의 #yearArea 는 값 계산(연도 목록 구성/표시)에는 그대로 쓰고
+         화면상 위치만 ⑤ 제목 줄로 옮겼습니다.
+
+         다만 이 카드는 "조회 결과" 카드라 원래는 결과가 나와야(displayPriceResult)
+         나타나는 구조입니다. 연도는 동·호를 고를 때도 바꿔야 하므로, 유형이
+         정해진 시점에 카드만 먼저 열고 결과 부분만 비워 둡니다.
+         (applyPropertyType → showPriceShell / displayPriceResult → 결과 채움)
+    ====================================================== -->
+
+
+
+    <!-- =====================================================
+         STEP 6. 결과
     ====================================================== -->
 
     <div
-        id="yearArea"
-        class="card year-area">
+        id="priceResult"
+        class="card price-result">
 
-        <div class="card-title">
+        <div class="card-title price-title-row">
 
             <strong>
-                ④ 기준연도
+                ④ 조회 결과
             </strong>
 
-        </div>
+            <div
+                id="yearArea"
+                class="year-area">
 
-
-        <div class="select-row">
-
-            <div class="select-box">
-
-                <select id="yearSelect">
+                <select
+                    id="yearSelect"
+                    aria-label="기준연도">
 
                     <option value="2026">
                         2026년
@@ -1045,26 +1094,12 @@ select:focus {
 
         </div>
 
-    </div>
 
-
-
-    <!-- =====================================================
-         STEP 6. 결과
-    ====================================================== -->
-
-    <div
-        id="priceResult"
-        class="card price-result">
-
-        <div class="card-title">
-
-            <strong>
-                ⑤ 조회 결과
-            </strong>
-
-        </div>
-
+        <!-- 조회 결과 본문 — 첫 결과가 나오기 전까지 숨긴다
+             (제목 줄의 기준연도 드롭박스만 먼저 보이게) -->
+        <div
+            id="priceBody"
+            class="price-body">
 
         <div class="price-box">
 
@@ -1160,6 +1195,8 @@ select:focus {
 
         </table>
 
+        </div>   <!-- /priceBody -->
+
 
 
     </div>
@@ -1177,9 +1214,8 @@ select:focus {
         <div class="card-title">
 
             <strong>
-                ⑥ 계산값
+                ⑤ 계산값
             </strong>
-
         </div>
 
 
@@ -1311,10 +1347,40 @@ function buildQuery(params) {
         .join('&');
 }
 
+/* ---------------------------------------------------------
+   ★ 요청 타임아웃 — "반응이 없어서 멈춘 화면"을 없애기 위한 장치
+
+   문제가 생기기 전에는 fetch에 타임아웃이 전혀 없었다. GAS·VWorld가 응답을
+   늦게 주거나(실측 6~9초) 연결이 어중간하게 끊기면 그 Promise는 영원히
+   pending으로 남고, 그 Promise를 await하는 쪽은 화면을 그대로 멈춘다.
+   그래서 "건물 유형을 확인하고 있습니다"가 뜨고 더 이상 아무것도 바뀌지
+   않는 증상이 반복됐던 것(VWorld 조회 때도 같은 원인).
+
+   fetchSignalTimeout()은 일정 시간이 지나면 요청을 스스로 중단시킨다.
+   중단된 요청은 catch로 흘러 아래 폴백 로직이 이어서 처리하므로,
+   느린 조회가 조용히 실패하는 대신 항상 "결과 또는 안내"로 끝나게 된다.
+   --------------------------------------------------------- */
+const REQUEST_TIMEOUT_MS = 20000;
+
+function fetchWithTimeout(url, options, timeoutMs) {
+    var ms = timeoutMs || REQUEST_TIMEOUT_MS;
+
+    // AbortController를 지원하지 않는 구형 WebView도 있으므로 방어적으로 처리한다.
+    if (typeof AbortController === 'undefined') {
+        return fetch(url, options);
+    }
+
+    var controller = new AbortController();
+    var timer = setTimeout(function() { controller.abort(); }, ms);
+
+    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+        .finally(function() { clearTimeout(timer); });
+}
+
 // 기존 GAS 경로 — 카카오/VWorld 모두의 공통 폴백
 function gasFetch(action, params) {
     const q = buildQuery(Object.assign({ action: action }, params || {}));
-    return fetch(GAS_BASE_URL + '?' + q).then(function(res) {
+    return fetchWithTimeout(GAS_BASE_URL + '?' + q).then(function(res) {
         if (!res.ok) throw new Error('GAS HTTP ' + res.status);
         return res.json();
     });
@@ -1383,7 +1449,7 @@ function fetchAddressSearch(keyword, page) {
     page = page || 1;
     return cached('addr:' + keyword + ':' + page, function() {
         if (!USE_GAS_DIRECTLY) {
-            return fetch('https://dapi.kakao.com/v2/local/search/address.json?' +
+            return fetchWithTimeout('https://dapi.kakao.com/v2/local/search/address.json?' +
                     buildQuery({ query: keyword, page: page, size: ADDR_PAGE_SIZE }), {
                     headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
                 })
@@ -1422,7 +1488,7 @@ function fetchNameSearch(keyword, page) {
     page = page || 1;
     return cached('name:' + keyword + ':' + page, function() {
         if (!USE_GAS_DIRECTLY) {
-            return fetch('https://dapi.kakao.com/v2/local/search/keyword.json?' +
+            return fetchWithTimeout('https://dapi.kakao.com/v2/local/search/keyword.json?' +
                     buildQuery({ query: keyword, page: page, size: NAME_PAGE_SIZE }), {
                     headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
                 })
@@ -1816,8 +1882,31 @@ function loadSearchPage(page) {
 
             if (page === 1 && data.results.length === 1 && !data.hasNext) {
                 hideStatus();
+
+                /*
+                 * ★ 실행 분기를 결정하기 전에 검색 유형을 기억해야 한다.
+                 *
+                 *  아래의 resetPagination() 이 currentSearchType 을 null 로 지우기
+                 *  때문이다. 지운 뒤에 그 값을 읽으면 언제나 'address' 가 되고,
+                 *  건물명검색 결과가 1건일 때(목록을 띄우지 않고 바로 처리하는 이
+                 *  분기) 잘못된 경로로 흘러 selectAddress()가 "장소검색 결과
+                 *  객체"를 받는다.
+                 *
+                 *  그 객체에는 pnu/법정동코드가 없다(카카오 키워드검색은 주소를
+                 *  문자열로만 준다). 따라서 detectPropertyType()의 pnu 가
+                 *  undefined 가 되어 세 조회(오피스텔/개별주택/공동주택)가 모두
+                 *  실패하고, 어느 것도 유형을 확정하지 못해 로딩 화면이 그대로
+                 *  남는다 — 즉 사용자가 본 "건물 유형을 확인하고 있습니다" 멈춤.
+                 *
+                 *  실측 사례: "양지 어반시아"(결과 1건). 결과가 여러 건이라 목록을
+                 *  거친 경로는 selectNameSearchResult()가 PNU 를 다시 채우므로
+                 *  정상이었다. "검색 결과가 정확히 1건일 때만" 깨는 경로.
+                 */
+                const autoSelectType = currentSearchType;
+
                 resetPagination();
-                if (currentSearchType === 'name') {
+
+                if (autoSelectType === 'name') {
                     selectNameSearchResult(data.results[0]);
                 } else {
                     selectAddress(data.results[0]);
@@ -2292,31 +2381,155 @@ function fetchHouseRecords(pnu) {
     return fetchHouseRecordsCached(pnu);
 }
 
+/* ---------------------------------------------------------
+   오피스텔 정적 데이터 파일을 읽는다. 404면 그 파일에 없는 것이다.
+   (fetch가 throw하면 아래 폴백을 시도할 수 없으므로 404를 "없음"으로 번역한다)
+   --------------------------------------------------------- */
+function fetchOfficeDataFile(dongCode) {
+
+    return fetchWithTimeout(OP_DATA_BASE + dongCode + '.json', undefined, 8000)
+        .then(function(res) {
+
+            if (!res.ok) return null;
+
+            return res.json();
+        })
+        .catch(function() { return null; });
+}
+
+/* ---------------------------------------------------------
+   "지번 -> 후보 법정동코드 목록" 인덱스.
+
+   오피스텔 기준시가 데이터는 국세청이 고시할 때 쓰던 법정동코드로 쪼개져
+   있는데, 주소검색 API는 *현재* 법정동코드(b_code)를 준다. 행정구역이 개편된
+   동은 두 코드가 다르다.
+
+     실제 사례: 카카오 b_code 4146126221 (용인시 처인구 양지읍 양지리, 존재)
+               데이터 파일     4146136021 (용인시 처인구 양지면 양지리, 폐지)
+               같은 필지       본번 0573 / 부번 0008 = 양지 어반시아
+
+   그래서 b_code로 파일명을 그대로 붙이면 404가 나고, 오피스텔로 판별하지 못한
+   채 "공시가격 정보를 찾을 수 없습니다"로 끝나버린다. (양지 어반시아가 실제로
+   걸리던 증상)
+
+   지번(본번-부번)은 행정구역 개편과 무관하게 유지되므로, 지번을 키로 하는
+   인덱스(op_gongsi_data/_index.json, build_op_gongsi_index.js로 생성)를 한 번
+   받아 두고 404일 때 후보 파일로 재시도한다.
+   --------------------------------------------------------- */
+let _opIndexPromise = null;
+
+function loadOfficeIndex() {
+
+    if (!_opIndexPromise) {
+
+        // 인덱스 파일이 없으면(구버전 배포) 없는 것으로 처리해 정확한 경로만 쓴다.
+        _opIndexPromise = fetchWithTimeout(OP_DATA_BASE + '_index.json', undefined, 10000)
+            .then(function(res) { return res.ok ? res.json() : null; })
+            .catch(function() { return null; });
+    }
+
+    return _opIndexPromise;
+}
+
+// 두 법정동코드가 얼마나 가까운지 본다(앞자리부터 일치하는 자릿수).
+// 같은 지번이 여러 동에 있더라도(전국 단위로 드물게 발생) 요청 코드와 가장
+// 비슷한 동을 고르면 잘못된 동을 먼저 열 확률이 가장 낮아진다.
+function dongCodeAffinity(a, b) {
+
+    let score = 0;
+
+    for (let i = 0; i < 10 && i < a.length && i < b.length; i++) {
+
+        if (a[i] !== b[i]) break;
+
+        score++;
+    }
+
+    return score;
+}
+
+// 이 주소의 지번을 담은 데이터 파일(법정동코드)을 후보순으로 돌려준다.
+function resolveOfficeDongCandidates(dongCode, parcelKey) {
+
+    return loadOfficeIndex().then(function(index) {
+
+        const found = index ? index[parcelKey] : null;
+
+        if (!found || found.length === 0) return [];
+
+        return found.slice().sort(function(a, b) {
+
+            return dongCodeAffinity(b, dongCode) - dongCodeAffinity(a, dongCode);
+        });
+    });
+}
+
+// 지번 키 = "본번-부번" (build_op_gongsi_index.js와 같은 규칙)
+function officeParcelKey(bunji, ho) {
+    return bunji + '-' + ho;
+}
+
 function fetchOfficeBuilding(data) {
 
     const dongCode = data.legalDongCode;
     const bunji = data.pnu.substr(11, 4);
     const ho = data.pnu.substr(15, 4);
 
-    return fetch(OP_DATA_BASE + dongCode + '.json')
-        .then(res => res.ok ? res.json() : null)
-        .then(json => {
+    if (!dongCode) return Promise.resolve(null);
 
-            if (!json) return null;
+    const pick = function(json) {
 
-            const match = json.b.find(b => b[0] === bunji && b[1] === ho);
+        if (!json) return null;
 
-            if (!match) return null;
+        const match = json.b.find(b => b[0] === bunji && b[1] === ho);
 
-            return {
-                bunji: match[0],
-                ho: match[1],
-                special: match[2],
-                name: match[3],
-                units: match[4]
-            };
+        if (!match) return null;
+
+        return {
+            bunji: match[0],
+            ho: match[1],
+            special: match[2],
+            name: match[3],
+            units: match[4]
+        };
+    };
+
+    /*
+     * ① 주소검색이 준 법정동코드로 정확히 시도한다.
+     *    대부분 이 단계에서 끝나고, 정적 JSON 한 개만 읽는다(가장 빠름).
+     */
+    return fetchOfficeDataFile(dongCode)
+        .then(pick)
+        .then(function(building) {
+
+            if (building) return building;
+
+            /*
+             * ② 없으면 "그 지번을 담은 다른 법정동코드"를 찾아 한 번 더 시도한다.
+             *    (행정구역 개편으로 코드가 바뀐 경우 — 양지 어반시아가 이 경우)
+             */
+            return resolveOfficeDongCandidates(dongCode, officeParcelKey(bunji, ho))
+                .then(function(candidates) {
+
+                    const others = candidates.filter(function(code) {
+                        return code !== dongCode;
+                    });
+
+                    /*
+                     * 후보는 보통 0~1개다(3416개 지번 중 실제 복수 후보는 22%,
+                     * 그중 요청 코드까지 빼면 거의 1개). 순차로 하나씩 시도해도
+                     * 지연이 누적될 정도가 되지 않는다. 병렬로 열면 잘못된 동을
+                     * 함께 열어带宽만 낭비하므로 순차로 간다.
+                     */
+                    return others.reduce(function(chain, code) {
+                        return chain.then(function(acc) {
+                            if (acc) return acc;
+                            return fetchOfficeDataFile(code).then(pick);
+                        });
+                    }, Promise.resolve(null));
+                });
         })
-        .catch(() => null);
+        .catch(function() { return null; });
 }
 
 // 기준연도 select를 실제로 자료가 있는 연도만으로 다시 구성한다.
@@ -2343,6 +2556,18 @@ function setYearOptions(years, selectedYear) {
 }
 
 function detectPropertyType(data) {
+
+    /*
+     * PNU(필지고유번호)는 공동주택·개별주택·오피스텔 조회 모두가 필수로 쓴다.
+     * 주소가 이 단계까지 오면서 PNU 를 잃어버린 경우(예: 주소검색 결과가 아닌
+     * 장소검색 결과 객체가 잘못 들어온 경우) 세 조회가 전부 undefined 로 실패해
+     * 화면이 로딩 상태로 남는다. 여기서 확실히 막아 안 나가는 situations 을 없앤다.
+     */
+    if (!data || !data.pnu) {
+        showStatus("주소의 상세 정보를 확인하지 못했습니다. 도로명주소 또는 지번주소로 다시 검색해주세요.", true);
+        hideLoadingPopup();
+        return;
+    }
 
     showLoadingPopup("건물 유형을 확인하고 있습니다...");
     showStatus("건물 유형을 확인하고 있습니다...", false);
@@ -2545,12 +2770,22 @@ function applyPropertyType(type) {
 
 
     /*
-     * 연도 및 조회 버튼 표시
+     * 기준연도 select 표시.
+     *
+     * ④ 카드가 ⑤ 결과 카드 안에 들어 있으므로, 유형이 정해진 이 시점에는
+     * 아직 조회 결과가 없는데도 드롭박스를 보여줘야 한다. 그래야 동·호를 고르고
+     * 연도를 바꾸는 흐름이 그대로 살아 있다. (결과 카드는 아직 숨겨 두었다가
+     *  첫 조회가 끝나 displayPriceResult()에서 함께 나타난다)
      */
-
     document
         .getElementById("yearArea")
         .classList.add("show");
+
+    // 결과 카드를 먼저 열어 제목 줄의 기준연도 select가 보이게 한다.
+    // 본문(가격·상세표)은 첫 조회가 끝나 displayPriceResult()에서 채워진다.
+    const priceCard = document.getElementById("priceResult");
+    priceCard.classList.add("shell-only");
+    priceCard.classList.add("show");
 }
 
 
@@ -3142,6 +3377,10 @@ function displayPriceResult(data) {
 
     document
         .getElementById("priceResult")
+        .classList.remove("shell-only");
+
+    document
+        .getElementById("priceResult")
         .classList.add("show");
 
 
@@ -3217,9 +3456,13 @@ function updateCalcResult(price) {
 
 function hidePriceResult() {
 
-    document
-        .getElementById("priceResult")
-        .classList.remove("show");
+    const card = document.getElementById("priceResult");
+
+    card.classList.remove("show");
+
+    // "제목 줄만 먼저 열어둔" 상태도 함께 걷어낸다.
+    // 남겨두면 다음 검색에서 이전 조회 결과가 그대로 보인다.
+    card.classList.remove("shell-only");
 
     document
         .getElementById("calcResult")

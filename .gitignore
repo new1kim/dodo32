@@ -246,3 +246,6 @@ CallNote/app/src/main/assets/firebase-auth-ui.js
 CallNote/app/src/main/assets/firestore-consult-store.js
 CallNote/app/src/main/assets/firestore-usage.js
 CallNote/app/src/main/assets/vendor/
+# Firebase Hosting 빌드 산출물 (build_firebase_hosting.ps1 이 만든다) - 커밋 금지
+public/
+build_firebase_hosting.ps1

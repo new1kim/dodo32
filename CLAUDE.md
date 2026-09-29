@@ -4,6 +4,31 @@
 
 ---
 
+## 0. 대화 및 결과 보고 규칙
+- 모든 답변은 **한국어**로 작성한다.
+- 작업 결과는 먼저 **핵심 결론과 변경 사항을 간략하게 요약**한다.
+- 사용자가 요청하지 않는 한 긴 설명, 전체 코드, 불필요한 진행 과정은 생략한다.
+- 오류가 있으면 `원인 → 조치 → 검증 결과` 순서로 짧게 보고한다.
+- 백업을 만들었으면 백업 경로와 복구 명령만 간단히 포함한다.
+- 검증하지 못한 내용은 완료했다고 표현하지 말고, 확인하지 못한 이유를 명시한다.
+
+### Node.js 검증 환경
+- Node.js는 설치되어 있으나 현재 시스템 `PATH`에 등록되어 있지 않을 수 있다.
+- Node 실행 파일: `C:\Program Files\nodejs\node.exe`
+- npm 실행 파일: `C:\Program Files\nodejs\npm.cmd`
+- 터미널 검증 전 PowerShell에서 다음을 먼저 실행한다:
+  ```powershell
+  $env:Path = "C:\Program Files\nodejs;" + $env:Path
+  ```
+- `node`, `npm` 명령이 인식되지 않으면 위 절차를 사용하거나 절대 경로 실행한다.
+- HTML/JS 문법 검증은 다음처럼 수행한다:
+  ```powershell
+  & "C:\Program Files\nodejs\node.exe" --version
+  ```
+- 브라우저 검증도 시스템 `node` 명령에 의존하지 말고 동일한 절대 경로를 사용한다.
+
+---
+
 ## 1. 이 저장소의 성격 (가장 중요)
 
 - **GitHub 공개 저장소**이고, 동시에 **앱의 실시간 배포 소스**다.
@@ -251,3 +276,45 @@ root의 화면 파일과 앱 번들 사본이 **짝**을 이룬다. 한쪽만 �
 - `innerHTML` 로 렌더한 직후 `scrollIntoView` 는 `requestAnimationFrame` 으로 미룬다(모바일 튐 방지).
 - 정규식은 파일 상수로 올린다 (매 호출 재컴파일 방지).
 - 리스트가 비면 `innerHTML = ''` 로 DOM도 비운다 (`display:none` 만 하면 이전 항목이 남는다).
+
+
+---
+
+## 11. Firebase 연동 정보 (Hosting / Auth / Firestore)
+
+> **주의:** 이 저장소는 공개 GitHub 저장소이자 Android 앱 배포 소스이므로,
+> Firebase 연동 관련 파일은 GitHub main에 커밋하지 않고 `.gitignore` 처리되어 있습니다.
+> Firebase Hosting 빌드는 `.\build_firebase_hosting.ps1`을 통해 `public/` 폴더로 모은 뒤 `firebase deploy --only hosting`으로 진행합니다.
+
+### 1) Firebase 프로젝트 정보
+- **Project ID**: `dodo32-8fee5`
+- **Auth Domain**: `dodo32-8fee5.firebaseapp.com`
+- **Storage Bucket**: `dodo32-8fee5.firebasestorage.app`
+- **Messaging Sender ID**: `586774572409`
+- **App ID**: `1:586774572409:web:0f3565db3e689adec3d3a8`
+- **Measurement ID**: `G-YXVZ12V77S`
+- **API Key**: `AIzaSyCGT7kjtwtyif4NyUUQlawW1ZTFNHH6dLU` (공개 키, 보안은 `firestore.rules`에서 제어)
+
+### 2) Firebase 파일 구성 및 역할
+| 파일 | 역할 |
+|---|---|
+| `vendor/firebase-*-compat.js` | Firebase v9/v10 compat SDK 로컬 복사본 (app, auth, firestore) |
+| `firebase-init.js` | Firebase 초기화 및 `window.DodoFirebase` 전역 객체 제공 |
+| `firebase-auth-ui.js` | 이메일/비밀번호 로그인 모달, 회원가입, 세션 관리, `window.DodoAuth` 제공 |
+| `firestore-consult-store.js` | `users/{uid}/consults/{docId}` 경로에 상담내용 저장/불러오기 (`window.DodoConsult`) |
+| `firestore-usage.js` | `users/{uid}/usage/{eventId}` 경로에 접속 및 화면/버튼 사용내역 기록 (`window.DodoUsage`) |
+| `firestore.rules` | 보안 규칙: 로그인 사용자 본인(`isOwner(uid)`)만 본인 데이터 읽기/쓰기 허용 |
+| `build_firebase_hosting.ps1` | `public/` 폴더에 배포용 정적 자산(HTML, JS, CSS, 이미지, Firebase 모듈)을 빌드/복사하는 스크립트 |
+
+### 3) index.html 로그인 연동 구조
+- `public/index.html` (또는 Firebase Hosting 배포 대상)에서 Firebase Compat SDK 및 `firebase-init.js`, `firebase-auth-ui.js` 로드
+- `window.addEventListener('dodoAuthChanged', ...)` 리스너로 로그인 상태에 따라 `calc_user_name`을 갱신하고 `proceedToApp(name)` 또는 `showNameRequired()` 호출
+- 상단 이름 입력창(`submitUserName`)에서 이메일 형식(`user@domain.com`) 감지 시 Firebase Auth 로그인/회원가입 모달로 자동 연결
+- 로그인 성공 시 사용자 닉네임/이메일 아이디를 표시하고, 하위 iframe(예: `Consult_Main.html`)에서도 Firestore 연동이 유기적으로 동작
+
+## 커뮤니케이션 규칙 (사용자 지정)
+
+- **요청을 명확히 이해하지 못하면, 추측으로 코드를 작성하지 말고 반드시 질문한다.**
+  - 질문 시: 가능한 해석을 2~3가지 제시 → 각 해석의 차이점 설명 → 추천안 함께 안내
+  - 답변을 받은 뒤에만 구현에 착수한다.
+- 요청 내용을 한 번에 해석하려 하지 말고, 애매한 부분이 있으면 그 지점을 짚어 질문한다.
