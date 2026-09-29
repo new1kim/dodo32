@@ -309,6 +309,15 @@
             text-align: center;
         }
 
+        /* 제목 강조 색상: "접수 가능" = 파란색, "실행 가능" = 빨간색 */
+        .quick-calc-title .txt-blue {
+            color: var(--receipt-blue);
+        }
+
+        .quick-calc-title .txt-red {
+            color: var(--stamp);
+        }
+
         .quick-calc-row {
             display: flex;
             align-items: center;
@@ -495,6 +504,16 @@
             color: var(--gold);
             letter-spacing: 0.04em;
             white-space: nowrap;
+        }
+
+        /* 캡션의 '부터'(접수 시작 기준)는 파란색 */
+        .qc-range-caption .cap-from {
+            color: var(--receipt-blue);
+        }
+
+        /* 캡션의 '까지'(접수 마감 기준)는 빨간색 */
+        .qc-range-caption .cap-to {
+            color: var(--stamp);
         }
 
         /* 구간 바 */
@@ -906,7 +925,7 @@
         </div>
 
         <div class="quick-calc">
-            <div class="quick-calc-title">실행일 기준 접수 가능 날짜 확인</div>
+            <div class="quick-calc-title">실행일 기준 <span class="txt-blue">접수 가능</span> 날짜 확인</div>
 
             <!-- 1) 실행일 선택 (1개 행) -->
             <div class="qc-exec-wrap">
@@ -925,7 +944,7 @@
                 </div>
                 <div class="qc-range">
                     <div class="qc-range-item" data-start-item="1">
-                        <span class="qc-range-caption">60일 부터</span>
+                        <span class="qc-range-caption">60일 <span class="cap-from">부터</span></span>
                         <strong data-range="s1">-</strong>
                         <span class="qc-holiday-name" data-hname="s1"></span>
                         <span class="qc-missing" data-emiss="s1"></span>
@@ -934,7 +953,7 @@
                         <span class="range-line" aria-hidden="true"></span>
                     </div>
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">영업 10일 까지</span>
+                        <span class="qc-range-caption">영업 10일 <span class="cap-to">까지</span></span>
                         <strong data-range="e1">-</strong>
                         <span class="qc-holiday-name" data-hname="e1"></span>
                         <span class="qc-missing" data-emiss="e1"></span>
@@ -949,7 +968,7 @@
                 </div>
                 <div class="qc-range">
                     <div class="qc-range-item" data-start-item="2">
-                        <span class="qc-range-caption">45일 부터</span>
+                        <span class="qc-range-caption">45일 <span class="cap-from">부터</span></span>
                         <strong data-range="s2">-</strong>
                         <span class="qc-holiday-name" data-hname="s2"></span>
                         <span class="qc-missing" data-emiss="s2"></span>
@@ -958,7 +977,7 @@
                         <span class="range-line" aria-hidden="true"></span>
                     </div>
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">영업 30일 까지</span>
+                        <span class="qc-range-caption">영업 30일 <span class="cap-to">까지</span></span>
                         <strong data-range="e2">-</strong>
                         <span class="qc-holiday-name" data-hname="e2"></span>
                         <span class="qc-missing" data-emiss="e2"></span>
@@ -973,7 +992,7 @@
                 </div>
                 <div class="qc-range">
                     <div class="qc-range-item" data-start-item="3">
-                        <span class="qc-range-caption">60일 부터</span>
+                        <span class="qc-range-caption">60일 <span class="cap-from">부터</span></span>
                         <strong data-range="s3">-</strong>
                         <span class="qc-holiday-name" data-hname="s3"></span>
                         <span class="qc-missing" data-emiss="s3"></span>
@@ -982,7 +1001,7 @@
                         <span class="range-line" aria-hidden="true"></span>
                     </div>
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">영업 30일 까지</span>
+                        <span class="qc-range-caption">영업 30일 <span class="cap-to">까지</span></span>
                         <strong data-range="e3">-</strong>
                         <span class="qc-holiday-name" data-hname="e3"></span>
                         <span class="qc-missing" data-emiss="e3"></span>
@@ -1011,7 +1030,7 @@
             </div>
         </div>
         <div class="quick-calc">
-            <div class="quick-calc-title">접수일 기준 실행 가능 날짜 확인(테스트중)</div>
+            <div class="quick-calc-title">접수일 기준 <span class="txt-red">실행 가능</span> 날짜 확인</div>
 
             <!-- 1) 접수일 선택 (1개 행) -->
             <div class="qc-exec-wrap">
@@ -1029,7 +1048,7 @@
                 </div>
                 <div class="qc-range">
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">30영업일 부터</span>
+                        <span class="qc-range-caption">30영업일 <span class="cap-from">부터</span></span>
                         <strong data-rrange="r1">-</strong>
                         <span class="qc-holiday-name" data-rhname="r1"></span>
                         <span class="qc-missing" data-rmiss="r1"></span>
@@ -1038,7 +1057,7 @@
                         <span class="range-line" aria-hidden="true"></span>
                     </div>
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">60일 까지</span>
+                        <span class="qc-range-caption">60일 <span class="cap-to">까지</span></span>
                         <strong data-rrange="r2">-</strong>
                         <span class="qc-holiday-name" data-rhname="r2"></span>
                         <span class="qc-missing" data-rmiss="r2"></span>
@@ -1052,7 +1071,7 @@
                 </div>
                 <div class="qc-range">
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">30영업일 기준</span>
+                        <span class="qc-range-caption">30영업일 <span class="cap-from">부터</span></span>
                         <strong data-rrange="r3">-</strong>
                         <span class="qc-holiday-name" data-rhname="r3"></span>
                         <span class="qc-missing" data-rmiss="r3"></span>
@@ -1061,7 +1080,7 @@
                         <span class="range-line" aria-hidden="true"></span>
                     </div>
                     <div class="qc-range-item">
-                        <span class="qc-range-caption">45일 까지</span>
+                        <span class="qc-range-caption">45일 <span class="cap-to">까지</span></span>
                         <strong data-rrange="r4">-</strong>
                         <span class="qc-holiday-name" data-rhname="r4"></span>
                         <span class="qc-missing" data-rmiss="r4"></span>
@@ -1341,6 +1360,10 @@
                 const year = new Date().getFullYear();
                 try {
                     await fetchHolidayData(year - 1, year + 2);
+                    // 이미 선택된 접수일도 공휴일 반영 기준으로 다시 계산한다.
+                    // 초기 계산이 API 응답보다 먼저 실행되면 공휴일이 제외되지 않을 수 있다.
+                    renderReceiptRange(document.getElementById('rcptDate').value);
+                    renderMatrix(document.getElementById('execDate').value);
                     // 이미 열린 달력도 공휴일 표시를 즉시 반영한다.
                     [startPicker, endPicker, execPicker, rcptPicker].forEach(picker => picker.redraw());
                 } catch (error) {
@@ -1546,13 +1569,12 @@
                 r4: (d) => findDateBySimpleDaysForward(d, 45)
             };
 
-            // 구간별 미달 문구 (좌 = 영업일 기준일, 우 = 단순일수 마감일)
-            // 영업 30일이 단순일수 마감일보다 늦으면 양쪽에 각각 기준 초과/미달을 표시한다.
+            // 구간별 미달 문구
+            // 좌(영업 30일)은 단순일수 기준을 초과, 우(단순일수 마감일)는 영업 30일 기준에 미달한다.
+            // 문구는 각 구간(영업일 기준 + 단순일수 마감일) 쌍 단위로 지정한다.
             const receiptMissingLabels = {
-                r1: { left: '60일 기준 초과', right: '30영업일 기준 미달' },
-                r2: { left: '', right: '' },
-                r3: { left: '45일 기준 초과', right: '30영업일 기준 미달' },
-                r4: { left: '', right: '' }
+                r1r2: { biz: '60일 기준 초과', simple: '30영업일 기준 미달' },
+                r3r4: { biz: '45일 기준 초과', simple: '30영업일 기준 미달' }
             };
 
             function renderReceiptRange(rcptVal) {
@@ -1580,14 +1602,14 @@
                 });
 
                 // 기준 미달 판정 (접수일 제외 기준)
-                //  - r1: 접수일 + 30영업일이 접수일 + 60일보다 늦으면 60일 기준 미달
-                //  - r3: 접수일 + 30영업일이 접수일 + 45일보다 늦으면 45일 기준 미달
+                //  - r1: 접수일 + 30영업일이 접수일 + 60일보다 늦으면 60일 기준 초과/30영업일 기준 미달
+                //  - r3: 접수일 + 30영업일이 접수일 + 45일보다 늦으면 45일 기준 초과/30영업일 기준 미달
                 const pairs = [
-                    { bizKey: 'r1', simpleKey: 'r2', days: 60 },
-                    { bizKey: 'r3', simpleKey: 'r4', days: 45 }
+                    { bizKey: 'r1', simpleKey: 'r2', labelKey: 'r1r2' },
+                    { bizKey: 'r3', simpleKey: 'r4', labelKey: 'r3r4' }
                 ];
 
-                pairs.forEach(({ bizKey, simpleKey, days }) => {
+                pairs.forEach(({ bizKey, simpleKey, labelKey }) => {
                     const bizDate = results[bizKey];
                     const simpleDate = results[simpleKey];
                     const bizMissEl = document.querySelector(`[data-rmiss="${bizKey}"]`);
@@ -1606,8 +1628,8 @@
                     if (isMissing) {
                         // 영업 30일 날짜는 단순일수 기준을 초과하고,
                         // 단순일수 날짜는 영업 30일 기준에 미달한다.
-                        bizMissEl.innerText = receiptMissingLabels[bizKey].left;
-                        simpleMissEl.innerText = receiptMissingLabels[simpleKey].right;
+                        bizMissEl.innerText = receiptMissingLabels[labelKey].biz;
+                        simpleMissEl.innerText = receiptMissingLabels[labelKey].simple;
                         return;
                     }
 
