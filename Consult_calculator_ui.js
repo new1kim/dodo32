@@ -365,8 +365,9 @@ function getMortgageAnnualDebtForRow(row, index) {
   }
 
   if (type === '만기') {
-    const annualInterest = amt * combinedRate;
-    return annualInterest + (index > 0 ? (amt * 12 / postTerm) : 0);
+    // 만기일시는 이자만 부담한다. 원금 기간환산액을 더하면 DSR이 폭증하므로
+    // 추가대출(index > 0)이라도 이자만 반환한다.
+    return amt * combinedRate;
   }
 
   if (type === '원리금') {
@@ -4856,12 +4857,12 @@ function applyConsultCachedRateToFirstRow() {
   const termInput = row.querySelector('.mort-term');
 
   // 구분과 금리 프로필에 따라 본건 대출의 ST금리/기간을 적용한다.
-  // 담보: 6M=ST 3%, 5Y=ST 1.5%, 기간 360개월
+  // 담보: 6M=ST 2%, 5Y=ST 1.5%, 기간 360개월
   // 전세: 무주택=ST 0%, 1주택=ST 1.2%, 기간 24개월
   if (stRateInput) {
     const stRate = loanType === '전세'
       ? (housingStatus === '1주택' ? '1.2' : '0')
-      : (profile === '5Y' ? '1.5' : '3');
+      : (profile === '5Y' ? '1.5' : '2');
     stRateInput.value = stRate;
     stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }

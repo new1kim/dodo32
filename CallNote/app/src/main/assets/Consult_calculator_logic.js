@@ -397,9 +397,15 @@ function 자동계산() {
     if (type === "만기") {
       annualInterest = amt * combinedRate;
       fixAnnualInterest = amt * combinedRate;
-      // 본건 만기일시는 실제 이자 납입액만 반영한다. 추가행의 만기일시
-      // 대출만 DSR에 기간환산 원금을 더하며, DTI/신DTI는 이자만 반영한다..
-      annualTotal = annualInterest + (index > 0 ? (amt * 12 / postTerm) : 0);
+      // 만기일시는 매달 이자만 내고 원금은 만기에 한 번에 상환하는 방식이다.
+      // 따라서 본건/추가대출 모두 DSR 연간 부담액에는 "연간 이자"만 들어간다.
+      //
+      // [수정] 예전에는 추가행(index > 0)에 대해 amt * 12 / postTerm(기간환산 원금)을
+      // 더했다. 이 때문에 추가대출을 만기일시로 잡으면 만기가 짧을수록 연간 부담이
+      // 원금의 100%(24개월이면 1.5억 → 7,500만)까지 치솟아 DSR이 폭증했다.
+      // (예: 소득 8,500만 / 본건 2.5억 원리금 / 추가 1.5억 만기일시 24개월 → 122.96%)
+      // 만기일시의 연간 부담은 이자뿐이므로 원금환산을 더하지 않는다.
+      annualTotal = annualInterest;
       fixAnnualTotal = fixAnnualInterest;
     } else if (type === "원리금") {
       const calc = 원리금균등_계산대출(amt, combinedRate, postTerm);
