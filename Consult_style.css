@@ -2026,7 +2026,7 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 .consult-rate-cache-table th:last-child, .consult-rate-cache-table td:last-child { border-right:0; }
 .consult-rate-cache-table tbody tr:last-child td { border-bottom:0; }
 .consult-rate-cache-table th { background:var(--c-primary-soft); color:var(--c-primary-dark); font-weight:800; }
-.consult-rate-cache-table td:first-child { text-align:left; font-weight:700; white-space:nowrap; color:var(--c-text-body); }
+.consult-rate-cache-table td:first-child { text-align:center; font-weight:700; white-space:nowrap; color:var(--c-text-body); }
 .consult-rate-sale-table td:not(:first-child), .consult-rate-jeonse-table td:not(:first-child) { color:var(--c-primary-dark); font-weight:800; }
 .default-modal-actions { display: flex; gap: 8px; margin-top: 10px; }
 .default-modal-actions button { flex: 1; border: none; border-radius: var(--r-md); padding: 11px 12px; color: white; font-weight: 700; cursor: pointer; }
