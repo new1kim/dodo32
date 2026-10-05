@@ -356,17 +356,18 @@ function 자동계산() {
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
-    // 신DTI 기준 만기: 본건(index 0)만 min(입력개월수, 180)으로 캡 적용.
-    // 보유대출(index > 0)은 캡 없이 실제 입력 개월수(거치 반영) 그대로 사용한다.
+    // 신DTI 산정 기간 = min(입력 개월수, 180)개월.
+    // 주담대 버튼이 눌린 행에만 캡 적용, 그 외(본건 포함)는 입력 개월수(거치 반영) 그대로.
+    const isNewDtiTarget = (loanCategory === "주담대");
     let fixPostTerm;
-    if (index === 0) {
+    if (isNewDtiTarget && term > 0) {
       const newDtiBaseTerm = Math.min(term, 180);
       let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
       fixPostTerm = newDtiBaseTerm - fixGrace;
-      if (fixPostTerm <= 0) fixPostTerm = 1;
     } else {
       fixPostTerm = postTerm;
     }
+    if (fixPostTerm <= 0) fixPostTerm = 1;
 
     let monthlyRes;
     if (type === "만기") {

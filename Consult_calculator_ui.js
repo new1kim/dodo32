@@ -354,15 +354,18 @@ function getMortgageAnnualDebtForRow(row, index) {
 
   if (amt <= 0 || term <= 0 || combinedRate <= 0) return 0;
 
+  // 신DTI 산정 기간 = min(입력 개월수, 180)개월.
+  // 주담대 버튼이 눌린 행에만 캡 적용, 그 외(본건 포함)는 입력 개월수 그대로.
+  const isNewDtiTarget = (loanCategory === '주담대');
   let fixPostTerm;
-  if (index === 0) {
+  if (isNewDtiTarget && term > 0) {
     const newDtiBaseTerm = Math.min(term, 180);
     let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
     fixPostTerm = newDtiBaseTerm - fixGrace;
-    if (fixPostTerm <= 0) fixPostTerm = 1;
   } else {
     fixPostTerm = postTerm;
   }
+  if (fixPostTerm <= 0) fixPostTerm = 1;
 
   if (type === '만기') {
     // 만기일시는 이자만 부담한다. 원금 기간환산액을 더하면 DSR이 폭증하므로
