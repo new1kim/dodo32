@@ -11,20 +11,30 @@
 #   .\build_android.ps1 -Clean       # also delete build folders first
 #   .\build_android.ps1 -LockOnly    # only clear the lock (no build)
 #   .\build_android.ps1 -Diagnose    # show what is holding the files
+#   .\build_android.ps1 -Install     # build, then install on the connected phone
+#   .\build_android.ps1 -Install -Launch  # ...and start the app
 #
 # KEY RULE: always stop daemons BEFORE deleting build folders.
 #           If a daemon is alive, even the delete will fail.
+#
+# NOTE: --stop also kills the adb server, which DROPS a wireless (Wi-Fi)
+#       phone connection. -Install therefore restarts adb and waits for the
+#       device to come back before installing.
 # ============================================================
 
 param(
     [switch]$Clean,
     [switch]$LockOnly,
-    [switch]$Diagnose
+    [switch]$Diagnose,
+    [switch]$Install,
+    [switch]$Launch
 )
 
 $ErrorActionPreference = 'Continue'
 $ProjectDir = 'd:\dodo32\CallNote'
 $JbrPath    = 'C:\Program Files\Android\Android Studio\jbr'
+$AdbPath    = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+$AppId      = 'com.example.callnote'
 
 function Write-Step($msg) { Write-Host ""; Write-Host "=== $msg ===" -ForegroundColor Cyan }
 function Write-Ok($msg)   { Write-Host "  [OK] $msg" -ForegroundColor Green }
@@ -103,6 +113,42 @@ function Remove-BuildDir {
     }
 }
 
+function Invoke-Install {
+    Write-Step "4) Install on device (-Install)"
+    if (-not (Test-Path $AdbPath)) {
+        Write-Warn2 "adb not found: $AdbPath"
+        return
+    }
+
+    # --stop killed the adb server. Start it again and give a wireless device
+    # time to re-register, otherwise the install fails with "no devices/emulators found".
+    & $AdbPath start-server 2>&1 | Out-Null
+    $device = ''
+    for ($i = 1; $i -le 10; $i++) {
+        $list = & $AdbPath devices 2>&1 | Where-Object { $_ -match '\tdevice' }
+        if ($list) { $device = ($list[0] -split "`t")[0]; break }
+        Write-Warn2 "waiting for device ... ($i/10)"
+        Start-Sleep -Seconds 3
+    }
+    if (-not $device) {
+        Write-Warn2 "no device in 'device' state. Check USB/Wi-Fi debugging, then rerun."
+        & $AdbPath devices -l
+        return
+    }
+    Write-Ok "device: $device"
+
+    $outDir = Join-Path $ProjectDir 'app\build\outputs\apk\debug'
+    $apk = Get-ChildItem $outDir -Filter *.apk -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $apk) { Write-Warn2 "APK not found - build first."; return }
+
+    & $AdbPath install -r $apk.FullName 2>&1 | ForEach-Object { Write-Host "  $_" }
+
+    if ($Launch) {
+        & $AdbPath shell am start -n "$AppId/.MainActivity" 2>&1 | Out-Null
+        Write-Ok "launched $AppId"
+    }
+}
+
 function Invoke-Build {
     Write-Step "3) Build (assembleDebug)"
     Push-Location $ProjectDir
@@ -154,3 +200,5 @@ if ($Clean) {
 }
 
 Invoke-Build
+
+if ($Install) { Invoke-Install }

@@ -789,7 +789,9 @@ class MainActivity : AppCompatActivity() {
         webView.onPause()
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    // compileSdk 37(Android 16+/SDK 37)부터 Activity.onNewIntent의 intent 파라미터가
+    // non-null(Intent)로 바뀌어 기존 null 허용 오버라이드가 컴파일 오류를 낸다.
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntentData(intent)
     }

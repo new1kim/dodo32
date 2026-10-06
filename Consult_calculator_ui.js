@@ -213,6 +213,8 @@ function openTextModal() {
   populateRateEditFields();
   populateDefaultFirstRowFields();
   populateDeclareRateEditFields();
+  // 금리표 캐시 표도 모달을 열 때마다 현재 저장값으로 다시 그린다.
+  if (typeof renderConsultRateCacheTable === 'function') renderConsultRateCacheTable();
 
   if (panels.textCard) {
     panels.textCard.style.display = "block";
@@ -2219,11 +2221,22 @@ function 선택초기화() {
     const rateInput = firstRow.querySelector('.mort-rate');
     if (rateInput) rateInput.value = savedDefaultFirstRowData?.rate || '';
 
+    // ST금리/기간은 프로필(6M/5Y/2Y)별 저장값을 따로 읽고, 저장값이 없으면
+    // 프로필 기본값(6M 3%, 5Y·2Y 1.5%)을 넣는다. 초기화 경로라 input 이벤트가 없어
+    // 자동계산은 아래에서 한 번만 직접 돌린다.
+    const resetProfile = firstRow.querySelector('.mort-default-profile')?.value
+      || firstRow.querySelector('.mort-default-switch')?.dataset.profile
+      || '6M';
+    const resetProfileValues = getDefaultProfileValues(resetProfile, savedDefaultFirstRowData);
+
     const stRateInput = firstRow.querySelector('.mort-st-rate');
-    if (stRateInput) stRateInput.value = savedDefaultFirstRowData?.stRate || '';
+    if (stRateInput) {
+      stRateInput.value = resetProfileValues.stRate
+        || (resetProfile === '5Y' || resetProfile === '2Y' ? '1.5' : '3');
+    }
 
     const termInput = firstRow.querySelector('.mort-term');
-    if (termInput) termInput.value = savedDefaultFirstRowData?.term || '';
+    if (termInput) termInput.value = resetProfileValues.term || '360';
 
     const firstMemoRow = firstRow.nextElementSibling;
     if (firstMemoRow && firstMemoRow.classList.contains('mortgage-memo-row')) {
@@ -4725,6 +4738,10 @@ const CONSULT_RATE_SHEET_ID = '10fehqfYPhiKwOI6amMNX9lxmsxox3M5SKyW3MaAJH9w';
 const CONSULT_RATE_SHEET_NAME = '금리표가공';
 const CONSULT_RATE_CACHE_KEY = 'CONSULT_RATE_TABLE_CACHE';
 const CONSULT_RATE_CACHE_DATE_KEY = 'CONSULT_RATE_TABLE_CACHE_DATE';
+// 신한 금리표 시트에 '작성일/기준일'이 적힌 셀 주소 목록.
+// 이 셀(들)에 오늘 날짜가 적혀 있으면 자동 갱신을 건너뛴다.
+// 병합 셀에 대비해 날짜가 들어있을 수 있는 셀을 모두 나열한다.
+const CONSULT_RATE_SHEET_DATE_CELLS = ['S30', 'T30', 'U30'];
 
 function consultKstNow() {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -4790,6 +4807,66 @@ function hasConsultRateValues(rates) {
     .some(key => String(rates[key] ?? '').trim() !== '');
 }
 
+/* 오늘자 기준 금리가 이미 확보돼 있는지 판단한다.
+   신한 금리표 시트의 "작성일/기준일" 셀(CONSULT_RATE_SHEET_DATE_CELLS)에
+   오늘 날짜가 적혀 있으면 자동 갱신을 건너뛴다.
+   날짜를 못 읽으면 false를 돌려 기존처럼 조회하므로 동작이 멈추지 않는다. */
+/* 시트의 날짜 셀 값을 'YYYY-MM-DD' 문자열로 정규화한다.
+   정규화 실패 시 빈 문자열을 돌려준다.
+
+   실제로 시트가 돌려주는 값은 셀 타입에 따라 세 가지 형태가 섞인다.
+     1) 텍스트: "2026년 10월 5일 월요일"  ← S30 실제 값
+     2) 날짜형: "Date(2026,9,5)"            ← gviz 내부 표기(월이 0부터 셈)
+     3) 숫자  : "20261005" (시리얼번호)
+   예전 구현은 숫자를 뽑아 8자리인 경우만 '날짜'로 인정했는데,
+   1번 형태는 "2026105"(일 7자리)라 통과하지 못하고,
+   2번 형태는 "202695"(5자리)라 아예 실패했다. */
+function normalizeConsultSheetDate(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  // 2) gviz 날짜 표기: Date(2026,9,5) → 인덱스는 0-based이므로 월/일 +1
+  const gvizDate = raw.match(/Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})\)/);
+  if (gvizDate) {
+    const [, y, m, d] = gvizDate;
+    return `${y}-${String(Number(m) + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  // 1) "2026년 10월 5일 월요일" / "2026-10-05" / "2026.10.05" / "2026/10/5"
+  const parts = raw.match(/(\d{4})\s*[년\-./]\s*(\d{1,2})\s*[월\-./]\s*(\d{1,2})/);
+  if (parts) {
+    const [, y, m, d] = parts;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  // 3) 20261005
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length === 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  }
+  return '';
+}
+
+// 셀 하나를 읽고 '오늘 날짜인가'만 판정한다. 실패하면 false(=재조회).
+async function consultRateSheetCellIsToday(cellAddress) {
+  try {
+    const value = await fetchConsultRateCell(cellAddress);
+    return normalizeConsultSheetDate(value) === consultKstNow().date;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* 시트의 기준일자가 이미 오늘인지 확인한다.
+   날짜 전용 셀이 없으면(후보 주소가 비어 있으면) 항상 false를 돌려준다. */
+async function consultRateSheetIsUpToDate() {
+  if (!CONSULT_RATE_SHEET_DATE_CELLS.length) return false;
+  const results = await Promise.all(
+    CONSULT_RATE_SHEET_DATE_CELLS.map(consultRateSheetCellIsToday)
+  );
+  return results.some(Boolean);
+}
+
 async function fetchConsultRatesOnceDaily(force = false) {
   const now = consultKstNow();
   // force(금리확인 버튼을 직접 누른 경우)일 땐 시간 조건을 우회해 즉시 조회한다.
@@ -4798,6 +4875,13 @@ async function fetchConsultRatesOnceDaily(force = false) {
   const cachedRates = getNormalizedConsultRateCache();
   // 오늘 날짜로 기록되어 있어도 실제 금리값이 비어 있으면 캐시 완료로 취급하지 않고 재조회한다.
   if (!force && cachedDate === now.date && hasConsultRateValues(cachedRates)) return cachedRates;
+
+  // 시트에 오늘자 기준 금리가 이미 적혀 있으면(CONSULT_RATE_SHEET_DATE_CELLS 설정 시)
+  // 값을 다시 받지 않고 캐시를 그대로 쓴다.
+  if (!force && await consultRateSheetIsUpToDate() && hasConsultRateValues(cachedRates)) {
+    consultLocalStorage.setItem(CONSULT_RATE_CACHE_DATE_KEY, now.date);
+    return cachedRates;
+  }
 
   try {
     // 전체 범위 조회는 빈 행/병합셀 때문에 상대 행 인덱스가 달라질 수 있어,
@@ -4867,7 +4951,7 @@ function applyConsultCachedRateToFirstRow() {
   if (stRateInput) {
     const stRate = loanType === '전세'
       ? (housingStatus === '1주택' ? '1.2' : '0')
-      : (savedProfileValues.stRate || (profile === '5Y' ? '1.5' : '2'));
+      : (savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3'));
     stRateInput.value = stRate;
     stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -4930,28 +5014,33 @@ function renderConsultRateCacheTable() {
   if (updated) updated.textContent = rates.fetchedAtKST ? `마지막 조회: ${rates.fetchedAtKST}` : '';
 }
 
-// 버튼이 모달 내부에 있어 생성/표시 시점이 달라질 수 있으므로,
-// 요소에 직접 바인딩하지 않고 document 클릭 위임으로 처리한다.
-document.addEventListener('click', async (event) => {
-  const target = event.target.closest && event.target.closest('#consultRateRefreshBtn, .bottom-view-btn[onclick="openTextModal()"]');
-  if (!target) return;
-
-  if (target.id === 'consultRateRefreshBtn') {
-    if (target.disabled) return;
-    target.disabled = true;
-    target.textContent = '조회 중...';
-    try {
-      await fetchConsultRatesOnceDaily(true);
-      renderConsultRateCacheTable();
-      if (typeof showBubble === 'function') showBubble('금리표를 갱신했습니다');
-    } finally {
-      target.disabled = false;
-      target.textContent = '금리확인';
-    }
-    return;
+// [변경] 예전에는 document 클릭 위임으로 처리했는데, 모달 카드(#modal-text-card)에
+// onclick="event.stopPropagation()"이 걸려 있어 위임 리스너가 document까지 도달하지
+// 못해 '금리확인' 버튼이 아예 실행되지 않았다. 이제 버튼에 직접 바인딩한다.
+// (모달 카드 안에 있는 요소라 stopPropagation에 막히지 않는다.)
+async function handleConsultRateRefreshClick(event) {
+  const btn = event.currentTarget;
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '조회 중...';
+  try {
+    // '금리확인' 버튼은 사용자가 명시적으로 누른 것이므로, 시트 날짜가 오늘이더라도
+    // 항상 새로 조회한다. (날짜 판정은 자동 조회 쪽에서만 쓰인다)
+    await fetchConsultRatesOnceDaily(true);
+    renderConsultRateCacheTable();
+    if (typeof showBubble === 'function') showBubble('금리표를 갱신했습니다');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '금리확인';
   }
+}
 
-  setTimeout(renderConsultRateCacheTable, 0);
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('consultRateRefreshBtn');
+  if (btn && btn.dataset.refreshBound !== 'true') {
+    btn.dataset.refreshBound = 'true';
+    btn.addEventListener('click', handleConsultRateRefreshClick);
+  }
 });
 
 window.addEventListener('DOMContentLoaded', renderConsultRateCacheTable);

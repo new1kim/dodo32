@@ -4,8 +4,9 @@ plugins {
 
 android {
     namespace = "com.example.callnote"
+    // AGP 9.4는 API 37까지 지원한다. 설치된 플랫폼(android-37.1)에 맞춰 올렸다.
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -13,7 +14,7 @@ android {
     defaultConfig {
         applicationId = "com.example.callnote"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         // 앱 시작 시 1.5초간 화면에 표시되는 값. 빌드가 실제로 폰에 올라갔는지 확인하려면
         // 여기만 올리면 된다(예: "0.2") - APK 정보와 화면 표시가 항상 같이 바뀐다.
@@ -63,11 +64,11 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     // 기존 의존성들...
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.squareup.okhttp3:okhttp:5.2.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("com.google.code.gson:gson:2.13.2")
     // 하루 4회 상담내역 로컬 캐시 동기화(백그라운드 작업)용
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
     // WebView가 file://로 직접 열지 못하는 앱 내부 저장소(캐시) 콘텐츠를
     // 가상 https:// 주소로 서빙하기 위함 (AssetSyncManager 참고)
     implementation("androidx.webkit:webkit:1.17.0")
