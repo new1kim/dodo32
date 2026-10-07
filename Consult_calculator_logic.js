@@ -439,11 +439,10 @@ function 자동계산() {
       sumI += monthlyRes.첫달이자;
     } else {
       totalDsrDebt += annualTotal;
-      // DTI/신DTI(보유대출): 만기일시는 실제로도 이자만 부담하므로 이자만 반영.
-      // 원리금균등/원금균등은 대출 종류(주담대/신용)에 따라 반영 방식이 다르다.
-      //  - 주담대: 원리금 전액 반영
-      //  - 신용대출: 원금은 반영하지 않고 이자만 반영
-      const isInterestOnly = (type === "만기") || (loanCategory === "신용");
+      // DTI/신DTI(보유대출): 대출 종류(주담대/신용)와 무관하게 상환방식만으로 판단한다.
+      //  - 원리금/원금(균등): 원리금 전액 반영
+      //  - 만기일시: 이자만 반영
+      const isInterestOnly = (type === "만기");
       totalDtiDebt += isInterestOnly ? annualInterest : annualTotal;
       totalNewDtiDebt += isInterestOnly ? fixAnnualInterest : fixAnnualTotal;
 
