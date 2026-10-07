@@ -1237,7 +1237,7 @@ select:focus {
         <div class="calc-row">
 
             <div class="calc-line">
-                <span class="calc-formula">공시가격 × 130% × 90%</span>
+                <span class="calc-formula">공시가격 × 130% × 90% ( 117% )</span>
                 <span id="calcSeoulGuarantee" class="calc-value">-</span>
                 <button type="button" class="search-btn calc-apply-btn" data-calc-key="seoul" onclick="applyCalculatedPublicPrice('seoul')" style="display:none;">이 결과 적용</button>
             </div>
@@ -1253,7 +1253,7 @@ select:focus {
         <div class="calc-row">
 
             <div class="calc-line">
-                <span class="calc-formula">공시가격 × 140% × 90%</span>
+                <span class="calc-formula">공시가격 × 140% × 90% ( 126% )</span>
                 <span id="calcJusinboDosi" class="calc-value">-</span>
                 <button type="button" class="search-btn calc-apply-btn" data-calc-key="jusinboDosi" onclick="applyCalculatedPublicPrice('jusinboDosi')" style="display:none;">이 결과 적용</button>
             </div>
@@ -1359,22 +1359,44 @@ function buildQuery(params) {
    fetchSignalTimeout()은 일정 시간이 지나면 요청을 스스로 중단시킨다.
    중단된 요청은 catch로 흘러 아래 폴백 로직이 이어서 처리하므로,
    느린 조회가 조용히 실패하는 대신 항상 "결과 또는 안내"로 끝나게 된다.
+
+   ★ 2026-10: 20초 → 15초로 단축. 실측 느린 정상 응답(VWorld 9초)의
+   ~1.7배이므로 정상 응답을 자르지 않으면서, 세 조회(오피스텔/개별주택/
+   공동주택)가 모두 실패해도 15초에 안내가 뜬다.
+
+   ★ 재시도: 타임아웃으로 중단된 요청(AbortError)은 네트워크가 어중간하게
+   끊긴 경우가 많아, 한 번 자동으로 다시 시도한다(REQUEST_RETRY_COUNT).
+   재시도 각각도 같은 타임아웃을 갖고, 재시도까지 실패해야 최초 실패로
+   돌아가 기존 폴백 로직(카카오→GAS 등)이 그대로 이어진다.
+   성공한 응답·일반 HTTP 오류(4xx/5xx)는 재시도 없이 그대로 반환한다.
    --------------------------------------------------------- */
-const REQUEST_TIMEOUT_MS = 20000;
+const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_RETRY_COUNT = 1;   // 타임아웃 시 추가 재시도 횟수
 
 function fetchWithTimeout(url, options, timeoutMs) {
     var ms = timeoutMs || REQUEST_TIMEOUT_MS;
 
     // AbortController를 지원하지 않는 구형 WebView도 있으므로 방어적으로 처리한다.
+    // (재시도도 지원하지 않는다 — 기존 동작 그대로 유지)
     if (typeof AbortController === 'undefined') {
         return fetch(url, options);
     }
 
-    var controller = new AbortController();
-    var timer = setTimeout(function() { controller.abort(); }, ms);
+    function once() {
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, ms);
 
-    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
-        .finally(function() { clearTimeout(timer); });
+        return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+            .finally(function() { clearTimeout(timer); });
+    }
+
+    // 타임아웃(abort)만 재시도한다. HTTP 오류·파싱 오류는 그대로 통과시킨다.
+    return once().catch(function(err) {
+        if (REQUEST_RETRY_COUNT > 0 && err && err.name === 'AbortError') {
+            return once();
+        }
+        throw err;
+    });
 }
 
 // 기존 GAS 경로 — 카카오/VWorld 모두의 공통 폴백
