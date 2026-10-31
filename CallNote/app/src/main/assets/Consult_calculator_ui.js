@@ -2288,6 +2288,15 @@ function 선택초기화() {
   });
   if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
 
+  consultLocalStorage.setItem('CONSULT_housingStatus', '무주택');
+  const housingStatusBtn = document.getElementById('housingStatusBtn');
+  if (housingStatusBtn) {
+    housingStatusBtn.textContent = '무주택';
+    housingStatusBtn.hidden = consultLocalStorage.getItem('DSR_propertyLoanType') !== '전세';
+    if (housingStatusBtn.parentElement) housingStatusBtn.parentElement.classList.remove('is-housing-status-active');
+  }
+  window.dispatchEvent(new CustomEvent('housingStatusChanged'));
+
   updateIncomeCalc();
   if (typeof openAllInfoTabs === 'function') openAllInfoTabs();
   showBubble("입력 내용이 초기화되었습니다.");
