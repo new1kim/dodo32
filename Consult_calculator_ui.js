@@ -3,6 +3,8 @@
 /* localStorage 저장/불러오기 대상 입력창 셀렉터 (여러 함수에서 공용으로 사용) */
 const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], textarea';
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
+/* 대출 종류 드롭다운 선택값 목록 (저장/복원 유효성 검사에 사용) */
+const VALID_LOAN_CATEGORIES = ['주담대', '전세대', '신용대', '이자만', '원리금'];
 
 /* DSR_Main과 Consult_Main은 같은 origin의 iframe이므로 localStorage를 공유한다.
    상담 화면은 입력값을 별도 저장소로 격리해 DSR 계산 화면과 서로 덮어쓰지 않게 한다. */
@@ -335,8 +337,6 @@ function closeModal() {
 
 function getMortgageAnnualDebtForRow(row, index) {
   if (!row) return 0;
-  const excludeEl = row.querySelector('.mort-exclude');
-  if (excludeEl && excludeEl.checked) return 0;
 
   const amtEl = row.querySelector('.mort-amt');
   const rateEl = row.querySelector('.mort-rate');
@@ -387,7 +387,7 @@ function getMortgageAnnualDebtForRow(row, index) {
     return calcA.대출합계;
   }
 
-  if (loanCategory === '신용' && index > 0) {
+  if (loanCategory === '이자만') {
     const mInt = amt * combinedRate / 12;
     return mInt * 12;
   }
@@ -405,8 +405,6 @@ function updateMortgageReductionButtons() {
   let totalDsrDebt = 0;
   const rows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
   rows.forEach((row, index) => {
-    const excludeEl = row.querySelector('.mort-exclude');
-    if (excludeEl && excludeEl.checked) return;
     totalDsrDebt += getMortgageAnnualDebtForRow(row, index);
   });
 
@@ -416,11 +414,12 @@ function updateMortgageReductionButtons() {
   buttons.forEach((btn) => {
     const memoRow = btn.closest('.mortgage-memo-row');
     const sourceRow = memoRow ? memoRow.previousElementSibling : null;
-    const excludeEl = sourceRow ? sourceRow.querySelector('.mort-exclude') : null;
-
-    if (excludeEl && excludeEl.checked) {
-      btn.textContent = '상환조건';
-      btn.dataset.status = 'excluded';
+    const category = sourceRow?.querySelector('.mort-loan-category')?.value || '이자만';
+    const isEligible = category === '이자만' || category === '원리금';
+    btn.disabled = !isEligible;
+    if (btn.disabled) {
+      btn.textContent = category;
+      btn.dataset.status = 'unavailable';
       return;
     }
 
@@ -445,8 +444,8 @@ function openDebtReductionRecommendation(button) {
   const currentRate = rateInput ? (parseFloat(rateInput.value) || 0) : 0;
   const currentTerm = termInput ? (parseInt(termInput.value) || 0) : 0;
 
-  if (loanCategory !== '신용') {
-    alert('신용대출 행에서만 감액추천을 사용할 수 있습니다.');
+  if (loanCategory !== '이자만' && loanCategory !== '원리금') {
+    alert('원리금 또는 이자만 구분 행에서만 감액추천을 사용할 수 있습니다.');
     return;
   }
 
@@ -589,17 +588,42 @@ function setMortgageRepaymentType(btn, type) {
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
-// 보유대출 "주담대" 단일 토글: 기본값은 "신용"(이자만 반영)이며,
-// 이 버튼을 눌러 켜면(active) "주담대"로 간주해 원리금 전액을 반영한다.
-// 원리금/원금/만기 토글과는 독립적으로 중복 선택 가능.
-function toggleLoanCategory(btn) {
-  const row = btn.closest('tr');
+// 보유대출 구분 드롭다운: 선택값은 기존 대출구분 저장/계산 로직에서 그대로 사용한다.
+function updateLoanCategory(select) {
+  const row = select.closest('tr');
   if (!row) return;
+
+  if (select.value === '행삭제') {
+    if (row.classList.contains('first-row')) {
+      showBubble("본건 대출은 삭제할 수 없습니다");
+      const categoryInput = row.querySelector('.mort-loan-category');
+      select.value = categoryInput ? categoryInput.value : '주담대';
+      return;
+    }
+    const memoRow = row.nextElementSibling;
+    if (memoRow && memoRow.classList.contains('mortgage-memo-row')) memoRow.remove();
+    row.remove();
+    mortCount = document.querySelectorAll('#mortgage-inputs .mortgage-row').length;
+    showBubble("해당 대출 정보 삭제 완료");
+    updateMortgagePlaceholders();
+    if (typeof 자동계산 === 'function') 자동계산();
+    updateMortgageReductionButtons();
+    if (typeof updateLoanInfoSummary === 'function') updateLoanInfoSummary();
+    if (typeof saveDSRInputs === 'function') saveDSRInputs();
+    return;
+  }
+
   const categoryInput = row.querySelector('.mort-loan-category');
-  const isNowActive = !btn.classList.contains('active');
-  btn.classList.toggle('active', isNowActive);
-  if (categoryInput) categoryInput.value = isNowActive ? '주담대' : '신용';
+  if (categoryInput) categoryInput.value = select.value;
+  const reductionButton = row.nextElementSibling?.querySelector('.mort-reduction-btn');
+  if (reductionButton) {
+    const isReductionEligible = select.value === '원리금';
+    reductionButton.disabled = !isReductionEligible;
+    reductionButton.setAttribute('aria-label', isReductionEligible ? '감액추천' : '원리금 구분에서만 사용 가능');
+  }
   if (typeof 자동계산 === 'function') 자동계산();
+  updateMortgageReductionButtons();
+  if (typeof updateLoanInfoSummary === 'function') updateLoanInfoSummary();
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
@@ -743,7 +767,6 @@ function applyDefaultProfileToRow(row, profile) {
   }
 
   if (rateInput || stRateInput || termInput) {
-    showBubble(profile === '2Y' ? '2Y 기본값 적용' : profile === '5Y' ? '5Y 기본값 적용' : '6M 기본값 적용');
     if (typeof 자동계산 === 'function') 자동계산();
   }
 }
@@ -787,6 +810,17 @@ function bindMortgageRowEvents(row) {
     });
   });
 
+  const categorySelect = row.querySelector('.mort-category-select');
+  const catInput = row.querySelector('.mort-loan-category');
+  if (categorySelect && catInput) {
+    // 저장값/기존값이 드롭다운 목록에 있는 값이면 그대로 유지한다(새로고침 후 선택 유지).
+    // 목록에 없는 예전 값만 대표값으로 보정한다.
+    const legacyMap = { '신용': '신용대', '전세': '전세대' };
+    if (legacyMap[catInput.value]) catInput.value = legacyMap[catInput.value];
+    if (!VALID_LOAN_CATEGORIES.includes(catInput.value)) catInput.value = '주담대';
+    categorySelect.value = catInput.value;
+  }
+
   const profileSelect = row.querySelector('.mort-default-switch');
   if (profileSelect) {
     profileSelect.addEventListener('click', () => {
@@ -805,36 +839,13 @@ function bindMortgageRowEvents(row) {
     });
   }
 
-  row.querySelectorAll('.mort-rate, .mort-st-rate, .mort-term').forEach(el => {
-    bindLongPress(el, 3000, () => {
-      const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
-      if (rows.indexOf(row) === 0) openDefaultFirstRowModal();
-    });
-  });
+  // 금리/ST금리/기간 입력칸을 선택하거나 길게 누를 때 뜨던 팝업 제거 (하단 기본값 설정 버튼 사용)
 
   row.querySelectorAll(CHECKBOX_INPUT_SELECTOR).forEach(el => {
     el.addEventListener("change", (e) => {
-      if (e.target.classList.contains('mort-exclude')) {
-        showBubble(e.target.checked ? "계산 제외" : "대출 적용");
-        updateMortgageReductionButtons();
-      }
       if (e.target.classList.contains('mort-grace-check')) showBubble(e.target.checked ? "거치 적용" : "거치 해제");
       if (typeof 자동계산 === 'function') 자동계산();
     });
-
-    if (el.classList.contains('mort-exclude')) {
-      bindLongPress(el, 2000, () => {
-        if (document.querySelectorAll('#mortgage-inputs .mortgage-row').length > 1) {
-          const memoRow = row.nextElementSibling;
-          if (memoRow && memoRow.classList.contains('mortgage-memo-row')) memoRow.remove();
-          row.remove();
-          showBubble("해당 대출 정보 삭제 완료");
-          updateMortgagePlaceholders();
-          if (typeof 자동계산 === 'function') 자동계산();
-          if (typeof saveDSRInputs === 'function') saveDSRInputs();
-        }
-      });
-    }
   });
 }
 
@@ -852,39 +863,7 @@ function updateMortgagePlaceholders() {
   });
 }
 
-// 금액 1,000,000원 증가 기능
-function increaseAmount(btn) {
-  const row = btn.closest('.mort-amount-row');
-  if (!row) return;
-  const input = row.querySelector('.mort-amt');
-  if (!input) return;
 
-  let currentVal = parseInt(input.value.replace(/,/g, '')) || 0;
-  currentVal += 1000000;
-  input.value = currentVal.toLocaleString();
-
-  if (typeof 자동계산 === 'function') 자동계산();
-  if (typeof saveDSRInputs === 'function') saveDSRInputs();
-}
-
-// 금액 1,000,000원 감소 기능
-function decreaseAmount(btn) {
-  const row = btn.closest('.mort-amount-row');
-  if (!row) return;
-  const input = row.querySelector('.mort-amt');
-  if (!input) return;
-
-  let currentVal = parseInt(input.value.replace(/,/g, '')) || 0;
-  currentVal -= 1000000;
-  if (currentVal <= 0) {
-    input.value = "";
-  } else {
-    input.value = currentVal.toLocaleString();
-  }
-
-  if (typeof 자동계산 === 'function') 자동계산();
-  if (typeof saveDSRInputs === 'function') saveDSRInputs();
-}
 
 let mortCount = 0;
 
@@ -1106,13 +1085,23 @@ function 주담대행추가() {
   newRow.className = isFirstRow ? "mortgage-row first-row" : "mortgage-row";
   newRow.style.textAlign = "center";
   const profileSelectMarkup = isFirstRow ? `<button type="button" class="mort-default-switch" data-profile="6M" aria-label="6M/5Y 전환"><span class="switch-label active">6M</span><span class="switch-label">5Y</span></button>` : '';
+  const categoryDefault = isFirstRow ? '주담대' : '신용대';
+  const loanCategorySelectMarkup = `
+    <select class="mort-category-select" aria-label="대출 종류" onchange="updateLoanCategory(this)">
+      <option value="주담대" ${categoryDefault === '주담대' ? 'selected' : ''}>주담대</option>
+      <option value="전세대" ${categoryDefault === '전세대' ? 'selected' : ''}>전세대</option>
+      <option value="신용대" ${categoryDefault === '신용대' ? 'selected' : ''}>신용대</option>
+      <option value="이자만" ${categoryDefault === '이자만' ? 'selected' : ''}>이자만</option>
+      <option value="원리금" ${categoryDefault === '원리금' ? 'selected' : ''}>원리금</option>
+      <option value="행삭제">행삭제</option>
+    </select>
+  `;
 
-  // 본건(첫 행) 금액 입력 영역: 기존 구조 그대로 유지 (수정 금지)
+  // 본건(첫 행) 금액 입력 영역 - 구분 드롭다운을 금액 입력칸 왼쪽에 둔다.
   const firstRowAmountMarkup = `
     <div class="input-flex-col">
       <div class="mort-amount-row">
-        <button type="button" class="amount-btn amount-plus" onclick="increaseAmount(this)">+</button>
-        <button type="button" class="amount-btn amount-minus" onclick="decreaseAmount(this)">-</button>
+        ${loanCategorySelectMarkup}
         <input type="text" inputmode="numeric" placeholder="" class="mort-amt">
       </div>
       <input type="hidden" class="mort-default-profile" value="6M">
@@ -1124,41 +1113,38 @@ function 주담대행추가() {
     </div>
   `;
 
-  // 추가되는 행(보유대출) 금액 입력 영역: ST금리 삭제, +/- 버튼 세로 배치, 금리 입력을 금액 옆에 배치
+  // 추가되는 행(보유대출) 금액 입력 영역: 금액과 금리를 나란히 배치
   const addedRowAmountMarkup = `
     <div class="mort-amount-row mort-amount-row--added">
-      <div class="amount-btn-stack">
-        <button type="button" class="amount-btn amount-plus" onclick="increaseAmount(this)">+</button>
-        <button type="button" class="amount-btn amount-minus" onclick="decreaseAmount(this)">-</button>
-      </div>
+      ${loanCategorySelectMarkup}
       <input type="text" inputmode="numeric" placeholder="" class="mort-amt">
       <input type="text" inputmode="decimal" placeholder="금리 %" class="mort-rate">
     </div>
   `;
+  const amountCellWidth = '55%';
+  const termCellWidth = '15%';
+  const repaymentCellWidth = '30%';
+  const firstRowClass = isFirstRow ? ' first-row' : '';
 
   newRow.innerHTML = `
-    <td class="no-bg" style="padding: 2px; vertical-align: middle;">
-      <div class="mort-exclude-cell">
-        <input type="checkbox" class="mort-exclude" title="계산제외">
+    <td class="no-bg mort-exclude-amount-cell${firstRowClass}" style="width: ${amountCellWidth}; padding: 4px 4px;">
+      <div class="mort-exclude-amount-wrap">
+        ${isFirstRow ? firstRowAmountMarkup : addedRowAmountMarkup}
       </div>
     </td>
-    <td class="no-bg" style="padding: 4px 4px;">
-      ${isFirstRow ? firstRowAmountMarkup : addedRowAmountMarkup}
-    </td>
-    <td class="no-bg" style="padding: 4px 2px;">
+    <td class="no-bg${firstRowClass}" style="width: ${termCellWidth}; padding: 4px 2px;">
       <input type="text" inputmode="numeric" placeholder="개월" class="mort-term">
     </td>
-    <td class="no-bg" style="padding: 4px 3px;">
+    <td class="no-bg mortgage-repayment-cell${firstRowClass}" colspan="2" style="width: ${repaymentCellWidth}; padding: 4px 3px;">
       <div class="type-btn-row">
         <div class="type-btn-group">
           <button type="button" class="type-btn active" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
           <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
           <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
         </div>
-        ${isFirstRow ? '' : `<button type="button" class="mort-category-toggle" onclick="toggleLoanCategory(this)">주담대</button>`}
       </div>
       <input type="hidden" class="mort-type" value="원리금">
-      ${isFirstRow ? '' : `<input type="hidden" class="mort-loan-category" value="신용">`}
+      <input type="hidden" class="mort-loan-category" value="${categoryDefault}">
       <div class="grace-cell">
 
         <input type="checkbox" class="mort-grace-check" title="거치 적용">
@@ -1192,6 +1178,8 @@ function 주담대행추가() {
   if (reductionBtn) {
     reductionBtn.addEventListener('click', () => openDebtReductionRecommendation(reductionBtn));
     reductionBtn.textContent = '추가가능';
+    const categorySelect = newRow.querySelector('.mort-category-select');
+    if (categorySelect) reductionBtn.disabled = categorySelect.value !== '원리금';
   }
 
   bindMortgageRowEvents(newRow);
@@ -1950,7 +1938,7 @@ function 소득행추가(explicitIndex) {
   applyOtherRowsBlock();
   relabelIncomeRows();
   adjustTableFontSize();
-  showBubble(`소득${index} 행이 추가되었습니다`);
+  // 소득추가 시 팝업 제거
   return index;
 }
 
@@ -2270,6 +2258,12 @@ function 선택초기화() {
     firstRowTypeButtons.forEach(btn => btn.classList.remove('active'));
     const firstDefaultTypeBtn = firstRow.querySelector('.type-btn:nth-child(1)');
     if (firstDefaultTypeBtn) firstDefaultTypeBtn.classList.add('active');
+
+    const firstRowCategoryInput = firstRow.querySelector('.mort-loan-category');
+    const firstRowCategorySelect = firstRow.querySelector('.mort-category-select');
+    // 초기화 후 기본값: 본건대출행 = 주담대 (추가대출행은 생성 시 신용대가 기본)
+    if (firstRowCategoryInput) firstRowCategoryInput.value = '주담대';
+    if (firstRowCategorySelect) firstRowCategorySelect.value = '주담대';
   }
 
   // 현재 폼 데이터만 비우고, 저장 이력/신규 슬롯은 유지한다.
@@ -2289,12 +2283,17 @@ function 선택초기화() {
   if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
 
   consultLocalStorage.setItem('CONSULT_housingStatus', '무주택');
+  consultLocalStorage.setItem('DSR_propertyLoanType', '담보');
+  consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', '');
   const housingStatusBtn = document.getElementById('housingStatusBtn');
   if (housingStatusBtn) {
     housingStatusBtn.textContent = '무주택';
-    housingStatusBtn.hidden = consultLocalStorage.getItem('DSR_propertyLoanType') !== '전세';
+    housingStatusBtn.hidden = true;
     if (housingStatusBtn.parentElement) housingStatusBtn.parentElement.classList.remove('is-housing-status-active');
   }
+  const categoryBtn = document.getElementById('propertyCategoryBtn');
+  if (categoryBtn) categoryBtn.textContent = '담보';
+  window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
   window.dispatchEvent(new CustomEvent('housingStatusChanged'));
 
   updateIncomeCalc();
@@ -2577,7 +2576,7 @@ function saveDsrHistoryItem() {
       };
       snap.DSR_dsrMax_원리금 = readMax('원리금');
       snap.DSR_dsrMax_원금 = readMax('원금');
-      snap.DSR_hasHeldLoan = !!document.querySelector('#mortgage-inputs .mort-category-toggle.active');
+      snap.DSR_hasHeldLoan = Array.from(document.querySelectorAll('#mortgage-inputs .mort-loan-category')).some(input => input.value === '주담대');
       const ltvRateChecked = document.querySelector('input[name="ltv_rate"]:checked');
       snap.DSR_radio_ltv_rate = ltvRateChecked ? ltvRateChecked.value : '';
       // 물건지정보 하단 잔금일자/메모는 저장 스냅샷에 자동 포함되지 않으므로 직접 담는다.
@@ -2713,7 +2712,7 @@ function dsrHistLoanBlock(rows, idx) {
   if (row.rate) bits.push(`${row.rate}%`);
   if (row.term) bits.push(`${row.term}개월`);
   if (row.repaymentType) bits.push(row.repaymentType);
-  if (row.loanCategory && row.loanCategory !== '신용') bits.push(row.loanCategory);
+  if (row.loanCategory && row.loanCategory !== '이자만') bits.push(row.loanCategory);
   if (row.graceCheck && row.graceTerm) bits.push(`거치 ${row.graceTerm}개월`);
   const excludeBadge = row.exclude ? ' <span class="badge danger">계산제외</span>' : '';
   let html = '<div class="dsr-h-loan-block">';
@@ -2827,7 +2826,8 @@ function renderDsrHistoryList(filterText = '') {
     const loanHeaderParts = [];
     if (dsrVal && dsrVal !== '-') loanHeaderParts.push(`DSR ${dsrVal}`);
     if (dtiVal && dtiVal !== '-') loanHeaderParts.push(`DTI ${dtiVal}`);
-    if (heldLoanCount > 0 && newDtiVal && newDtiVal !== '-') loanHeaderParts.push(`신DTI ${newDtiVal}`);
+    // 신DTI는 주담대 2건 이상일 때만 의미가 있다.
+    if (heldLoanCount >= 2 && newDtiVal && newDtiVal !== '-') loanHeaderParts.push(`신DTI ${newDtiVal}`);
     const loanHeader = loanHeaderParts.length
       ? `<span class="dsr-h-sec-h-right">${escapeHtml(loanHeaderParts.join(' | '))}</span>` : '';
     let secLoan = '';
@@ -2841,7 +2841,11 @@ function renderDsrHistoryList(filterText = '') {
     let secResult = '<div class="dsr-h-kpi-row">';
     secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">DSR</div><div class="dsr-h-v">${escapeHtml(dsrVal || '-')}</div></div>`;
     secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">DTI</div><div class="dsr-h-v">${escapeHtml(dtiVal || '-')}</div></div>`;
-    secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">신DTI</div><div class="dsr-h-v">${escapeHtml(newDtiVal || '-')}</div></div>`;
+    // 신DTI는 주담대 2건 이상일 때만 표시한다.
+    const showNewDtiKpi = heldLoanCount >= 2;
+    if (showNewDtiKpi) {
+      secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">신DTI</div><div class="dsr-h-v">${escapeHtml(newDtiVal || '-')}</div></div>`;
+    }
     secResult += '</div>';
     secResult += '<div class="dsr-h-kpi-row" style="margin-top:6px;">';
     secResult += `<div class="dsr-h-kpi"><div class="dsr-h-k">최대 원리금</div><div class="dsr-h-v">${escapeHtml(storage.DSR_dsrMax_원리금 || '-')}</div></div>`;
@@ -2999,13 +3003,12 @@ function saveMortgageRows() {
 
   rows.forEach(row => {
     const rowData = {
-      exclude: row.querySelector('.mort-exclude')?.checked || false,
       amount: row.querySelector('.mort-amt')?.value || '',
       rate: row.querySelector('.mort-rate')?.value || '',
       stRate: row.querySelector('.mort-st-rate')?.value || '',
       term: row.querySelector('.mort-term')?.value || '',
       repaymentType: row.querySelector('.mort-type')?.value || '원리금',
-      loanCategory: row.querySelector('.mort-loan-category')?.value || '신용',
+      loanCategory: row.querySelector('.mort-loan-category')?.value || (row.classList.contains('first-row') ? '주담대' : '신용대'),
       graceCheck: row.querySelector('.mort-grace-check')?.checked || false,
       graceTerm: row.querySelector('.mort-grace-term')?.value || '',
       memo: row.nextElementSibling?.classList.contains('mortgage-memo-row')
@@ -3098,6 +3101,15 @@ function loadDSRInputs() {
 
   loadMortgageRows();
 
+  // 새로고침 복원 직후에는 각 행의 select 표기와 내부값(.mort-loan-category)을 한 번 더 맞춘다.
+  document.querySelectorAll('#mortgage-inputs .mortgage-row').forEach(row => {
+    const catInput = row.querySelector('.mort-loan-category');
+    const catSelect = row.querySelector('.mort-category-select');
+    if (catInput && catSelect && VALID_LOAN_CATEGORIES.includes(catInput.value)) {
+      catSelect.value = catInput.value;
+    }
+  });
+
   // 복원 직후 값은 자동 input/change 이벤트가 발생하지 않으므로,
   // 상태가 보이는 값과 계산 값을 함께 한 번 다시 적용해야 한다.
   if (typeof refreshRadioToggleStyles === 'function') {
@@ -3148,7 +3160,6 @@ function loadMortgageRows() {
       const currentRow = rows[rows.length - 1];
 
       if (currentRow) {
-        const exclude = currentRow.querySelector('.mort-exclude');
         const amount = currentRow.querySelector('.mort-amt');
         const rate = currentRow.querySelector('.mort-rate');
         const stRate = currentRow.querySelector('.mort-st-rate');
@@ -3158,13 +3169,21 @@ function loadMortgageRows() {
         const graceCheck = currentRow.querySelector('.mort-grace-check');
         const graceTerm = currentRow.querySelector('.mort-grace-term');
 
-        if (exclude) exclude.checked = rowData.exclude;
         if (amount) amount.value = rowData.amount;
         if (rate) rate.value = rowData.rate;
         if (stRate) stRate.value = rowData.stRate;
         if (term) term.value = rowData.term;
         if (repaymentType) repaymentType.value = rowData.repaymentType;
-        if (loanCategory) loanCategory.value = rowData.loanCategory || '신용';
+        const isFirstRow = currentRow.classList.contains('first-row');
+        const defaultCategory = isFirstRow ? '주담대' : '신용대';
+        // 새로고침 복원: 저장된 드롭다운 값을 그대로 되살린다.
+        //   (예전 버전의 '원리금' → '신용대', '이자만' → '전세대' 호환 매핑만 保유)
+        const LEGACY_CATEGORY_MAP = { '원리금': '신용대', '전세': '전세대' };
+        const restoredCategory = LEGACY_CATEGORY_MAP[rowData.loanCategory] || rowData.loanCategory;
+        const storedCategory = VALID_LOAN_CATEGORIES.includes(restoredCategory)
+          ? restoredCategory
+          : defaultCategory;
+        if (loanCategory) loanCategory.value = storedCategory;
         if (graceCheck) graceCheck.checked = rowData.graceCheck;
         if (graceTerm) graceTerm.value = rowData.graceTerm;
 
@@ -3182,8 +3201,10 @@ function loadMortgageRows() {
         else if (rowData.repaymentType === '원금') typeButtons[1]?.classList.add('active');
         else if (rowData.repaymentType === '만기') typeButtons[2]?.classList.add('active');
 
-        const categoryBtn = currentRow.querySelector('.mort-category-toggle');
-        if (categoryBtn) categoryBtn.classList.toggle('active', (rowData.loanCategory || '신용') === '주담대');
+        const categorySelect = currentRow.querySelector('.mort-category-select');
+        if (categorySelect) categorySelect.value = storedCategory;
+        const reductionButton = memoRow?.querySelector('.mort-reduction-btn');
+        if (reductionButton) reductionButton.disabled = storedCategory !== '원리금';
       }
     });
   } catch (e) {
@@ -3573,10 +3594,11 @@ function 대출정보텍스트생성() {
     const stRate = firstRow.querySelector('.mort-st-rate')?.value || '-';
     const term = firstRow.querySelector('.mort-term')?.value || '-';
     const type = firstRow.querySelector('.mort-type')?.value || '-';
+    const category = firstRow.querySelector('.mort-loan-category')?.value || '';
     const graceChecked = firstRow.querySelector('.mort-grace-check')?.checked;
     const graceTerm = firstRow.querySelector('.mort-grace-term')?.value || '-';
 
-    lines.push(`본건대출금액 : ${amt}`);
+    lines.push(`본건대출금액 : ${category} ${amt}`);
     lines.push(`금리종류 : ${profileLabel}    금리 : ${rate}%    ST금리 : ${stRate}%`);
     lines.push(`기간 : ${term}개월    상환방식 : ${type}`);
     if (graceChecked) {
@@ -3598,9 +3620,8 @@ function 대출정보텍스트생성() {
       const rate = row.querySelector('.mort-rate')?.value || '-';
       const term = row.querySelector('.mort-term')?.value || '-';
       const type = row.querySelector('.mort-type')?.value || '-';
-      const conditionChecked = row.querySelector('.mort-exclude')?.checked;
-      let rowLine = `보유대출${idx + 1} : ${amt}    금리 : ${rate}%    기간 : ${term}개월    상환방식 : ${type}`;
-      if (conditionChecked) rowLine += `    [[ 당일상환조건 ]]`;
+      const category = row.querySelector('.mort-loan-category')?.value || '';
+      const rowLine = `보유대출${idx + 1} : ${category} ${amt}    금리 : ${rate}%    기간 : ${term}개월    상환방식 : ${type}`;
       lines.push(rowLine);
       const memo = getMortgageRowMemo(row);
       if (memo) lines.push(`  메모 : ${memo}`);
@@ -3937,28 +3958,32 @@ function initPropertyExtraFields() {
   let housingStatus = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
   const refreshHousingStatus = (isJeonse) => {
     if (!housingStatusBtn) return;
+    const currentHousing = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
+    housingStatus = currentHousing;
 
     // 전세에서 선택한 1주택 상태는 저장해 두되, 매매 분기에서는 적용하지 않는다.
     // 따라서 매매로 전환하면 버튼을 숨기고 화면상 상태도 무주택으로 비활성화한다.
     // 다시 전세로 돌아오면 저장된 housingStatus(1주택/무주택)를 복원한다.
     housingStatusBtn.hidden = !isJeonse;
-    housingStatusBtn.textContent = isJeonse ? housingStatus : '무주택';
+    housingStatusBtn.textContent = isJeonse ? currentHousing : '무주택';
     if (housingStatusBtn.parentElement) {
       housingStatusBtn.parentElement.classList.toggle(
         'is-housing-status-active',
-        isJeonse && housingStatus === '1주택'
+        isJeonse && currentHousing === '1주택'
       );
     }
   };
   if (housingStatusBtn) {
-    refreshHousingStatus(true);
+    refreshHousingStatus(consultLocalStorage.getItem('DSR_propertyLoanType') === '전세');
     housingStatusBtn.addEventListener('click', () => {
       // 매매 분기에서는 버튼이 숨겨져 있으므로 저장 상태를 변경하지 않는다.
       if (housingStatusBtn.hidden) return;
 
-      housingStatus = housingStatus === '무주택' ? '1주택' : '무주택';
+      const currentStatus = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
+      const nextStatus = currentStatus === '무주택' ? '1주택' : '무주택';
+      housingStatus = nextStatus;
+      consultLocalStorage.setItem('CONSULT_housingStatus', nextStatus);
       refreshHousingStatus(true);
-      consultLocalStorage.setItem('CONSULT_housingStatus', housingStatus);
       window.dispatchEvent(new CustomEvent('housingStatusChanged'));
       refreshCreditLimit();
       saveDSRInputs();
@@ -4101,8 +4126,18 @@ function initPropertyExtraFields() {
     consultLocalStorage.setItem('DSR_propertyLoanType', loanType);
     consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', guarantee);
     if (categoryList) categoryList.hidden = true;
+    if (button.dataset.category === '도보' || button.dataset.category === '서보') {
+      const firstRow = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
+      if (firstRow) {
+        const catSelect = firstRow.querySelector('.mort-category-select');
+        const catInput = firstRow.querySelector('.mort-loan-category');
+        if (catSelect) catSelect.value = '이자만';
+        if (catInput) catInput.value = '이자만';
+      }
+    }
     refreshLoanType();
     window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
+    window.dispatchEvent(new CustomEvent('housingStatusChanged'));
     if (typeof refreshMarketPriceBranch === 'function') refreshMarketPriceBranch();
     saveDSRInputs();
   }));
@@ -4708,11 +4743,11 @@ function 대출정보텍스트생성() {
   lines.push('');
 
   const rows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row'));
-  const hasMortgage = rows.some(row =>
-    row.querySelector('.mort-category-toggle.active') && !row.querySelector('.mort-exclude')?.checked
-  );
+  const hasMortgage = rows.some(row => row.querySelector('.mort-loan-category')?.value === '주담대');
+  // 신DTI는 주담대 2건 이상일 때만 내용에 포함한다.
+  const mortgageCount = rows.filter(row => row.querySelector('.mort-loan-category')?.value === '주담대').length;
   const ratioSummary = [`DSR ${text('DSR확인') || '-'}`, `DTI ${text('DIT확인') || '-'}`];
-  if (hasMortgage) ratioSummary.push(`신DTI ${text('신DTI확인') || '-'}`);
+  if (mortgageCount >= 2) ratioSummary.push(`신DTI ${text('신DTI확인') || '-'}`);
   lines.push(`💲 대출정보 · ${ratioSummary.join(', ')}`);
   rows.forEach((row, index) => {
     const amount = row.querySelector('.mort-amt')?.value?.trim() || '';
@@ -4723,16 +4758,13 @@ function 대출정보텍스트생성() {
     const type = row.querySelector('.mort-type')?.value?.trim() || '';
     const profile = row.querySelector('.mort-default-profile')?.value === '5Y' ? '5년' : '6개월';
     const grace = row.querySelector('.mort-grace-check')?.checked ? row.querySelector('.mort-grace-term')?.value?.trim() : '';
-    const category = row.querySelector('.mort-category-toggle.active') ? '주담대' : '';
+    const category = row.querySelector('.mort-loan-category')?.value || '';
     if (index === 0) {
-      lines.push(` 👉 필요금액, ${[amount, rateDisplay, termDisplay].filter(Boolean).join(', ')}`);
+      lines.push(` 👉 본건대출금액, ${[category, amount, rateDisplay, termDisplay].filter(Boolean).join(', ')}`);
       lines.push(` 👉 ${[rateDisplay, termDisplay, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);
       if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
     } else {
-      const excludeChecked = row.querySelector('.mort-exclude')?.checked;
-      const loanDetails = excludeChecked
-        ? [category, amount, '(상환조건)']
-        : [category, amount, rateDisplay, termDisplay, type];
+      const loanDetails = [category, amount, rateDisplay, termDisplay, type];
       lines.push(` 👉 보유대출${index} -> ${loanDetails.filter(Boolean).join(', ')}`);
       if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
     }

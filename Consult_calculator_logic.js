@@ -164,13 +164,6 @@ function generateSchedule() {
   const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
   if (!firstRow) { updateScheduleLoanInfo(); return; }
 
-  const isExcluded = firstRow.querySelector('.mort-exclude').checked;
-  if (isExcluded) {
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>계산 제외된 대출입니다.</td></tr>";
-    updateScheduleLoanInfo();
-    return;
-  }
-
   const rateInputVal = firstRow.querySelector('.mort-rate').value;
   const amt = parseFloat(firstRow.querySelector('.mort-amt').value.replace(/,/g, '')) || 0;
   const pureRate = parseFloat(rateInputVal) / 100 || 0;
@@ -335,17 +328,13 @@ function 자동계산() {
 
   const mortRows = document.querySelectorAll('#mortgage-inputs .mortgage-row');
   mortRows.forEach((row, index) => {
-    const excludeEl = row.querySelector('.mort-exclude');
-    const isExcluded = excludeEl ? excludeEl.checked : false;
-    if (isExcluded) return;
-
     const amtEl = row.querySelector('.mort-amt');
     const rateEl = row.querySelector('.mort-rate');
     const stRateEl = row.querySelector('.mort-st-rate');
     const termEl = row.querySelector('.mort-term');
     const typeEl = row.querySelector('.mort-type');
     const categoryEl = row.querySelector('.mort-loan-category');
-    const loanCategory = categoryEl ? categoryEl.value : "신용";
+    const loanCategory = categoryEl ? categoryEl.value : "이자만";
 
     const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
     const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
@@ -356,12 +345,19 @@ function 자동계산() {
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
-    // 신DTI 산정 기간 = min(입력 개월수, 180)개월.
-    // 주담대 버튼이 눌린 행에만 캡 적용, 그 외(본건 포함)는 입력 개월수(거치 반영) 그대로.
-    const isNewDtiTarget = (loanCategory === "주담대");
+    // [신DTI 산정 기간] 본건(index 0) 행의 "입력 개월수"를 기준으로 180개월 상한을 적용한다.
+    //   · 입력 180개월 미만 → 입력값 그대로
+    //   · 입력 180개월 이상 → 180개월로 고정
+    //   -> 본건이 주담대인지 여부와 무관하게 동일하게 동작한다(기본값이 주담대일 뿐 사용자 변경 가능).
+    //   전세대/이자만(원금 미반영)은 원금 계산이 없어 환산이 필요 없다.
+    const NEW_DTI_MAX_TERM = 180;
+    // 본건(index 0)은 입력 기간과 무관하게 항상 180개월 상한을 적용한다.
+    //  · 본건이 주담대(신DTI 대상)인 경우에도 360개월 입력이면 180개월로 계산되어야 한다.
+    //  · 입력이 180개월 미만이면 입력값 그대로 쓴다(min).
+    const isNewDtiTarget = (index === 0);
     let fixPostTerm;
     if (isNewDtiTarget && term > 0) {
-      const newDtiBaseTerm = Math.min(term, 180);
+      const newDtiBaseTerm = Math.min(term, NEW_DTI_MAX_TERM);
       let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
       fixPostTerm = newDtiBaseTerm - fixGrace;
     } else {
@@ -429,24 +425,91 @@ function 자동계산() {
       fixAnnualInterest = amt * combinedRate * (fixPostTerm + 1) / (fixPostTerm * 2);
     }
 
+    // [DSR/DTI 산정 규칙] 첨부한 정산표 기준(본건 단독).
+    //   · 연 원금상환액 = 대출금 × 12 / 개월수           → 3억/360개월 = 10,000,000
+    //   · 원리금균등 연이자 = 월상환금 × 12 − 연 원금상환액 → 21,592,577
+    //   · 원금균등 연이자   = 대출금 × 금리 × (n+1) / (2n)  → 300,000,000×10%×361/720 = 15,041,667
+    //   · 총 원리금상환액(연) = 연 원금 + 연 이자
+    //   · DSR = DTI = 신DTI = 총 원리금상환액 / 연소득 × 100
+    //       원리금균등 → 31,592,577 / 50,000,000 = 63.19%
+    //       원금균등   → 25,041,667 / 50,000,000 = 50.08%
+    //   · 만기일시   : 연이자 = 대출금 × 금리, 연원금 = 대출금 × 12 / 120개월(10년 고정)
+    //       → 3억 만기 10% 360개월: 연원금 30,000,000 + 연이자 30,000,000 = 60,000,000 (120.00%)
+    //   · 만기일시의 연 원금산정 기간은 입력 개월수와 무관하게 120개월(10년)로 고정한다.
+    const MANGGI_PRINCIPAL_TERM = 120;
+    // [이자만 분기] 대출종류가 "이자만"(구 전세대 포함)인 행은 원금을 상환하지 않는 대출로 본다.
+    // 원금 반영을 0으로 두고 이자만 반영하며, 본건/보유 구분 없이 동일 적용한다.
+    const isInterestOnlyLoan = (loanCategory === "이자만" || loanCategory === "전세대");
+    const isJeonseLoan = isInterestOnlyLoan; // 기존 변수명 호환
+    const principalTerm = (type === "만기")
+      ? Math.min(term > 0 ? term : MANGGI_PRINCIPAL_TERM, MANGGI_PRINCIPAL_TERM)
+      : term;
+    const annualPrincipalAmt = (isJeonseLoan || principalTerm <= 0) ? 0 : (amt * 12 / principalTerm);
+    const annualInterestForRow = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (term + 1) / (term * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, term).월상환금액 * 12) - (amt * 12 / term), 0);
+    const dsrAnnualForRow = annualPrincipalAmt + annualInterestForRow;
+
+    // [DTI·신DTI용 보유대출 연이자] 정산표 기준: 원리금균등은 "월상환금 × 12 − 연 원금상환액(대출금×12÷기간)".
+    //   신용대 5천만 60개월 기준 → 5%: 1,322,740 / 8%: 2,165,837 (정산표와 일치)
+    const heldInterestAmt = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (term + 1) / (term * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, term).월상환금액 * 12) - (amt * 12 / term), 0);
+    const newDtiPrincipalTerm = (type === "만기")
+      ? Math.min(fixPostTerm > 0 ? fixPostTerm : MANGGI_PRINCIPAL_TERM, MANGGI_PRINCIPAL_TERM)
+      : fixPostTerm;
+    const newDtiPrincipalAmt = (isJeonseLoan || newDtiPrincipalTerm <= 0) ? 0 : (amt * 12 / newDtiPrincipalTerm);
+    const newDtiInterestAmt = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (fixPostTerm + 1) / (fixPostTerm * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, fixPostTerm).월상환금액 * 12) - newDtiPrincipalAmt, 0);
+
+    // 주담대 건수 — 신DTI는 주담대가 2건 이상일 때만 산정한다.
+    const mortgageLoanCount = [...document.querySelectorAll('#mortgage-inputs .mortgage-row .mort-loan-category')]
+      .filter(el => el.value === "주담대").length;
+    const applyNewDti = mortgageLoanCount >= 2;
+
     if (index === 0) {
-      totalDsrDebt += annualTotal;
-      totalDtiDebt += annualTotal;
-      totalNewDtiDebt += fixAnnualTotal;
+      totalDsrDebt += dsrAnnualForRow;
+      totalDtiDebt += dsrAnnualForRow;
+      // [신DTI 본건] 입력 기간에 대해 "최대 180개월" 상한을 적용한 값으로 별도 합산한다.
+      //   · 360개월 입력 → 180개월로 재계산
+      //   · 180개월 미만(120 등) → 입력값 그대로
+      //   DSR·DTI는 위처럼 입력 기간 그대로 계산하고, 신DTI만 이 값을 쓴다.
+      totalNewDtiDebt += (type === "만기")
+        ? dsrAnnualForRow
+        : (newDtiPrincipalAmt + newDtiInterestAmt);
 
       sumM += monthlyRes.월상환금액;
       sumP += monthlyRes.첫달원금;
       sumI += monthlyRes.첫달이자;
     } else {
-      totalDsrDebt += annualTotal;
-      // DTI/신DTI(보유대출): 대출 종류(주담대/신용)와 무관하게 상환방식만으로 판단한다.
-      //  - 원리금/원금(균등): 원리금 전액 반영
-      //  - 만기일시: 이자만 반영
-      const isInterestOnly = (type === "만기");
-      totalDtiDebt += isInterestOnly ? annualInterest : annualTotal;
-      totalNewDtiDebt += isInterestOnly ? fixAnnualInterest : fixAnnualTotal;
+      // [보유대출 분기 — 신DTI 포함 공통 규칙]
+      //   · 전세대 / 이자만            : 원금 미반영 → DSR·DTI·신DTI 모두 "연이자만"
+      //   · 주담대                     : DSR·DTI·신DTI 모두 "연 원금 + 연 이자" 전액
+      //   · 신용대 / 원리금 (비주담대)   : DSR (원금+이자) / DTI·신DTI (이자만)
+      //  검증값(본건 3억 8% 180개월 / 신용대 5천만 8% 60개월 / 주담대 5천만 8% 360개월):
+      //    신DTI = 34,403,475 + 2,165,837 + 4,402,587 = 40,971,899 → 81.94%
+      if (isInterestOnlyLoan) {
+        totalDsrDebt += heldInterestAmt;
+        totalDtiDebt += heldInterestAmt;
+        totalNewDtiDebt += heldInterestAmt;
+      } else if (loanCategory === "주담대") {
+        totalDsrDebt += dsrAnnualForRow;
+        totalDtiDebt += dsrAnnualForRow;
+        totalNewDtiDebt += dsrAnnualForRow;
+      } else {
+        totalDsrDebt += dsrAnnualForRow;
+        totalDtiDebt += heldInterestAmt;
+        totalNewDtiDebt += heldInterestAmt;
+      }
 
-      existingOtherDebtPayment += annualTotal;
+      existingOtherDebtPayment += dsrAnnualForRow;
     }
   });
 

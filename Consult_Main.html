@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -33,10 +33,6 @@
         <tr>
           <td class="no-bg" style="padding: 0;">
             <div class="info-tab">
-              <button type="button" class="info-tab-header" id="customerInfoTabBtn" aria-expanded="true">
-                <span>👤 고객정보<span id="customerInfoSummary" class="info-tab-summary"></span></span>
-                <span class="info-tab-caret">▾</span>
-              </button>
               <div class="info-tab-body open" id="customerInfoTabBody">
                 <div class="info-tab-field">
                   <div class="info-tab-label">연락처<button type="button" class="field-clear-btn" id="clearPhoneBtn" aria-label="연락처 지우기">×</button></div>
@@ -91,10 +87,6 @@
         <tr>
           <td class="no-bg" style="padding: 0;">
             <div class="info-tab">
-              <button type="button" class="info-tab-header" id="propertyInfoTabBtn" aria-expanded="true">
-                <span>🏢 물건지정보<span id="propertyInfoSummary" class="info-tab-summary"></span></span>
-                <span class="info-tab-caret">▾</span>
-              </button>
               <div class="info-tab-body info-tab-body-table open" id="propertyInfoTabBody">
                 <table class="ltv-table summary-table">
             <tr class="table-header-row">
@@ -184,10 +176,14 @@
         <tr>
           <td class="no-bg" style="padding: 0;">
             <div class="info-tab">
-              <button type="button" class="info-tab-header" id="incomeInfoTabBtn" aria-expanded="true">
-                <span>💰 소득정보<span id="incomeInfoSummary" class="info-tab-summary"></span><span id="incomeInfoHousingWarning" class="income-housing-warning" hidden>DSR 부부합산 불가</span></span>
-                <span class="info-tab-caret">▾</span>
-              </button>
+              <div class="info-tab-header-row">
+                <button type="button" class="info-tab-add-btn info-tab-add-income" aria-label="소득 추가" onclick="handleAddIncomeClick(this)"><span aria-hidden="true"></span><span>소득추가</span></button>
+                <div class="info-tab-heading" id="incomeInfoHeading">
+                  <span>💰 소득정보</span>
+                  <span id="incomeInfoSummary" class="info-tab-summary"></span>
+                  <span id="incomeInfoHousingWarning" class="income-housing-warning" hidden>DSR 부부합산 불가</span>
+                </div>
+              </div>
               <div class="info-tab-body info-tab-body-table open" id="incomeInfoTabBody">
                 <table class="income-table">
                   <colgroup>
@@ -273,9 +269,8 @@
                       <textarea id="baseIncomeMemo" class="income-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>
                     </td>
                   </tr>
-                  <!-- 소득 추가 버튼 - 소득 행이 늘어나도 항상 맨 아래에 있도록, 새 행은
-                       이 행 바로 앞에 삽입한다(소득행추가()가 이 tr을 기준으로 insertAdjacentHTML). -->
-                  <tr class="income-add-row" id="incomeAddRow">
+                  <!-- 소득 추가 행은 기존 삽입 로직 호환을 위해 숨겨서 유지한다. -->
+                  <tr class="income-add-row" id="incomeAddRow" hidden>
                     <td colspan="4" class="income-add-row-cell no-bg">
                       <button type="button" class="add-btn income-add-btn" onclick="handleAddIncomeClick(this)">소득 추가</button>
                     </td>
@@ -332,26 +327,26 @@
         <tr>
           <td class="no-bg" style="padding: 0;">
             <div class="info-tab">
-              <button type="button" class="info-tab-header" id="loanInfoTabBtn" aria-expanded="true">
-                <span>🏦 대출정보<span id="loanInfoSummary" class="info-tab-summary"></span></span>
-                <span class="info-tab-caret">▾</span>
-              </button>
+              <div class="info-tab-header-row">
+                <button type="button" class="info-tab-add-btn info-tab-add-loan" aria-label="대출 추가" onclick="주담대행추가()"><span aria-hidden="true"></span><span>대출추가</span></button>
+                <div class="info-tab-heading" id="loanInfoHeader">
+                  <span>🏦 대출정보</span><span id="loanInfoSummary" class="info-tab-summary"></span>
+                </div>
+              </div>
               <div class="info-tab-body info-tab-body-table open" id="loanInfoTabBody">
     <table>
       <colgroup>
-          <col style="width: 6%;">
-          <col style="width: 52%;">
-          <col style="width: 12%;">
-          <col style="width: 24%;">
+          <col style="width: 55%;">
+          <col style="width: 15%;">
+          <col style="width: 15%;">
+          <col style="width: 15%;">
       </colgroup>
       <tbody id="mortgage-inputs">
       </tbody>
       <tfoot>
-        <!-- 대출 추가 버튼 - 소득 추가와 같은 방식: 대출 행이 늘어나도 tbody 바깥(tfoot)에 있어 항상 맨 아래에 남는다. -->
-        <tr class="mort-add-row" id="mortAddRow">
-          <td colspan="4" class="income-add-row-cell no-bg">
-            <button type="button" class="add-btn income-add-btn" onclick="주담대행추가()">대출 추가</button>
-          </td>
+        <!-- 헤더로 이동한 버튼의 예전 삽입 기준점으로만 유지 -->
+        <tr class="mort-add-row" id="mortAddRow" hidden>
+          <td colspan="4" class="income-add-row-cell no-bg"></td>
         </tr>
       </tfoot>
     </table>
@@ -756,17 +751,8 @@
   <!-- 스크롤바 표시 상태를 스크롤 이벤트로 바꾸지 않는다.
        Android WebView에서 스크롤바 표시/숨김이 resize를 연쇄 발생시키는 것을 막는다. -->
 
-  <!-- 고객정보 탭 - 기본 숨김, 클릭할 때만 펼침 -->
+  <!-- 고객정보는 제목행 없이 항상 표시 -->
   <script>
-    document.getElementById('customerInfoTabBtn').addEventListener('click', function () {
-      var body = document.getElementById('customerInfoTabBody');
-      var isOpen = body.classList.toggle('open');
-      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      // 접혀있던 동안(scrollHeight=0)에는 메모칸 높이를 제대로 잴 수 없으므로, 펼쳐질 때 다시 계산한다.
-      if (isOpen && typeof autoResizeMemoTextarea === 'function') {
-        autoResizeMemoTextarea(document.getElementById('customerInfoMemo'));
-      }
-    });
     document.querySelectorAll('.info-tab-field .field-clear-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -780,29 +766,18 @@
       });
     });
 
-    // 연락처 입력 중 자동으로 하이픈(-) 삽입 (Consult.html 전화번호 입력칸과 동일한 포맷 규칙)
+    // 고객정보 제목행은 없고, 탭 제목 요약도 더 이상 표시하지 않는다.
+    function updateCustomerInfoSummary() {}
     var customerPhoneInput = document.getElementById('customerPhoneInput');
     customerPhoneInput.addEventListener('input', function (e) {
       var v = e.target.value.replace(/\D/g, '').slice(0, 11);
       if (v.length > 7) v = v.replace(/(\d{3})(\d{4})(\d{0,4})/, '$1-$2-$3');
       else if (v.length > 3) v = v.replace(/(\d{3})(\d{0,4})/, '$1-$2');
       e.target.value = v.replace(/-+$/, '');
-      updateCustomerInfoSummary();
     });
 
-    // 이름/연락처가 채워지면 탭 제목줄에 "이름 (연락처)" 형태로 같이 보여준다
+    // 이름은 최근 통화 선택 시 함께 채우되 제목 요약은 표시하지 않는다.
     var customerNameInput = document.getElementById('customerNameInput');
-    var customerInfoSummary = document.getElementById('customerInfoSummary');
-    function updateCustomerInfoSummary() {
-      var name = customerNameInput.value.trim();
-      var phone = customerPhoneInput.value.trim();
-      var text = '';
-      if (name && phone) text = ' - ' + name + ' (' + phone + ')';
-      else if (name) text = ' - ' + name;
-      else if (phone) text = ' - (' + phone + ')';
-      customerInfoSummary.textContent = text;
-    }
-    customerNameInput.addEventListener('input', updateCustomerInfoSummary);
 
     /* ── 통화목록 불러오기 (Call Note 앱 전용) ──────────────────────
        연락처·고객명 입력칸을 탭하면 최근 통화기록을 드롭다운으로 보여주고,
@@ -902,38 +877,32 @@
       dropdown.style.display = 'none';
     });
 
-    // localStorage에서 복원된 값은 change/input 이벤트 없이 .value로 바로 채워지므로,
-    // 복원이 끝난 뒤(Consult_calculator_ui.js의 init() 이후) 제목줄을 한 번 맞춰준다.
-    // Consult_calculator_ui.js의 init()도 window.addEventListener('DOMContentLoaded', ...)로 등록되어
-    // 있어서, 여기서도 반드시 window에 등록해야 init()(loadDSRInputs 포함)이 끝난 뒤에 실행된다
-    // - document에 등록하면 window보다 먼저(캡처/타겟 단계) 실행돼 복원 전 값을 읽게 된다.
-    // (메모칸 높이는 탭이 접혀있으면 scrollHeight를 잴 수 없어 여기서는 재지 않고, 펼쳐질 때 잰다.)
-    window.addEventListener('DOMContentLoaded', updateCustomerInfoSummary);
+    // 고객정보 제목행 제거로 제목 요약 복원 리스너는 두지 않는다.
   </script>
 
-  <!-- 소득정보 탭 - 기본 숨김, 클릭할 때만 펼침. 제목줄 합산 표시는 자동계산()이 계산한
-       #totalIncomeOutput 값을 그대로 옮겨 보여준다(Consult_calculator_logic.js 쪽에서 호출). -->
+  <!-- 소득정보는 제목 옆 추가 버튼만 남기고 표는 계속 표시한다. -->
   <script>
-    document.getElementById('incomeInfoTabBtn').addEventListener('click', function () {
-      var body = document.getElementById('incomeInfoTabBody');
-      var isOpen = body.classList.toggle('open');
-      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen && typeof autoResizeMemoTextarea === 'function') {
-        body.querySelectorAll('.income-memo').forEach(autoResizeMemoTextarea);
-      }
-    });
 
     var incomeInfoSummary = document.getElementById('incomeInfoSummary');
     var incomeInfoHousingWarning = document.getElementById('incomeInfoHousingWarning');
     function updateIncomeInfoHousingWarning() {
+      var loanType = window.localStorage.getItem('DSR_propertyLoanType')
+        || window.localStorage.getItem('CONSULT_DSR_propertyLoanType')
+        || '';
+      var categoryBtn = document.getElementById('propertyCategoryBtn');
+      var categoryText = categoryBtn ? categoryBtn.textContent.trim() : '';
+      var isDamBo = (categoryText === '담보') || (loanType === '담보') || (loanType !== '전세');
+
       var housing = window.localStorage.getItem('CONSULT_housingStatus') || '무주택';
-      var loanType = window.localStorage.getItem('CONSULT_DSR_propertyLoanType') || '';
-      var guarantee = window.localStorage.getItem('CONSULT_DSR_propertyJeonseGuarantee') || '';
-      // DSR 부부합산 불가는 전세 중 도시보증/서울보증 + 1주택일 때만 표시한다.
-      // 담보 분기 또는 무주택 전환 시에는 숨긴다.
-      var isCoveredJeonse = loanType === '전세' && (guarantee === '도시보증' || guarantee === '서울보증');
+      var housingBtn = document.getElementById('housingStatusBtn');
+      var isHousingBtnVisible = housingBtn && !housingBtn.hidden;
+      var housingText = isHousingBtnVisible ? housingBtn.textContent.trim() : housing;
+
+      // 담보이거나 무주택이거나 housingBtn이 숨겨져 있으면 "DSR 부부합산 불가" 경고 숨김
+      // 전세이면서 1주택이 선택(체크)된 경우에만 표시
+      var shouldShow = !isDamBo && isHousingBtnVisible && (housingText === '1주택');
       if (incomeInfoHousingWarning) {
-        incomeInfoHousingWarning.hidden = !(isCoveredJeonse && housing === '1주택');
+        incomeInfoHousingWarning.hidden = !shouldShow;
       }
     }
     function updateIncomeInfoSummary() {
@@ -947,14 +916,10 @@
     window.addEventListener('consultLoanTypeChanged', updateIncomeInfoHousingWarning);
   </script>
 
-  <!-- 물건지정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 입력된 시세값을 같이 보여준다. -->
+  <!-- 기존 탭 콘텐츠는 계속 펼친 상태로 초기화한다. -->
   <script>
     function openAllInfoTabs() {
       var tabMap = [
-        ['customerInfoTabBtn', 'customerInfoTabBody'],
-        ['propertyInfoTabBtn', 'propertyInfoTabBody'],
-        ['incomeInfoTabBtn', 'incomeInfoTabBody'],
-        ['loanInfoTabBtn', 'loanInfoTabBody'],
         ['dsrInfoTabBtn', 'dsrInfoTabBody'],
         ['maxAmountTabBtn', 'maxAmountTabBody']
       ];
@@ -966,47 +931,22 @@
           btn.setAttribute('aria-expanded', 'true');
         }
       });
+      ['customerInfoTabBody', 'propertyInfoTabBody'].forEach(function (id) {
+        var body = document.getElementById(id);
+        if (body) body.classList.add('open');
+      });
     }
-
-    document.getElementById('propertyInfoTabBtn').addEventListener('click', function () {
-      var body = document.getElementById('propertyInfoTabBody');
-      var isOpen = body.classList.toggle('open');
-      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-
-    var propertyInfoSummary = document.getElementById('propertyInfoSummary');
-    function updatePropertyInfoSummary() {
-      var priceInput = document.getElementById('ltvMarketPriceInput');
-      var price = priceInput ? priceInput.value.trim() : '';
-      propertyInfoSummary.textContent = price ? ' - ' + price + '원' : '';
-    }
-    var ltvMarketPriceInputForSummary = document.getElementById('ltvMarketPriceInput');
-    if (ltvMarketPriceInputForSummary) {
-      ltvMarketPriceInputForSummary.addEventListener('input', updatePropertyInfoSummary);
-    }
-    // localStorage 복원(.value로 바로 채워짐, input 이벤트 없음) 이후 한 번 맞춰준다 - 다른 탭과
-    // 같은 이유로 window에 등록(문서 타겟이 window(버블)보다 먼저 실행돼 init() 이전 값을 읽는 것 방지).
-    window.addEventListener('DOMContentLoaded', updatePropertyInfoSummary);
+    window.addEventListener('DOMContentLoaded', openAllInfoTabs);
   </script>
 
-  <!-- 대출정보 탭 - 기본 펼침, 클릭할 때마다 토글 -->
+  <!-- 대출 제목과 추가 버튼은 한 줄에 표시하고 제목 버튼으로 표를 접고 펼친다. -->
   <script>
-    document.getElementById('loanInfoTabBtn').addEventListener('click', function () {
-      var body = document.getElementById('loanInfoTabBody');
-      var isOpen = body.classList.toggle('open');
-      this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen) {
-        body.querySelectorAll('.mort-memo').forEach(el => {
-          if (typeof autoResizeMemoTextarea === 'function') autoResizeMemoTextarea(el);
-        });
-      }
-    });
 
     // 제목줄에 DSR/DTI 값을 같이 보여준다. 보유대출 중 "주담대"로 선택된 행이 하나라도 있으면
     // 신DTI 값도 같이 보여준다(주담대가 없으면 신DTI는 의미가 없어 생략). DSR은 40% 미만이면
     // 연한 파란색, 40% 이상이면 빨간색으로 표시한다.
     var loanInfoSummary = document.getElementById('loanInfoSummary');
-    var loanInfoTabHeader = document.getElementById('loanInfoTabBtn');
+    var loanInfoHeader = document.getElementById('loanInfoHeader');
     function updateLoanInfoSummary() {
       var housingStatus = window.localStorage.getItem('CONSULT_housingStatus') || '무주택';
       var isJeonse = window.localStorage.getItem('CONSULT_DSR_propertyLoanType') === '전세';
@@ -1034,12 +974,12 @@
       if (shouldShowDsr) addRatio('DSR', dsrVal);
       addRatio('DTI', dtiVal);
 
-      // 대출행의 구분 버튼이 주담대인 경우에만 신DTI를 표시한다.
-      // active 클래스가 갱신되지 않는 경로도 있어 checked 상태를 함께 확인한다.
-      var hasMortgageHeldLoan = !!document.querySelector(
-        '#mortgage-inputs .mort-category-toggle.active, #mortgage-inputs .mort-loan-category option:checked[value="주담대"]'
-      );
-      if (hasMortgageHeldLoan) addRatio('신DTI', newDtiVal);
+      // 신DTI는 주담대가 2건 이상일 때만 표시한다.
+      var mortgageCount = 0;
+      document.querySelectorAll('#mortgage-inputs .mortgage-row .mort-loan-category').forEach(function (el) {
+        if (el.value === '주담대') mortgageCount++;
+      });
+      if (mortgageCount >= 2) addRatio('신DTI', newDtiVal);
       loanInfoSummary.textContent = '';
       parts.forEach(function (part, index) {
         if (index > 0) loanInfoSummary.appendChild(document.createTextNode(' / '));
@@ -1048,7 +988,7 @@
         if (part.type) partEl.className = 'loan-info-' + part.type;
         loanInfoSummary.appendChild(partEl);
       });
-      loanInfoTabHeader.classList.toggle('info-tab-header-danger', isDanger);
+      if (loanInfoHeader) loanInfoHeader.classList.toggle('info-tab-header-danger', isDanger);
     }
     window.addEventListener('DOMContentLoaded', updateLoanInfoSummary);
     window.addEventListener('housingStatusChanged', updateLoanInfoSummary);
@@ -1223,7 +1163,7 @@
                 var memo = document.getElementById('customerInfoMemo');
                 var tabBtn = document.getElementById('customerInfoTabBtn');
                 var tabBody = document.getElementById('customerInfoTabBody');
-                if (!phone || !name || !tabBtn || !tabBody) return;
+                if (!phone || !name || !tabBody) return;
 
                 function updateSummary() {
                   var summary = document.getElementById('customerInfoSummary');
@@ -1247,7 +1187,7 @@
                   memo.style.height = memo.scrollHeight + 'px';
                 }
 
-                if (!tabBtn.dataset.customerBound) {
+                if (tabBtn && !tabBtn.dataset.customerBound) {
                   tabBtn.dataset.customerBound = 'true';
                   tabBtn.addEventListener('click', function () {
                     var open = tabBody.classList.toggle('open');
@@ -1400,7 +1340,6 @@
               var brokerInput = document.getElementById('customerBrokerInput');
               var memoInput = document.getElementById('customerInfoMemo');
               var tabBody = document.getElementById('customerInfoTabBody');
-              var tabBtn = document.getElementById('customerInfoTabBtn');
 
               /* 수신번호로 저장된 상담내용이 있으면 그 값을 우선 뿌린다.
                  팝업에서 넘어오는 이름·메모는 저장된 값이 없을 때만 쓰는 보조 정보다. */
@@ -1434,9 +1373,7 @@
                 memoInput.value = resolvedMemo;
                 memoInput.dispatchEvent(new Event('input', { bubbles: true }));
               }
-              if (tabBody && !tabBody.classList.contains('open')) tabBody.classList.add('open');
-              if (tabBtn) tabBtn.setAttribute('aria-expanded', 'true');
-              if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
+              if (tabBody) tabBody.classList.add('open');
             };
           </script>
         </body>
