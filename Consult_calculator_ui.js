@@ -4219,14 +4219,16 @@ function initPropertyExtraFields() {
     consultLocalStorage.setItem('DSR_propertyLoanType', loanType);
     consultLocalStorage.setItem('DSR_propertyJeonseGuarantee', guarantee);
     if (categoryList) categoryList.hidden = true;
+    // 도보/서보(전세 보증) 선택 시 본건 드롭다운을 "전세대"로 맞춘다.
     if (button.dataset.category === '도보' || button.dataset.category === '서보') {
       const firstRow = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
       if (firstRow) {
         const catSelect = firstRow.querySelector('.mort-category-select');
         const catInput = firstRow.querySelector('.mort-loan-category');
-        if (catSelect) catSelect.value = '이자만';
-        if (catInput) catInput.value = '이자만';
+        if (catSelect) catSelect.value = '전세대';
+        if (catInput) catInput.value = '전세대';
       }
+      if (typeof 자동계산 === 'function') 자동계산();
     }
     refreshLoanType();
     window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
@@ -5083,8 +5085,9 @@ function applyConsultCachedRateToFirstRow() {
   const savedData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
   const savedProfileValues = getDefaultProfileValues(profile, savedData);
   if (stRateInput) {
+    // 전세 분기: 1주택 체크 시 ST금리 1.5%(무주택은 0%)
     const stRate = loanType === '전세'
-      ? (housingStatus === '1주택' ? '1.2' : '0')
+      ? (housingStatus === '1주택' ? '1.5' : '0')
       : (savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3'));
     stRateInput.value = stRate;
     stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
