@@ -357,8 +357,9 @@ function getMortgageAnnualDebtForRow(row, index) {
   if (amt <= 0 || term <= 0 || combinedRate <= 0) return 0;
 
   // 신DTI 산정 기간 = min(입력 개월수, 180)개월.
-  // 주담대 버튼이 눌린 행에만 캡 적용, 그 외(본건 포함)는 입력 개월수 그대로.
-  const isNewDtiTarget = (loanCategory === '주담대');
+  //   · 본건(index 0): 입력값을 최소, 180개월을 최대로 캡 적용
+  //   · 분류상 주담대(추가행): 최대 180개월 캡 적용
+  const isNewDtiTarget = (index === 0) || (loanCategory === '주담대');
   let fixPostTerm;
   if (isNewDtiTarget && term > 0) {
     const newDtiBaseTerm = Math.min(term, 180);
@@ -395,6 +396,45 @@ function getMortgageAnnualDebtForRow(row, index) {
   return 0;
 }
 
+/* 행의 입력 상태를 점검해 사용자에게 보여줄 안내문을 반환한다.
+   - 금리만 비어 있으면 "금리 입력해주세요"
+   - 금리·개월수 둘 다 비어 있으면 "금리,개월 입력해주세요"
+   - 아무것도 입력되지 않았으면 "" (빈 값 → 계산값도 빈 값으로 표시)
+   반환: { message, isEmpty, rowInfoEmpty } */
+function getMortgageRowInputHint(row) {
+  if (!row) return { message: '', isEmpty: true, rowInfoEmpty: true };
+  const val = (sel) => (row.querySelector(sel)?.value || '').trim();
+  const amtText = val('.mort-amt');
+  const rateText = val('.mort-rate');
+  const termText = val('.mort-term');
+
+  const rowInfoEmpty = !amtText && !rateText && !termText;
+  if (rowInfoEmpty) return { message: '', isEmpty: true, rowInfoEmpty: true };
+
+  const hasRate = (parseFloat(rateText) || 0) > 0;
+  const hasTerm = (parseInt(termText, 10) || 0) > 0;
+  let message = '';
+  if (!hasRate && !hasTerm) message = '금리,개월 입력해주세요';
+  else if (!hasRate) message = '금리 입력해주세요';
+
+  return { message, isEmpty: false, rowInfoEmpty: false };
+}
+
+/* 입력이 비어 있는 추가대출 행이 있는지 확인한다(DSR/DTI 표시용). */
+function getMortgageRowsInputState() {
+  const rows = [...document.querySelectorAll('#mortgage-inputs .mortgage-row')];
+  let message = '';
+  let hasEmptyRow = false;
+  rows.forEach((row) => {
+    // 본건 첫 행은 화면 기본값(금리/기간)이 항상 있으므로 누락 판단에서 제외한다.
+    if (row.classList.contains('first-row')) return;
+    const state = getMortgageRowInputHint(row);
+    if (state.rowInfoEmpty) { hasEmptyRow = true; return; }
+    if (!message && state.message) message = state.message;
+  });
+  return { message, hasEmptyRow };
+}
+
 function updateMortgageReductionButtons() {
   const buttons = document.querySelectorAll('.mort-reduction-btn');
   if (!buttons.length) return;
@@ -408,24 +448,78 @@ function updateMortgageReductionButtons() {
     totalDsrDebt += getMortgageAnnualDebtForRow(row, index);
   });
 
-  const currentDsr = income > 0 ? (totalDsrDebt / income) * 100 : 0;
-  const defaultLabel = currentDsr > 40 ? '감액필요' : '추가가능';
+  // DSR 39.9%(사실상 40% 한도)를 꽹 채울 수 있는 여유 금액 계산에 쓰인다.
+  const DSR_TARGET_PERCENT = 39.9;
 
   buttons.forEach((btn) => {
     const memoRow = btn.closest('.mortgage-memo-row');
     const sourceRow = memoRow ? memoRow.previousElementSibling : null;
-    const category = sourceRow?.querySelector('.mort-loan-category')?.value || '이자만';
-    const isEligible = category === '이자만' || category === '원리금';
-    btn.disabled = !isEligible;
-    if (btn.disabled) {
-      btn.textContent = category;
-      btn.dataset.status = 'unavailable';
+    const category = sourceRow?.querySelector('.mort-loan-category')?.value || '';
+
+    // 이 버튼은 "신용대" 인 추가대출 행에서만 노출한다.
+    // 본건(첫 행)이거나 신용대가 아닌 행은 버튼을 숨기고, 숨긴 만큼 메모창이 폭을 차지한다.
+    if (!sourceRow || sourceRow.classList.contains('first-row') || category !== '신용대') {
+      btn.hidden = true;
+      btn.style.display = 'none';
+      btn.dataset.status = 'hidden';
+      return;
+    }
+    btn.hidden = false;
+    btn.style.display = '';
+
+    // 입력 누락 안내가 우선(금리/개월 미입력 시 계산 불가)
+    const hint = getMortgageRowInputHint(sourceRow);
+    if (hint.message) {
+      btn.textContent = hint.message;
+      btn.dataset.status = 'missing';
+      btn.dataset.addable = '';
       return;
     }
 
-    btn.textContent = defaultLabel;
-    btn.dataset.status = currentDsr > 40 ? 'need' : 'possible';
+    const addable = calcAddableLoanForRow(sourceRow, income, totalDsrDebt, DSR_TARGET_PERCENT);
+    // 금액 자체가 비어 있으면 버튼도 빈 값으로 둔다.
+    if (!addable || addable <= 0) {
+      btn.textContent = '';
+      btn.dataset.status = hint.rowInfoEmpty ? 'empty' : 'over';
+      btn.dataset.addable = '0';
+      return;
+    }
+    btn.textContent = `${formatAddableAmount(addable)} 추가가능`;
+    btn.dataset.status = 'possible';
+    btn.dataset.addable = String(Math.round(addable));
   });
+}
+
+/* 해당 행의 조건(금리·기간·상환방식)을 유지한 채로 금액을 늘이면 DSR이 얼마나 오를지 역산해
+   "목표 DSR(39.9%)까지 추가로 가능한 금액"(원금 기준)을 반환한다.
+   - 이 행의 연간부담은 금액에 정비례하므로 선형 비율로 계산할 수 있다. */
+function calcAddableLoanForRow(sourceRow, income, totalDsrDebt, targetPercent) {
+  if (!sourceRow || income <= 0) return 0;
+  const amountInput = sourceRow.querySelector('.mort-amt');
+  const currentAmount = amountInput ? (parseFloat(amountInput.value.replace(/,/g, '')) || 0) : 0;
+  if (currentAmount <= 0) return 0;
+
+  const rowIndex = [...document.querySelectorAll('#mortgage-inputs .mortgage-row')].indexOf(sourceRow);
+  const rowDebt = getMortgageAnnualDebtForRow(sourceRow, rowIndex);
+  if (rowDebt <= 0) return 0;
+
+  const targetDebt = income * (targetPercent / 100);
+  const room = targetDebt - totalDsrDebt;
+  if (room <= 0) return 0;
+
+  return currentAmount * (room / rowDebt);
+}
+
+function formatAddableAmount(amount) {
+  const n = Math.floor(Number(amount) || 0);
+  if (n <= 0) return '0';
+  if (n >= 100000000) {
+    const eok = Math.floor(n / 100000000);
+    const man = Math.floor((n % 100000000) / 10000);
+    return man > 0 ? `${eok}억 ${man.toLocaleString()}만` : `${eok}억`;
+  }
+  const man = Math.floor(n / 10000);
+  return `${man.toLocaleString()}만`;
 }
 
 function openDebtReductionRecommendation(button) {
@@ -444,8 +538,8 @@ function openDebtReductionRecommendation(button) {
   const currentRate = rateInput ? (parseFloat(rateInput.value) || 0) : 0;
   const currentTerm = termInput ? (parseInt(termInput.value) || 0) : 0;
 
-  if (loanCategory !== '이자만' && loanCategory !== '원리금') {
-    alert('원리금 또는 이자만 구분 행에서만 감액추천을 사용할 수 있습니다.');
+  if (loanCategory !== '신용대') {
+    alert('신용대 구분 행에서만 추가가능 금액을 계산할 수 있습니다.');
     return;
   }
 
@@ -476,7 +570,8 @@ function openDebtReductionRecommendation(button) {
   }
 
   const currentDsr = (totalDsrDebt / income) * 100;
-  const targetDebt = income * 0.4;
+  // DSR 39.9%(사실상 40% 한도)까지 채울 수 있는 금액을 역산한다.
+  const targetDebt = income * 0.399;
   const typeLabel = typeInput ? typeInput.value : '원리금';
 
   const overlay = document.getElementById('image-modal');
@@ -490,7 +585,7 @@ function openDebtReductionRecommendation(button) {
   reductionCard.style.width = 'min(92vw, 520px)';
   reductionCard.onclick = (e) => e.stopPropagation();
 
-  if (currentDsr > 40) {
+  if (currentDsr > 39.9) {
     const requiredDebtReduction = Math.max(0, totalDsrDebt - targetDebt);
     const recommendedAnnualDebtReduction = Math.min(selectedDebt, requiredDebtReduction);
     const principalReduction = selectedDebt > 0 ? currentAmount * (recommendedAnnualDebtReduction / selectedDebt) : 0;
@@ -564,8 +659,9 @@ function openDebtReductionRecommendation(button) {
     `;
   }
 
-  button.textContent = currentDsr > 40 ? '감액필요' : '추가가능';
-  button.dataset.status = currentDsr > 40 ? 'need' : 'possible';
+  // 팝업을 닫아도 버튼 문구는 "N만 추가가능" 계산값을 그대로 유지한다.
+  // (예전에는 클릭 시 '감액필요'/'추가가능'으로 바꿔 계산값이 사라졌음)
+  updateMortgageReductionButtons();
 
   const allPanels = getModalPanels();
   ['imgModal', 'textCard', 'scheduleCard'].forEach(key => {
@@ -617,9 +713,8 @@ function updateLoanCategory(select) {
   if (categoryInput) categoryInput.value = select.value;
   const reductionButton = row.nextElementSibling?.querySelector('.mort-reduction-btn');
   if (reductionButton) {
-    const isReductionEligible = select.value === '원리금';
-    reductionButton.disabled = !isReductionEligible;
-    reductionButton.setAttribute('aria-label', isReductionEligible ? '감액추천' : '원리금 구분에서만 사용 가능');
+    // 버튼 노출 여부는 updateMortgageReductionButtons()가 '신용대' 기준으로 일괄 처리한다.
+    reductionButton.setAttribute('aria-label', 'DSR 39.9% 기준 추가가능 금액');
   }
   if (typeof 자동계산 === 'function') 자동계산();
   updateMortgageReductionButtons();
@@ -1161,7 +1256,7 @@ function 주담대행추가() {
   memoRow.className = 'mortgage-memo-row';
   // 필요일자는 물건지정보 표 하단(잔금일자)으로 이동했다. 마크업은 빈 문자열로 둔다.
   const needDateMarkup = '';
-  const reductionButtonMarkup = isFirstRow ? '' : `<button type="button" class="mort-reduction-btn" aria-label="신용대출 감액추천">감액추천</button>`;
+  const reductionButtonMarkup = isFirstRow ? '' : `<button type="button" class="mort-reduction-btn" hidden style="display:none;" aria-label="DSR 39.9% 기준 추가가능 금액"></button>`;
   const memoTextareaMarkup = `<textarea class="mort-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>`;
   memoRow.innerHTML = `
     <td colspan="4" class="no-bg">
@@ -1177,9 +1272,7 @@ function 주담대행추가() {
   const reductionBtn = memoRow.querySelector('.mort-reduction-btn');
   if (reductionBtn) {
     reductionBtn.addEventListener('click', () => openDebtReductionRecommendation(reductionBtn));
-    reductionBtn.textContent = '추가가능';
-    const categorySelect = newRow.querySelector('.mort-category-select');
-    if (categorySelect) reductionBtn.disabled = categorySelect.value !== '원리금';
+    // 실제 표시 여부·문구는 updateMortgageReductionButtons()가 결정한다(신용대 행만 노출).
   }
 
   bindMortgageRowEvents(newRow);
@@ -3204,7 +3297,7 @@ function loadMortgageRows() {
         const categorySelect = currentRow.querySelector('.mort-category-select');
         if (categorySelect) categorySelect.value = storedCategory;
         const reductionButton = memoRow?.querySelector('.mort-reduction-btn');
-        if (reductionButton) reductionButton.disabled = storedCategory !== '원리금';
+        if (reductionButton) reductionButton.hidden = true;
       }
     });
   } catch (e) {

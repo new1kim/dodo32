@@ -1,7 +1,7 @@
 /* DSR계산기Calc - 계산 관련 로직 (DSR, DTI, 신DTI, 원리금, 원금균등, 만기일시 등) */
 
 function 원리금균등_계산대출(amt, rate, term) {
-  if (rate > 0 && term > 0 && amt > 0) {
+  if (term > 0 && rate > 0 && amt > 0) {
     const mRate = rate / 12;
     const mPay = amt * mRate / (1 - Math.pow(1 + mRate, -term));
     const mInt = amt * mRate;
@@ -262,6 +262,18 @@ function resetRatioResultDisplay(el) {
   el.style.color = "#151b26";
 }
 
+/* DSR/DTI/신DTI 결과칸에 입력 누락 안내문을 작은 글씨로 표시한다.
+   (예: "금리 입력해주세요" / "금리,개월 입력해주세요") */
+function applyRatioInputMessage(el, message) {
+  if (!el || !message) return;
+  el.innerText = message;
+  el.style.setProperty("background-color", "transparent", "important");
+  el.style.color = "#c2453d";
+  el.style.fontSize = "11px";
+  el.style.fontWeight = "700";
+  el.style.whiteSpace = "nowrap";
+}
+
 /* DSR 최대한도(원리금/원금) 블록을 "-" 상태로 되돌린다.
    기존에는 소득이 없을 때, DSR 계산이 불가능할 때 2곳에서
    동일한 forEach 블록이 그대로 중복 작성되어 있었음. */
@@ -342,6 +354,10 @@ function 자동계산() {
     const combinedRate = (pureRate * 100 + stRateValue) / 100;
     const term = termEl ? (parseInt(termEl.value) || 0) : 0;
     const type = typeEl ? typeEl.value : "원리금";
+
+    // 금액·금리·개월수가 덜 입력된 행은 계산에서 제외한다.
+    // (예: 금액만 입력하고 금리/개월수가 빈 행이 들어오면 계산값이 NaN이 되어 화면 전체가 깨짐)
+    if (!(amt > 0) || !(combinedRate > 0) || !(term > 0)) return;
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
@@ -525,13 +541,24 @@ function 자동계산() {
   const newDtiCheckEl = document.getElementById("신DTI확인");
 
   if (income > 0) {
+    const inputState = (typeof getMortgageRowsInputState === 'function') ? getMortgageRowsInputState() : { message: '' };
     const finalDsr = (totalDsrDebt / income) * 100;
     const finalDti = (totalDtiDebt / income) * 100;
     const finalNewDti = (totalNewDtiDebt / income) * 100;
 
-    applyRatioResultStyle(dsrCheckEl, finalDsr);
-    applyRatioResultStyle(dtiCheckEl, finalDti);
-    applyRatioResultStyle(newDtiCheckEl, finalNewDti);
+    // 입력 누락(금리/개월) 안내를 DSR·DTI 표시 행에 보여준다.
+    //   · 금리만 누락  → "금리 입력해주세요"
+    //   · 금리·개월수 누락 → "금리,개월 입력해주세요"
+    //   · 누락 없음   → 정상 비율 표시
+    if (inputState.message) {
+      applyRatioInputMessage(dsrCheckEl, inputState.message);
+      applyRatioInputMessage(dtiCheckEl, inputState.message);
+      applyRatioInputMessage(newDtiCheckEl, inputState.message);
+    } else {
+      applyRatioResultStyle(dsrCheckEl, finalDsr);
+      applyRatioResultStyle(dtiCheckEl, finalDti);
+      applyRatioResultStyle(newDtiCheckEl, finalNewDti);
+    }
 
     const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
     if (firstRow) {
@@ -546,7 +573,11 @@ function 자동계산() {
       const ltvMax = calculateLtvMaxAmount();
       if (ltvMax !== null) ltvCapAmount = ltvMax;
 
-      if (combinedRate1 > 0 && term1 > 0) {
+      // 본건 금액이 비어 있어도 이자/기간을 알 수 없으면 최대금액을 계산할 수 없다.
+      const firstAmt1 = parseFloat((firstRow.querySelector('.mort-amt')?.value || '').replace(/,/g, '')) || 0;
+      if (firstAmt1 <= 0) {
+        resetDsrMaxBlocks();
+      } else if (combinedRate1 > 0 && term1 > 0) {
         const mRate = combinedRate1 / 12;
         const annualPaymentPerUnit원리금 = (mRate / (1 - Math.pow(1 + mRate, -postTerm1))) * 12;
         const annualPaymentPerUnit원금 = (6 * mRate * (1 + 1 / postTerm1)) + (12 / postTerm1);
@@ -585,8 +616,10 @@ function 자동계산() {
         const rw = document.getElementById("DSR최대금액확인-원리금");
         const rg = document.getElementById("DSR최대금액확인-원금");
         if (availableForMortgage <= 0) {
-          if (rw) { rw.querySelector('.dsr-main-val').innerText = "대출 불가"; const rwSub = rw.querySelector('.dsr-sub-val'); if (rwSub) rwSub.innerText = ""; }
-          if (rg) { rg.querySelector('.dsr-main-val').innerText = "대출 불가"; const rgSub = rg.querySelector('.dsr-sub-val'); if (rgSub) rgSub.innerText = ""; }
+          // DSR 여유가 없는 경우: 남은 여유가 음수면 비율이 40%를 넘고 있으므로
+          // 최대가능금액 칸에도 그 사실을 직관적으로 보여준다.
+          if (rw) { rw.querySelector('.dsr-main-val').innerText = "한도 초과"; const rwSub = rw.querySelector('.dsr-sub-val'); if (rwSub) rwSub.innerText = `(${formatKoreanAmount(Math.round(existingOtherDebtPayment))})`; }
+          if (rg) { rg.querySelector('.dsr-main-val').innerText = "한도 초과"; const rgSub = rg.querySelector('.dsr-sub-val'); if (rgSub) rgSub.innerText = `(${formatKoreanAmount(Math.round(existingOtherDebtPayment))})`; }
         } else {
           const maxLoan원리금 = availableForMortgage / annualPaymentPerUnit원리금;
           const maxLoan원금 = availableForMortgage / annualPaymentPerUnit원금;

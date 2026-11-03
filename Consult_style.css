@@ -940,7 +940,7 @@ td:has(.type-btn-row) {
 .mort-reduction-btn {
   width: auto !important;
   flex: 0 0 auto;
-  min-width: 56px;
+  min-width: 0;
   max-width: none;
   display: inline-flex;
   align-items: center;
@@ -951,7 +951,7 @@ td:has(.type-btn-row) {
   border-radius: 999px;
   background: linear-gradient(135deg, #eff6ff, #dbeafe);
   color: #1d4ed8;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.05;
   white-space: nowrap;
@@ -961,6 +961,10 @@ td:has(.type-btn-row) {
   height: 100%;
   align-self: stretch;
 }
+/* 숨김 상태(신용대 행이 아니거나 본건 행): 남은 공간을 메모창이 그대로 차지한다. */
+.mort-reduction-btn[hidden] { display: none !important; }
+/* 가로 폭이 좁을 때: 버튼이 줄어들고 메모창이 남은 폭을 채운다. */
+.mortgage-memo-row-inner .mort-memo { flex: 1 1 auto; min-width: 0; }
 .mort-reduction-btn:hover {
   background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   transform: translateY(-1px);
