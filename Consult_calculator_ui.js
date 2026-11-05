@@ -476,17 +476,30 @@ function updateMortgageReductionButtons() {
       return;
     }
 
-    const addable = calcAddableLoanForRow(sourceRow, income, totalDsrDebt, DSR_TARGET_PERCENT);
-    // 금액 자체가 비어 있으면 버튼도 빈 값으로 둔다.
-    if (!addable || addable <= 0) {
-      btn.textContent = '';
-      btn.dataset.status = hint.rowInfoEmpty ? 'empty' : 'over';
+    // DSR 39.9% 기준으로 두 가지 경우를 모두 표시한다.
+    //  - 초과: 이 행을 감액해야 하는 금액 → "N만 감액필요"
+    //  - 여유: 이 행으로 더 받을 수 있는 금액 → "N만 추가가능"
+    // 감액액/추가액은 같은 역산식(calcAddableLoanForRow)의 부호만 뒤집어 구한다.
+    const diff = calcAddableLoanForRow(sourceRow, income, totalDsrDebt, DSR_TARGET_PERCENT);
+    if (diff > 0) {
+      btn.textContent = `${formatAddableAmount(diff)} 추가가능`;
+      btn.dataset.status = 'possible';
+      btn.dataset.addable = String(Math.round(diff));
+      return;
+    }
+    if (diff < 0) {
+      // 감액이 필요하지만 이 행 연부담으로는 목표까지 못 내리는 경우,
+      // 이 행에서 줄일 수 있는 최대치(현재 금액 전체)를 감액액으로 표시한다.
+      const reduce = Math.abs(diff);
+      btn.textContent = `${formatAddableAmount(reduce)} 감액필요`;
+      btn.dataset.status = 'reduce';
       btn.dataset.addable = '0';
       return;
     }
-    btn.textContent = `${formatAddableAmount(addable)} 추가가능`;
-    btn.dataset.status = 'possible';
-    btn.dataset.addable = String(Math.round(addable));
+    // diff === 0: 정확히 39.9%에 걸린 경우
+    btn.textContent = hint.rowInfoEmpty ? '' : '추가가능 0만';
+    btn.dataset.status = hint.rowInfoEmpty ? 'empty' : 'possible';
+    btn.dataset.addable = '0';
   });
 }
 
@@ -503,11 +516,13 @@ function calcAddableLoanForRow(sourceRow, income, totalDsrDebt, targetPercent) {
   const rowDebt = getMortgageAnnualDebtForRow(sourceRow, rowIndex);
   if (rowDebt <= 0) return 0;
 
+  // 여유가 없으면 양수 0을 돌려주면 초과/여유를 구분할 수 없으므로,
+  // "이 행 연부담으로 목표 DSR에서 벗어난 금액"을 음수로 돌려준다.
+  //  계산식 자체(room ÷ rowDebt × 현재금액)는 그대로이며 부호만 유지한다.
   const targetDebt = income * (targetPercent / 100);
   const room = targetDebt - totalDsrDebt;
-  if (room <= 0) return 0;
-
-  return currentAmount * (room / rowDebt);
+  const amount = currentAmount * (room / rowDebt);
+  return Number.isFinite(amount) ? amount : 0;
 }
 
 function formatAddableAmount(amount) {

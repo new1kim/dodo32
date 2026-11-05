@@ -807,7 +807,7 @@
         dropdown = document.createElement('div');
         dropdown.id = 'callLogDropdown';
         dropdown.style.cssText = 'position:absolute; z-index:2000; background:#fff; border:1px solid #cbd5e1;'
-          + ' border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); max-height:280px; overflow-y:auto; display:none;';
+        + ' border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); max-height:340px; overflow-y:auto; display:none;';
         document.body.appendChild(dropdown);
       }
 
@@ -815,8 +815,24 @@
       try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()) || []; } catch (e) { records = []; }
       if (!Array.isArray(records)) records = [];
 
+      // 이름과 번호를 두 줄로 나누어 줄 높이에 글자를 꽉 채운다(넓은 글자 폭 때문에 번호가 잘리지 않게).
+      // 폭은 입력칸이 아니라 화면 폭 기준으로 넓게 잡는다.
+      var ROW_H = 68;          // 항목 한 칸 높이
+      var LINE_H = 32;         // 한 줄 높이
+      var ITEM_FONT = '28px';  // 줄 높이에 꽉 차는 글자 크기
+      // 2줄(이름+번호) 항목을 같은 위치에서 시작하도록 아이콘 칸 폭을 고정한다.
+      var ICON_W = '30px';
+      // 상위 CSS의 text-align:center를 상속받아 가운데 정렬되므로 왼쪽 정렬을 명시한다.
+      var ITEM_STYLE = 'height:' + ROW_H + 'px; box-sizing:border-box; padding:0 2px; margin:0;'
+        + ' cursor:pointer; border-bottom:1px solid #f1f5f9; text-align:left;'
+        + ' font-size:' + ITEM_FONT + '; font-weight:700; letter-spacing:-1px;'
+        + ' line-height:' + LINE_H + 'px; overflow:hidden;';
+      var LINE_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+      // 아이콘(이모지)은 폰트에 따라 크게 렌더링되어 줄 높이를 밀어내므로 별도 폰트/크기로 고정한다.
+      var ICON_STYLE = 'font-family:\'Noto Color Emoji\',\'Segoe UI Emoji\',sans-serif; font-size:20px; font-weight:400;';
+
       if (records.length === 0) {
-        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:12px 14px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
+        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:2px 4px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:8px 4px; color:#94a3b8; font-size:13px;">최근 통화기록이 없습니다.</div>';
       } else {
         dropdown.innerHTML = records.map(function (r) {
           var dir = String(r.direction || '').toUpperCase();
@@ -824,20 +840,29 @@
                    : (dir === 'IN' || dir === 'INCOMING' || dir === 'MISSED') ? '📥' : '📞';
           var rPhone = r.phone || r.number || '';
           var rName = r.name || r.contactName || '';
-          var label = rName
-            ? '<b>' + rName + '</b> <span style="color:#64748b;">(' + rPhone + ')</span>'
-            : rPhone;
+          // 아이콘은 왼쪽 고정 칸에 두고, 글자는 항상 같은 시작점(ICON_W)에서 시작한다.
+          // 이름이 있으면 [이름 / 번호] 두 줄, 없으면 번호 한 줄.
+          var iconHtml = '<span style="' + ICON_STYLE + '">' + icon + '</span>';
+          var label = '<div style="display:flex; align-items:center; height:' + LINE_H + 'px;">'
+            + '<span style="flex:0 0 ' + ICON_W + '; display:flex; align-items:center;">' + iconHtml + '</span>'
+            + '<span style="' + LINE_STYLE + ' flex:1 1 auto;">' + (rName || rPhone) + '</span>'
+            + '</div>'
+            + (rName ? '<div style="' + LINE_STYLE + ' margin-left:' + ICON_W + '; color:#475569; font-size:24px; font-weight:600;">' + rPhone + '</div>' : '');
           return '<div class="call-log-item" data-phone="' + rPhone + '" data-name="' + rName + '"'
-            + ' style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; font-size:14px;">'
-            + icon + ' &nbsp;' + label + '</div>';
+            + ' style="' + ITEM_STYLE + '">'
+            + label + '</div>';
         }).join('');
-        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
+        dropdown.innerHTML = '<div class="call-log-close" style="display:flex;justify-content:flex-end;padding:2px 4px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
       }
 
       var rect = activeCallLogInput.getBoundingClientRect();
-      dropdown.style.left = (rect.left + window.scrollX) + 'px';
+      // 폭: 입력칸 폭보다 넓게(화면폭 - 좌우 4px) 잡되 화면 밖으로 넘치지 않게 보정한다.
+      var viewportW = document.documentElement.clientWidth || window.innerWidth;
+      var ddWidth = Math.max(rect.width, viewportW - 8);
+      var ddLeft = Math.min(Math.max(4, rect.left + window.scrollX), viewportW - ddWidth + window.scrollX - 4);
+      dropdown.style.left = Math.max(4 + window.scrollX, ddLeft) + 'px';
       dropdown.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-      dropdown.style.width = Math.max(rect.width, 220) + 'px';
+      dropdown.style.width = ddWidth + 'px';
       dropdown.style.display = 'block';
 
       var closeButton = dropdown.querySelector('.call-log-close button');
@@ -1195,17 +1220,15 @@
                     if (open) resizeMemo();
                   });
                 }
+                // 통화목록 드롭다운은 위쪽 showCallLogDropdown 하나만 사용한다.
+                // (예전에 여기서 showConsultCallLog도 등록해 드롭다운이 두 개 겹쳐 열렸음)
                 if (!phone.dataset.customerBound) {
                   phone.dataset.customerBound = 'true';
                   phone.addEventListener('input', formatPhone);
-                  phone.addEventListener('click', showConsultCallLog);
-                  phone.addEventListener('focus', showConsultCallLog);
                 }
                 if (!name.dataset.customerBound) {
                   name.dataset.customerBound = 'true';
                   name.addEventListener('input', updateSummary);
-                  name.addEventListener('click', showConsultCallLog);
-                  name.addEventListener('focus', showConsultCallLog);
                 }
                 if (memo && !memo.dataset.customerBound) {
                   memo.dataset.customerBound = 'true';
@@ -1241,13 +1264,23 @@
                 if (!dropdown) {
                   dropdown = document.createElement('div');
                   dropdown.id = 'consultCallLogDropdown';
-                  dropdown.style.cssText = 'position:absolute;z-index:4000;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);max-height:280px;overflow-y:auto;display:none;';
+                  dropdown.style.cssText = 'position:absolute;z-index:4000;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);max-height:340px;overflow-y:auto;display:none;';
                   document.body.appendChild(dropdown);
                 }
                 var records = [];
                 try { records = JSON.parse(window.AndroidBridge.getRecentCallLog()) || []; } catch (error) { records = []; }
+                // 위 드롭다운과 동일 규칙: 이름/번호 두 줄, 줄 높이에 글자를 꽉 채움.
+                var ROW_H = 62;
+                var LINE_H = 30;
+                var ITEM_FONT = '28px';
+                var ITEM_STYLE = 'height:' + ROW_H + 'px; box-sizing:border-box; padding:0 2px; margin:0;'
+                  + ' cursor:pointer; border-bottom:1px solid #f1f5f9; text-align:left;'
+                  + ' font-size:' + ITEM_FONT + '; font-weight:700; letter-spacing:-1px;'
+                  + ' line-height:' + LINE_H + 'px; overflow:hidden;';
+                var LINE_STYLE = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                var ICON_STYLE = 'font-family:\'Noto Color Emoji\',\'Segoe UI Emoji\',sans-serif; font-size:20px; font-weight:400;';
                 if (!Array.isArray(records) || !records.length) {
-                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:12px;color:#64748b;font-size:13px">최근 통화기록이 없습니다.</div>';
+                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:2px 4px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div><div style="padding:8px 4px;color:#64748b;font-size:13px">최근 통화기록이 없습니다.</div>';
                 } else {
                   dropdown.innerHTML = records.map(function (record) {
                     var number = String(record.phone || record.number || '');
@@ -1258,16 +1291,23 @@
                     item.className = 'consult-call-log-item';
                     item.dataset.phone = number;
                     item.dataset.name = displayName;
-                    item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:14px;';
-                    item.textContent = `${icon} ${displayName ? `${displayName} (${number})` : number}`;
+                    item.style.cssText = ITEM_STYLE;
+                    var iconHtml = `<span style="${ICON_STYLE}">${icon}</span>&nbsp;`;
+                    item.innerHTML = displayName
+                      ? `<div style="${LINE_STYLE}">${iconHtml}${displayName}</div>`
+                        + `<div style="${LINE_STYLE}color:#64748b;font-size:20px;font-weight:600;">${number}</div>`
+                      : `<div style="${LINE_STYLE}">${iconHtml}${number}</div>`;
                     return item.outerHTML;
                   }).join('');
-                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:6px 8px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
+                  dropdown.innerHTML = '<div class="consult-call-log-close" style="display:flex;justify-content:flex-end;padding:2px 4px;border-bottom:1px solid #e2e8f0;"><button type="button" aria-label="최근 통화기록 닫기" style="border:0;background:transparent;color:#64748b;font-size:20px;line-height:1;cursor:pointer;padding:2px 6px;">×</button></div>' + dropdown.innerHTML;
                 }
                 var rect = anchor.getBoundingClientRect();
-                dropdown.style.left = rect.left + window.scrollX + 'px';
+                // 폭: 화면 폭 기준으로 넓게 잡아 큰 글자가 폭 때문에 잘리지 않게 한다.
+                var viewportW = document.documentElement.clientWidth || window.innerWidth;
+                var ddWidth = Math.max(rect.width, viewportW - 8);
+                dropdown.style.left = Math.max(4 + window.scrollX, rect.left + window.scrollX) + 'px';
                 dropdown.style.top = rect.bottom + window.scrollY + 4 + 'px';
-                dropdown.style.width = Math.max(rect.width, 240) + 'px';
+                dropdown.style.width = ddWidth + 'px';
                 dropdown.style.display = 'block';
                 var closeButton = dropdown.querySelector('.consult-call-log-close button');
                 if (closeButton) closeButton.addEventListener('click', function (event) {

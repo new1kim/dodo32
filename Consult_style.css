@@ -1452,7 +1452,9 @@ td:has(.type-btn-row) {
 }
 .pill-toggle-group input[type="radio"] { display: none; }
 
-#ltvRateToggleGroup { gap: 0; width: 100%; padding: 0; margin: 0; }
+#ltvRateToggleGroup { gap: 0; width: 100%; padding: 2px 0; margin: 0; }
+/* LTV 선택기와 그 아래 소액임차금액 입력칸 사이 간격 */
+#propertySaleControls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 /* 담보/전세 물건지정보 분기 입력: 같은 위치에서 한 쪽만 표시 */
 .property-sale-controls[hidden],
 .property-jeonse-controls[hidden] { display:none !important; }
@@ -1465,7 +1467,12 @@ td:has(.type-btn-row) {
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  padding: 2px clamp(0px, 1cqw, 2px);
+  /* 세로 높이를 같은 칸의 입력칸(min-height 34px)에 맞춤 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 4px clamp(0px, 1cqw, 2px);
   font-size: clamp(7px, calc(7cqw - 1px), 12px);
   letter-spacing: clamp(-1px, -0.3cqw, 0px);
   white-space: nowrap;
