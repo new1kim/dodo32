@@ -184,6 +184,59 @@ table:last-child { margin-bottom: 0; }
   transform: none;
 }
 .info-tab-header:hover { background: var(--c-primary-soft-border); }
+.info-tab-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  background: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 100%);
+  border-bottom: 1px solid #dbe5f4;
+}
+.info-tab-header-row .info-tab-header {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  padding: 4px 2px;
+  background: transparent;
+  text-align: left;
+}
+.info-tab-header-row .info-tab-header:hover { background: transparent; }
+.info-tab-title-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+}
+.info-tab-title-label { min-width: 0; }
+.info-tab-add-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: auto;
+  min-height: 25px;
+  padding: 0;
+  border: 1px solid #d5e2fb;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffffff 0%, #eaf1ff 100%);
+  color: #3152a4;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(49, 82, 164, 0.1);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+.info-tab-add-btn:hover {
+  background: linear-gradient(135deg, #f7faff 0%, #dce8ff 100%);
+  box-shadow: 0 4px 10px rgba(49, 82, 164, 0.16);
+  transform: translateY(-1px);
+}
+.info-tab-add-btn:active { transform: scale(0.97); }
 .info-tab-header-danger,
 .info-tab-header-danger .info-tab-summary { color: var(--c-danger) !important; }
 .info-tab-summary { font-weight: 600; color: var(--c-text-muted); text-transform: none; letter-spacing: 0; }
@@ -541,6 +594,7 @@ td:has(.type-btn-row) {
   white-space: normal !important;
   overflow: visible !important;
 }
+.mortgage-repayment-cell { min-width: 0; }
 .type-btn-row {
   display: flex;
   align-items: center;
@@ -549,7 +603,112 @@ td:has(.type-btn-row) {
   gap: 4px;
   width: 100%;
 }
-.type-btn-row .type-btn-group { flex: 1; }
+.type-btn-row .type-btn-group { flex: 1 1 100%; min-width: 0; }
+/* 대출 열 너비는 동적 대출 행의 클래스별 비율 규칙으로 제어한다. */
+.loan-input-table { table-layout: fixed; }
+.mort-category-select { max-width: 100%; }
+
+/* 제목/추가 액션을 한 줄에 왼쪽 정렬해 버튼이 제목 바로 앞에 오도록 한다. */
+.info-tab-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 3px;
+  background: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 100%);
+  border-bottom: 1px solid #dbe5f4;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.info-tab-header-row > .info-tab-heading,
+.info-tab-header-row > .info-tab-header {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-primary-dark);
+  letter-spacing: 0.3px;
+}
+.info-tab-header-row > .info-tab-header { display: inline-flex; justify-content: flex-start; }
+.info-tab-header-row > .info-tab-header:hover { background: transparent; }
+.info-tab-header-row > .info-tab-heading { cursor: default; }
+.info-tab-header-row > .info-tab-heading > span,
+.info-tab-header-row > .info-tab-header > span:first-child { display: inline-flex; align-items: center; gap: 4px; }
+.info-tab-header-row .info-tab-summary,
+.info-tab-header-row .income-housing-warning { display: inline; }
+.info-tab-header-row .income-housing-warning[hidden] { display: none !important; }
+.info-tab-header-row .info-tab-caret { display: none; }
+.info-tab-header-row > .info-tab-add-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: auto;
+  height: 25px;
+  min-height: 25px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff !important;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+.info-tab-header-row > .info-tab-add-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.45);
+  transform: translateY(-1px);
+}
+.info-tab-header-row > .info-tab-add-btn:active { transform: scale(0.97); }
+.info-tab-header-row > .info-tab-add-btn > span[aria-hidden="true"] {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 대출 종류 선택 드롭다운: 전체 스타일과 작은 보유대출 변형을 같은 톤으로 유지 */
+.mort-category-select {
+  border-color: #cbd8ef;
+  border-radius: 9px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #f8faff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  padding-right: 18px;
+  color: #30456f;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(29, 54, 103, 0.08);
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+.mort-category-select:hover { background-color: #eef4ff; border-color: #9db5e7; }
+.mort-category-select:focus { outline: none; border-color: #6688d3; box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.16); }
+.mort-category-select option { color: #263b68; background: #fff; font-weight: 600; }
+.mort-amount-row--added .mort-category-select { flex-basis: 58px; }
+.mort-amount-row--added .mort-amt { min-width: 0; }
+.mort-amount-row--added .mort-rate { min-width: 0; }
+.type-btn-group { display: flex; width: 100%; min-width: 0; }
+.type-btn-group .type-btn { flex: 1 1 0; min-width: 0; width: auto !important; }
 
 .mort-category-toggle {
   flex: 0 0 auto;
@@ -765,6 +924,8 @@ td:has(.type-btn-row) {
   text-align: center !important;
 }
 .mort-amount-row { display: flex; justify-content: flex-start; align-items: center; gap: 6px; width: 100%; }
+.mort-exclude-amount-wrap > .input-flex-col { flex: 1; min-width: 0; }
+.mort-amount-row--added { flex: 1; min-width: 0; }
 .mort-amt { flex: 1; min-width: 0; text-align: center; }
 /* 본건(첫 행) 금액칸만 강조 - flex/정렬은 위 .mort-amt 를 그대로 물려받는다 */
 .mortgage-row.first-row .mort-amt {
@@ -779,7 +940,7 @@ td:has(.type-btn-row) {
 .mort-reduction-btn {
   width: auto !important;
   flex: 0 0 auto;
-  min-width: 56px;
+  min-width: 0;
   max-width: none;
   display: inline-flex;
   align-items: center;
@@ -790,7 +951,7 @@ td:has(.type-btn-row) {
   border-radius: 999px;
   background: linear-gradient(135deg, #eff6ff, #dbeafe);
   color: #1d4ed8;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.05;
   white-space: nowrap;
@@ -800,6 +961,10 @@ td:has(.type-btn-row) {
   height: 100%;
   align-self: stretch;
 }
+/* 숨김 상태(신용대 행이 아니거나 본건 행): 남은 공간을 메모창이 그대로 차지한다. */
+.mort-reduction-btn[hidden] { display: none !important; }
+/* 가로 폭이 좁을 때: 버튼이 줄어들고 메모창이 남은 폭을 채운다. */
+.mortgage-memo-row-inner .mort-memo { flex: 1 1 auto; min-width: 0; }
 .mort-reduction-btn:hover {
   background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   transform: translateY(-1px);
@@ -872,24 +1037,44 @@ td:has(.type-btn-row) {
 .date-picker-grid .calendar-cell.empty { cursor: default; background: transparent; }
 .date-picker-grid .calendar-cell.today { border: 1px solid var(--c-primary-light); }
 
-.mort-exclude-cell {
+.mort-exclude-amount-cell { vertical-align: middle; }
+.mort-exclude-amount-wrap {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 0;
-  background: var(--c-surface-muted);
-  border-radius: var(--r-sm);
   width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  container-type: inline-size;
 }
-/* 체크박스를 칸 크기에 꽉 차게 - 칸(.mort-exclude-cell) 너비 기준 cqw 단위라 칸이
-   반응형으로 커지고 작아질 때 체크박스 크기도 함께 따라간다. */
-.mort-exclude {
-  width: clamp(16px, 85cqw, 48px) !important;
-  height: clamp(16px, 85cqw, 48px) !important;
+.mort-exclude-amount-wrap > .input-flex-col,
+.mort-exclude-amount-wrap > .mort-amount-row {
+  flex: 1;
+  min-width: 0;
 }
+.mort-category-select {
+  flex: 0 0 66px;
+  width: 66px;
+  min-width: 0;
+  height: 30px;
+  padding: 2px 18px 2px 5px;
+  border: 1px solid #cbd8ef;
+  border-radius: 9px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #f8faff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  color: #30456f;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(29, 54, 103, 0.08);
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+.mort-category-select:hover { background-color: #eef4ff; border-color: #9db5e7; }
+.mort-category-select:focus { outline: none; border-color: #6688d3; box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.16); }
+.mort-category-select option { color: #263b68; background: #fff; font-weight: 600; }
+.mort-amount-row--added .mort-category-select { flex: 0 0 58px; width: 58px; font-size: 9px; }
 
 .amount-btn {
   width: 25px;
@@ -921,6 +1106,7 @@ td:has(.type-btn-row) {
 }
 
 .mort-amount-row--added { gap: 4px; }
+.mort-amount-row--added .mort-category-select { flex: 0 0 58px; width: 58px; font-size: 9px; }
 .mort-amount-row--added .mort-amt { flex: 2.5; }
 .mort-amount-row--added .mort-rate { flex: 1; min-width: 0; text-align: center; }
 
@@ -938,8 +1124,8 @@ td:has(.type-btn-row) {
 
 /* 6M / 5Y toggle switch */
 .mort-default-switch {
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
+  flex: 0 0 66px !important;
+  width: 66px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center;
@@ -950,9 +1136,9 @@ td:has(.type-btn-row) {
   border: 1px solid var(--c-border) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
-  width: auto;
   min-width: 0;
   max-width: none;
+  box-sizing: border-box !important;
   overflow: hidden;
   box-shadow: none;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
@@ -1266,7 +1452,9 @@ td:has(.type-btn-row) {
 }
 .pill-toggle-group input[type="radio"] { display: none; }
 
-#ltvRateToggleGroup { gap: 0; width: 100%; padding: 0; }
+#ltvRateToggleGroup { gap: 0; width: 100%; padding: 2px 0; margin: 0; }
+/* LTV 선택기와 그 아래 소액임차금액 입력칸 사이 간격 */
+#propertySaleControls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 /* 담보/전세 물건지정보 분기 입력: 같은 위치에서 한 쪽만 표시 */
 .property-sale-controls[hidden],
 .property-jeonse-controls[hidden] { display:none !important; }
@@ -1278,8 +1466,14 @@ td:has(.type-btn-row) {
 #ltvRateToggleGroup label {
   flex: 1 1 0;
   min-width: 0;
-  padding: 4px clamp(1px, 2cqw, 5px);
-  font-size: clamp(8px, 7cqw, 13px);
+  margin: 0;
+  /* 세로 높이를 같은 칸의 입력칸(min-height 34px)에 맞춤 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 4px clamp(0px, 1cqw, 2px);
+  font-size: clamp(7px, calc(7cqw - 1px), 12px);
   letter-spacing: clamp(-1px, -0.3cqw, 0px);
   white-space: nowrap;
   overflow: visible;
@@ -1324,10 +1518,11 @@ td:has(.type-btn-row) {
 #ltvMinorLeaseInput:focus {
   background-color: transparent;
 }
-/* 시세 입력 - 본건 소득입력창(.income-input)과 같은 흰 바탕 */
+/* 시세 입력 - 연한 노란색(#fffdeb) */
 #ltvMarketPriceInput,
 #ltvMarketPriceInput:focus {
-  background-color: var(--c-surface);
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
 }
 .ltv-market-price-wrap {
   display: flex;
@@ -1462,6 +1657,7 @@ td:has(.type-btn-row) {
   padding: 3px 8px !important;
   font-size: 12px !important; /* "대출 추가" 버튼(.add-btn 기본값)과 글자 크기 동일하게 맞춤 */
 }
+
 .income-control-title {
   display: inline-block;
   flex: 1 1 auto;
@@ -1879,7 +2075,43 @@ td:has(.type-btn-row) {
 table:has(#baseIncomeInput) { border-color: #b9e2f5 !important; background: #fdfffe; }
 table:has(#baseIncomeInput) .income-control-cell { background: #cdeadb !important; }
 table:has(#baseIncomeInput) .income-label { background: #e3f4ec !important; color: var(--c-success-text); font-weight: 800; }
-table:has(#baseIncomeInput) .income-input { border-color: #cbe5dc; background: #fdfffe; }
+table:has(#baseIncomeInput) .income-input { border-color: #cbe5dc; background: #fffdeb !important; }
+
+/* 소득정보 테이블: 소득입력 창 배경색 연한 노란색 적용 */
+table:has(#baseIncomeInput) .income-input:not(:disabled),
+.income-table .income-input:not(:disabled),
+.income-table .declare-amount-input:not(:disabled),
+#baseIncomeInput:not(:disabled),
+#baseDeclareAmountInput:not(:disabled),
+input[id^="incomeInput_"]:not(:disabled),
+input[id^="declareAmountInput_"]:not(:disabled) {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+table:has(#baseIncomeInput) .income-input:not(:disabled):focus,
+.income-table .income-input:not(:disabled):focus,
+.income-table .declare-amount-input:not(:disabled):focus,
+#baseIncomeInput:not(:disabled):focus,
+#baseDeclareAmountInput:not(:disabled):focus,
+input[id^="incomeInput_"]:not(:disabled):focus,
+input[id^="declareAmountInput_"]:not(:disabled):focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+
+/* 소득정보 테이블: 메모 입력창 배경색 연한 노란색 적용 */
+table:has(#baseIncomeInput) .income-memo,
+.income-table .income-memo,
+.income-memo-row .income-memo {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+table:has(#baseIncomeInput) .income-memo:focus,
+.income-table .income-memo:focus,
+.income-memo-row .income-memo:focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
 
 /* 대출 정보 - 제목 막대(진한 인디고) > 열 이름줄(옅은 인디고) > 실제 입력 행(흰색) */
 table:has(#mortgage-inputs) { border-color: #b9e2f5 !important; }
@@ -1887,6 +2119,13 @@ table:has(#mortgage-inputs) .section-title-bar { background: #d9def9 !important;
 table:has(#mortgage-inputs) .table-subheader-row td { background: #eceffb !important; color: #565f86 !important; font-weight: 700; }
 table:has(#mortgage-inputs) .mortgage-row td { background: #ffffff; }
 table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
+/* 첫 본건 대출행의 각 td가 요청한 비율로 배치되게 한다. */
+table:has(#mortgage-inputs) .mortgage-row.first-row > td.mort-exclude-amount-cell,
+table.loan-input-table .mortgage-row.first-row > td.mort-exclude-amount-cell { width: 55% !important; }
+table:has(#mortgage-inputs) .mortgage-row.first-row > td:not(.mort-exclude-amount-cell):not(.mortgage-repayment-cell),
+table.loan-input-table .mortgage-row.first-row > td:not(.mort-exclude-amount-cell):not(.mortgage-repayment-cell) { width: 15% !important; }
+table:has(#mortgage-inputs) .mortgage-row.first-row > td.mortgage-repayment-cell,
+table.loan-input-table .mortgage-row.first-row > td.mortgage-repayment-cell { width: 30% !important; }
 
 /* -------------------- Modals / popups -------------------- */
 #image-modal {
@@ -2173,6 +2412,71 @@ table:has(#mortgage-inputs) .mortgage-row.first-row td { background: #fbfcff; }
 .credit-score-limit:hover { background:var(--c-primary-soft-border) !important; }
 /* 메모 입력창 (매일 때): 버튼 오른쪽 남은 폭을 전부 쓰고 행 높이를 채운다. */
 .customer-memo-wrap .income-memo { flex:1 1 0% !important; width:0 !important; min-width:0; max-width:none; align-self:stretch; }
+
+/* 고객정보 탭: 연락처 / 이름 / 중개업소 / KCB / NICE 신용점수 / 메모 입력창 배경색 연한 노란색 적용 */
+#customerInfoTabBody .info-tab-field input,
+#customerPhoneInput,
+#customerNameInput,
+#customerBrokerInput,
+#customerInfoMemo,
+#customerJeonseMemo,
+.customer-memo-wrap .income-memo,
+.credit-score-fields input,
+#creditScoreKcbInput,
+#creditScoreNiceInput {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+#customerInfoTabBody .info-tab-field input:focus,
+#customerPhoneInput:focus,
+#customerNameInput:focus,
+#customerBrokerInput:focus,
+#customerInfoMemo:focus,
+#customerJeonseMemo:focus,
+.customer-memo-wrap .income-memo:focus,
+.credit-score-fields input:focus,
+#creditScoreKcbInput:focus,
+#creditScoreNiceInput:focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+
+/* 물건지정보 테이블: 시세입력 창 및 메모 입력창 배경색 연한 노란색 적용 */
+#ltvMarketPriceInput,
+.property-extra-fields .property-info-memo,
+#propertyInfoMemo {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+.property-extra-fields .property-info-memo:focus,
+#propertyInfoMemo:focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+
+/* 대출정보 테이블: 대출금액, 금리, ST금리, 개월수, 거치개월수 입력창 및 메모입력창 배경색 연한 노란색 적용 */
+#mortgage-inputs .mort-amt,
+#mortgage-inputs .mort-rate,
+#mortgage-inputs .mort-st-rate,
+#mortgage-inputs .mort-term,
+#mortgage-inputs .mort-grace-term,
+#mortgage-inputs .grace-term-input,
+#mortgage-inputs .mort-memo,
+.mortgage-memo-row .mort-memo {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
+#mortgage-inputs .mort-amt:focus,
+#mortgage-inputs .mort-rate:focus,
+#mortgage-inputs .mort-st-rate:focus,
+#mortgage-inputs .mort-term:focus,
+#mortgage-inputs .mort-grace-term:focus,
+#mortgage-inputs .grace-term-input:focus,
+#mortgage-inputs .mort-memo:focus,
+.mortgage-memo-row .mort-memo:focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+}
 /* 화면 맨 하단 버튼 한 줄 배치 (내용복사 / 저장 / 불러오기 / 초기화 / 안내) */
 .bottom-controls-row { display:flex; align-items:center; justify-content:center; flex-wrap:nowrap; gap:8px; padding:6px 2px; }
 .bottom-controls-row .copy-menu-wrap { flex:none; }
