@@ -343,13 +343,15 @@ function 자동계산() {
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 
-    // 신DTI 산정 기간 = min(입력 개월수, 180)개월.
-    //  - 주담대 버튼이 눌린 행: 입력값이 최솟값, 180개월이 최댓값이 되도록 캡 적용
-    //  - 그 외(본건 포함) 보유대출: 캡 없이 실제 입력 개월수(거치 반영) 그대로 사용
-    const isNewDtiTarget = (loanCategory === "주담대");
+    // [신DTI 산정 기간] DSR·DTI는 입력 개월수를 그대로 쓰고, 신DTI만 별도 기간을 쓴다.
+    //   · 본건(index 0) 행: 입력값을 최소로, 180개월을 최대로 캡 적용
+    //       입력 180개월 미만 → 입력값 그대로 / 입력 180개월 이상 → 180개월 고정
+    //   · 보유대출(주담대) 행: 기존과 동일하게 최대 180개월 캡 적용
+    const NEW_DTI_MAX_TERM = 180;
+    const isNewDtiTarget = (index === 0) || (loanCategory === "주담대");
     let fixPostTerm;
     if (isNewDtiTarget && term > 0) {
-      const newDtiBaseTerm = Math.min(term, 180);
+      const newDtiBaseTerm = Math.min(term, NEW_DTI_MAX_TERM);
       let fixGrace = graceTerm >= newDtiBaseTerm ? Math.max(newDtiBaseTerm - 1, 0) : graceTerm;
       fixPostTerm = newDtiBaseTerm - fixGrace;
     } else {
@@ -417,24 +419,72 @@ function 자동계산() {
       fixAnnualInterest = amt * combinedRate * (fixPostTerm + 1) / (fixPostTerm * 2);
     }
 
+    // [DSR/DTI/신DTI 산정 규칙] Consult 계산기와 동일한 확정식.
+    //   · 연 원금상환액 = 대출금 × 12 ÷ 기간 (단, 만기일시 원금기간은 최대 120개월)
+    //   · 연 이자상환액 = 원리금균등: 월상환금×12 − 연 원금상환액
+    //                    원금균등  : 대출금 × 금리 × (n+1) / (2n)
+    //                    만기일시  : 대출금 × 금리
+    //   · 이자만/전세대 구분은 원금 미반영(이자만)
+    const MANGGI_PRINCIPAL_TERM = 120;
+    const isInterestOnlyLoan = (loanCategory === "이자만" || loanCategory === "전세대");
+    const principalTerm = (type === "만기")
+      ? Math.min(term > 0 ? term : MANGGI_PRINCIPAL_TERM, MANGGI_PRINCIPAL_TERM)
+      : term;
+    const annualPrincipalAmt = (isInterestOnlyLoan || principalTerm <= 0) ? 0 : (amt * 12 / principalTerm);
+    const annualInterestForRow = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (term + 1) / (term * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, term).월상환금액 * 12) - (amt * 12 / term), 0);
+    const dsrAnnualForRow = annualPrincipalAmt + annualInterestForRow;
+    // 보유대출 연이자 (DTI·신DTI용)
+    const heldInterestAmt = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (term + 1) / (term * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, term).월상환금액 * 12) - (amt * 12 / term), 0);
+    // 신DTI용 (기간 캡 반영)
+    const newDtiPrincipalTerm = (type === "만기")
+      ? Math.min(fixPostTerm > 0 ? fixPostTerm : MANGGI_PRINCIPAL_TERM, MANGGI_PRINCIPAL_TERM)
+      : fixPostTerm;
+    const newDtiPrincipalAmt = (isInterestOnlyLoan || newDtiPrincipalTerm <= 0) ? 0 : (amt * 12 / newDtiPrincipalTerm);
+    const newDtiInterestAmt = (type === "만기")
+      ? (amt * combinedRate)
+      : (type === "원금")
+        ? (amt * combinedRate * (fixPostTerm + 1) / (fixPostTerm * 2))
+        : Math.max((원리금균등_계산대출(amt, combinedRate, fixPostTerm).월상환금액 * 12) - newDtiPrincipalAmt, 0);
+
     if (index === 0) {
-      totalDsrDebt += annualTotal;
-      totalDtiDebt += annualTotal;
-      totalNewDtiDebt += fixAnnualTotal;
-      
-      sumM += monthlyRes.월상환금액; 
-      sumP += monthlyRes.첫달원금; 
+      totalDsrDebt += dsrAnnualForRow;
+      totalDtiDebt += dsrAnnualForRow;
+      // 신DTI: 본건은 180개월 캡을 적용한 값으로 합산한다.
+      totalNewDtiDebt += (type === "만기")
+        ? dsrAnnualForRow
+        : (newDtiPrincipalAmt + newDtiInterestAmt);
+
+      sumM += monthlyRes.월상환금액;
+      sumP += monthlyRes.첫달원금;
       sumI += monthlyRes.첫달이자;
     } else {
-      totalDsrDebt += annualTotal;
-      // DTI/신DTI(보유대출): 대출 종류(주담대/신용)와 무관하게 상환방식만으로 판단한다.
-      //  - 원리금/원금(균등): 원리금 전액 반영
-      //  - 만기일시: 이자만 반영
-      const isInterestOnly = (type === "만기");
-      totalDtiDebt += isInterestOnly ? annualInterest : annualTotal;
-      totalNewDtiDebt += isInterestOnly ? fixAnnualInterest : fixAnnualTotal;
-      
-      existingOtherDebtPayment += annualTotal; 
+      // [보유대출 분기 — Consult와 동일]
+      //   · 이자만/전세대      : DSR·DTI·신DTI 모두 연이자만
+      //   · 주담대             : DSR·DTI·신DTI 모두 원금+이자
+      //   · 그 외(신용 등)      : DSR 원금+이자 / DTI·신DTI 이자만
+      if (isInterestOnlyLoan) {
+        totalDsrDebt += heldInterestAmt;
+        totalDtiDebt += heldInterestAmt;
+        totalNewDtiDebt += heldInterestAmt;
+      } else if (loanCategory === "주담대") {
+        totalDsrDebt += dsrAnnualForRow;
+        totalDtiDebt += dsrAnnualForRow;
+        totalNewDtiDebt += dsrAnnualForRow;
+      } else {
+        totalDsrDebt += dsrAnnualForRow;
+        totalDtiDebt += heldInterestAmt;
+        totalNewDtiDebt += heldInterestAmt;
+      }
+
+      existingOtherDebtPayment += dsrAnnualForRow;
     }
   });
 
