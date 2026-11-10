@@ -173,6 +173,21 @@ function generateSchedule() {
 
   const { graceTerm, postTerm } = getGraceAdjustedTerm(firstRow, term);
 
+  // 본건 구분이 "연간원리금"이면 금액·금리·기간이 없으므로 스케줄을 만들 수 없다.
+  const firstCategory = firstRow.querySelector('.mort-loan-category')?.value || '';
+  if (firstCategory === '연간원리금') {
+    const annualEl = firstRow.querySelector('.mort-annual');
+    const annualAmt = annualEl ? (parseFloat(annualEl.value.replace(/,/g, '')) || 0) : 0;
+    tbody.innerHTML = `<tr><td colspan='5' style='text-align:center; padding:20px;'>연간원리금 직접입력 모드입니다.<br>연간 원리금 ${annualAmt > 0 ? formatKoreanAmount(annualAmt) : '(미입력)'} / 월 평균 ${annualAmt > 0 ? formatKoreanAmount(Math.round(annualAmt / 12)) : '-'}</td></tr>`;
+    updateScheduleLoanInfo(
+      annualAmt > 0 ? formatKoreanAmount(annualAmt) : '',
+      '연간원리금',
+      '직접입력',
+      '월할계산'
+    );
+    return;
+  }
+
   if (amt <= 0 || term <= 0 || pureRate <= 0) {
     tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px;'>본건 대출 정보(금액, 금리, 기간)를 정확히 입력해주세요.</td></tr>";
     updateScheduleLoanInfo();
@@ -354,6 +369,28 @@ function 자동계산() {
     const combinedRate = (pureRate * 100 + stRateValue) / 100;
     const term = termEl ? (parseInt(termEl.value) || 0) : 0;
     const type = typeEl ? typeEl.value : "원리금";
+
+    // [연간원리금 직접입력] 구분이 "연간원리금"이면 금액·금리·개월수 대신
+    // 입력한 연간 원리금 총액을 그대로 DSR·DTI·신DTI 부담액으로 사용한다.
+    // (원금/이자 구분이 없으므로 세 지표 모두 같은 금액을 반영한다)
+    if (loanCategory === "연간원리금") {
+      const annualEl = row.querySelector('.mort-annual');
+      const annualAmt = annualEl ? (parseFloat(annualEl.value.replace(/,/g, '')) || 0) : 0;
+      if (!(annualAmt > 0)) return;
+      if (index === 0) {
+        totalDsrDebt += annualAmt;
+        totalDtiDebt += annualAmt;
+        totalNewDtiDebt += annualAmt;
+        // 월별 상환 스케줄 요약(합계/원금/이자)에는 원금·이자 구분이 없으므로 합계에만 반영한다.
+        sumM += annualAmt / 12;
+      } else {
+        totalDsrDebt += annualAmt;
+        totalDtiDebt += annualAmt;
+        totalNewDtiDebt += annualAmt;
+        existingOtherDebtPayment += annualAmt;
+      }
+      return;
+    }
 
     // 금액·금리·개월수가 덜 입력된 행은 계산에서 제외한다.
     // (예: 금액만 입력하고 금리/개월수가 빈 행이 들어오면 계산값이 NaN이 되어 화면 전체가 깨짐)
@@ -575,7 +612,11 @@ function 자동계산() {
 
       // 본건 금액이 비어 있어도 이자/기간을 알 수 없으면 최대금액을 계산할 수 없다.
       const firstAmt1 = parseFloat((firstRow.querySelector('.mort-amt')?.value || '').replace(/,/g, '')) || 0;
-      if (firstAmt1 <= 0) {
+      // 본건 구분이 "연간원리금"이면 금액·금리·개월수가 없으므로 최대가능금액을 산정하지 않는다.
+      const firstCategory1 = firstRow.querySelector('.mort-loan-category')?.value || '';
+      if (firstCategory1 === '연간원리금') {
+        resetDsrMaxBlocks();
+      } else if (firstAmt1 <= 0) {
         resetDsrMaxBlocks();
       } else if (combinedRate1 > 0 && term1 > 0) {
         const mRate = combinedRate1 / 12;

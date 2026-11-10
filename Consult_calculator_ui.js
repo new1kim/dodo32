@@ -4,7 +4,7 @@
 const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], textarea';
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
 /* 대출 종류 드롭다운 선택값 목록 (저장/복원 유효성 검사에 사용) */
-const VALID_LOAN_CATEGORIES = ['주담대', '전세대', '신용대', '이자만', '원리금'];
+const VALID_LOAN_CATEGORIES = ['주담대', '전세대', '신용대', '이자만', '원리금', '연간원리금'];
 
 /* DSR_Main과 Consult_Main은 같은 origin의 iframe이므로 localStorage를 공유한다.
    상담 화면은 입력값을 별도 저장소로 격리해 DSR 계산 화면과 서로 덮어쓰지 않게 한다. */
@@ -415,6 +415,13 @@ function getMortgageRowInputHint(row) {
   const amtText = val('.mort-amt');
   const rateText = val('.mort-rate');
   const termText = val('.mort-term');
+  const annualText = val('.mort-annual');
+
+  // 연간원리금 직접입력 행은 금액·금리·개월수 대신 연간원리금만 확인한다.
+  if ((row.querySelector('.mort-loan-category')?.value || '') === '연간원리금') {
+    if (!annualText) return { message: '', isEmpty: true, rowInfoEmpty: true };
+    return { message: '', isEmpty: false, rowInfoEmpty: false };
+  }
 
   const rowInfoEmpty = !amtText && !rateText && !termText;
   if (rowInfoEmpty) return { message: '', isEmpty: true, rowInfoEmpty: true };
@@ -597,6 +604,30 @@ function openDebtReductionRecommendation(button) {
   const targetDebt = income * 0.399;
   const typeLabel = typeInput ? typeInput.value : '원리금';
 
+  // [연간원리금 표시] 현재 입력된 신용대출의 연간 원리금을 계산해 모달에 함께 보여준다.
+  //  · 원리금균등: 월상환금 × 12 (= 연 원금 + 연 이자)
+  //  · 원금균등  : 연 원금 + 연 이자(대출금 × 금리 × (n+1) / 2n)
+  //  · 만기일시  : 연 이자 + 연 원금(대출금 × 12 / 120개월 고정)
+  //  selectedDebt(DSR 반영액)와는 다를 수 있다. 신용대는 DSR에 원리금 전액이 들어가므로
+  //  원리금균등에서는 같은 값이지만, 만기일시는 DSR 반영액이 이자만이라 값이 달라진다.
+  const annualPrincipal = (() => {
+    if (typeLabel === '만기') {
+      const principalTerm = Math.min(currentTerm > 0 ? currentTerm : 120, 120);
+      return currentAmount * 12 / principalTerm;
+    }
+    return currentAmount * 12 / currentTerm;
+  })();
+  const annualInterest = (() => {
+    if (typeLabel === '만기') return currentAmount * (currentRate / 100);
+    if (typeLabel === '원금') return currentAmount * (currentRate / 100) * (currentTerm + 1) / (currentTerm * 2);
+    const calc = 원리금균등_계산대출(currentAmount, currentRate / 100, currentTerm);
+    return Math.max((calc.월상환금액 * 12) - annualPrincipal, 0);
+  })();
+  const annualTotal = annualPrincipal + annualInterest;
+  const annualTotalText = formatKoreanAmount(Math.round(annualTotal));
+  const annualDetailText = `연 원금 ${formatKoreanAmount(Math.round(annualPrincipal))} + 연 이자 ${formatKoreanAmount(Math.round(annualInterest))}`;
+  const monthlyAverageText = formatKoreanAmount(Math.round(annualTotal / 12));
+
   const overlay = document.getElementById('image-modal');
   if (!overlay) return;
 
@@ -632,6 +663,14 @@ function openDebtReductionRecommendation(button) {
           </ul>
         </div>
         <div class="info-section">
+          <div class="section-title">💰 현재 신용대출 연간원리금</div>
+          <ul class="info-list">
+            <li>연간 원리금: <b>${annualTotalText}</b></li>
+            <li>${annualDetailText}</li>
+            <li>월 평균: ${monthlyAverageText}</li>
+          </ul>
+        </div>
+        <div class="info-section">
           <div class="section-title">🔍 역산 결과</div>
           <ul class="info-list">
             <li>현재 신용대출 DSR 반영액: ${formatKoreanAmount(Math.round(selectedDebt))}</li>
@@ -664,6 +703,14 @@ function openDebtReductionRecommendation(button) {
             <li>금리: ${currentRate.toFixed(2)}%</li>
             <li>기간: ${currentTerm}개월</li>
             <li>상환방식: ${typeLabel}</li>
+          </ul>
+        </div>
+        <div class="info-section">
+          <div class="section-title">💰 현재 신용대출 연간원리금</div>
+          <ul class="info-list">
+            <li>연간 원리금: <b>${annualTotalText}</b></li>
+            <li>${annualDetailText}</li>
+            <li>월 평균: ${monthlyAverageText}</li>
           </ul>
         </div>
         <div class="info-section">
@@ -707,6 +754,87 @@ function setMortgageRepaymentType(btn, type) {
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
 }
 
+/* 구분이 "연간원리금"이면 금액·금리·ST금리·개월수·상환방식·거치 입력을 숨기고
+   연간원리금 입력칸만 보여준다. 다른 구분으로 돌아오면 원래 입력칸을 복원한다.
+   (입력값 자체는 지우지 않으므로 구분을 오가도 기존 값이 유지된다) */
+function applyAnnualRepaymentMode(row) {
+  if (!row) return;
+  const isAnnual = (row.querySelector('.mort-loan-category')?.value || '') === '연간원리금';
+  row.classList.toggle('is-annual-mode', isAnnual);
+
+  // 숨기기 전 인라인 display 값을 기억해 두고, 복원할 때 그 값으로 되돌린다.
+  // (CSS에서 display:flex 로 지정된 요소라 ''로 되돌리면 레이아웃이 틀어짐)
+  const setDisplay = (el, hide) => {
+    if (!el) return;
+    if (hide) {
+      if (el.dataset.prevDisplay === undefined) el.dataset.prevDisplay = el.style.display || '';
+      el.style.display = 'none';
+    } else if (el.dataset.prevDisplay !== undefined) {
+      el.style.display = el.dataset.prevDisplay;
+      delete el.dataset.prevDisplay;
+    }
+  };
+
+  // 금액·금리·ST금리·개월수·상환방식·거치 입력을 숨긴다.
+  setDisplay(row.querySelector('.mort-amt'), isAnnual);
+  setDisplay(row.querySelector('.mort-rate'), isAnnual);
+  setDisplay(row.querySelector('.mort-st-rate'), isAnnual);
+  setDisplay(row.querySelector('.mort-term'), isAnnual);
+  setDisplay(row.querySelector('.type-btn-row'), isAnnual);
+  setDisplay(row.querySelector('.grace-cell'), isAnnual);
+  // 금리/ST금리 줄과 6M/5Y 전환 버튼 줄을 통째로 숨긴다(빈 줄이 남지 않게).
+  //  · 본건 행: .input-flex-col > .input-flex-row(전환버튼 + 금리 + ST금리)
+  //  · 추가 행: 금액 줄에 금리칸이 직접 들어있어 위 setDisplay로 이미 숨겨짐
+  const profileSwitchEl = row.querySelector('.mort-default-switch');
+  const rateRow = profileSwitchEl ? profileSwitchEl.closest('.input-flex-row') : row.querySelector('.input-flex-row');
+  setDisplay(rateRow, isAnnual);
+  // 전환 버튼 자체도 숨긴다(줄을 못 찾는 구조 대비).
+  setDisplay(profileSwitchEl, isAnnual);
+  // 전환 버튼을 감싸는 랩퍼(.rate-toggle-row 등)가 남아 빈 줄이 생기지 않도록 함께 숨긴다.
+  if (profileSwitchEl && profileSwitchEl.parentElement && profileSwitchEl.parentElement !== rateRow) {
+    setDisplay(profileSwitchEl.parentElement, isAnnual);
+  }
+  // 본건 행의 6M/5Y 전환 버튼은 .input-flex-row 밖(별도 줄)에 있어 위 처리로 숨겨지지 않는다.
+  // → 버튼을 감싸는 가장 가까운 줄을 찾아 통째로 숨긴다.
+  if (profileSwitchEl) {
+    const switchRow = profileSwitchEl.closest('.input-flex-row');
+    if (switchRow) setDisplay(switchRow, isAnnual);
+  }
+  // 금리/ST금리 줄을 숨기면 그 줄이 차지하던 세로 공간이 남으므로,
+  // 연간원리금 모드에서는 금액 칸의 세로 여백을 줄여 한 줄짜리 높이로 맞춘다.
+  const amountCellPad = row.querySelector('.mort-exclude-amount-cell');
+  if (amountCellPad) {
+    if (isAnnual) {
+      if (amountCellPad.dataset.prevPadding === undefined) {
+        amountCellPad.dataset.prevPadding = amountCellPad.style.padding || '';
+      }
+      amountCellPad.style.padding = '4px 4px';
+    } else if (amountCellPad.dataset.prevPadding !== undefined) {
+      amountCellPad.style.padding = amountCellPad.dataset.prevPadding;
+      delete amountCellPad.dataset.prevPadding;
+    }
+  }
+
+  // 연간원리금 모드에서는 개월수 칸과 상환방식/거치 칸이 비므로 숨긴다.
+  // 금액 칸은 원래 폭(55%)을 그대로 유지하고, 그 안에서 구분 드롭다운과
+  // 연간원리금 입력칸이 같은 줄에 나란히 놓이게 한다.
+  const termCell = row.querySelector('.mort-term')?.closest('td');
+  const repaymentCell = row.querySelector('.mortgage-repayment-cell');
+  setDisplay(termCell, isAnnual);
+  setDisplay(repaymentCell, isAnnual);
+  // 금액 칸 안의 입력 줄: 연간원리금 모드에서는 줄바꿈 없이 한 줄 유지
+  const amountRow = row.querySelector('.mort-amount-row');
+  if (amountRow) amountRow.classList.toggle('is-annual-row', isAnnual);
+  const annualInput = row.querySelector('.mort-annual');
+  if (annualInput) annualInput.style.display = isAnnual ? '' : 'none';
+  // 연간원리금 모드에서는 금액 입력칸이 없으므로 placeholder 안내도 바꿔준다.
+  const amtInput = row.querySelector('.mort-amt');
+  if (amtInput && !isAnnual) {
+    const index = [...document.querySelectorAll('#mortgage-inputs .mortgage-row')].indexOf(row);
+    amtInput.placeholder = index === 0 ? '본건 대출금액입력' : `보유대출금액 ${index}`;
+  }
+}
+
 // 보유대출 구분 드롭다운: 선택값은 기존 대출구분 저장/계산 로직에서 그대로 사용한다.
 function updateLoanCategory(select) {
   const row = select.closest('tr');
@@ -734,6 +862,7 @@ function updateLoanCategory(select) {
 
   const categoryInput = row.querySelector('.mort-loan-category');
   if (categoryInput) categoryInput.value = select.value;
+  applyAnnualRepaymentMode(row);
   const reductionButton = row.nextElementSibling?.querySelector('.mort-reduction-btn');
   if (reductionButton) {
     // 버튼 노출 여부는 updateMortgageReductionButtons()가 '신용대' 기준으로 일괄 처리한다.
@@ -981,6 +1110,16 @@ function bindMortgageRowEvents(row) {
     });
   });
 
+  // 연간원리금 직접입력: 숫자만 + 콤마 포맷, 입력 즉시 재계산
+  row.querySelectorAll('.mort-annual').forEach(el => {
+    el.addEventListener("input", (e) => {
+      const v = e.target.value.replace(/\D/g, '');
+      e.target.value = v ? parseInt(v, 10).toLocaleString() : '';
+      if (typeof 자동계산 === 'function') 자동계산();
+      updateMortgageReductionButtons();
+    });
+  });
+
   const categorySelect = row.querySelector('.mort-category-select');
   const catInput = row.querySelector('.mort-loan-category');
   if (categorySelect && catInput) {
@@ -990,6 +1129,7 @@ function bindMortgageRowEvents(row) {
     if (legacyMap[catInput.value]) catInput.value = legacyMap[catInput.value];
     if (!VALID_LOAN_CATEGORIES.includes(catInput.value)) catInput.value = '주담대';
     categorySelect.value = catInput.value;
+    applyAnnualRepaymentMode(row);
   }
 
   const profileSelect = row.querySelector('.mort-default-switch');
@@ -1273,6 +1413,7 @@ function 주담대행추가() {
       <option value="신용대" ${categoryDefault === '신용대' ? 'selected' : ''}>신용대</option>
       <option value="이자만" ${categoryDefault === '이자만' ? 'selected' : ''}>이자만</option>
       <option value="원리금" ${categoryDefault === '원리금' ? 'selected' : ''}>원리금</option>
+      <option value="연간원리금" ${categoryDefault === '연간원리금' ? 'selected' : ''}>연간원리금</option>
       <option value="행삭제">행삭제</option>
     </select>
   `;
@@ -1283,6 +1424,7 @@ function 주담대행추가() {
       <div class="mort-amount-row">
         ${loanCategorySelectMarkup}
         <input type="text" inputmode="numeric" placeholder="" class="mort-amt">
+        <input type="text" inputmode="numeric" placeholder="연간원리금" class="mort-annual" style="display:none;">
       </div>
       <input type="hidden" class="mort-default-profile" value="6M">
       <div class="input-flex-row">
@@ -1299,6 +1441,7 @@ function 주담대행추가() {
       ${loanCategorySelectMarkup}
       <input type="text" inputmode="numeric" placeholder="" class="mort-amt">
       <input type="text" inputmode="decimal" placeholder="금리 %" class="mort-rate">
+      <input type="text" inputmode="numeric" placeholder="연간원리금" class="mort-annual" style="display:none;">
     </div>
   `;
   const amountCellWidth = '55%';
@@ -2421,6 +2564,8 @@ function 선택초기화() {
   if (firstRow) {
     const mortAmt = firstRow.querySelector('.mort-amt');
     if (mortAmt) mortAmt.value = '';
+    const mortAnnual = firstRow.querySelector('.mort-annual');
+    if (mortAnnual) mortAnnual.value = '';
 
     const rateInput = firstRow.querySelector('.mort-rate');
     if (rateInput) rateInput.value = savedDefaultFirstRowData?.rate || '';
@@ -2480,6 +2625,7 @@ function 선택초기화() {
     // 초기화 후 기본값: 본건대출행 = 주담대 (추가대출행은 생성 시 신용대가 기본)
     if (firstRowCategoryInput) firstRowCategoryInput.value = '주담대';
     if (firstRowCategorySelect) firstRowCategorySelect.value = '주담대';
+    applyAnnualRepaymentMode(firstRow);
   }
 
   // 현재 폼 데이터만 비우고, 저장 이력/신규 슬롯은 유지한다.
@@ -2492,9 +2638,16 @@ function 선택초기화() {
   renderSelectedAptRow();
 
   // 고객정보 탭(연락처/고객명/중개업소/메모)도 같이 초기화
-  ['customerNameInput', 'customerPhoneInput', 'customerBrokerInput', 'customerInfoMemo'].forEach(id => {
+  //  · customerJeonseMemo는 전세 분기에서 쓰는 별도 메모칸인데, customerInfoMemo와
+  //    input 이벤트로 값을 서로 복사하므로 둘 다 비워야 메모가 남지 않는다.
+  ['customerNameInput', 'customerPhoneInput', 'customerBrokerInput', 'customerInfoMemo', 'customerJeonseMemo'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = '';
+    if (!el) return;
+    el.value = '';
+    // 메모칸은 자동 높이 조절(textarea)이라, 비운 뒤 높이도 다시 맞춰야 빈 칸이 남지 않는다.
+    if (el.tagName === 'TEXTAREA' && typeof autoResizeMemoTextarea === 'function') {
+      autoResizeMemoTextarea(el);
+    }
   });
   if (typeof updateCustomerInfoSummary === 'function') updateCustomerInfoSummary();
 
@@ -2926,6 +3079,16 @@ function dsrHistLoanBlock(rows, idx) {
   if (!row) return '';
   const tag = idx === 0 ? '본건' : `보유${idx}`;
   const bits = [];
+  if (row.loanCategory === '연간원리금') {
+    bits.push('연간원리금');
+    if (row.annual) bits.push(`연 ${dsrHistFmtMoney(row.annual)}`);
+    const excludeBadgeAnnual = row.exclude ? ' <span class="badge danger">계산제외</span>' : '';
+    let annualHtml = '<div class="dsr-h-loan-block">';
+    annualHtml += `<div class="dsr-h-loan-row"><span class="dsr-h-tag${idx === 0 ? ' primary' : ''}">${tag}</span><span>${escapeHtml(bits.join(' · '))}${excludeBadgeAnnual}</span></div>`;
+    if (row.memo) annualHtml += `<div class="dsr-h-memo">${escapeHtml(row.memo)}</div>`;
+    annualHtml += '</div>';
+    return annualHtml;
+  }
   if (row.amount) bits.push(dsrHistFmtMoney(row.amount));
   if (row.rate) bits.push(`${row.rate}%`);
   if (row.term) bits.push(`${row.term}개월`);
@@ -3225,6 +3388,7 @@ function saveMortgageRows() {
       rate: row.querySelector('.mort-rate')?.value || '',
       stRate: row.querySelector('.mort-st-rate')?.value || '',
       term: row.querySelector('.mort-term')?.value || '',
+      annual: row.querySelector('.mort-annual')?.value || '',
       repaymentType: row.querySelector('.mort-type')?.value || '원리금',
       loanCategory: row.querySelector('.mort-loan-category')?.value || (row.classList.contains('first-row') ? '주담대' : '신용대'),
       graceCheck: row.querySelector('.mort-grace-check')?.checked || false,
@@ -3398,7 +3562,9 @@ function loadMortgageRows() {
         const loanCategory = currentRow.querySelector('.mort-loan-category');
         const graceCheck = currentRow.querySelector('.mort-grace-check');
         const graceTerm = currentRow.querySelector('.mort-grace-term');
+        const annual = currentRow.querySelector('.mort-annual');
 
+        if (annual) annual.value = rowData.annual || '';
         if (amount) amount.value = rowData.amount;
         if (rate) rate.value = rowData.rate;
         if (stRate) stRate.value = rowData.stRate;
@@ -3433,6 +3599,7 @@ function loadMortgageRows() {
 
         const categorySelect = currentRow.querySelector('.mort-category-select');
         if (categorySelect) categorySelect.value = storedCategory;
+        applyAnnualRepaymentMode(currentRow);
         const reductionButton = memoRow?.querySelector('.mort-reduction-btn');
         if (reductionButton) reductionButton.hidden = true;
 
@@ -3853,6 +4020,35 @@ function 대출정보텍스트생성() {
     const graceChecked = firstRow.querySelector('.mort-grace-check')?.checked;
     const graceTerm = firstRow.querySelector('.mort-grace-term')?.value || '-';
 
+    if (category === '연간원리금') {
+      const annual = firstRow.querySelector('.mort-annual')?.value || '-';
+      lines.push(`본건대출금액 : ${category} ${annual}원 (연간 원리금 직접입력)`);
+      const annualMemo = getMortgageRowMemo(firstRow);
+      if (annualMemo) lines.push(`메모 : ${annualMemo}`);
+      lines.push(구분선);
+      const heldAnnualRows = Array.from(document.querySelectorAll('#mortgage-inputs .mortgage-row')).slice(1);
+      if (heldAnnualRows.length === 0) {
+        lines.push('보유대출없음');
+      } else {
+        heldAnnualRows.forEach((row, idx) => {
+          const rowCategory = row.querySelector('.mort-loan-category')?.value || '';
+          if (rowCategory === '연간원리금') {
+            const rowAnnual = row.querySelector('.mort-annual')?.value || '-';
+            lines.push(`보유대출${idx + 1} : ${rowCategory} ${rowAnnual}원`);
+          } else {
+            const rowAmt = row.querySelector('.mort-amt')?.value || '-';
+            const rowRate = row.querySelector('.mort-rate')?.value || '-';
+            const rowTerm = row.querySelector('.mort-term')?.value || '-';
+            const rowType = row.querySelector('.mort-type')?.value || '-';
+            lines.push(`보유대출${idx + 1} : ${rowCategory} ${rowAmt}    금리 : ${rowRate}%    기간 : ${rowTerm}개월    상환방식 : ${rowType}`);
+          }
+          const rowMemo = getMortgageRowMemo(row);
+          if (rowMemo) lines.push(`  메모 : ${rowMemo}`);
+        });
+      }
+      return lines.join('\n');
+    }
+
     lines.push(`본건대출금액 : ${category} ${amt}`);
     lines.push(`금리종류 : ${profileLabel}    금리 : ${rate}%    ST금리 : ${stRate}%`);
     lines.push(`기간 : ${term}개월    상환방식 : ${type}`);
@@ -3876,6 +4072,13 @@ function 대출정보텍스트생성() {
       const term = row.querySelector('.mort-term')?.value || '-';
       const type = row.querySelector('.mort-type')?.value || '-';
       const category = row.querySelector('.mort-loan-category')?.value || '';
+      if (category === '연간원리금') {
+        const rowAnnual = row.querySelector('.mort-annual')?.value || '-';
+        lines.push(`보유대출${idx + 1} : ${category} ${rowAnnual}원`);
+        const rowAnnualMemo = getMortgageRowMemo(row);
+        if (rowAnnualMemo) lines.push(`  메모 : ${rowAnnualMemo}`);
+        return;
+      }
       const rowLine = `보유대출${idx + 1} : ${category} ${amt}    금리 : ${rate}%    기간 : ${term}개월    상환방식 : ${type}`;
       lines.push(rowLine);
       const memo = getMortgageRowMemo(row);
@@ -5119,6 +5322,18 @@ function 대출정보텍스트생성() {
     const profile = row.querySelector('.mort-default-profile')?.value === '5Y' ? '5년' : '6개월';
     const grace = row.querySelector('.mort-grace-check')?.checked ? row.querySelector('.mort-grace-term')?.value?.trim() : '';
     const category = row.querySelector('.mort-loan-category')?.value || '';
+    if (category === '연간원리금') {
+      const annual = row.querySelector('.mort-annual')?.value?.trim() || '';
+      const annualDisplay = annual ? `${annual}원` : '';
+      if (index === 0) {
+        lines.push(` 👉 본건대출금액, ${[category, annualDisplay].filter(Boolean).join(', ')}`);
+        if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
+      } else {
+        lines.push(` 👉 보유대출${index} -> ${[category, annualDisplay].filter(Boolean).join(', ')}`);
+        if (getMortgageRowMemo(row)) lines.push(` 👉 ${getMortgageRowMemo(row)}`);
+      }
+      return;
+    }
     if (index === 0) {
       lines.push(` 👉 본건대출금액, ${[category, amount, rateDisplay, termDisplay].filter(Boolean).join(', ')}`);
       lines.push(` 👉 ${[rateDisplay, termDisplay, type, grace ? '거치 ' + grace + '개월' : ''].filter(Boolean).join(', ')}`);

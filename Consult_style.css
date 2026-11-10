@@ -1138,6 +1138,31 @@ td:has(.type-btn-row) {
   font-size: 35px;
 }
 
+/* 연간원리금 직접입력: 금액·금리·개월수 대신 이 칸 하나만 보인다.
+   구분 드롭다운과 같은 줄에 놓이고, 폭은 기존 금액 입력칸의 40%(=60% 축소)로 줄인다. */
+.mort-annual {
+  flex: 0 0 40%;
+  width: 40%;
+  min-width: 0;
+  text-align: center;
+}
+/* 연간원리금 모드: 드롭다운 + 입력칸을 한 줄에 유지한다(줄바꿈 금지) */
+.mort-amount-row.is-annual-row {
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+}
+.mort-amount-row.is-annual-row .mort-annual {
+  flex: 0 0 40%;
+  width: 40%;
+}
+/* 연간원리금 모드에서는 6M/5Y 전환 버튼과 금리/ST금리 줄을 숨긴다.
+   JS가 display를 다시 되돌리는 경로가 있어도 CSS가 우선하도록 !important를 쓴다. */
+.mortgage-row.is-annual-mode .mort-default-switch,
+.mortgage-row.is-annual-mode .input-flex-row {
+  display: none !important;
+}
+
 .mort-amount-row--added { gap: 4px; }
 .mort-amount-row--added .mort-category-select { flex: 0 0 58px; width: 58px; font-size: 9px; }
 .mort-amount-row--added .mort-amt { flex: 2.5; }
