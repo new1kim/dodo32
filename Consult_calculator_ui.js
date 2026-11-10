@@ -31,6 +31,14 @@ const consultLocalStorage = {
 let __dsrRestoring = false;
 function isDsrRestoring() { return __dsrRestoring; }
 
+/* 새로고침/불러오기로 저장값을 화면에 복원한 직후에는 "기본값 자동 적용"을 하지 않는다.
+   (본건 금리·ST금리·기간이 사용자가 입력한 값 대신 기본값으로 되돌아가던 문제)
+   복원이 끝나면 true가 되고, 사용자가 [6M/5Y 전환] 버튼이나 구분(담보/전세)을 바꿀 때만
+   기본값을 다시 적용한다. */
+let __dsrRestoredFromStorage = false;
+function isDsrRestoredFromStorage() { return __dsrRestoredFromStorage; }
+function markDsrRestoredFromStorage() { __dsrRestoredFromStorage = true; }
+
 function getStoredJson(key, fallback = null) {
   try {
     const raw = consultLocalStorage.getItem(key);
@@ -849,6 +857,30 @@ function getDefaultProfileValues(profile, savedData) {
   };
 }
 
+/* 사용자가 본건 행에 직접 입력한 금리·ST금리·기간을 6M/5Y(2Y) 프로필별로 따로 기억한다.
+   → 6M에서 5.55를 넣고 5Y로 바꿔 4.75를 넣은 뒤 다시 6M으로 돌아오면 5.55가 그대로 나온다.
+   저장 위치: CONSULT_DSR_firstRowProfileValues = { "6M": {...}, "5Y": {...}, "2Y": {...} } */
+const FIRST_ROW_PROFILE_VALUES_KEY = 'DSR_firstRowProfileValues';
+
+function getFirstRowProfileValues() {
+  const data = getStoredJson(FIRST_ROW_PROFILE_VALUES_KEY);
+  return (data && typeof data === 'object') ? data : {};
+}
+
+function saveFirstRowProfileValues(row, profile) {
+  if (!row || !profile) return;
+  const rateInput = row.querySelector('.mort-rate');
+  const stRateInput = row.querySelector('.mort-st-rate');
+  const termInput = row.querySelector('.mort-term');
+  const all = getFirstRowProfileValues();
+  all[profile] = {
+    rate: rateInput ? rateInput.value : '',
+    stRate: stRateInput ? stRateInput.value : '',
+    term: termInput ? termInput.value : ''
+  };
+  setStoredJson(FIRST_ROW_PROFILE_VALUES_KEY, all);
+}
+
 function applyDefaultProfileToRow(row, profile) {
   const savedData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
   const values = getDefaultProfileValues(profile, savedData);
@@ -858,9 +890,26 @@ function applyDefaultProfileToRow(row, profile) {
   const termInput = row.querySelector('.mort-term');
   const profileInput = row.querySelector('.mort-default-profile');
 
-  if (rateInput && values.rate !== '') rateInput.value = values.rate;
-  if (stRateInput && values.stRate !== '') stRateInput.value = values.stRate;
-  if (termInput && values.term !== '') termInput.value = values.term;
+  // 이 프로필에서 사용자가 직접 입력해 둔 값이 있으면 그것을 우선 적용한다.
+  // (없을 때만 기본값 설정 팝업의 값으로 채운다)
+  const userValues = getFirstRowProfileValues()[profile] || null;
+  const pick = (userValue, defaultValue) => {
+    if (userValue !== undefined && userValue !== null && String(userValue).trim() !== '') return userValue;
+    return defaultValue;
+  };
+
+  if (rateInput) {
+    const v = pick(userValues?.rate, values.rate);
+    if (v !== '') rateInput.value = v;
+  }
+  if (stRateInput) {
+    const v = pick(userValues?.stRate, values.stRate);
+    if (v !== '') stRateInput.value = v;
+  }
+  if (termInput) {
+    const v = pick(userValues?.term, values.term);
+    if (v !== '') termInput.value = v;
+  }
   if (profileInput) profileInput.value = profile;
 
   const profileSelect = row.querySelector('.mort-default-switch');
@@ -900,6 +949,12 @@ function bindMortgageRowEvents(row) {
     el.addEventListener("input", (e) => {
       let v = e.target.value.replace(/\D/g, '');
       e.target.value = v ? parseInt(v).toLocaleString() : '';
+      // 본건 행의 기간도 프로필별로 기억한다(금액은 프로필과 무관).
+      if (row.classList.contains('first-row') && e.target.classList.contains('mort-term') && !isDsrRestoring()) {
+        const profile = row.querySelector('.mort-default-profile')?.value
+          || row.querySelector('.mort-default-switch')?.dataset.profile || '6M';
+        saveFirstRowProfileValues(row, profile);
+      }
       if (typeof 자동계산 === 'function') 자동계산();
       updateMortgageReductionButtons();
     });
@@ -908,6 +963,12 @@ function bindMortgageRowEvents(row) {
   row.querySelectorAll('.mort-rate, .mort-st-rate').forEach(el => {
     el.addEventListener("input", (e) => {
       e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+      // 본건 행이면, 지금 선택된 프로필(6M/5Y)의 값으로 기억해 둔다.
+      if (row.classList.contains('first-row') && !isDsrRestoring()) {
+        const profile = row.querySelector('.mort-default-profile')?.value
+          || row.querySelector('.mort-default-switch')?.dataset.profile || '6M';
+        saveFirstRowProfileValues(row, profile);
+      }
       if (typeof 자동계산 === 'function') 자동계산();
       updateMortgageReductionButtons();
     });
@@ -938,12 +999,19 @@ function bindMortgageRowEvents(row) {
       const secondProfile = isJeonse ? '2Y' : '5Y';
       const currentProfile = profileSelect.dataset.profile === '5Y' && isJeonse ? '2Y' : (profileSelect.dataset.profile || '6M');
       const nextProfile = currentProfile === '6M' ? secondProfile : '6M';
+      // 전환하기 전에, 지금 화면에 있는 값(사용자가 직접 입력했을 수 있음)을 현재 프로필에 저장한다.
+      // → 6M/5Y 각각의 금리·ST금리·기간이 따로 기억된다.
+      saveFirstRowProfileValues(row, currentProfile);
+      // 마지막으로 선택한 프로필도 기억한다(새로고침 후에도 그 프로필로 복원).
+      consultLocalStorage.setItem('DSR_firstRowProfile', nextProfile);
       profileSelect.dataset.profile = nextProfile;
       profileSelect.querySelectorAll('.switch-label').forEach((label, index) => {
         label.textContent = index === 0 ? '6M' : secondProfile;
         label.classList.toggle('active', index === 0 ? nextProfile === '6M' : nextProfile === secondProfile);
       });
       profileSelect.classList.toggle('active', nextProfile === secondProfile);
+      // 사용자가 직접 전환을 눌렀으니 기본값 적용을 허용한다(복원 직후 잠금 해제).
+      __dsrRestoredFromStorage = false;
       applyDefaultProfileToRow(row, nextProfile);
       if (typeof saveDSRInputs === 'function') saveDSRInputs();
     });
@@ -1032,7 +1100,9 @@ function getMortgageRowMemo(row) {
 function autoResizeMemoTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
+  // scrollHeight는 소수점이 버려져 1~2px 모자라면 마지막 줄이 잘린다.
+  // (화면캡쳐에서 메모 마지막 줄이 잘리던 원인) → 올림해서 여유를 준다.
+  el.style.height = `${Math.ceil(el.scrollHeight) + 2}px`;
 }
 document.addEventListener('input', (e) => {
   if (e.target.matches?.('.mort-memo, .income-memo')) {
@@ -1291,8 +1361,13 @@ function 주담대행추가() {
   }
 
   bindMortgageRowEvents(newRow);
-  if (isFirstRow) {
-    applyDefaultProfileToRow(newRow, '6M');
+  // 첫 행(본건)은 "기본값"을 넣지 않는다.
+  //  - 새로고침/불러오기 복원 중이면 loadMortgageRows()가 저장된 값을 그대로 넣는다.
+  //  - 사용자가 직접 입력한 값도 이 경로로 복원되므로, 여기서 기본값을 덮어쓰면 안 된다.
+  //  - 기본값은 사용자가 [6M/5Y 전환] 버튼을 누를 때만 적용된다(applyDefaultProfileToRow).
+  if (isFirstRow && !isDsrRestoring()) {
+    const savedDefault = getStoredJson("DEFAULT_FIRST_ROW_DATA");
+    if (savedDefault) applyDefaultProfileToRow(newRow, '6M');
   }
   updateMortgagePlaceholders();
   adjustTableFontSize();
@@ -1560,7 +1635,11 @@ function applyBaseIncomeMode() {
         baseLabelCell.style.removeProperty('background');
         baseLabelCell.style.removeProperty('color');
       }
-      if (baseTitleEl) delete baseTitleEl.dataset.labelOverride;
+      // 증빙 모드일 때도 "소득1" 대신 "증빙"으로 표시한다.
+      if (baseTitleEl) {
+        baseTitleEl.textContent = '증빙';
+        baseTitleEl.dataset.labelOverride = '1';
+      }
     }
   }
   memoBaseIncome = isDeclare ? refreshBaseDeclareConverted() : memoBaseIncomeDirect;
@@ -1597,8 +1676,21 @@ function setupIncomeTitleBubble(titleEl, bubbleListEl, modeRadios, typeRadios, o
 
   const positionBubble = () => {
     const rect = titleEl.getBoundingClientRect();
-    bubbleListEl.style.left = (rect.right + 10) + 'px';
-    bubbleListEl.style.top = (rect.top + rect.height / 2 - bubbleListEl.offsetHeight / 2) + 'px';
+    const bubbleW = bubbleListEl.offsetWidth;
+    const bubbleH = bubbleListEl.offsetHeight;
+    const viewportW = document.documentElement.clientWidth || window.innerWidth;
+    const viewportH = document.documentElement.clientHeight || window.innerHeight;
+
+    // 기본은 제목 오른쪽에 띄우되, 화면 밖으로 넘치면 왼쪽/위로 밀어 넣는다.
+    // (가로 배치 버블이 오른쪽 끝에서 잘리던 문제 방지)
+    let left = rect.right + 10;
+    if (left + bubbleW > viewportW - 4) left = Math.max(4, viewportW - bubbleW - 4);
+    let top = rect.top + rect.height / 2 - bubbleH / 2;
+    if (top + bubbleH > viewportH - 4) top = Math.max(4, viewportH - bubbleH - 4);
+    if (top < 4) top = 4;
+
+    bubbleListEl.style.left = left + 'px';
+    bubbleListEl.style.top = top + 'px';
   };
   const openBubble = () => {
     // 이미 선택되어 있는 값(증빙 or 현재 declareType)은 버블 목록에서 감춘다 - 삭제/초기화 같은
@@ -1607,9 +1699,17 @@ function setupIncomeTitleBubble(titleEl, bubbleListEl, modeRadios, typeRadios, o
     const activeValue = (modeChecked && modeChecked.value === '신고')
       ? (([...typeRadios].find(r => r.checked) || {}).value)
       : '증빙';
+    // 소득1(#baseDeclareTypeBubbleList)은 원형 배치라 항목이 빠지면 원이 비대칭이 된다.
+    // → 소득1은 현재 선택 항목도 그대로 보여주고(선택 표시만), 소득추가 행만 기존처럼 숨긴다.
+    const isCircularLayout = bubbleListEl.id === 'baseDeclareTypeBubbleList';
     bubbleListEl.querySelectorAll('.declare-type-bubble-item').forEach(item => {
       const value = item.dataset.value;
       if (value === '삭제' || value === '초기화') return;
+      if (isCircularLayout) {
+        item.style.display = '';
+        item.classList.toggle('active', value === activeValue);
+        return;
+      }
       item.style.display = (value === activeValue) ? 'none' : '';
     });
     bubbleListEl.classList.add('open');
@@ -1734,7 +1834,7 @@ function buildIncomeRowHTML(index) {
   return `
       <tr class="income-data-row" id="incomeRow_${index}">
         <td class="income-label">
-          <div class="income-title" id="incomeTitle_${index}">소득${index}</div>
+          <div class="income-title" id="incomeTitle_${index}">증빙</div>
         </td>
         <td class="income-mode-cell" id="modeCell_${index}">
           <div class="income-mode-toggle pill-toggle-group" id="incomeModeToggle_${index}">
@@ -2011,12 +2111,20 @@ function applyOtherRowsBlock() {
 }
 
 function relabelIncomeRows() {
-  document.querySelectorAll('.income-data-row').forEach((row, i) => {
+  document.querySelectorAll('.income-data-row').forEach((row) => {
     const titleEl = row.querySelector('.income-title');
     if (!titleEl) return;
     // 카드/건보/연금 등 선택된 라벨을 표시 중인 행(labelOverride)은 번호로 덮어쓰지 않는다.
     if (titleEl.dataset.labelOverride === '1') return;
-    titleEl.textContent = `소득${i + 1}`;
+    // "소득1/소득2" 대신 소득 종류(증빙/카드/건보/연금)를 제목으로 표시한다.
+    // (소득1과 소득추가 행 모두 동일 규칙)
+    const rowIndex = Number(titleEl.id.replace('incomeTitle_', '')) || 1;
+    const modeRadio = document.querySelector(`input[name="${rowIndex === 1 ? 'base_income_mode' : `income_mode_${rowIndex}`}"]:checked`);
+    const typeRadio = document.querySelector(`input[name="${rowIndex === 1 ? 'base_declare_type' : `declare_type_${rowIndex}`}"]:checked`);
+    const isDeclare = modeRadio && modeRadio.value === '신고';
+    titleEl.textContent = isDeclare
+      ? (DECLARE_TYPE_LABELS[typeRadio ? typeRadio.value : ''] || '추정')
+      : '증빙';
   });
 }
 
@@ -2472,6 +2580,8 @@ function loadDsrSnapshotIntoForm(snapshot = {}) {
     loadDSRInputs();
   } finally {
     __dsrRestoring = prevRestoreFlag;
+    // 복원 완료 표시 — 이후 기본값 자동 적용(applyConsultCachedRateToFirstRow)을 막는다.
+    markDsrRestoredFromStorage();
   }
 
   refreshRadioToggleStyles('#baseIncomeModeToggle');
@@ -3246,14 +3356,26 @@ function loadDSRInputs() {
   if (typeof updateDsrInfoSummary === 'function') updateDsrInfoSummary();
 
   // 복원된 DSR_propertyLoanType/보증값을 기준으로 구분 UI와 전세 분기를 다시 적용한다.
-  window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
-  window.dispatchEvent(new CustomEvent('housingStatusChanged'));
+  // 이 이벤트는 "복원"에 따른 것이므로, 리스너가 본건 금리·ST금리·기간을 기본값으로
+  // 덮어쓰지 않도록 복원 플래그를 세운 상태에서 보낸다.
+  const prevRestoringForEvents = __dsrRestoring;
+  __dsrRestoring = true;
+  try {
+    window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
+    window.dispatchEvent(new CustomEvent('housingStatusChanged'));
+  } finally {
+    __dsrRestoring = prevRestoringForEvents;
+  }
 }
 
 function loadMortgageRows() {
   const mortgageData = getStoredJson('DSR_mortgageData');
   if (!Array.isArray(mortgageData)) return;
 
+  // 행을 새로 만들면서 주담대행추가()가 첫 행에 기본값을 넣지 않도록 복원 중으로 표시한다.
+  // (아래에서 저장된 금리·ST금리·기간을 그대로 덮어쓴다)
+  const prevRestoring = __dsrRestoring;
+  __dsrRestoring = true;
   try {
     const tbody = document.getElementById('mortgage-inputs');
     if (!tbody) return;
@@ -3313,10 +3435,32 @@ function loadMortgageRows() {
         if (categorySelect) categorySelect.value = storedCategory;
         const reductionButton = memoRow?.querySelector('.mort-reduction-btn');
         if (reductionButton) reductionButton.hidden = true;
+
+        // 본건 행: 마지막으로 선택했던 금리 프로필(6M/5Y)도 함께 복원한다.
+        // (프로필 버튼 표시만 맞추고, 금리·ST·기간은 위에서 저장값을 그대로 넣었으므로 건드리지 않는다)
+        if (isFirstRow) {
+          const savedProfile = consultLocalStorage.getItem('DSR_firstRowProfile') || '6M';
+          const profileInput = currentRow.querySelector('.mort-default-profile');
+          if (profileInput) profileInput.value = savedProfile;
+          const profileSwitch = currentRow.querySelector('.mort-default-switch');
+          if (profileSwitch) {
+            const isJeonseProfile = consultLocalStorage.getItem('DSR_propertyLoanType') === '전세';
+            const secondProfile = isJeonseProfile ? '2Y' : '5Y';
+            const shownProfile = savedProfile === '5Y' && isJeonseProfile ? '2Y' : savedProfile;
+            profileSwitch.dataset.profile = shownProfile;
+            profileSwitch.classList.toggle('active', shownProfile === secondProfile);
+            profileSwitch.querySelectorAll('.switch-label').forEach((label, index) => {
+              label.textContent = index === 0 ? '6M' : secondProfile;
+              label.classList.toggle('active', index === 0 ? shownProfile === '6M' : shownProfile === secondProfile);
+            });
+          }
+        }
       }
     });
   } catch (e) {
     console.warn('Failed to load mortgage data:', e);
+  } finally {
+    __dsrRestoring = prevRestoring;
   }
 }
 
@@ -3560,6 +3704,9 @@ function init() {
     주담대행추가();
   }
   loadDSRInputs();
+  // 저장된 본건 대출값(금리·ST금리·기간)을 화면에 복원했으므로,
+  // 이후 기본값 자동 적용이 이를 덮어쓰지 않도록 표시한다.
+  markDsrRestoredFromStorage();
   setupDSRAutoSave();
   setupNeedDatePicker();
   initDsrHistoryModal();
@@ -3924,7 +4071,9 @@ async function 화면캡쳐() {
   // 그라데이션을 입힌 글자라, html2canvas가 이 속성을 지원하지 못해 캡쳐본에는
   // 글자 없이 그라데이션 배경 박스만 찍힌다. 캡쳐하는 순간에만 단색 글자로 바꿔치기한다.
   const swapGradientTitlesForCapture = () => {
-    const titleEls = target.querySelectorAll('.section-title-graphic');
+    // capture-area 바깥(상환 스케줄 표 등)의 그라데이션 제목도 함께 바꿔야
+    // 캡쳐본에 글자 없이 색 박스만 찍히지 않는다.
+    const titleEls = document.querySelectorAll('.section-title-graphic');
     const originalStyles = [...titleEls].map(el => el.getAttribute('style'));
 
     titleEls.forEach(el => {
@@ -3944,9 +4093,78 @@ async function 화면캡쳐() {
     };
   };
 
+  // html2canvas는 <textarea>의 줄바꿈/자동 높이를 제대로 그리지 못해,
+  // 캡쳐할 때만 textarea를 "같은 글자·같은 서식의 div"로 잠시 바꿔치기한다.
+  //  → 화면에서 스크롤로 가려진 메모도 전체 내용이 줄바꿈 그대로 찍힌다.
+  const swapMemosForCapture = () => {
+    const memos = [...document.querySelectorAll('textarea.income-memo, textarea.mort-memo')]
+      .filter(el => el.offsetParent !== null);
+
+    const replacements = memos.map(el => {
+      const cs = getComputedStyle(el);
+      const div = document.createElement('div');
+      div.className = el.className;
+      div.textContent = el.value || '';
+      div.style.cssText = [
+        `box-sizing:${cs.boxSizing}`,
+        `width:${el.getBoundingClientRect().width}px`,
+        `padding:${cs.padding}`,
+        `border:${cs.borderWidth} ${cs.borderStyle} ${cs.borderColor}`,
+        `border-radius:${cs.borderRadius}`,
+        `background-color:${cs.backgroundColor}`,
+        `color:${cs.color}`,
+        `font-family:${cs.fontFamily}`,
+        `font-size:${cs.fontSize}`,
+        `font-weight:${cs.fontWeight}`,
+        `line-height:${cs.lineHeight}`,
+        `text-align:${cs.textAlign}`,
+        'white-space:pre-wrap',
+        'word-break:break-word',
+        'overflow-wrap:break-word',
+        'min-height:0',
+        'margin:0'
+      ].join(';');
+
+      // 빈 메모는 placeholder를 찍지 않는다(캡쳐본에는 안내문이 남지 않게).
+      // 높이만 화면과 같게 유지해 표 모양이 틀어지지 않도록 한다.
+      if (!(el.value || '').trim()) {
+        div.style.minHeight = `${el.getBoundingClientRect().height}px`;
+      }
+
+      const parent = el.parentNode;
+      parent.insertBefore(div, el);
+      parent.removeChild(el);
+      return { el, div, parent };
+    });
+
+    return () => {
+      // 삽입했던 div를 직접 기억해 두었다가 원래 textarea로 되돌린다.
+      replacements.forEach(({ el, div, parent }) => {
+        if (div.parentNode === parent) parent.replaceChild(el, div);
+      });
+    };
+  };
+
+  // 입력창의 placeholder("연락처 입력", "시세 입력 (원)" 등)는 캡쳐본에서 제외한다.
+  // html2canvas는 placeholder를 글자처럼 그리므로, 캡쳐하는 순간에만 비운다.
+  const hidePlaceholdersForCapture = () => {
+    const els = [...document.querySelectorAll('input[placeholder], textarea[placeholder]')]
+      .filter(el => el.offsetParent !== null);
+    const originals = els.map(el => ({ el, placeholder: el.getAttribute('placeholder') }));
+    els.forEach(el => el.setAttribute('placeholder', ''));
+    return () => {
+      originals.forEach(({ el, placeholder }) => {
+        if (placeholder === null) el.removeAttribute('placeholder');
+        else el.setAttribute('placeholder', placeholder);
+      });
+    };
+  };
+
   const renderBlob = async () => {
     const restoreDsrToggle = swapDsrToggleForCapture();
     const restoreGradientTitles = swapGradientTitlesForCapture();
+    const restoreMemos = swapMemosForCapture();
+    const restorePlaceholders = hidePlaceholdersForCapture();
     try {
       const canvas = await html2canvas(target, {
         backgroundColor: '#ffffff',
@@ -3977,6 +4195,8 @@ async function 화면캡쳐() {
     } finally {
       restoreDsrToggle();
       restoreGradientTitles();
+      restoreMemos();
+      restorePlaceholders();
     }
   };
 
@@ -4246,6 +4466,8 @@ function initPropertyExtraFields() {
       if (typeof 자동계산 === 'function') 자동계산();
     }
     refreshLoanType();
+    // 사용자가 구분(담보/전세)을 직접 바꿨으므로, 기본값 자동 적용을 다시 허용한다.
+    __dsrRestoredFromStorage = false;
     window.dispatchEvent(new CustomEvent('consultLoanTypeChanged'));
     window.dispatchEvent(new CustomEvent('housingStatusChanged'));
     if (typeof refreshMarketPriceBranch === 'function') refreshMarketPriceBranch();
@@ -4674,7 +4896,8 @@ function openConsultStorageModal() {
   }
   if (!modal) {
     modal = document.createElement('div'); modal.id = 'consultStorageModal'; modal.className = 'consult-storage-modal';
-    modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-sync" id="consultSyncBtn">동기화</button></div><div class="consult-storage-list"></div></div>';
+    // "전체삭제"는 제목(상담저장소) 왼쪽에 둔다.
+    modal.innerHTML = '<div class="consult-storage-panel"><div class="consult-storage-header"><button type="button" class="consult-storage-clear-all" id="consultClearAllBtn">전체삭제</button><div class="consult-storage-title">상담저장소</div><input type="search" class="consult-storage-search" placeholder="이름, 연락처, 메모 등 검색" autocomplete="off"><button type="button" class="consult-storage-sync" id="consultSyncBtn">동기화</button></div><div class="consult-storage-list"></div></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click', (event) => {
       if (event.target === modal) modal.style.display = 'none';
@@ -4737,6 +4960,33 @@ function openConsultStorageModal() {
     }));
   };
   if (search && !search.dataset.bound) { search.dataset.bound = 'true'; search.addEventListener('input', renderRecords); }
+
+  // 전체삭제: 저장된 상담을 모두 지운다(단건 삭제와 동일하게 서버에도 전파).
+  const clearAllBtn = modal.querySelector('#consultClearAllBtn');
+  if (clearAllBtn && !clearAllBtn.dataset.bound) {
+    clearAllBtn.dataset.bound = 'true';
+    clearAllBtn.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      if (!records.length) {
+        if (typeof showBubble === 'function') showBubble('삭제할 상담내용이 없습니다');
+        return;
+      }
+      if (!window.confirm(`저장된 상담 ${records.length}건을 모두 삭제하시겠습니까?\n삭제한 내용은 되살릴 수 없습니다.`)) return;
+
+      const toDelete = records.slice();
+      records = [];
+      consultLocalStorage.setItem(CONSULT_STORAGE_KEY, JSON.stringify([]));
+      renderRecords();
+
+      // 서버에서도 지워야 다음 동기화 때 되살아나지 않는다(단건 삭제와 같은 경로).
+      try {
+        await Promise.all(toDelete.map(record => consultDeleteServerRecord(record)));
+      } catch (error) {
+        console.warn('전체삭제 서버 전파 실패:', error);
+      }
+      if (typeof showBubble === 'function') showBubble(`상담 ${toDelete.length}건을 모두 삭제했습니다`);
+    });
+  }
   // 모달 엘리먼트에 렌더 함수를 보관해, 다음 호출(예: 동기화 후)에서
   // 전체 재구성 없이 목록만 다시 그릴 수 있게 한다(#1).
   modal.__consultRenderRecords = () => {
@@ -5088,6 +5338,11 @@ function applyConsultCachedRateToFirstRow() {
   const row = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
   if (!row) return;
 
+  // 새로고침/불러오기로 저장된 값을 복원한 뒤에는 덮어쓰지 않는다.
+  // (사용자가 직접 입력한 본건 금리·ST금리·기간이 기본값으로 되돌아가던 원인)
+  // 기본값은 사용자가 [6M/5Y 전환] 버튼을 누르거나 구분(담보/전세)을 바꿀 때만 적용된다.
+  if (isDsrRestoring() || isDsrRestoredFromStorage()) return;
+
   const loanType = consultLocalStorage.getItem('DSR_propertyLoanType') || '담보';
   const housingStatus = consultLocalStorage.getItem('CONSULT_housingStatus') || '무주택';
   const profile = row.querySelector('.mort-default-profile')?.value || row.querySelector('.mort-default-switch')?.dataset.profile || '6M';
@@ -5099,51 +5354,68 @@ function applyConsultCachedRateToFirstRow() {
   // 전세는 기존의 주택 보유 여부별 고정값을 사용한다.
   const savedData = getStoredJson("DEFAULT_FIRST_ROW_DATA");
   const savedProfileValues = getDefaultProfileValues(profile, savedData);
+
+  // 사용자가 이 프로필(6M/5Y)에서 직접 입력해 둔 값이 있으면 그것을 우선한다.
+  // (없을 때만 기본값 설정 팝업의 값 → 신한은행 캐시 금리 순으로 사용)
+  const userValues = getFirstRowProfileValues()[profile] || null;
+  const pickUser = (key) => {
+    const v = userValues ? userValues[key] : '';
+    return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : '';
+  };
+
   if (stRateInput) {
     // 전세 분기: 1주택 체크 시 ST금리 1.5%(무주택은 0%)
     const stRate = loanType === '전세'
       ? (housingStatus === '1주택' ? '1.5' : '0')
-      : (savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3'));
+      : (pickUser('stRate') || savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3'));
     stRateInput.value = stRate;
     stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
   if (termInput) {
     const term = loanType === '전세'
       ? '24'
-      : (savedProfileValues.term || '360');
+      : (pickUser('term') || savedProfileValues.term || '360');
     termInput.value = term;
     termInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  // 금리도 기본값 설정 팝업의 저장값을 우선 사용한다.
-  // 저장값이 없을 때만 신한은행 캐시 금리를 적용한다.
-  const savedRate = savedProfileValues.rate;
-  const value = savedRate || consultCachedRateValue(consultCurrentRateCategory(), profile);
+  // 금리도 사용자가 입력한 값 → 기본값 설정 팝업 저장값 → 신한은행 캐시 금리 순으로 적용한다.
+  const value = pickUser('rate') || savedProfileValues.rate || consultCachedRateValue(consultCurrentRateCategory(), profile);
   const rateInput = row.querySelector('.mort-rate');
   if (!value || !rateInput) return;
   rateInput.value = String(value);
   rateInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+// [6M/5Y 전환] 버튼에만 리스너를 붙인다.
+// 예전에는 이 함수가 끝에서 applyConsultCachedRateToFirstRow()를 직접 불렀는데,
+// 그 때문에 새로고침/불러오기로 복원한 본건 금리·ST금리·기간이 기본값으로 덮어써졌다.
+// 기본값 적용은 사용자가 전환 버튼을 누를 때만 일어나야 한다.
 function bindConsultCachedRateToProfile() {
   const row = document.querySelector('#mortgage-inputs .mortgage-row.first-row');
   const profileButton = row?.querySelector('.mort-default-switch');
   if (!profileButton || profileButton.dataset.cachedRateBound === 'true') return;
   profileButton.dataset.cachedRateBound = 'true';
   profileButton.addEventListener('click', () => setTimeout(applyConsultCachedRateToFirstRow, 0));
-  applyConsultCachedRateToFirstRow();
 }
 
 window.addEventListener('DOMContentLoaded', () => setTimeout(() => {
   bindConsultCachedRateToProfile();
-  applyConsultCachedRateToFirstRow();
 }, 0));
+// 구분(담보/전세)·주택보유 여부가 바뀌면 기본값을 다시 적용한다.
+// 단, 화면 초기화(복원) 중에 발생한 이벤트는 무시한다 — 복원된 본건 금리·ST금리·기간을
+// 기본값으로 덮어쓰지 않기 위함이다.
 window.addEventListener('consultLoanTypeChanged', () => setTimeout(() => {
+  // 복원 직후(저장값을 화면에 올린 상태)에는 기본값을 다시 적용하지 않는다.
+  if (isDsrRestoring() || isDsrRestoredFromStorage()) return;
   bindConsultCachedRateToProfile();
   applyConsultCachedRateToFirstRow();
   applyOtherRowsBlock();
 }, 0));
-window.addEventListener('housingStatusChanged', () => setTimeout(applyConsultCachedRateToFirstRow, 0));
+window.addEventListener('housingStatusChanged', () => setTimeout(() => {
+  if (isDsrRestoring() || isDsrRestoredFromStorage()) return;
+  applyConsultCachedRateToFirstRow();
+}, 0));
 
 function renderConsultRateCacheTable() {
   const saleBody = document.getElementById('consultRateSaleTableBody');

@@ -129,12 +129,17 @@ body.is-scrolling::-webkit-scrollbar-thumb {
 }
 
 .container {
-  min-width: 396px;
+  /* min-width를 고정하면 좁은 화면(390px 등)에서 body 좌우 padding과 합쳐져
+     오른쪽이 잘리고, 입력칸 글자가 중앙에서 벗어나 보인다.
+     → 화면 폭에 맞춰 줄어들도록 min-width를 0으로 둔다. */
+  min-width: 0;
+  width: 100%;
   max-width: 600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-sizing: border-box;
 }
 
 /* -------------------- Tables (shared card look) -------------------- */
@@ -481,25 +486,55 @@ td:first-child:not(.no-bg) {
 .no-bg { background-color: transparent !important; }
 
 /* -------------------- Inputs -------------------- */
+/* 한 줄 입력칸의 세로 정렬을 한 곳에서 통일한다.
+   예전에는 입력칸마다 padding(0 / 7px / 8px)과 높이(31~34px)가 달라
+   글자가 위·아래로 치우쳐 보였고, 화면캡쳐에서도 그대로 찍혔다.
+   → 상하 padding을 0으로 맞추고, 높이를 고정한 뒤 line-height로 세로 중앙을 잡는다. */
 input[inputmode="numeric"],
 input[inputmode="decimal"],
-input[type="number"] {
-  padding: 0 !important;
+input[type="number"],
+td input[type="text"],
+td input[type="number"],
+td select {
+  padding: 0 4px !important;
+  height: 32px;
   min-height: 32px;
+  box-sizing: border-box;
+  text-align: center;
+  /* 높이(32) - 테두리(2) = 30px 내용 영역 → line-height 30px이면 정확히 세로 중앙 */
+  line-height: 30px;
+  vertical-align: middle;
 }
 
+/* 메모 입력창은 제외 — 메모는 왼쪽 정렬·줄바꿈 유지 */
+textarea.income-memo,
+textarea.mort-memo {
+  text-align: left;
+  height: auto;
+  line-height: 1.4;
+  padding: 5px 8px !important;
+}
+
+/* 물건지정보 칸은 조금 더 높게(34px) — line-height도 같이 맞춰야 세로 중앙이 유지된다 */
 .ltv-cell input[inputmode="numeric"],
-.ltv-cell input[inputmode="decimal"] {
+.ltv-cell input[inputmode="decimal"],
+.ltv-cell input[type="text"] {
+  height: 34px;
   min-height: 34px;
+  line-height: 32px;
 }
 
 .grace-term-input {
+  height: 24px !important;
   min-height: 24px !important;
+  line-height: 22px !important;
 }
 
 .rate-popup-table input[inputmode="numeric"],
 .rate-popup-table input[inputmode="decimal"] {
+  height: 36px;
   min-height: 36px;
+  line-height: 34px;
 }
 
 td input[type="text"], td input[type="number"], td select {
@@ -507,9 +542,7 @@ td input[type="text"], td input[type="number"], td select {
   box-sizing: border-box;
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
-  padding: 7px 4px;
   font-size: 13px;
-  text-align: center;
   background-color: var(--c-surface-muted);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
   color: var(--c-text);
@@ -1424,6 +1457,8 @@ td:has(.type-btn-row) {
 /* Pill radio toggle (DSR limit % / LTV %) */
 .pill-toggle-group {
   display: inline-flex;
+  height: 30px;
+  box-sizing: border-box;
   background-color: #eaedf4;
   border: 1px solid var(--c-border);
   border-radius: var(--toggle-radius);
@@ -1452,7 +1487,7 @@ td:has(.type-btn-row) {
 }
 .pill-toggle-group input[type="radio"] { display: none; }
 
-#ltvRateToggleGroup { gap: 0; width: 100%; padding: 2px 0; margin: 0; }
+#ltvRateToggleGroup { gap: 0; width: 100%; padding: 2px; margin: 0; }
 /* LTV 선택기와 그 아래 소액임차금액 입력칸 사이 간격 */
 #propertySaleControls { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 /* 담보/전세 물건지정보 분기 입력: 같은 위치에서 한 쪽만 표시 */
@@ -1467,12 +1502,15 @@ td:has(.type-btn-row) {
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  /* 세로 높이를 같은 칸의 입력칸(min-height 34px)에 맞춤 */
+  /* 선택기 박스(30px) 안에 라벨이 꼭 맞도록 높이를 고정한다.
+     (예전엔 min-height 34px라 선택된 라벨이 박스 위아래로 삐져나와 어색했음) */
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 4px clamp(0px, 1cqw, 2px);
+  height: 24px;
+  min-height: 0;
+  padding: 0 clamp(0px, 1cqw, 2px);
+  box-sizing: border-box;
   font-size: clamp(7px, calc(7cqw - 1px), 12px);
   letter-spacing: clamp(-1px, -0.3cqw, 0px);
   white-space: nowrap;
@@ -1888,40 +1926,32 @@ td:has(.type-btn-row) {
   box-shadow: 0 8px 18px -5px rgba(15, 23, 42, 0.55);
 }
 
-/* 소득1 버블만 마름모(다이아몬드) 배치로 변경: 위 카드/증빙, 가운데 건보(좌)·연금(우), 아래 초기화 */
+/* 소득1 버블: 증빙 / 카드 / 건보 / 연금 / 초기화를 "원형(둥글게)으로 둘러싼" 배치로 띄운다.
+   - 가운데는 비우고, 버블들이 원을 그리며 배치된다.
+   - 세로 1열로 쌓으면 화면 아래로 길게 늘어나 어색했음.
+   ※ 소득추가로 생기는 행(#declareTypeBubbleList_N)은 이 규칙의 영향을 받지 않는다. */
 #baseDeclareTypeBubbleList.open {
-  display: grid;
-  grid-template-columns: 40px 40px;
-  grid-template-rows: repeat(3, 40px);
-  gap: 6px;
-  justify-items: center;
-  align-items: center;
+  display: block;
+  position: fixed;
+  width: 116px;
+  height: 116px;
 }
-#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="증빙"] {
-  grid-column: 1;
-  grid-row: 1;
+#baseDeclareTypeBubbleList .declare-type-bubble-item {
+  position: absolute;
   margin-left: 0;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 10px;
+  flex: 0 0 auto;
 }
-#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="카드"] {
-  grid-column: 2;
-  grid-row: 1;
-  margin-left: 0;
-}
-#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="건강"] {
-  grid-column: 1;
-  grid-row: 2;
-  margin-left: 0;
-}
-#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="연금"] {
-  grid-column: 2;
-  grid-row: 2;
-  margin-left: 0;
-}
-#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="초기화"] {
-  grid-column: 1 / 3;
-  grid-row: 3;
-  margin-left: 0;
-}
+/* 원 위에 5개를 고르게 배치 (12시 방향부터 시계방향)
+   중심(58,58) 반지름 39px 기준 — 버블(38px)끼리 겹치지 않는 간격 */
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="증빙"]   { left: 39px; top: 0; }
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="카드"]   { left: 77px; top: 27px; }
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="건강"]   { left: 63px; top: 78px; }
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="연금"]   { left: 15px; top: 78px; }
+#baseDeclareTypeBubbleList .declare-type-bubble-item[data-value="초기화"] { left: 1px; top: 27px; }
 
 /* -------------------- Income row: 신고소득(카드/건강/연금) - 같은 행 셀 교체 방식 -------------------- */
 /* 추정 모드도 증빙과 마찬가지로 칸 안의 구성(연사용액 입력 / 환산금액)을 가로로 나란히 배치 */
@@ -2375,7 +2405,10 @@ table.loan-input-table .mortgage-row.first-row > td.mortgage-repayment-cell { wi
 .customer-memo-wrap.is-jeonse-category .customer-note-row { display:block; }
 .customer-memo-wrap.is-jeonse-category .customer-inline-memo { display:none; }
 .customer-memo-wrap:not(.is-jeonse-category) .customer-jeonse-memo { display:none; }
+/* 메모 textarea에는 nowrap을 전달하지 않는다 — 상속되면 줄바꿈이 사라져
+   여러 줄 메모가 한 줄로 이어지고 화면캡쳐에도 그대로 찍힌다. */
 .customer-memo-wrap > * { min-width:0; white-space:nowrap; }
+.customer-memo-wrap textarea.income-memo { white-space: pre-wrap; word-break: break-word; }
 .housing-status-btn[hidden] { display:none !important; }
 .customer-memo-wrap .property-loan-type-selector { flex:0 0 auto; justify-content:flex-start; margin-right:clamp(4px, 1.5vw, 12px); }
 /* 전세 상품일 때: 신용점수 칸이 한 줄을 쓰고, 메모도 다음 줄 전체 폭으로 내려간다.
@@ -2555,3 +2588,22 @@ table.loan-input-table .mortgage-row.first-row > td.mortgage-repayment-cell { wi
 }
 .consult-storage-sync:hover { background: #dbeafe; }
 .consult-storage-sync:disabled { opacity: .6; cursor: wait; }
+
+/* 상담저장소 전체삭제 버튼 (제목 왼쪽) */
+.consult-storage-clear-all {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 3px 7px;
+  border: 1px solid #fca5a5;
+  border-radius: 5px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.consult-storage-clear-all:hover { background: #fee2e2; }
+.consult-storage-clear-all:active { transform: scale(0.97); }

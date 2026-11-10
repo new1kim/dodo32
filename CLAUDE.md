@@ -56,6 +56,14 @@ IDCard.html                    문서스캔.html
 > - `상담일지.html`은 **2026-09-22 제거됨** (화면·코드 모두). 전화 수신 팝업은 `Consult_Main.html`로 연결된다.
 > - `gonsi.html`은 `op_gongsi_data/*.json`에 의존하며, 용량 때문에 **GitHub 동기화 대상이 아니라 APK 번들 전용**이다.
 
+### 📁 콜노트앱 실제 빌드 프로젝트 위치 (2026-11-05 사용자 지정)
+```
+C:\Users\Administrator\CallNote
+```
+- 사용자가 **Android Studio로 열어 빌드하는 실제 프로젝트**다. 앱 빌드·AGP·Gradle·테스트 관련 요청은 이 폴더를 기준으로 본다.
+- 이 저장소의 `d:\dodo32\CallNote`는 **GitHub 배포 소스 안의 사본**이며, 위 폴더와 **자동 동기화되지 않는다**(별개 폴더).
+- 화면 파일(HTML/JS/CSS)은 `d:\dodo32` 루트에서 수정·푸시하고, 앱 번들 반영이 필요하면 `C:\Users\Administrator\CallNote\app\src\main\assets\` 쪽도 함께 확인한다.
+
 ---
 
 ## 2. 커밋 전 필수 점검

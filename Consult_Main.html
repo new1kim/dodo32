@@ -207,7 +207,7 @@
                   </tr>
                   <tr class="income-data-row" id="incomeRow_1">
                     <td class="income-label">
-                      <div class="income-title" id="baseIncomeTitle">소득1</div>
+                      <div class="income-title" id="baseIncomeTitle">증빙</div>
                     </td>
                     <td class="income-mode-cell" id="baseModeCell">
                       <div class="income-mode-toggle pill-toggle-group" id="baseIncomeModeToggle">
@@ -573,6 +573,10 @@
               <button type="button" class="btn-neutral" onclick="closeModal()">취소</button>
               <button type="button" class="btn-primary" onclick="saveDefaultFirstRowData()">기본값 저장</button>
             </div>
+            <!-- 신한은행 금리 / 금리확인 영역 — 당분간 숨김(주석 처리).
+                 다시 사용하려면 이 주석을 풀면 된다.
+                 (JS의 renderConsultRateCacheTable / consultRateRefreshBtn 바인딩은
+                  요소가 없으면 조용히 빠져나가므로 오류가 나지 않는다)
             <div class="consult-rate-cache-section">
               <div class="consult-rate-cache-title">신한은행 금리</div>
               <div id="consultRateCacheUpdatedAt" class="consult-rate-cache-updated">아직 조회되지 않았습니다.</div>
@@ -592,6 +596,7 @@
                 </table>
               </div>
             </div>
+            -->
           </div>
 
           <div class="info-section">
