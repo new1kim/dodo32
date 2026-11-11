@@ -386,6 +386,54 @@
     }
 
     /* PC 및 태블릿 환경(768px 이상): 3개 프레임 모두 표시 (기본 flex 레이아웃 그대로 사용) */
+
+    /* ── "시세조회" 버튼에서 뜨는 KB/공시/OP 버블 팝업 ─────────────────
+       모양·색·튀어나오는 애니메이션은 상담/DSR 화면의 소득 추정 버블
+       (Consult_style.css 의 .declare-type-bubble-list / .declare-type-bubble-item)과
+       같은 값을 그대로 옮겨 왔다. 여기는 index.html이라 그 CSS를 불러오지 않으므로
+       필요한 부분만 복사해 둔다. left/top은 JS가 버튼 위치를 재서 채운다. */
+    .declare-type-bubble-list {
+      display: none;
+      position: fixed;
+      /* [2026-11-11 변경] 시세조회 버블은 버튼 "아래쪽에 가로로" 배치한다. */
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+    }
+    .declare-type-bubble-list.open { display: flex; }
+    .declare-type-bubble-item {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 6px 14px -5px rgba(15, 23, 42, 0.45);
+      border: 2px solid #ffffff;
+      transform: scale(0.4);
+      opacity: 0;
+      animation: minorLeaseBubblePop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    /* [2026-11-11 변경] 세로용 계단 여백(margin-left)은 가로 배치에서 어긋나므로 제거. */
+    .declare-type-bubble-item[data-value="KB"] { background: linear-gradient(135deg, #2563eb, #1d4ed8); animation-delay: 0s; }
+    .declare-type-bubble-item[data-value="공시"] { background: linear-gradient(135deg, #a855f7, #6366f1); animation-delay: 0.05s; }
+    .declare-type-bubble-item[data-value="OP"] { background: linear-gradient(135deg, #22c55e, #0d9488); animation-delay: 0.1s; }
+    .declare-type-bubble-item:hover,
+    .declare-type-bubble-item.active {
+      transform: scale(1.14);
+      box-shadow: 0 8px 18px -5px rgba(15, 23, 42, 0.55);
+    }
+    @keyframes minorLeaseBubblePop {
+      0% { transform: scale(0.3); opacity: 0; }
+      65% { transform: scale(1.18); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
   </style>
   <script src="gate-auth.js"></script>
   <script>
@@ -406,7 +454,7 @@
     /* 1) 상수·설정 ───────────────── */
 
     // iframe URL 캐시 무효화용 버전. 캐시를 비우려면 이 값만 올리면 된다.
-    const APP_VERSION = '250605_1';
+    const APP_VERSION = '251111_1';
 
     // 저장 키 모음. 키가 흩어져 있으면 오타로 조용히 데이터가 분리된다.
     const STORAGE_KEYS = {
@@ -515,6 +563,21 @@
       return frame.dataset.page || frame.getAttribute('src') || '';
     }
 
+    /* nav 버튼이 띄우는 버블 팝업(시세조회: KB/공시/OP)도 iframe이 향하는 화면이다.
+       loadPage와 같은 규칙으로 page 한 줄씩만 적어 둔다(위 사용항목명과 동기화). */
+    const PAGE_ITEMS = {
+      'Consult_Main.html': '상담',
+      'DTI.html': 'DTI 계산',
+      'DSR_Main.html': 'DSR 계산',
+      '날짜계산기.html': '날짜계산',
+      'KB시세조회.html': 'KB시세',
+      '공시가조회.html': '공시가조회',
+      'OP시세조회.html': 'OP시세',
+      'IDCard.html': '신분증변환',
+      '문서스캔.html': '문서스캔',
+      'MCG.html': 'MCG 계산'
+    };
+
     /* 프레임에 기억된 화면을 다시 로드한다.
        iframe이 DOM에서 재부착되면 브라우저가 처음부터 다시 읽어 화면이 비는데,
        dataset.page는 그대로 남아 있어 여기서 복구할 수 있다. */
@@ -523,17 +586,7 @@
     }
 
     function 사용항목명(page) {
-      const pageItems = {
-        'Consult_Main.html': '상담',
-        'DTI.html': 'DTI 계산',
-        'DSR_Main.html': 'DSR 계산',
-        '날짜계산기.html': '날짜계산',
-        'gonsi.html': '공시가조회',
-        'IDCard.html': '신분증변환',
-        '문서스캔.html': '문서스캔',
-        'MCG.html': 'MCG 계산'
-      };
-      return pageItems[page] || '';
+      return PAGE_ITEMS[page] || '';
     }
 
     /* 5) 화면 전환(nav) ─────────────────
@@ -545,14 +598,10 @@
       const alreadyShowing = 현재페이지(contentFrame) === page;
 
       // 같은 페이지를 다시 누른 경우에는 체류 타이머를 초기화하지 않는다.
-      if (!alreadyShowing && item) {
-        // 사용 기록은 선택 사항이며 기록 모듈이 로드되지 않아도 화면 전환은 계속한다.
-        try {
-          if (typeof flushActiveButtonUsage === 'function') flushActiveButtonUsage();
-          if (typeof startButtonUsageTracking === 'function') startButtonUsageTracking(item);
-        } catch (error) {
-          console.error('[사용량 기록 실패]', error);
-        }
+      if (!alreadyShowing) {
+        // 현재 화면을 떠나기 전에 10초 이상 사용한 항목을 확정한다.
+        flushActiveButtonUsage();
+        startButtonUsageTracking(item);
       }
 
       // 모든 페이지는 본문 프레임(content-frame)에 띄운다
@@ -564,6 +613,99 @@
         element.classList.add('active-nav');
       }
     }
+
+    /* ── 시세조회 버블 팝업 (KB / 공시 / OP) ─────────────────────────────────
+       상단의 "시세조회" 버튼을 누르면 그 아래쪽에 버블 3개가 가로로 떠오르고,
+       각 버블을 누르면 같은 프레임에 해당 조회 화면을 띄운다.
+       버블은 버튼 아래에 붙지만, 옮긴 프레임(드래그)이나 좁은 화면에서 화면 밖으로
+       나갈 수 있으므로 열 때마다 실제 위치를 재서 화면 안으로 밀어 넣는다. */
+    let 시세버블목록 = null;
+
+    /* 버블 상자는 이 스크립트보다 아래(body)에 있지만, initPages는 두 번 불릴 수 있어
+       여기서 한 번만 잡아 둔다. */
+    function initPriceBubbles() {
+      시세버블목록 = document.getElementById('priceBubbleList');
+    }
+
+    function 시세버블열림여부() {
+      return !!시세버블목록 && 시세버블목록.classList.contains('open');
+    }
+
+    function 시세버블위치잡기(버튼) {
+      if (!시세버블목록) return;
+
+      /* 버튼을 인자로 받지 못한 경우(다른 곳에서 호출) id로 직접 찾는다.
+         이게 없으면 rect가 엉뚱한 값이 되어 버블이 다른 버튼 위에 뜬다. */
+      if (!버튼) 버튼 = document.getElementById('priceLookupBtn');
+      if (!버튼) return;
+
+      const rect = 버튼.getBoundingClientRect();
+      const bubbleW = 시세버블목록.offsetWidth;
+      const bubbleH = 시세버블목록.offsetHeight;
+      const viewportW = document.documentElement.clientWidth || window.innerWidth;
+      const viewportH = document.documentElement.clientHeight || window.innerHeight;
+
+      /* [2026-11-11 변경] 기본은 버튼 왼쪽 끝에 맞춰 "버튼 아래쪽"에 가로로 띄운다.
+         왼쪽 정렬을 기본으로 하고, 화면 오른쪽으로 넘치면 안쪽으로 민다. */
+      let left = rect.left;
+      if (left + bubbleW > viewportW - 4) left = Math.max(4, viewportW - bubbleW - 4);
+      if (left < 4) left = 4;
+
+      // 세로는 버튼 바로 아래(간격 8px)에서 시작한다.
+      let top = rect.bottom + 8;
+      // 아래 공간이 모자라면 버튼 위로 올린다(가로 배치라 높이가 작아 거의 발생하지 않음).
+      if (top + bubbleH > viewportH - 4) top = Math.max(4, rect.top - bubbleH - 8);
+
+      시세버블목록.style.left = left + 'px';
+      시세버블목록.style.top = top + 'px';
+    }
+
+    /* 순수 함수. HTML의 onclick에서 참조하므로 이름을 바꾸면 안 된다. */
+    function togglePriceBubbles(버튼) {
+      if (!시세버블목록) initPriceBubbles();
+      if (!시세버블목록) return;
+
+      if (시세버블열림여부()) {
+        시세버블닫기();
+        return;
+      }
+
+      시세버블목록.classList.add('open');
+      if (버튼) {
+        // 다시 열 때 상자를 여는 순서대로 다시 튀어나오게 한다
+        시세버블목록.querySelectorAll('.declare-type-bubble-item').forEach(item => {
+          item.style.animation = 'none';
+          void item.offsetWidth;
+          item.style.animation = '';
+        });
+        시세버블위치잡기(버튼);
+      }
+    }
+
+    function 시세버블닫기() {
+      if (!시세버블목록) 시세버블목록 = document.getElementById('priceBubbleList');
+      if (시세버블목록) 시세버블목록.classList.remove('open');
+    }
+
+    /* onclick="openPricePage('...', this)"의 this는 버블 div다(버튼이 아님).
+       강조 표시처는 시세조회 버튼이므로 id로 직접 찾는다. */
+    function openPricePage(page) {
+      시세버블닫기();
+      loadPage(page, document.getElementById('priceLookupBtn'));
+    }
+
+    // 버블 바깥을 누르면 닫는다(버튼 자체는 위 토글이 처리한다).
+    document.addEventListener('click', function(event) {
+      if (!시세버블열림여부()) return;
+      if (시세버블목록.contains(event.target)) return;
+      if (event.target.closest && event.target.closest('#priceLookupBtn')) return;
+      시세버블닫기();
+    });
+
+    // Esc로도 닫기
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && 시세버블열림여부()) 시세버블닫기();
+    });
 
     /* ── 프레임 표시 여부 ──────────────────────────────────────────
        본문(content-container)은 항상 표시하고, 계산기만 켜고 끈다.
@@ -839,6 +981,7 @@
       initDragAndDrop();
       initFrameResizers();
       initTouchFeedback();
+      initPriceBubbles();
 
       // 프레임 설정 불러오기 (순서·너비 복원 뒤에 표시 여부를 적용해야 한다)
       loadFrameSettings();
@@ -851,8 +994,18 @@
          resize에서는 아무것도 하지 않는다. */
     }
 
-    // body onload가 WebView에서 누락되는 경우에도 초기화를 보장한다.
-    window.addEventListener('DOMContentLoaded', initPages, { once: true });
+    /* body onload가 WebView에서 누락되는 경우에도 초기화를 보장한다.
+
+       ★ 2026-11-11: 리스너만 걸어두면 안 되는 경우가 있다.
+         head의 AdSense 스크립트(async)가 파서를 오래 붙잡으면 이 인라인 스크립트가
+         DOMContentLoaded/load 가 이미 지나간 뒤에 실행된다. 그러면 리스너는 영원히
+         불리지 않고 화면이 "이름 입력 필요"에서 멈춘다(실측: bodyChars 11).
+         → 이미 준비된 상태면 즉시 실행하고, 아니면 리스너로 기다린다. */
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initPages, { once: true });
+    } else {
+      initPages();
+    }
     window.addEventListener('load', initPages, { once: true });
 
     /* 아직 아무것도 안 띄운 프레임에만 기본 화면을 채운다.
@@ -881,10 +1034,10 @@
     }
 
     /* 본문 프레임에 기본으로 띄울 화면.
-       앱 WebView에서는 상담이 주 용도라 상담 화면을, 그 밖의 환경(PC·모바일 웹)에서는
-       DSR 계산 화면을 먼저 띄운다. */
+       [2026-11-11 변경] 앱 WebView든 PC·모바일 웹이든 기본 로딩 화면을
+       상담 화면(Consult_Main.html)으로 통일한다. (이전: 웹은 DSR_Main.html) */
     function 기본화면경로() {
-      return 앱웹뷰인가() ? 'Consult_Main.html' : 'DSR_Main.html';
+      return 'Consult_Main.html';
     }
 
     function updateFramesSrc() {
@@ -968,7 +1121,8 @@
         return;
       }
 
-      // 이름만 기록하고 인증 서버와 무관하게 바로 앱 화면을 연다.
+      // 사용자 이름만 기록하고 바로 앱 화면을 연다. 별도 인증 서버 설정이나
+      // gate-auth.js 로드 상태가 이름 입력 후 진입을 막지 않도록 분리한다.
       writeStoredText(STORAGE_KEYS.userName, name);
       setCounterText(`${name} 기록중...`);
       enterAppShell(name);
@@ -979,17 +1133,15 @@
         console.error('[화면 열기 실패]', error);
       }
 
-      // 사용량·접속 기록은 부가 기능이므로 모듈 미로드나 통신 실패가 화면 진입을 막지 않는다.
+      // 사용량/접속 기록은 부가 기능이므로 실패해도 화면 진입은 유지한다.
       try {
-        if (typeof startButtonUsageTracking === 'function') {
-          startButtonUsageTracking(앱웹뷰인가() ? '상담' : 'DSR 계산');
-        }
+        startButtonUsageTracking(앱웹뷰인가() ? '상담' : 'DSR 계산');
       } catch (error) {
         console.error('[사용량 기록 실패]', error);
       }
 
       try {
-        if (typeof startWorkerRecordAccess === 'function') startWorkerRecordAccess(name);
+        startWorkerRecordAccess(name);
       } catch (error) {
         console.error('[접속 기록 실패]', error);
       }
@@ -1290,7 +1442,8 @@
     <button type="button" class="nav-btn locked-content" data-usage-item="DTI 계산" onclick="loadPage('DTI.html', this)">DTI 계산</button>
     <button type="button" class="nav-btn locked-content" data-usage-item="DSR 계산" onclick="loadPage('DSR_Main.html', this)">DSR 계산</button>
     <button type="button" class="nav-btn locked-content" data-usage-item="날짜계산" onclick="loadPage('날짜계산기.html', this)">날짜계산</button>
-    <button type="button" class="nav-btn locked-content" data-usage-item="공시가조회" onclick="loadPage('gonsi.html', this)">공시가조회</button>
+    <!-- 시세조회: 예전 '공시가조회' 버튼 자리. 누르면 KB/공시/OP 버블이 뜬다(버블은 아래 #priceBubbleList). -->
+    <button type="button" id="priceLookupBtn" class="nav-btn locked-content" data-usage-item="시세조회" onclick="togglePriceBubbles(this)">시세조회</button>
     <button type="button" class="nav-btn locked-content" data-usage-item="신분증변환" onclick="loadPage('IDCard.html', this)">신분증변환</button>
     <button type="button" class="nav-btn locked-content" data-usage-item="문서스캔" onclick="loadPage('문서스캔.html', this)">문서스캔</button>
     <button type="button" class="nav-btn locked-content" data-usage-item="MCG 계산" onclick="loadPage('MCG.html', this)">MCG 계산</button>
@@ -1298,6 +1451,19 @@
     <div class="frame-toggle-group locked-content" id="frameToggleGroup">
       <button type="button" class="frame-toggle" data-target="calc-container" data-usage-item="계산기 표시 전환" aria-pressed="true">계산기</button>
     </div>
+
+  </div>
+
+  <!-- 시세조회 버블 팝업 (상단 버튼을 누르면 오른쪽에 뜬다)
+       ★ .button-container 밖에 둔다. 그 상자는 overflow-x:auto 라서
+         안에 둔 position:fixed 요소가 스크롤 컨테이너 기준으로 잘못 배치된다
+         (버블이 시세조회 버튼이 아니라 신분증변환 버튼 위에 뜨던 원인).
+       left/top은 JS가 버튼 위치를 재서 채운다. -->
+  <div class="declare-type-bubble-list" id="priceBubbleList">
+    <!-- [2026-11-11 변경] 시세조회 버튼 아래쪽에 가로 한 줄로 배치 -->
+    <div class="declare-type-bubble-item" data-value="KB" onclick="openPricePage('KB시세조회.html')">KB</div>
+    <div class="declare-type-bubble-item" data-value="공시" onclick="openPricePage('공시가조회.html')">공시</div>
+    <div class="declare-type-bubble-item" data-value="OP" onclick="openPricePage('OP시세조회.html')">OP</div>
   </div>
 
   <div class="main-wrapper locked-content">

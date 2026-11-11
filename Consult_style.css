@@ -303,6 +303,22 @@ table:last-child { margin-bottom: 0; }
   padding: 1px 8px;
 }
 
+/* ── 값 변경 하이라이트 (2026-11-11 추가) ──
+   DSR·DTI·신DTI 값이 바뀌면 0.5초 뒤 1초간 배경 플래시로 알려준다. */
+@keyframes dsrValueFlash {
+  0%   { background-color: #fef3c7; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.45); }
+  60%  { background-color: #fef3c7; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.45); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+/* 화면에 보이는 "대출정보 제목줄 요약"의 각 지표에 적용.
+   요약줄 span은 인라인 스타일을 쓰지 않으므로 CSS만으로 충분하다. */
+#loanInfoSummary > span.dsr-value-flash,
+.dsr-chip-value.dsr-value-flash {
+  animation: dsrValueFlash 1s ease-out;
+  border-radius: 6px;
+  padding: 1px 4px;
+}
+
 /* 최대가능금액 탭 - 고객정보 탭과 같은 필드 형태(라벨+값)를 2열로 배치 */
 .info-tab-body-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .info-tab-body-2col.open { display: grid; }
@@ -737,7 +753,7 @@ td:has(.type-btn-row) {
 .mort-category-select:hover { background-color: #eef4ff; border-color: #9db5e7; }
 .mort-category-select:focus { outline: none; border-color: #6688d3; box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.16); }
 .mort-category-select option { color: #263b68; background: #fff; font-weight: 600; }
-.mort-amount-row--added .mort-category-select { flex-basis: 58px; }
+.mort-amount-row--added .mort-category-select { flex-basis: 66px; }
 .mort-amount-row--added .mort-amt { min-width: 0; }
 .mort-amount-row--added .mort-rate { min-width: 0; }
 .type-btn-group { display: flex; width: 100%; min-width: 0; }
@@ -1081,33 +1097,71 @@ td:has(.type-btn-row) {
   flex: 1;
   min-width: 0;
 }
+/* ── 대출 구분 드롭다운 (2026-11-11 디자인 개선: 필 스타일 + 구분별 색상) ──
+   · 왼쪽 점(●)으로 "선택 가능한 구분"임을 표시
+   · 구분별 색상으로 상담 중 실수 방지
+   · 화살표를 키우고 여백을 넓혀 드롭다운임이 드러나게 함 */
 .mort-category-select {
   flex: 0 0 66px;
   width: 66px;
   min-width: 0;
   height: 30px;
-  padding: 2px 18px 2px 5px;
-  border: 1px solid #cbd8ef;
-  border-radius: 9px;
+  /* B타입: 왼쪽 정렬. 왼쪽은 점(●) 자리, 오른쪽은 화살표 자리를 비워둔다. */
+  padding: 2px 20px 2px 16px !important;
+  border: 1.5px solid var(--cat-border, #cbd8ef);
+  border-radius: 999px;
   appearance: none;
   -webkit-appearance: none;
-  background-color: #f8faff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-color: var(--cat-bg, #f8faff);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 5px center;
-  color: #30456f;
+  background-position: right 7px center;
+  color: var(--cat-text, #30456f);
   font-family: inherit;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(29, 54, 103, 0.08);
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(29, 54, 103, 0.10);
   cursor: pointer;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
-.mort-category-select:hover { background-color: #eef4ff; border-color: #9db5e7; }
-.mort-category-select:focus { outline: none; border-color: #6688d3; box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.16); }
+/* 왼쪽 점(●): 구분 색상으로 표시. 화살표와 함께 두 개의 배경 이미지로 그린다. */
+.mort-category-select {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"),
+    radial-gradient(circle, var(--cat-dot, #2563eb) 0 3px, transparent 3.5px);
+  background-repeat: no-repeat, no-repeat;
+  background-position: right 7px center, left 5px center;
+  background-size: 14px 14px, 10px 10px;
+}
+.mort-category-select:hover { box-shadow: 0 3px 10px rgba(29, 54, 103, 0.16); }
+.mort-category-select:focus { outline: none; box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.20); }
 .mort-category-select option { color: #263b68; background: #fff; font-weight: 600; }
-.mort-amount-row--added .mort-category-select { flex: 0 0 58px; width: 58px; font-size: 9px; }
+
+/* [2026-11-11 변경] 모바일에서 드롭다운을 열면 뜨는 "목록 팝업"이 너무 커 보이던 문제.
+   모바일 브라우저/WebView는 option 높이를 글자 크기 기준으로 자동 계산해 크게 띄우므로,
+   항목 글자 크기와 좌우 여백을 줄여 목록 전체 크기를 낮춘다. (선택 박스 자체는 그대로) */
+.mort-category-select option {
+  font-size: 12px;
+  padding: 2px 8px;
+  line-height: 1.4;
+}
+/* 목록 팝업이 화면 중앙에 큰 카드로 뜨는 것을 막기 위해 선택 박스 높이도 함께 낮춘다. */
+@media (max-width: 768px) {
+  .mort-category-select { font-size: 11.5px; }
+  .mort-category-select option { font-size: 12px; padding: 2px 8px; }
+}
+/* 추가 행도 본건과 같은 폭(66px)으로 맞춘다. */
+.mort-amount-row--added .mort-category-select { flex: 0 0 66px; width: 66px; font-size: 10px; padding: 2px 20px 2px 16px !important; }
+
+/* 구분별 색상 팔레트 */
+.mort-category-select[data-cat="주담대"] { --cat-border: #93b4f5; --cat-bg: #eef4ff; --cat-text: #1d4ed8; --cat-dot: #2563eb; }
+.mort-category-select[data-cat="전세대"] { --cat-border: #6ee7b7; --cat-bg: #ecfdf5; --cat-text: #047857; --cat-dot: #059669; }
+.mort-category-select[data-cat="원리금"] { --cat-border: #fcd34d; --cat-bg: #fffbeb; --cat-text: #b45309; --cat-dot: #d97706; }
+.mort-category-select[data-cat="신용대"] { --cat-border: #c4b5fd; --cat-bg: #f5f3ff; --cat-text: #6d28d9; --cat-dot: #7c3aed; }
+.mort-category-select[data-cat="이자만"] { --cat-border: #cbd5e1; --cat-bg: #f8fafc; --cat-text: #475569; --cat-dot: #64748b; }
+.mort-category-select[data-cat="연간원리금"] { --cat-border: #67e8f9; --cat-bg: #ecfeff; --cat-text: #0e7490; --cat-dot: #0891b2; }
+.mort-category-select[data-cat="행삭제"] { --cat-border: #fca5a5; --cat-bg: #fef2f2; --cat-text: #b91c1c; --cat-dot: #ef4444; }
 
 .amount-btn {
   width: 25px;
@@ -1139,12 +1193,23 @@ td:has(.type-btn-row) {
 }
 
 /* 연간원리금 직접입력: 금액·금리·개월수 대신 이 칸 하나만 보인다.
-   구분 드롭다운과 같은 줄에 놓이고, 폭은 기존 금액 입력칸의 40%(=60% 축소)로 줄인다. */
+   구분 드롭다운과 같은 줄에 놓이고, 폭은 121.33px 고정.
+   색상은 본건 대출금액 입력창(.mortgage-row.first-row .mort-amt)과 동일하게 맞춘다. */
 .mort-annual {
-  flex: 0 0 40%;
-  width: 40%;
-  min-width: 0;
+  flex: 0 0 121.33px !important;
+  width: 121.33px !important;
+  min-width: 121.33px !important;
+  max-width: 121.33px !important;
   text-align: center;
+  /* 본건 대출금액 입력창과 동일한 색상 (#fffdeb 배경 + 연보라 테두리) */
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+  border-color: var(--c-primary-soft-border) !important;
+}
+.mort-annual:focus {
+  background: #fffdeb !important;
+  background-color: #fffdeb !important;
+  border-color: var(--c-primary-soft-border) !important;
 }
 /* 연간원리금 모드: 드롭다운 + 입력칸을 한 줄에 유지한다(줄바꿈 금지) */
 .mort-amount-row.is-annual-row {
@@ -1153,18 +1218,211 @@ td:has(.type-btn-row) {
   align-items: center;
 }
 .mort-amount-row.is-annual-row .mort-annual {
-  flex: 0 0 40%;
-  width: 40%;
+  flex: 0 0 121.33px !important;
+  width: 121.33px !important;
+  min-width: 121.33px !important;
+  max-width: 121.33px !important;
 }
 /* 연간원리금 모드에서는 6M/5Y 전환 버튼과 금리/ST금리 줄을 숨긴다.
-   JS가 display를 다시 되돌리는 경로가 있어도 CSS가 우선하도록 !important를 쓴다. */
+   JS가 display를 다시 되돌리는 경로가 있어도 CSS가 우선하도록 !important를 쓴다.
+   단, 연간원리금 입력칸(.mort-annual)은 이 줄 안에 있어도 반드시 보여야 한다. */
 .mortgage-row.is-annual-mode .mort-default-switch,
 .mortgage-row.is-annual-mode .input-flex-row {
   display: none !important;
 }
+.mortgage-row.is-annual-mode .mort-annual {
+  display: block !important;
+}
+
+/* 전세대 전용 레이아웃 (2026-11-11 재구현)
+   JS가 전세대일 때 4개 TD를 1개 TD로 합치고, 그 안에 한 줄 컨테이너를 만든다.
+   → TD가 나뉘어 생기던 정렬 문제를 구조적으로 제거한다.
+   1행: 드롭다운 · 대출금액(40%) · 금리(25%) · ST금리(25%)   [개월수는 숨김]
+   2행: 메모 입력창(기존 .mortgage-memo-row) 그대로 유지 */
+.mortgage-row.is-jeonse-layout > td.mort-jeonse-single-cell {
+  display: table-cell;
+  width: 100% !important;
+  padding: 4px 4px;
+  box-sizing: border-box;
+}
+/* 병합된 전세대 행은 colspan=4로 4개 열을 모두 차지한다(JS에서 설정).
+   표의 table-layout/colgroup은 건드리지 않아 다른 행 폭이 바뀌지 않는다. */
+#mortgage-inputs > .mortgage-row.is-jeonse-layout > td.mort-jeonse-single-cell {
+  width: auto !important;
+}
+/* 한 줄 컨테이너 */
+.mort-jeonse-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.mort-jeonse-line .mort-category-select {
+  flex: 0 0 66px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
+}
+.mort-jeonse-line .mort-amt {
+  flex: 40 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-align: center;
+}
+.mort-jeonse-line .mort-rate,
+.mort-jeonse-line .mort-st-rate {
+  flex: 25 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-align: center;
+}
+/* 전세대는 만기일시라 개월수·금리선택기·상환방식 선택기를 쓰지 않는다. */
+.mort-jeonse-line .mort-term,
+.mort-jeonse-line .mort-default-switch,
+.mort-jeonse-line .type-btn-row,
+.mort-jeonse-line .grace-cell {
+  display: none !important;
+}
+/* 신용대 · 이자만 · 원리금 구분에서는 금리선택기(6M/5Y)를 숨긴다.
+   (주담대·연간원리금은 현재 상태 유지) */
+.mortgage-row.is-rate-switch-hidden .mort-default-switch {
+  display: none !important;
+}
+
+/* ── 상환방식 선택기 (순환형) ──
+   클릭할 때마다 원리금 → 원금 → 만기 → 원리금 으로 바뀐다.
+   팝업이 없으므로 화살표 대신 순환 아이콘(⟳)을 오른쪽에 둔다. */
+.type-btn-trigger {
+  display: none;
+  width: 100%;
+  height: 26px;
+  padding: 0 16px 0 6px;
+  border: 1px solid #cbd8ef !important;
+  border-radius: 7px;
+  background-color: #f8faff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b65a5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-3-6.7'/%3E%3Cpath d='M21 3v6h-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 4px center !important;
+  color: #30456f !important;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.type-btn-trigger:hover { background-color: #eef4ff !important; border-color: #9db5e7 !important; }
+.type-btn-trigger:active { transform: scale(0.97); }
+/* 트리거가 있는 행에서는 3개 버튼을 숨기고 트리거만 보인다. */
+.type-btn-row:has(.type-btn-trigger) .type-btn-trigger {
+  display: block;
+}
+/* 팝업은 트리거 바로 아래로 열고, z-index를 높여 다른 요소 위에 표시한다. */
+.type-btn-row:has(.type-btn-trigger) {
+  position: relative;
+}
+.type-btn-row:has(.type-btn-trigger) .type-btn-group {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 2px;
+  width: auto;
+  margin-top: 3px;
+  padding: 3px;
+  background: #fff;
+  border: 1px solid #cbd8ef;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(29, 54, 103, 0.18);
+  box-sizing: border-box;
+}
+.type-btn-row:has(.type-btn-trigger) .type-btn-group.is-open {
+  display: flex;
+}
+.type-btn-row:has(.type-btn-trigger) .type-btn-group .type-btn {
+  width: 100% !important;
+  height: 28px !important;
+  text-align: center;
+}
+/* 팝업이 열린 동안 트리거를 눌린 상태로 보이게 한다. */
+.type-btn-row:has(.type-btn-group.is-open) .type-btn-trigger {
+  border-color: #6688d3 !important;
+  box-shadow: 0 0 0 3px rgba(86, 121, 197, 0.16);
+}
+
+/* 신용대 · 원리금 구분에서는 거치 입력(체크박스 + 개월수)을 숨긴다. */
+.mortgage-row.is-grace-hidden .grace-cell {
+  display: none !important;
+}
+
+/* ── C타입: 신용대 · 원리금 ──
+   첫 행을 TD 하나로 병합해 [드롭다운][금액][금리][개월][상환방식] 을 한 줄로 정렬한다.
+   상환방식 칩은 좌우 폭을 약 40% 줄여 좁은 칸에서도 들어가게 한다. */
+.mort-compact-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+.mort-compact-line .mort-category-select {
+  flex: 0 0 66px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
+  font-size: 10px !important;
+  padding: 2px 20px 2px 16px !important;
+}
+.mort-compact-line .mort-amt {
+  flex: 0 0 129px !important;
+  width: 129px !important;
+  min-width: 129px !important;
+  max-width: 129px !important;
+  text-align: center;
+}
+.mort-compact-line .mort-rate {
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  text-align: center;
+}
+.mort-compact-line .mort-term {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  text-align: center;
+}
+/* 상환방식 칸: 금액칸을 129px로 줄인 만큼 늘려 글자가 들어가게 한다. */
+.mort-compact-line .type-btn-row {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 56px !important;
+  max-width: none !important;
+}
+.mort-compact-line .type-btn-trigger {
+  width: 100% !important;
+  padding: 0 14px 0 6px !important;
+  font-size: 11px !important;
+  background-position: right 4px center !important;
+  background-size: 10px 10px !important;
+}
+.mort-repayment-slot {
+  display: none;
+}
 
 .mort-amount-row--added { gap: 4px; }
-.mort-amount-row--added .mort-category-select { flex: 0 0 58px; width: 58px; font-size: 9px; }
+/* 추가 행 드롭다운도 본건과 같은 폭(66px)을 쓴다. (위쪽 규칙과 중복되므로 여기서는 폭만 지정) */
 .mort-amount-row--added .mort-amt { flex: 2.5; }
 .mort-amount-row--added .mort-rate { flex: 1; min-width: 0; text-align: center; }
 
@@ -2456,6 +2714,10 @@ table.loan-input-table .mortgage-row.first-row > td.mortgage-repayment-cell { wi
    KCB / NICE / 라벨이 남는 폭에 고르게 퍼지도록 배치한다. */
 .housing-status-btn { flex:0 0 auto; width:auto; min-width:0; height:26px; align-self:center; padding:0 4px; border:1px solid var(--c-primary-soft-border); border-radius:var(--r-sm); background:var(--c-primary-soft); color:var(--c-primary-dark); font:700 12px/24px inherit; white-space:nowrap; cursor:pointer; }
 .housing-status-btn:active { transform:scale(.97); }
+/* [2026-11-11 변경] 전역 button:hover가 배경을 진한 파랑(var(--c-primary-dark))으로 채워
+   무주택 버튼이 마우스 오버만으로 꽉 찬 색이 되던 문제 수정 — 기본 배경·글자색을 그대로 유지한다. */
+.housing-status-btn:hover,
+.housing-status-btn:focus { background:var(--c-primary-soft) !important; color:var(--c-primary-dark) !important; border-color:var(--c-primary-soft-border) !important; }
 .credit-score-fields { display:flex; align-items:center; align-self:stretch; gap:clamp(6px, 2vw, 14px); flex:0 0 auto; min-width:0; justify-content:flex-start; padding:0; white-space:nowrap; }
 /* 전세 상품일 때만 신용점수/계산값 영역이 남은 폭을 사용해 구성요소 간격을 넓힌다. */
 .customer-memo-wrap.is-jeonse-category .credit-score-fields { flex:1 1 auto !important; min-width:0; justify-content:space-between; }

@@ -1,0 +1,2811 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OP시세 조회 (오피스텔 공시가)</title>
+
+<!--
+  =========================================================
+  OP시세조회.html — 오피스텔(상업용건물·오피스텔 기준시가) 전용 조회
+
+  공시가조회.html(주택: 공동주택·개별주택)에서 오피스텔 부분만 떼어낸 페이지다.
+  · 조회 자료: op_gongsi_data/{법정동코드}.json (APK 번들 정적 JSON, build_office_price_data.py 생성)
+  · 주소검색: 카카오 로컬 API 직접 호출 → 실패 시 GAS 폴백 (공시가조회.html과 동일)
+  · 오피스텔 판별: PNU의 본번·부번으로 op_gongsi_data를 찾고,
+    없으면 _index.json(지번 색인)으로 행정구역 개편 전 법정동코드 후보를 재시도한다.
+  · 결과 적용: 부모(상담/DSR)가 있으면 '이 결과 적용' 버튼으로 값만 전달한다.
+               (op_gongsi_data가 번들 전용이라 mode 파라미터와 무관하게 항상 전달 가능)
+  CSS는 공시가조회.html과 같은 스타일을 그대로 사용한다.
+  =========================================================
+-->
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Malgun Gothic",
+        "맑은 고딕",
+        Arial,
+        sans-serif;
+
+    background: #f3f5f7;
+    color: #222;
+}
+
+body {
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px 14px 50px;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+    margin-bottom: 18px;
+}
+
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.gonsi-back-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dfe6ef;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+}
+.gonsi-back-btn:active { transform: scale(.94); }
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+}
+
+.header p {
+    margin: 7px 0 0;
+    font-size: 13px;
+    color: #777;
+}
+
+.direct-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 7px 13px 7px 7px;
+    border-radius: 999px;
+    border: 1px solid #dfe6ef;
+    background: #fff;
+    color: #333;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+}
+
+.direct-link-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 14px;
+}
+
+.card-title strong {
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   ADDRESS SEARCH
+========================================================= */
+
+.address-search {
+    display: flex;
+    gap: 8px;
+}
+
+.address-input {
+    flex: 1;
+    min-width: 0;
+
+    height: 48px;
+
+    padding: 0 14px;
+
+    border: 1px solid #d8dce1;
+    border-radius: 9px;
+
+    outline: none;
+
+    background: #fff;
+
+    font-size: 15px;
+}
+
+.address-input:focus {
+    border-color: #222;
+}
+
+.search-btn {
+    width: 82px;
+    height: 48px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: #222;
+    color: #fff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.search-btn:active {
+    transform: scale(0.97);
+}
+
+.help-text {
+    margin-top: 9px;
+
+    font-size: 12px;
+    color: #888;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status {
+    display: none;
+
+    margin-top: 12px;
+
+    padding: 11px 12px;
+
+    border-radius: 8px;
+
+    background: #f4f5f6;
+
+    font-size: 13px;
+    color: #666;
+}
+
+.status.show {
+    display: block;
+}
+
+.status.error {
+    background: #fff0f0;
+    color: #d33;
+}
+
+
+/* =========================================================
+   LOADING POPUP
+========================================================= */
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.18);
+    z-index: 9999;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-popup {
+    position: relative;
+    width: min(230px, calc(100vw - 40px));
+    padding: 26px 18px 20px;
+    background: #fff;
+    border: 1px solid rgba(17, 24, 39, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+    text-align: center;
+}
+
+.loading-popup::after {
+    content: "";
+    position: absolute;
+    left: 28px;
+    bottom: -11px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-right: 1px solid rgba(17, 24, 39, 0.08);
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+    transform: rotate(45deg);
+    border-radius: 0 0 5px 0;
+}
+
+.loading-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 12px;
+    border: 4px solid rgba(34, 34, 34, 0.12);
+    border-top-color: #222;
+    border-radius: 50%;
+    animation: loading-spin 0.9s linear infinite;
+}
+
+@keyframes loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #222;
+    letter-spacing: -0.2px;
+}
+
+
+/* =========================================================
+   SEARCH RESULTS
+========================================================= */
+
+.search-results {
+    display: none;
+}
+
+.search-results.show {
+    display: block;
+}
+
+.result-count {
+    margin-bottom: 10px;
+
+    font-size: 12px;
+    color: #777;
+}
+
+.address-item {
+    padding: 14px;
+
+    margin-bottom: 8px;
+
+    border: 1px solid #e1e4e7;
+    border-radius: 10px;
+
+    background: #fff;
+
+    cursor: pointer;
+
+    transition: 0.15s;
+}
+
+.address-item:hover {
+    border-color: #222;
+    background: #fafafa;
+}
+
+.address-item:active {
+    transform: scale(0.99);
+}
+
+.address-item .road {
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 1.5;
+}
+
+.address-item .jibun {
+    margin-top: 5px;
+
+    font-size: 12px;
+    color: #777;
+}
+
+.address-item .extra {
+    margin-top: 7px;
+
+    font-size: 11px;
+    color: #999;
+}
+
+
+/* =========================================================
+   PAGINATION
+========================================================= */
+
+.pagination {
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    margin-top: 14px;
+}
+
+.pagination.show {
+    display: flex;
+}
+
+.page-btn {
+    min-width: 40px;
+    height: 36px;
+
+    padding: 0 10px;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+
+    background: #fff;
+    color: #333;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.page-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.page-btn:disabled {
+    color: #c2c7cd;
+
+    cursor: default;
+}
+
+.page-btn.current {
+    border-color: #222;
+
+    background: #222;
+    color: #fff;
+}
+
+.page-info {
+    margin: 0 4px;
+
+    font-size: 12px;
+    color: #777;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   SELECTED ADDRESS
+========================================================= */
+
+.selected-address {
+    display: none;
+}
+
+.selected-address.show {
+    display: block;
+}
+
+.address-box {
+    padding: 14px;
+
+    background: #f7f8fa;
+
+    border-radius: 10px;
+}
+
+.address-label {
+    font-size: 11px;
+    color: #888;
+
+    margin-bottom: 5px;
+}
+
+.address-value {
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 1.5;
+}
+
+.address-value + .address-label {
+    margin-top: 12px;
+}
+
+
+/* =========================================================
+   PROPERTY TYPE
+========================================================= */
+
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 6px 11px;
+
+    border-radius: 20px;
+
+    background: #222;
+    color: #fff;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* 유형이 아직 정해지지 않았을 때는 빈 검은 알약만 남으므로 감춘다 */
+.type-badge:empty {
+    display: none;
+}
+
+/* =========================================================
+   UNIT SELECT
+========================================================= */
+
+.unit-area {
+    display: none;
+}
+
+.unit-area.show {
+    display: block;
+}
+
+.select-row {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 10px;
+
+    margin-bottom: 12px;
+}
+
+.unit-select-row {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.select-box label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    font-size: 12px;
+    color: #777;
+}
+
+select {
+    width: 100%;
+    height: 44px;
+
+    padding: 0 10px;
+
+    border: 1px solid #d9dde2;
+    border-radius: 8px;
+
+    background: #fff;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+select:focus {
+    border-color: #222;
+}
+
+
+/* =========================================================
+   YEAR
+   =========================================================
+   ④ 전용 카드를 없애고 ④ 조회 결과 제목 줄 오른쪽에 붙였다.
+   라벨("기준연도")은 공간을 아끼기 위해 숨기고, select 자체만 놓는다.
+   ------------------------------------------------------- */
+.year-area {
+    display: none;
+    flex: 0 0 auto;
+}
+
+.year-area.show {
+    display: block;
+}
+
+/* select-box 없이 select만 바로 쓸 수 있게 최소 크기를 준다 */
+.year-area select {
+    width: auto;
+    min-width: 92px;
+    height: 34px;
+    padding: 0 26px 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #fff;
+}
+
+/* ④ 조회 결과 제목 줄 — 제목 텍스트 바로 옆에 기준연도 select 를 붙인다.
+   (기존 .card-title 은 space-between 이라 오른쪽 끝으로 밀리므로
+    이 줄만 space-between 을 해제하고 텍스트 뒤에 바로 붙인다) */
+.price-title-row {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+@media (max-width: 360px) {
+    .year-area select {
+        min-width: 78px;
+        padding: 0 22px 0 8px;
+    }
+}
+
+
+/* =========================================================
+   PRICE RESULT
+========================================================= */
+
+.price-result {
+    display: none;
+}
+
+.price-result.show {
+    display: block;
+}
+
+/* 유형만 정해지고 아직 조회가 안 된 상태 — 제목 줄(기준연도 select)만 보인다 */
+.price-result.shell-only .price-body {
+    display: none;
+}
+
+
+/* =========================================================
+   CALC RESULT (공시가격 기반 계산값)
+========================================================= */
+
+.calc-result {
+    display: none;
+}
+
+.calc-result.show {
+    display: block;
+}
+
+.calc-row {
+    padding: 11px 0;
+
+    border-bottom: 1px solid #eee;
+}
+
+.calc-row:last-child {
+    border-bottom: 0;
+}
+
+.calc-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.calc-formula {
+    font-size: 13px;
+    color: #888;
+}
+
+.calc-value {
+    font-size: 13px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.calc-note {
+    margin-top: 4px;
+
+    font-size: 11px;
+    font-weight: 400;
+    color: #aaa;
+
+    line-height: 1.5;
+}
+
+.price-box {
+    padding: 20px;
+
+    border-radius: 11px;
+
+    background: #f7f8fa;
+
+    text-align: center;
+}
+
+.price-label {
+    font-size: 12px;
+    color: #777;
+
+    margin-bottom: 8px;
+}
+
+.price-value {
+    font-size: 30px;
+    font-weight: 800;
+
+    letter-spacing: -1px;
+}
+
+.price-unit {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   DETAIL TABLE
+========================================================= */
+
+.detail-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    margin-top: 15px;
+}
+
+.detail-table tr {
+    border-bottom: 1px solid #eee;
+}
+
+.detail-table tr:last-child {
+    border-bottom: 0;
+}
+
+.detail-table th,
+.detail-table td {
+    padding: 11px 4px;
+
+    font-size: 13px;
+
+    text-align: left;
+}
+
+.detail-table th {
+    width: 35%;
+
+    color: #888;
+
+    font-weight: 500;
+}
+
+.detail-table td {
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   NOTICE
+========================================================= */
+
+.notice {
+    margin-top: 14px;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    background: #fafafa;
+
+    font-size: 11px;
+    color: #888;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+
+    .container {
+        padding: 16px 10px 35px;
+    }
+
+    .header h1 {
+        font-size: 21px;
+    }
+
+    .card {
+        padding: 15px;
+    }
+
+    .search-btn {
+        width: 70px;
+    }
+
+    .select-row {
+        grid-template-columns: 1fr;
+    }
+
+    .price-value {
+        font-size: 26px;
+    }
+
+</style>
+</head>
+
+
+
+<body>
+
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite" aria-busy="true">
+    <div class="loading-popup">
+        <div class="loading-spinner"></div>
+        <div id="loadingText" class="loading-text">조회 중입니다...</div>
+    </div>
+</div>
+
+<div class="container">
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="header">
+
+        <div class="header-row">
+
+            <button type="button" class="gonsi-back-btn" aria-label="이전 화면으로 돌아가기" onclick="closeGonsiView()">‹</button>
+
+            <h1>
+                OP시세 조회
+            </h1>
+
+            <a
+                class="direct-link-btn"
+                href="https://www.realtyprice.kr/notice/main/main.do"
+                target="_blank"
+                rel="noopener noreferrer">
+
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="50" fill="#fff"/>
+                    <path d="M50 3A47 47 0 0 1 50 97A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 3Z" fill="#cd2e3a"/>
+                    <path d="M50 97A47 47 0 0 1 50 3A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 97Z" fill="#003478"/>
+                </svg>
+
+                직접조회
+            </a>
+
+        </div>
+
+        <p>
+            오피스텔 기준시가(공시가)를 조회합니다.
+        </p>
+
+    </div>
+
+
+    <!-- =====================================================
+         STEP 1. 주소 검색
+    ====================================================== -->
+
+    <div class="card">
+
+        <div class="card-title">
+
+            <strong>
+                ① 주소 검색
+            </strong>
+
+        </div>
+
+
+        <div class="address-search">
+
+            <input
+                type="text"
+                id="addressInput"
+                class="address-input"
+                placeholder="도로명주소 또는 지번주소 입력"
+                autocomplete="off"
+            >
+
+            <button
+                type="button"
+                class="search-btn"
+                onclick="searchAddress()">
+
+                검색
+
+            </button>
+
+        </div>
+
+
+        <div class="help-text">
+
+            예) 도로명, 지번, 지역+건물명칭<br>
+            예) 오피스텔명 + 호 (예: 어반시아 301호)
+
+
+        </div>
+
+
+        <div
+            id="status"
+            class="status">
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STEP 2. 주소 검색 결과
+    ====================================================== -->
+
+    <div
+        id="searchResults"
+        class="card search-results">
+
+        <div class="card-title">
+
+            <strong>
+                ② 주소 선택
+            </strong>
+
+        </div>
+
+        <div
+            id="resultCount"
+            class="result-count">
+        </div>
+
+        <div id="addressList"></div>
+
+        <div
+            id="pagination"
+            class="pagination">
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STEP 3. 선택된 주소
+    ====================================================== -->
+
+    <div
+        id="selectedAddress"
+        class="card selected-address">
+
+        <div class="card-title">
+
+            <strong>
+                선택한 주소
+            </strong>
+
+            <span
+                id="selectedAddressTypeBadge"
+                class="type-badge">
+            </span>
+
+        </div>
+
+
+        <div class="address-box">
+
+            <div class="address-label">
+                도로명주소
+            </div>
+
+            <div
+                id="selectedRoad"
+                class="address-value">
+            </div>
+
+
+            <div class="address-label">
+                지번주소
+            </div>
+
+            <div
+                id="selectedJibun"
+                class="address-value">
+            </div>
+
+
+            <div
+                id="selectedBuildingNameRow"
+                style="display:none;">
+
+                <div class="address-label">
+                    건물명
+                </div>
+
+                <div
+                    id="selectedBuildingName"
+                    class="address-value">
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STEP 4. 동 / 층 / 호
+    ====================================================== -->
+
+    <div
+        id="unitArea"
+        class="card unit-area">
+
+        <div class="card-title">
+
+            <strong>
+                ③ 동·호 선택
+            </strong>
+
+        </div>
+
+
+        <div class="select-row unit-select-row">
+
+
+            <!-- 동 -->
+
+            <div class="select-box">
+
+                <label>
+                    동
+                </label>
+
+                <select id="dongSelect">
+
+                    <option value="">
+                        동 선택
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- 호 -->
+
+            <div class="select-box">
+
+                <label>
+                    호
+                </label>
+
+                <select id="hoSelect">
+
+                    <option value="">
+                        호 선택
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STEP 6. 결과
+    ====================================================== -->
+
+    <div
+        id="priceResult"
+        class="card price-result">
+
+        <div class="card-title price-title-row">
+
+            <strong>
+                ④ 조회 결과
+            </strong>
+
+            <div
+                id="yearArea"
+                class="year-area">
+
+                <select
+                    id="yearSelect"
+                    aria-label="기준연도">
+
+                    <option value="2026">
+                        2026년
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <!-- 조회 결과 본문 — 첫 결과가 나오기 전까지 숨긴다
+             (제목 줄의 기준연도 드롭박스만 먼저 보이게) -->
+        <div
+            id="priceBody"
+            class="price-body">
+
+        <div class="price-box">
+
+            <div
+                id="priceLabel"
+                class="price-label">
+
+                오피스텔 기준시가
+
+            </div>
+
+            <div class="price-value">
+
+                <span id="priceValue">
+                    -
+                </span>
+
+                <span class="price-unit">
+                    원
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <table class="detail-table">
+
+            <tr>
+
+                <th>
+                    기준연도
+                </th>
+
+                <td id="resultYear">
+                    -
+                </td>
+
+            </tr>
+
+
+            <tr>
+
+                <th>
+                    건물명
+                </th>
+
+                <td id="resultBuilding">
+                    -
+                </td>
+
+            </tr>
+
+
+            <tr>
+
+                <th>
+                    전용면적
+                </th>
+
+                <td id="resultArea">
+                    -
+                </td>
+
+            </tr>
+
+
+            <tr>
+
+                <th>
+                    동 / 층 / 호
+                </th>
+
+                <td id="resultUnit">
+                    -
+                </td>
+
+            </tr>
+
+
+        </table>
+
+        </div>   <!-- /priceBody -->
+
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STEP 7. 계산값
+    ====================================================== -->
+
+    <div
+        id="calcResult"
+        class="card calc-result">
+
+        <div class="card-title">
+
+            <strong>
+                ⑤ 계산값
+            </strong>
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130%</span>
+                <span id="calcHousePrice" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="house" onclick="applyCalculatedPublicPrice('house')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                서울보증 주택가격 - 아파트·오피스텔에 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 130% × 90% ( 117% )</span>
+                <span id="calcSeoulGuarantee" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="seoul" onclick="applyCalculatedPublicPrice('seoul')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                서울보증 - 선순위(유) 모든 물건 적용<br>
+                선순위(무) APT·오피 제외 모두 적용
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 140% × 90% ( 126% )</span>
+                <span id="calcJusinboDosi" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="jusinboDosi" onclick="applyCalculatedPublicPrice('jusinboDosi')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                주신보, 도시보증
+            </div>
+
+        </div>
+
+
+        <div class="calc-row">
+
+            <div class="calc-line">
+                <span class="calc-formula">공시가격 × 100%</span>
+                <span id="calcJusinbo" class="calc-value">-</span>
+                <button type="button" class="search-btn calc-apply-btn" data-calc-key="jusinbo" onclick="applyCalculatedPublicPrice('jusinbo')" style="display:none;">이 결과 적용</button>
+            </div>
+
+            <div class="calc-note">
+                단독주택(주신보) — 오피스텔에는 해당 없음
+            </div>
+
+        </div>
+
+        </div>
+
+        <button type="button" id="publicPriceApplyBtn" class="search-btn" onclick="applyPublicPropertyPrice()" style="display:none; width:100%; margin-top:12px;">이 결과 적용하기</button>
+
+    </div>
+
+
+
+
+    <script>
+    let pendingPublicPropertyPrice = null;
+
+    function applyPublicPropertyPrice() {
+        if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
+        window.parent.postMessage(pendingPublicPropertyPrice, '*');
+    }
+
+    function applyCalculatedPublicPrice(calcKey) {
+        if (!pendingPublicPropertyPrice || !window.parent || window.parent === window) return;
+        const calcValues = {
+            house: document.getElementById('calcHousePrice')?.textContent || '',
+            seoul: document.getElementById('calcSeoulGuarantee')?.textContent || '',
+            jusinboDosi: document.getElementById('calcJusinboDosi')?.textContent || '',
+            jusinbo: document.getElementById('calcJusinbo')?.textContent || ''
+        };
+        const selectedValue = calcValues[calcKey];
+        const numericValue = Number(String(selectedValue).replace(/[^0-9]/g, '')) || 0;
+        if (!numericValue) return;
+        window.parent.postMessage({ ...pendingPublicPropertyPrice, value: numericValue, publicPrice: numericValue, priceField: `공시가격 계산값 (${selectedValue})` }, '*');
+    }
+
+    function closeGonsiView() {
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'kbMarketPriceClose' }, '*');
+        return;
+    }
+    if (window.history.length > 1) window.history.back();
+}
+
+
+/* =========================================================
+   GAS / 카카오 설정 (공시가조회.html과 동일)
+========================================================= */
+
+const GAS_BASE_URL =
+    'https://script.google.com/macros/s/AKfycbxIB_jOSdlZNLWpMdsX4j_fpOalfUnC1UI0ysIY7IblKNb9zo--Q2D58WcbTkA-1lOf/exec';
+
+const KAKAO_API_KEY = '40ff77c743e30864998d253cf262c62c';
+// 카카오 로컬 API는 서버 호출에도 등록된 웹 플랫폼 도메인이 담긴 KA 헤더를 요구한다.
+const KAKAO_KA = 'sdk/1.0.0 os/javascript lang/ko-KR device/pc origin/https://new1kim.github.io';
+
+// 카카오가 도메인 정책을 바꾸거나 WebView가 막을 때를 대비한 비상 스위치(강제 GAS)
+const USE_GAS_DIRECTLY = false;
+
+// 한글 파라미터 "키"까지 반드시 인코딩해야 한다(.gs buildUrl과 동일 규칙)
+function buildQuery(params) {
+    return Object.keys(params)
+        .map(function(key) {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(
+                params[key] === undefined || params[key] === null ? '' : params[key]
+            );
+        })
+        .join('&');
+}
+
+/* ---------------------------------------------------------
+   타임아웃 + 재시도 (공시가조회.html과 동일 규칙)
+   --------------------------------------------------------- */
+const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_RETRY_COUNT = 1;   // 타임아웃 시 추가 재시도 횟수
+
+function fetchWithTimeout(url, options, timeoutMs) {
+    var ms = timeoutMs || REQUEST_TIMEOUT_MS;
+
+    // AbortController를 지원하지 않는 구형 WebView도 있으므로 방어적으로 처리한다.
+    if (typeof AbortController === 'undefined') {
+        return fetch(url, options);
+    }
+
+    function once() {
+        var controller = new AbortController();
+        var timer = setTimeout(function() { controller.abort(); }, ms);
+
+        return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+            .finally(function() { clearTimeout(timer); });
+    }
+
+    return once().catch(function(err) {
+        if (REQUEST_RETRY_COUNT > 0 && err && err.name === 'AbortError') {
+            return once();
+        }
+        throw err;
+    });
+}
+
+// 카카오 폴백 경로 — 기존 GAS 주소검색 액션
+function gasFetch(action, params) {
+    const q = buildQuery(Object.assign({ action: action }, params || {}));
+    return fetchWithTimeout(GAS_BASE_URL + '?' + q).then(function(res) {
+        if (!res.ok) throw new Error('GAS HTTP ' + res.status);
+        return res.json();
+    });
+}
+
+/* ---------------------------------------------------------
+   응답 캐시 — 같은 조회의 반복 요청을 제거한다.
+   --------------------------------------------------------- */
+const _jsonCache = new Map();
+function cached(key, loader) {
+    if (_jsonCache.has(key)) return _jsonCache.get(key);
+    const p = loader();
+    p.catch(function() { _jsonCache.delete(key); });
+    _jsonCache.set(key, p);
+    return p;
+}
+
+/* ---------------------------------------------------------
+   카카오 주소검색 — 직접 호출, 실패 시 GAS 폴백
+   --------------------------------------------------------- */
+function normalizeDoc(doc) {
+    const addr = doc.address || {};
+    // 카카오는 주소(document)에만 mountain_yn이 있고 road_address에는 없다.
+    // (예전 코드가 road_address에서 읽어 산 지번이 본번으로 잡히는 문제가 있었다)
+    const road = doc.road_address;
+
+    // PNU = 법정동코드(10) + 대장구분(1) + 본번(4) + 부번(4)
+    // (.gs buildPnu와 동일 규칙 — 오피스텔 정적자료 조회 키로 필요)
+    function pad4(v) {
+        const digits = String(v || '0').replace(/\D/g, '') || '0';
+        return ('0000' + digits).slice(-4);
+    }
+
+    const pnu = addr.b_code
+        ? addr.b_code + (addr.mountain_yn === 'Y' ? '2' : '1')
+          + pad4(addr.main_address_no) + pad4(addr.sub_address_no)
+        : '';
+
+    return {
+        roadAddress: road ? road.address_name : doc.address_name,
+        jibunAddress: addr.address_name,
+        buildingName: road ? (road.building_name || '') : '',
+        legalDongCode: addr.b_code,
+        // 본번/부번을 그대로 넘긴다 — PNU 대장구분(1/2) 때문에 시/군/구별 산 지번이
+        // 번호와 어긋나면 op_gongsi_data를 못 찾는다. 오피스텔은 지번 인덱스를 키로 쓴다.
+        mainNo: addr.main_address_no,
+        subNo: addr.sub_address_no,
+        pnu: pnu
+    };
+}
+
+// 한 페이지에 요청할 주소검색 결과 수 (카카오 주소검색 허용 최대 30)
+const ADDR_PAGE_SIZE = 30;
+
+function hasNextPageFromMeta(meta, page, pageSize, receivedCount) {
+    meta = meta || {};
+    if (typeof meta.is_end === 'boolean') return !meta.is_end;
+    const total = Number(meta.total_count);
+    if (isFinite(total) && total > 0) return page * pageSize < total;
+    return receivedCount >= pageSize;
+}
+
+function fetchAddressSearch(keyword, page) {
+    page = page || 1;
+    return cached('addr:' + keyword + ':' + page, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetchWithTimeout('https://dapi.kakao.com/v2/local/search/address.json?' +
+                    buildQuery({ query: keyword, page: page, size: ADDR_PAGE_SIZE }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    const docs = json.documents || [];
+                    const results = docs
+                        .filter(function(d) { return d.address; })
+                        .map(normalizeDoc);
+                    return {
+                        results: results,
+                        hasNext: hasNextPageFromMeta(json.meta, page, ADDR_PAGE_SIZE, docs.length),
+                        totalCount: json.meta ? Number(json.meta.total_count) || 0 : 0
+                    };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 주소검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('addressSearch', { keyword: keyword, page: page, size: ADDR_PAGE_SIZE });
+                });
+        }
+        return gasFetch('addressSearch', { keyword: keyword, page: page, size: ADDR_PAGE_SIZE });
+    });
+}
+
+// 건물명검색도 주소검색과 동일하게 페이지 단위로 가져온다
+const NAME_PAGE_SIZE = 15;
+
+function fetchNameSearch(keyword, page) {
+    page = page || 1;
+    return cached('name:' + keyword + ':' + page, function() {
+        if (!USE_GAS_DIRECTLY) {
+            return fetchWithTimeout('https://dapi.kakao.com/v2/local/search/keyword.json?' +
+                    buildQuery({ query: keyword, page: page, size: NAME_PAGE_SIZE }), {
+                    headers: { 'Authorization': 'KakaoAK ' + KAKAO_API_KEY, 'KA': KAKAO_KA }
+                })
+                .then(function(res) {
+                    if (!res.ok) throw new Error('Kakao HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(json) {
+                    if (json.errorType) throw new Error(json.message || json.errorType);
+                    /* 건물명 검색은 오피스텔이 목적이므로 주거시설 외에
+                       오피스텔 카테고리(부동산 > 오피스텔 등)도 함께 남긴다. */
+                    const results = (json.documents || [])
+                        .filter(function(d) {
+                            const category = d.category_name || '';
+                            return category.indexOf('주거시설') !== -1 ||
+                                category.indexOf('오피스텔') !== -1;
+                        })
+                        .map(function(d) {
+                            return {
+                                placeName: d.place_name,
+                                roadAddress: d.road_address_name || d.address_name,
+                                jibunAddress: d.address_name,
+                                categoryName: d.category_name.split('>').pop().trim()
+                            };
+                        });
+                    return {
+                        results: results,
+                        hasNext: hasNextPageFromMeta(json.meta, page, NAME_PAGE_SIZE, (json.documents || []).length),
+                        totalCount: json.meta ? Number(json.meta.total_count) || 0 : 0
+                    };
+                })
+                .catch(function(err) {
+                    console.warn('⚠️ 카카오 건물명검색 직접 호출 실패 → GAS 폴백:', err.message);
+                    return gasFetch('nameSearch', { keyword: keyword, page: page, size: NAME_PAGE_SIZE });
+                });
+        }
+        return gasFetch('nameSearch', { keyword: keyword, page: page, size: NAME_PAGE_SIZE });
+    });
+}
+
+/* =========================================================
+   오피스텔 정적 데이터 설정
+========================================================= */
+
+const OP_DATA_BASE = 'op_gongsi_data/';
+
+// 오피스텔 정적 데이터의 고시연도. op_gongsi_data를 새 연도 자료로 다시 만들면
+// build_office_price_data.py가 이 값을 자동으로 갱신한다.
+const OFFICE_DATA_YEAR = '2026';
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+/* ---------------------------------------------------------
+   오피스텔 정적 데이터 파일을 읽는다. 404면 그 파일에 없는 것이다.
+   (fetch가 throw하면 아래 폴백을 시도할 수 없으므로 404를 "없음"으로 번역한다)
+   --------------------------------------------------------- */
+function fetchOfficeDataFile(dongCode) {
+
+    return fetchWithTimeout(OP_DATA_BASE + dongCode + '.json', undefined, 8000)
+        .then(function(res) {
+
+            if (!res.ok) return null;
+
+            return res.json();
+        })
+        .catch(function() { return null; });
+}
+
+/* ---------------------------------------------------------
+   "지번 -> 후보 법정동코드 목록" 인덱스.
+
+   오피스텔 기준시가 데이터는 국세청이 고시할 때 쓰던 법정동코드로 쪼개져
+   있는데, 주소검색 API는 *현재* 법정동코드(b_code)를 준다. 행정구역이 개편된
+   동은 두 코드가 다르므로 404가 나면 지번 색인(_index.json)으로 후보를 재시도한다.
+   (상세 사례는 공시가조회.html 주석 참고 — 양지 어반시아)
+   --------------------------------------------------------- */
+let _opIndexPromise = null;
+
+function loadOfficeIndex() {
+
+    if (!_opIndexPromise) {
+
+        // 인덱스 파일이 없으면(구버전 배포) 없는 것으로 처리해 정확한 경로만 쓴다.
+        _opIndexPromise = fetchWithTimeout(OP_DATA_BASE + '_index.json', undefined, 10000)
+            .then(function(res) { return res.ok ? res.json() : null; })
+            .catch(function() { return null; });
+    }
+
+    return _opIndexPromise;
+}
+
+// 두 법정동코드가 얼마나 가까운지 본다(앞자리부터 일치하는 자릿수).
+function dongCodeAffinity(a, b) {
+
+    let score = 0;
+
+    for (let i = 0; i < 10 && i < a.length && i < b.length; i++) {
+
+        if (a[i] !== b[i]) break;
+
+        score++;
+    }
+
+    return score;
+}
+
+// 이 주소의 지번을 담은 데이터 파일(법정동코드)을 후보순으로 돌려준다.
+function resolveOfficeDongCandidates(dongCode, parcelKey) {
+
+    return loadOfficeIndex().then(function(index) {
+
+        const found = index ? index[parcelKey] : null;
+
+        if (!found || found.length === 0) return [];
+
+        return found.slice().sort(function(a, b) {
+
+            return dongCodeAffinity(b, dongCode) - dongCodeAffinity(a, dongCode);
+        });
+    });
+}
+
+// 지번 키 = "본번-부번" (build_op_gongsi_index.js와 같은 규칙)
+function officeParcelKey(bunji, ho) {
+    return bunji + '-' + ho;
+}
+
+function fetchOfficeBuilding(data) {
+
+    const dongCode = data.legalDongCode;
+
+    /* 본번/부번 4자리.
+       주소검색 결과에 본번/부번이 그대로 있으면 그것을 쓰고,
+       없을 때만 PNU(법정동10 + 대장구분1 + 본번4 + 부번4)에서 잘라 쓴다. */
+    const pad4 = function(v) {
+        return ('0000' + String(v === undefined || v === null ? '' : v).replace(/\D/g, '')).slice(-4);
+    };
+    const hasParts = data.mainNo !== undefined && data.mainNo !== null && String(data.mainNo) !== '';
+    const bunji = hasParts ? pad4(data.mainNo) : data.pnu.substr(11, 4);
+    const ho = hasParts ? pad4(data.subNo) : data.pnu.substr(15, 4);
+
+    if (!dongCode) return Promise.resolve(null);
+
+    const pick = function(json) {
+
+        if (!json) return null;
+
+        const match = json.b.find(b => b[0] === bunji && b[1] === ho);
+
+        if (!match) return null;
+
+        return {
+            bunji: match[0],
+            ho: match[1],
+            special: match[2],
+            name: match[3],
+            units: match[4]
+        };
+    };
+
+    /*
+     * ① 주소검색이 준 법정동코드로 정확히 시도한다.
+     *    대부분 이 단계에서 끝나고, 정적 JSON 한 개만 읽는다(가장 빠름).
+     */
+    return fetchOfficeDataFile(dongCode)
+        .then(pick)
+        .then(function(building) {
+
+            if (building) return building;
+
+            /*
+             * ② 없으면 "그 지번을 담은 다른 법정동코드"를 찾아 한 번 더 시도한다.
+             *    (행정구역 개편으로 코드가 바뀐 경우)
+             */
+            return resolveOfficeDongCandidates(dongCode, officeParcelKey(bunji, ho))
+                .then(function(candidates) {
+
+                    const others = candidates.filter(function(code) {
+                        return code !== dongCode;
+                    });
+
+                    // 후보는 보통 0~1개다. 잘못된 동을 함께 열지 않도록 순차로 시도한다.
+                    return others.reduce(function(chain, code) {
+                        return chain.then(function(acc) {
+                            if (acc) return acc;
+                            return fetchOfficeDataFile(code).then(pick);
+                        });
+                    }, Promise.resolve(null));
+                });
+        })
+        .catch(function() { return null; });
+}
+
+
+
+/* =========================================================
+   전역 상태
+========================================================= */
+
+let selectedAddressData = null;
+let officeBuilding = null;
+let pendingUnitSelection = null;
+
+// 늦게 도착한 이전 검색 응답을 무시하기 위한 토큰
+let searchRequestSeq = 0;
+
+// 기준연도를 바꾸면(조회 버튼 없이) 그 연도 그대로 다시 조회한다.
+const _opYearSelect = document.getElementById("yearSelect");
+if (_opYearSelect) {
+    _opYearSelect.value = OFFICE_DATA_YEAR;
+    _opYearSelect.onchange = searchPrice;
+}
+
+
+/* =========================================================
+   1. 주소 검색
+========================================================= */
+
+// 띄어쓰기 없이 붙여쓴 도로명/지번 주소를 표준 형식으로 보정
+// 예: "명지로60번길19-5" -> "명지로60번길 19-5", "석우동53" -> "석우동 53"
+// 매번 재컴파일되지 않도록 정규식을 파일 상수로 올려 둔다.
+const ADDR_TIGHTEN_RE = /(로|길|동)(?=\d[\d-]*$)/;
+const WS_RE = /\s+/g;
+
+function normalizeAddress(raw) {
+
+    return raw
+        .replace(ADDR_TIGHTEN_RE, '$1 ')
+        .replace(WS_RE, ' ')
+        .trim();
+}
+
+
+// 검색어 끝에 붙은 동·호 지정을 분리한다.
+// "...103동 2002호", "...103 2002"(동+호), "...301호", "...301"(호만) 형태를 인식한다.
+// 매칭되지 않으면 null. 하이픈 지번("117-37")을 잘못 쪼개지 않도록
+// 마커 없는 경우는 공백 분리 토큰 단위로 판단한다.
+function parseUnitSuffix(raw) {
+
+    const trimmed = raw.trim();
+
+    let m = trimmed.match(/^(.+?)\s+(\d{1,4})\s*동\s+(\d{1,5})\s*호?$/);
+    if (m) return { address: m[1].trim(), dong: m[2], ho: m[3] };
+
+    m = trimmed.match(/^(.+?)\s+(\d{1,5})\s*호$/);
+    if (m) return { address: m[1].trim(), dong: null, ho: m[2] };
+
+    const tokens = trimmed.split(/\s+/);
+
+    if (tokens.length >= 3) {
+
+        const last = tokens[tokens.length - 1];
+        const beforeLast = tokens[tokens.length - 2];
+
+        if (/^\d{1,4}$/.test(beforeLast) && /^\d{1,5}$/.test(last)) {
+
+            return {
+                address: tokens.slice(0, -2).join(' '),
+                dong: beforeLast,
+                ho: last
+            };
+        }
+
+        if (/^\d{1,5}$/.test(last) && /^\d+-?\d*$/.test(beforeLast) && /\d/.test(beforeLast)) {
+
+            return {
+                address: tokens.slice(0, -1).join(' '),
+                dong: null,
+                ho: last
+            };
+        }
+    }
+
+    return null;
+}
+
+
+// 새 검색 시 이전 선택·조회 결과를 모두 초기화
+function resetResultAreas() {
+
+    selectedAddressData = null;
+    officeBuilding = null;
+
+    document.getElementById("selectedAddress").classList.remove("show");
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
+    document.getElementById("unitArea").classList.remove("show");
+    document.getElementById("yearArea").classList.remove("show");
+
+    hidePriceResult();
+}
+
+
+function searchAddress() {
+
+    const input =
+        document.getElementById("addressInput");
+
+    const raw =
+        input.value.trim();
+
+    const parsedUnit =
+        parseUnitSuffix(raw);
+
+    const keyword =
+        normalizeAddress(parsedUnit ? parsedUnit.address : raw);
+
+
+    if (!keyword) {
+
+        showStatus(
+            "주소를 입력해주세요.",
+            true
+        );
+
+        input.focus();
+
+        return;
+    }
+
+
+    resetResultAreas();
+
+    pendingUnitSelection =
+        parsedUnit ? { dong: parsedUnit.dong, ho: parsedUnit.ho } : null;
+
+    document
+        .getElementById("searchResults")
+        .classList.remove("show");
+
+    showLoadingPopup("주소를 검색하고 있습니다...");
+
+    showStatus(
+        "주소를 검색하고 있습니다...",
+        false
+    );
+
+    searchRequestSeq += 1;   // 진행 중인 이전 요청 응답 무시
+
+    loadSearchPage(1, keyword);
+}
+
+
+/*
+ * 주소/건물명 검색 결과의 한 페이지를 불러와 화면에 표시한다.
+ * 주소검색 결과가 없으면 건물명(키워드)검색으로 한 번 더 시도한다.
+ */
+function loadSearchPage(page, keyword) {
+
+    const seq = ++searchRequestSeq;
+
+    if (page > 1) {
+        showLoadingPopup("검색 결과 " + page + "페이지를 불러오는 중입니다...");
+    }
+
+    fetchAddressSearch(keyword, page)
+        .then(data => {
+
+            // 그 사이 다른 검색이 시작됐다면 이 응답은 버린다
+            if (seq !== searchRequestSeq) return;
+
+            if (data.error) {
+                showStatus(data.error, true);
+                return;
+            }
+
+            if (!data.results || data.results.length === 0) {
+
+                if (page === 1) {
+                    searchByBuildingName(keyword);
+                    return;
+                }
+
+                showStatus("검색 결과가 없습니다.", true);
+                return;
+            }
+
+            // 결과가 하나뿐이면 목록 없이 바로 선택 처리한다.
+            if (page === 1 && data.results.length === 1 && !data.hasNext) {
+                hideStatus();
+                selectAddress(data.results[0]);
+                return;
+            }
+
+            displayAddressSearchResults(data.results);
+            hideStatus();
+        })
+        .catch(() => {
+            if (seq !== searchRequestSeq) return;
+            showStatus("검색 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
+        });
+}
+
+
+/*
+ * 주소검색 결과가 비었을 때 건물명(키워드)검색으로 넘어간다.
+ */
+function searchByBuildingName(keyword) {
+
+    const seq = ++searchRequestSeq;
+
+    showLoadingPopup("건물명으로 검색하고 있습니다...");
+
+    fetchNameSearch(keyword, 1)
+        .then(data => {
+
+            if (seq !== searchRequestSeq) return;
+
+            if (!data.results || data.results.length === 0) {
+                showStatus("검색 결과가 없습니다.", true);
+                return;
+            }
+
+            if (data.results.length === 1 && !data.hasNext) {
+                hideStatus();
+                selectNameSearchResult(data.results[0]);
+                return;
+            }
+
+            displayNameSearchResults(data.results);
+            hideStatus();
+        })
+        .catch(() => {
+            if (seq !== searchRequestSeq) return;
+            showStatus("검색 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
+        });
+}
+
+
+function buildResultCountText(label, count) {
+
+    return label + " " + count + "건";
+}
+
+
+function displayAddressSearchResults(results) {
+
+    const area =
+        document.getElementById("searchResults");
+
+    const list =
+        document.getElementById("addressList");
+
+    const count =
+        document.getElementById("resultCount");
+
+
+    list.innerHTML = "";
+
+
+    count.textContent = buildResultCountText("검색 결과", results.length);
+
+
+    results.forEach(function(item) {
+
+        const div =
+            document.createElement("div");
+
+
+        div.className =
+            "address-item";
+
+
+        div.innerHTML = `
+
+            <div class="road">
+                ${escapeHtml(item.roadAddress)}
+            </div>
+
+            <div class="jibun">
+                지번 :
+                ${escapeHtml(item.jibunAddress)}
+            </div>
+
+            <div class="extra">
+                ${escapeHtml(item.buildingName)}
+            </div>
+
+        `;
+
+
+        div.addEventListener(
+            "click",
+            function() {
+
+                selectAddress(item);
+
+            }
+        );
+
+
+        list.appendChild(div);
+
+    });
+
+
+    area.classList.add("show");
+
+
+    /*
+     * 검색 결과 위치로 이동
+     * innerHTML 교체 직후 동기 scrollIntoView는 레이아웃이 불안정해
+     * 모바일에서 튀는 경우가 있어 한 프레임 미뤄 안정된 뒤 스크롤한다.
+     */
+
+    requestAnimationFrame(function() {
+        area.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    });
+}
+
+
+/*
+ * 건물명 검색 결과 표시 (오피스텔/빌라/아파트 등)
+ */
+function displayNameSearchResults(results) {
+
+    const area =
+        document.getElementById("searchResults");
+
+    const list =
+        document.getElementById("addressList");
+
+    const count =
+        document.getElementById("resultCount");
+
+
+    list.innerHTML = "";
+
+
+    count.textContent = buildResultCountText("건물명 검색 결과", results.length);
+
+
+    results.forEach(function(item) {
+
+        const div =
+            document.createElement("div");
+
+
+        div.className =
+            "address-item";
+
+
+        div.innerHTML = `
+
+            <div class="road">
+                ${escapeHtml(item.placeName)}
+            </div>
+
+            <div class="jibun">
+                지번 :
+                ${escapeHtml(item.jibunAddress)}
+            </div>
+
+            <div class="extra">
+                ${escapeHtml(item.roadAddress)}
+            </div>
+
+        `;
+
+
+        div.addEventListener(
+            "click",
+            function() {
+
+                selectNameSearchResult(item);
+
+            }
+        );
+
+
+        list.appendChild(div);
+
+    });
+
+
+    area.classList.add("show");
+
+
+    requestAnimationFrame(function() {
+        area.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    });
+}
+
+
+/*
+ * 건물명 검색 결과를 클릭하면, 그 도로명주소로 주소검색을 한 번 더 호출해
+ * PNU 계산에 필요한 구조화된 정보(법정동코드/본번/부번 등)를 얻는다.
+ */
+function selectNameSearchResult(item) {
+
+    document
+        .getElementById("searchResults")
+        .classList.remove("show");
+
+    showLoadingPopup("주소 정보를 확인하고 있습니다...");
+
+    showStatus(
+        "주소 정보를 확인하고 있습니다...",
+        false
+    );
+
+    fetchAddressSearch(item.roadAddress)
+        .then(data => {
+
+            if (data.error || !data.results || data.results.length === 0) {
+                showStatus("건물의 상세 주소 정보를 찾을 수 없습니다.", true);
+                return;
+            }
+
+            const resolved = data.results[0];
+
+            if (!resolved.buildingName) {
+                resolved.buildingName = item.placeName;
+            }
+
+            hideStatus();
+            selectAddress(resolved);
+        })
+        .catch(() => {
+            showStatus("주소 확인 중 오류가 발생했습니다.", true);
+        })
+        .finally(() => {
+            hideLoadingPopup();
+        });
+}
+
+
+/* =========================================================
+   2. 주소 선택 → 오피스텔 조회
+========================================================= */
+
+function selectAddress(data) {
+
+    selectedAddressData = data;
+    officeBuilding = null;
+
+    // 검색 결과 목록은 더 이상 필요 없다
+    document.getElementById("searchResults").classList.remove("show");
+
+
+    /*
+     * 주소 표시
+     */
+
+    document
+        .getElementById("selectedRoad")
+        .textContent =
+        data.roadAddress;
+
+
+    document
+        .getElementById("selectedJibun")
+        .textContent =
+        data.jibunAddress;
+
+
+    document
+        .getElementById("selectedAddress")
+        .classList.add("show");
+
+
+    /*
+     * 기존 결과 초기화
+     */
+
+    hidePriceResult();
+
+    document.getElementById("unitArea").classList.remove("show");
+    document.getElementById("yearArea").classList.remove("show");
+    document.getElementById("selectedAddressTypeBadge").textContent = "";
+    document.getElementById("selectedBuildingNameRow").style.display = "none";
+
+
+    /*
+     * 오피스텔 판별 (정적 JSON 조회)
+     */
+
+    detectOfficeBuilding(data);
+
+
+    /*
+     * 선택 주소 위치로 이동
+     */
+
+    document
+        .getElementById("selectedAddress")
+        .scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+}
+
+
+function detectOfficeBuilding(data) {
+
+    if (!data || !data.pnu) {
+        showStatus("주소의 상세 정보를 확인하지 못했습니다. 도로명주소 또는 지번주소로 다시 검색해주세요.", true);
+        hideLoadingPopup();
+        return;
+    }
+
+    showLoadingPopup("오피스텔 정보를 확인하고 있습니다...");
+    showStatus("오피스텔 정보를 확인하고 있습니다...", false);
+
+    fetchOfficeBuilding(data).then(function(building) {
+
+        if (!building) {
+            showStatus("해당 주소의 오피스텔 기준시가 자료를 찾을 수 없습니다.", true);
+            return;
+        }
+
+        officeBuilding = building;
+
+        hideStatus();
+        applyOfficeBuilding();
+    }).catch(function() {
+        showStatus("오피스텔 정보 확인 중 오류가 발생했습니다.", true);
+    }).finally(function() {
+        hideLoadingPopup();
+    });
+}
+
+
+function applyOfficeBuilding() {
+
+    const buildingName = officeBuilding.name || "";
+
+    /*
+     * 카드 ②(선택한 주소)에 유형·건물명을 표시한다
+     */
+
+    document.getElementById("selectedAddressTypeBadge").textContent = "오피스텔";
+
+    const buildingNameRow = document.getElementById("selectedBuildingNameRow");
+
+    if (buildingName) {
+        document.getElementById("selectedBuildingName").textContent = buildingName;
+        buildingNameRow.style.display = "";
+    } else {
+        buildingNameRow.style.display = "none";
+    }
+
+
+    /*
+     * 기준연도 select 표시 — 오피스텔은 고시자료가 한 연도뿐이다.
+     */
+    document.getElementById("yearArea").classList.add("show");
+
+    // 결과 카드를 먼저 열어 제목 줄의 기준연도 select가 보이게 한다.
+    // 본문(가격·상세표)은 조회가 끝나 displayPriceResult()에서 채워진다.
+    const priceCard = document.getElementById("priceResult");
+    priceCard.classList.add("shell-only");
+    priceCard.classList.add("show");
+
+
+    /*
+     * 동·호 구성
+     */
+    setupUnitSelection();
+}
+
+
+/* =========================================================
+   3. 동 / 층 / 호 구성 (정적 데이터 기반)
+========================================================= */
+
+function uniqueSorted(arr) {
+
+    return Array.from(new Set(arr)).sort(function(a, b) {
+        return String(a).localeCompare(String(b), 'ko', { numeric: true });
+    });
+}
+
+// select의 selectedIndex로 "실제로 골랐는지"를 판단한다(값이 빈 문자열이어도
+// 목록에서 고른 것과 안내문구가 그대로인 것을 구분하기 위함).
+function isChosen(select) {
+    return select.selectedIndex > 0;
+}
+
+// 동/호를 하나만 고를 수 있으면(구분없음 포함) 바로 선택해 준다.
+// 자동 선택도 사용자가 고른 것과 동일하게 취급되도록 change 이벤트를 실제로 발생시킨다.
+function autoSelectIfSingle(select) {
+
+    if (select.options.length === 2) {
+        select.selectedIndex = 1;
+        select.dispatchEvent(new Event("change"));
+        return true;
+    }
+
+    return false;
+}
+
+function setupUnitSelection() {
+
+    const unitArea =
+        document.getElementById("unitArea");
+
+    const dong =
+        document.getElementById("dongSelect");
+
+    const ho =
+        document.getElementById("hoSelect");
+
+
+    /*
+     * 초기화
+     */
+
+    dong.innerHTML =
+        '<option value="">동 선택</option>';
+
+    ho.innerHTML =
+        '<option value="">호 선택</option>';
+
+    dong.onchange = null;
+    ho.onchange = null;
+
+
+    if (!officeBuilding || !officeBuilding.units) {
+        unitArea.classList.remove("show");
+        return;
+    }
+
+    unitArea.classList.add("show");
+
+
+    const populateHo = function(dongNm) {
+
+        ho.innerHTML = '<option value="">호 선택</option>';
+
+        const hos =
+            uniqueSorted(officeBuilding.units.filter(u => u[0] === dongNm).map(u => u[2]));
+
+        addOptions(ho, hos);
+
+        // 호가 하나뿐이면 바로 선택한다(자동 선택 시 change 이벤트가 발생한다).
+        autoSelectIfSingle(ho);
+    };
+
+
+    const dongNames =
+        uniqueSorted(officeBuilding.units.map(u => u[0]));
+
+    addOptions(dong, dongNames);
+
+    dong.onchange = function() {
+        populateHo(dong.value);
+    };
+
+    ho.onchange = maybeSearchPrice;
+
+
+    /*
+     * 검색어에 동·호를 함께 입력해 뒀다면 그 값으로 자동 선택한다.
+     * (자료 표기가 "103"/"0103"처럼 다를 수 있어 findMatchingUnitOption으로 느슨하게 비교)
+     */
+
+    const matchedDong =
+        pendingUnitSelection
+            ? findMatchingUnitOption(dongNames, pendingUnitSelection.dong)
+            : null;
+
+    if (matchedDong !== null) {
+
+        dong.value = matchedDong;
+        populateHo(dong.value);
+
+    } else if (autoSelectIfSingle(dong)) {
+
+        // autoSelectIfSingle이 change 이벤트를 쏘면서 dong.onchange → populateHo가 이미 실행된다.
+    }
+
+
+    /*
+     * 동 구분이 없는 건물(동 목록이 "구분없음" 하나뿐)은 동 컬럼을 숨기고 호 선택만 남긴다.
+     */
+
+    const dongBox = dong.closest(".select-box");
+
+    if (dongBox) {
+
+        const onlyEmptyDong =
+            dongNames.length === 1 && dongNames[0] === "";
+
+        dongBox.style.display = onlyEmptyDong ? "none" : "";
+    }
+
+    if (pendingUnitSelection && isChosen(ho)) {
+
+        const hoValues =
+            Array.from(ho.options).map(o => o.value);
+
+        const matchedHo =
+            findMatchingUnitOption(hoValues, pendingUnitSelection.ho);
+
+        if (matchedHo !== null) {
+
+            ho.value = matchedHo;
+            searchPrice();
+        }
+    }
+
+    pendingUnitSelection = null;
+}
+
+
+// 동/호 값을 느슨하게 비교하기 위해 앞뒤 공백, "동"/"호" 접미사, 앞자리 0을 없앤다.
+function normalizeUnitToken(value) {
+
+    return String(value)
+        .trim()
+        .replace(/[동호]$/, "")
+        .replace(/^0+(?=\d)/, "");
+}
+
+// options 중에서 target과 느슨하게 일치하는 "실제 옵션 값"을 찾는다.
+function findMatchingUnitOption(options, target) {
+
+    if (target === null || target === undefined) {
+        return null;
+    }
+
+    const normTarget = normalizeUnitToken(target);
+
+    const found = options.find(
+        v => normalizeUnitToken(v) === normTarget
+    );
+
+    return found !== undefined ? found : null;
+}
+
+
+/* =========================================================
+   4. SELECT OPTION 추가
+========================================================= */
+
+function addOptions(select, items) {
+
+    items.forEach(function(item) {
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            item;
+
+        option.textContent =
+            item === "" ? "구분없음" : item;
+
+        select.appendChild(option);
+
+    });
+}
+
+
+/* =========================================================
+   5. 기준시가 조회
+========================================================= */
+
+// 동·호 중 무엇이 바뀌든, 조회에 필요한 값이 다 갖춰져 있으면 바로 다시 조회한다.
+function maybeSearchPrice() {
+
+    if (!selectedAddressData || !officeBuilding) {
+        return;
+    }
+
+    const dong = document.getElementById("dongSelect");
+    const ho = document.getElementById("hoSelect");
+
+    // 동 구분이 없는 건물(동 목록이 "구분없음" 하나뿐)은 호 선택만으로 조회한다.
+    const dongRequired =
+        !(dong.options.length === 2 && dong.options[1].value === "");
+
+    if ((!dongRequired || isChosen(dong)) && isChosen(ho)) {
+        searchPrice();
+    }
+}
+
+function searchPrice() {
+
+    if (!selectedAddressData || !officeBuilding) {
+        showStatus("먼저 주소를 선택해주세요.", true);
+        return;
+    }
+
+    const dong =
+        document.getElementById("dongSelect");
+
+    const ho =
+        document.getElementById("hoSelect");
+
+    const dongRequired =
+        !(dong.options.length === 2 && dong.options[1].value === "");
+
+    if ((dongRequired && !isChosen(dong)) || !isChosen(ho)) {
+        showStatus("동·호를 선택해주세요.", true);
+        return;
+    }
+
+    const year =
+        document.getElementById("yearSelect").value;
+
+    if (year !== OFFICE_DATA_YEAR) {
+        showStatus("오피스텔은 " + OFFICE_DATA_YEAR + "년 1월 1일 고시 자료만 제공됩니다.", true);
+        return;
+    }
+
+    const dongVal = dong.value;
+    const hoVal = ho.value;
+
+    const unit = officeBuilding.units.find(u =>
+        u[0] === dongVal && u[2] === hoVal
+    );
+
+    if (!unit) {
+        showStatus("선택한 동·호의 자료를 찾을 수 없습니다.", true);
+        return;
+    }
+
+    hideStatus();
+
+    const totalArea = unit[4] + unit[5];
+    const price = Math.round(unit[3] * totalArea);
+
+    displayPriceResult({
+        price: price,
+        year: year,
+        building: officeBuilding.name,
+        area: totalArea.toFixed(2) + "㎡ (전용 " + unit[4] + " + 공용 " + unit[5] + ")",
+        dong: dongVal,
+        floor: unit[1],
+        ho: hoVal
+    });
+}
+
+
+/* =========================================================
+   6. 가격 결과 표시
+========================================================= */
+
+function displayPriceResult(data) {
+
+    const label =
+        data.year + "년 오피스텔 기준시가";
+
+    document
+        .getElementById("priceLabel")
+        .textContent =
+        label;
+
+
+    document
+        .getElementById("priceValue")
+        .textContent =
+        Number(data.price)
+            .toLocaleString("ko-KR");
+
+
+    document
+        .getElementById("resultYear")
+        .textContent =
+        data.year + "년";
+
+
+    document
+        .getElementById("resultBuilding")
+        .textContent =
+        data.building || "-";
+
+
+    document
+        .getElementById("resultArea")
+        .textContent =
+        data.area || "-";
+
+
+    /*
+     * 동/층/호
+     */
+
+    if (
+        data.dong ||
+        data.floor ||
+        data.ho
+    ) {
+
+        document
+            .getElementById("resultUnit")
+            .textContent =
+            [
+                data.dong,
+                data.floor,
+                data.ho
+            ]
+            .filter(Boolean)
+            .join(" / ");
+
+    }
+
+    else {
+
+        document
+            .getElementById("resultUnit")
+            .textContent =
+            "-";
+    }
+
+
+    document
+        .getElementById("priceResult")
+        .classList.remove("shell-only");
+
+    document
+        .getElementById("priceResult")
+        .classList.add("show");
+
+
+    updateCalcResult(data.price);
+
+    /*
+     * 결과를 먼저 화면에 표시하고, 사용자가 확인 버튼을 눌렀을 때만 부모로 전달한다.
+     * (오피스텔 정적자료는 앱 번들에 들어 있어 mode 파라미터가 없어도 전달 가능)
+     */
+    if (window.parent && window.parent !== window) {
+        pendingPublicPropertyPrice = {
+            type: 'publicPropertyPrice',
+            value: Number(data.price) || 0,
+            aptName: data.building || selectedAddressData?.buildingName || '',
+            address: selectedAddressData?.roadAddress || selectedAddressData?.jibunAddress || '',
+            typeLabel: '오피스텔',
+            pyeong: data.area || '',
+            exclusiveSqm: data.area || '',
+            supplyPyeong: '',
+            priceField: data.year ? `${data.year}년 오피스텔 기준시가` : '오피스텔 기준시가',
+            dong: data.dong || '',
+            ho: data.ho || '',
+            publicPrice: Number(data.price) || 0
+        };
+        const applyButton = document.getElementById('publicPriceApplyBtn');
+        if (applyButton) applyButton.style.display = 'none';
+        document.querySelectorAll('.calc-apply-btn').forEach(button => { button.style.display = 'inline-block'; });
+    }
+
+    /*
+     * 결과로 이동
+     */
+
+    document
+        .getElementById("priceResult")
+        .scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+}
+
+
+/* =========================================================
+   7. 계산값 (공시가격 기반 대출 관련 산식)
+========================================================= */
+
+function updateCalcResult(price) {
+
+    const base = Number(price);
+
+    function toWon(value) {
+        return Math.round(value).toLocaleString("ko-KR") + "원";
+    }
+
+    document.getElementById("calcHousePrice").textContent =
+        toWon(base * 1.30);
+
+    document.getElementById("calcSeoulGuarantee").textContent =
+        toWon(base * 1.30 * 0.90);
+
+    document.getElementById("calcJusinboDosi").textContent =
+        toWon(base * 1.40 * 0.90);
+
+    document.getElementById("calcJusinbo").textContent =
+        toWon(base * 1.00);
+
+    document
+        .getElementById("calcResult")
+        .classList.add("show");
+}
+
+
+
+/* =========================================================
+   결과 숨기기
+========================================================= */
+
+function hidePriceResult() {
+
+    const card = document.getElementById("priceResult");
+
+    card.classList.remove("show");
+
+    // "제목 줄만 먼저 열어둔" 상태도 함께 걷어낸다.
+    card.classList.remove("shell-only");
+
+    document
+        .getElementById("calcResult")
+        .classList.remove("show");
+}
+
+
+/* =========================================================
+   상태 메시지
+========================================================= */
+
+// 검색 흐름이 여러 단계로 이어질 때 각 단계가 독립적으로 show/hide를 호출한다.
+// 단순 on/off라면 안쪽 단계가 띄운 팝업을 바깥쪽 완료 처리가 곧바로 꺼버려
+// 화면이 깜빡이므로, 몇 번 띄워졌는지 세어 그 횟수만큼 닫혀야 감춘다.
+let loadingPopupDepth = 0;
+
+function showLoadingPopup(message) {
+
+    loadingPopupDepth++;
+
+    const overlay =
+        document.getElementById("loadingOverlay");
+
+    const text =
+        document.getElementById("loadingText");
+
+    text.textContent =
+        message || "조회 중입니다...";
+
+    overlay.classList.add("show");
+}
+
+
+function hideLoadingPopup() {
+
+    loadingPopupDepth =
+        Math.max(0, loadingPopupDepth - 1);
+
+    if (loadingPopupDepth === 0) {
+
+        document
+            .getElementById("loadingOverlay")
+            .classList.remove("show");
+    }
+}
+
+
+function showStatus(
+    message,
+    error
+) {
+
+    const status =
+        document.getElementById("status");
+
+    status.textContent =
+        message;
+
+    status.classList.add("show");
+
+    if (error) {
+
+        status.classList.add("error");
+
+    }
+
+    else {
+
+        status.classList.remove("error");
+
+    }
+}
+
+
+function hideStatus() {
+
+    document
+        .getElementById("status")
+        .classList.remove("show");
+}
+
+
+/* =========================================================
+   HTML 문자열 안전 처리
+========================================================= */
+
+/*
+ * ★ 정규식 리터럴에 "</"를 그대로 쓰면 안 된다.
+ *   이 스크립트는 HTML 안에 직접 들어 있어서, HTML 파서가 "</" 뒤에 오는 글자를
+ *   종료 태그로 오인한다. 예전에는 정규식 리터럴로 "<"를 직접 썼는데, 그 뒤에
+ *   오는 글자와 합쳐져 종료 태그처럼 보였고 파서가 스크립트를 거기서 강제
+ *   종료해 그 아래 코드가 실행되지 않았다.
+ *   → "<"는 문자열로 만들어 넘긴다(파서가 "</"를 볼 일이 없다).
+ */
+const LT_RE = new RegExp("<", "g");
+const GT_RE = new RegExp(">", "g");
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(LT_RE, "&lt;")
+        .replace(GT_RE, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* =========================================================
+   ENTER 키 검색
+========================================================= */
+
+document
+    .getElementById("addressInput")
+    .addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                searchAddress();
+
+            }
+
+        }
+    );
+
+    </script>
+
+</body>
+</html>
