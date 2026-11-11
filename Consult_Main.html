@@ -99,6 +99,8 @@
                     <div class="market-price-menu" id="marketPriceMenu" hidden>
                       <button type="button" onclick="openMarketPriceOverlay('kb')">KB시세</button>
                       <button type="button" onclick="openMarketPriceOverlay('public')">공시가 조회</button>
+                      <!-- [2026-11-11 추가] 오피스텔(도보·서보) 상담용 OP시세 조회 -->
+                      <button type="button" data-price-mode="op" onclick="openMarketPriceOverlay('op')">OP시세</button>
                     </div>
                   </div>
                 </div>
@@ -1149,6 +1151,25 @@
       var menu = document.getElementById('marketPriceMenu');
       if (button) button.textContent = isJeonse ? '시세조회' : 'KB시세 조회';
       if (menu && !isJeonse) menu.hidden = true;
+      refreshMarketPriceOpItem();
+    }
+
+    /* [2026-11-11 추가] OP시세(오피스텔) 항목은 "도보·서보"를 고른 상담에서만 보여준다.
+       · 구분 버튼(propertyCategoryBtn)이 도보/서보이거나
+       · 저장된 보증 구분(CONSULT_DSR_propertyJeonseGuarantee)이 도시보증/서울보증이면 표시
+       그 외(담보·전세 일반)에서는 숨긴다. */
+    function isOpPriceAvailable() {
+      var categoryBtn = document.getElementById('propertyCategoryBtn');
+      var categoryText = categoryBtn ? categoryBtn.textContent.trim() : '';
+      var guarantee = String(window.localStorage.getItem('CONSULT_DSR_propertyJeonseGuarantee') || '').trim();
+      return categoryText === '도보' || categoryText === '서보'
+        || guarantee === '도시보증' || guarantee === '서울보증';
+    }
+
+    function refreshMarketPriceOpItem() {
+      var opBtn = document.querySelector('#marketPriceMenu button[data-price-mode="op"]');
+      if (!opBtn) return;
+      opBtn.hidden = !isOpPriceAvailable();
     }
 
     function toggleMarketPriceMenu() {
@@ -1156,6 +1177,8 @@
       var menu = document.getElementById('marketPriceMenu');
       if (!isJeonse) { openMarketPriceOverlay('kb'); return; }
       if (menu) {
+        // 메뉴를 열 때마다 도보·서보 여부를 다시 판단해 OP 항목을 보이거나 숨긴다.
+        refreshMarketPriceOpItem();
         menu.hidden = !menu.hidden;
         menu.style.display = menu.hidden ? 'none' : 'flex';
         if (!menu.hidden) {
@@ -1183,7 +1206,16 @@
         menu.hidden = true;
         menu.style.display = 'none';
       }
-      frame.src = mode === 'public' ? '공시가조회.html?mode=public' : 'KB시세조회.html?mode=kb';
+      // [2026-11-11 변경] OP시세(오피스텔)도 같은 오버레이에서 연다.
+      //  · kb     → KB시세조회.html
+      //  · public → 공시가조회.html (주택 공시가)
+      //  · op     → OP시세조회.html (오피스텔 기준시가)
+      var pageMap = {
+        public: '공시가조회.html?mode=public',
+        op: 'OP시세조회.html?mode=op',
+        kb: 'KB시세조회.html?mode=kb'
+      };
+      frame.src = pageMap[mode] || pageMap.kb;
       overlay.style.display = 'block';
     }
 
@@ -1197,6 +1229,11 @@
     window.addEventListener('DOMContentLoaded', refreshMarketPriceBranch);
     window.addEventListener('storage', refreshMarketPriceBranch);
     window.addEventListener('consultLoanTypeChanged', refreshMarketPriceBranch);
+    // 구분(담보/도보/서보) 버튼이 바뀌면 OP 항목 표시도 같이 갱신한다.
+    //  · consultLoanTypeChanged : 구분 버튼 클릭/복원 시 발생
+    //  · consultGuaranteeChanged: 보증 구분만 바뀌는 경우를 위한 보조 이벤트
+    window.addEventListener('consultLoanTypeChanged', refreshMarketPriceOpItem);
+    window.addEventListener('consultGuaranteeChanged', refreshMarketPriceOpItem);
 
     window.addEventListener('message', function (e) {
       if (!e.data || !e.data.type) return;

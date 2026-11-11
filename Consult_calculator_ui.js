@@ -779,6 +779,22 @@ function toggleRepaymentTypeMenu(trigger) {
   const row = trigger.closest('tr');
   if (!row) return;
   const typeInput = row.querySelector('.mort-type');
+
+  // [2026-11-11 추가] 전세대·이자만은 상환방식이 "만기"로 고정이다.
+  //  칩을 누르면 만기 → 원리금으로 순환해 계산이 바뀌고, 다시 만기로 돌아오지 않아
+  //  "화면은 만기인데 계산은 원리금"이 되는 문제가 있었다.
+  //  → 이 구분에서는 클릭을 무시하고 항상 만기로 유지한다.
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  if (category === '전세대' || category === '이자만') {
+    if (typeInput && typeInput.value !== '만기') typeInput.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    trigger.textContent = '만기';
+    if (typeof 자동계산 === 'function') 자동계산();
+    return;
+  }
+
   const current = typeInput ? typeInput.value : '원리금';
   const idx = REPAYMENT_TYPE_CYCLE.indexOf(current);
   const next = REPAYMENT_TYPE_CYCLE[(idx + 1) % REPAYMENT_TYPE_CYCLE.length];
@@ -1128,6 +1144,10 @@ function saveCategoryInputs(row, category) {
   //  · 개월수·상환방식: 원리금은 따로 기억하지 않는다(초기화 후에도 이전 값이 되살아나지 않도록).
   const isFirstRow = row.classList.contains('first-row');
   const isWongum = category === '원리금';
+  // [2026-11-11 변경] 전세대·이자만은 상환방식이 "만기"로 자동 고정된다.
+  //  이 자동값을 저장해 두면 주담대/신용대로 돌아왔을 때 만기가 그대로 따라온다.
+  //  → 전세대·이자만은 상환방식을 저장하지 않는다(저장값이 없으면 기본값 원리금).
+  const isJeonseCategory = category === '전세대' || category === '이자만';
   const next = isFirstRow
     ? {
         amt: current.amt,
@@ -1136,7 +1156,14 @@ function saveCategoryInputs(row, category) {
         term: isWongum ? '' : current.term,
         type: isWongum ? '원리금' : current.type
       }
-    : current;
+    : {
+        amt: current.amt,
+        rate: current.rate,
+        stRate: current.stRate,
+        term: current.term,
+        // 전세대·이자만의 자동 "만기"는 기억하지 않는다.
+        type: isJeonseCategory ? '' : current.type
+      };
   store[category] = Object.assign({}, prev, next);
   row.dataset.categoryInputStore = JSON.stringify(store);
 }
@@ -1164,14 +1191,32 @@ function restoreCategoryInputs(row, category) {
     setVal('.mort-term', saved.term);
   }
   if (saved.type) {
+    // [2026-11-11 변경] 전세대·이자만은 상환방식이 항상 "만기"로 고정된다.
+    //  저장된 type(예전에 저장된 "원리금")을 복원하면 칩 문구가 원리금으로 남는다.
+    //  → 이 구분들은 type 복원을 건너뛴다.
+    const isJeonseCategory = category === '전세대' || category === '이자만';
+    if (!isJeonseCategory) {
+      const typeInput = row.querySelector('.mort-type');
+      if (typeInput && typeInput.value !== saved.type) {
+        typeInput.value = saved.type;
+        row.querySelectorAll('.type-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${saved.type}'`));
+        });
+        const trigger = row.querySelector('.type-btn-trigger');
+        if (trigger) trigger.textContent = saved.type;
+      }
+    }
+  } else if (!isFirstRow) {
+    // [2026-11-11 추가] 추가대출행에서 이 구분에 저장된 상환방식이 없으면
+    //  기본값(원리금)으로 되돌린다. (전세대의 자동 "만기"가 따라오지 않게)
     const typeInput = row.querySelector('.mort-type');
-    if (typeInput && typeInput.value !== saved.type) {
-      typeInput.value = saved.type;
+    if (typeInput && typeInput.value !== '원리금') {
+      typeInput.value = '원리금';
       row.querySelectorAll('.type-btn').forEach(btn => {
-        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${saved.type}'`));
+        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'원리금'"));
       });
       const trigger = row.querySelector('.type-btn-trigger');
-      if (trigger) trigger.textContent = saved.type;
+      if (trigger) trigger.textContent = '원리금';
     }
   }
 }
@@ -1254,21 +1299,69 @@ function applyJeonseRowLayout(row) {
   row.classList.toggle('is-grace-hidden', hideGrace);
 
   // ST금리 칸을 숨기는 구분: 신용대 · 원리금 · 연간원리금
+  // [2026-11-11 변경] 보유대출(추가대출) 행은 ST금리를 계산하지 않으므로 구분과 무관하게 숨긴다.
+  //  (본건 행에만 ST금리 칸이 보인다 — 전세대→주담대 전환 시 ST칸이 다시 나타나던 문제)
   // (계산 로직은 hidden 입력도 그대로 읽으므로, 숨길 때 값을 비우고 원래 값은 저장해 둔다.
   //  → 다시 ST금리를 쓰는 구분으로 돌아오면 저장해 둔 값을 복원한다.)
-  const hideStRate = category === '신용대' || category === '원리금' || category === '연간원리금';
+  const isFirstRowForSt = row.classList.contains('first-row');
+  const hideStRate = !isFirstRowForSt
+    || category === '신용대' || category === '원리금' || category === '연간원리금';
   row.classList.toggle('is-st-rate-hidden', hideStRate);
   applyStRateVisibility(row, hideStRate);
 
   // C타입: 신용대·원리금은 첫 행을 TD 하나로 병합해
   // [드롭다운][금액][금리][개월][상환방식] 을 한 줄로 정렬한다.
-  const moveRepayment = category === '신용대' || category === '원리금';
+  // [2026-11-11 변경] 보유대출(추가대출) 행은 구분과 무관하게 항상 한 줄로 병합한다.
+  //  (전세대→주담대 전환 시 3-TD 구조로 풀려 ST금리 칸이 다시 보이던 문제)
+  const isAddedRow = !row.classList.contains('first-row');
+  const moveRepayment = isAddedRow || category === '신용대' || category === '원리금';
   row.classList.toggle('is-repayment-moved', moveRepayment);
-  applyCompactRepaymentLayout(row, moveRepayment);
+  // [2026-11-11 변경] 병합/해제는 상환방식을 정한 뒤에 한다.
+  //  (병합 해제가 버튼을 새로 만들면서 이전 값을 복사해, 전세대 재진입 시
+  //   칩 문구가 "원리금"으로 남는 문제가 있었다)
+  //  → 아래에서 상환방식을 먼저 확정하고, 그 다음에 병합을 적용한다.
 
   // 구분별 상환방식 기억: 구분을 바꿨다 돌아오면 그 구분에서 쓰던 방식을 되살린다.
   // (전세대·이자만은 만기 고정이므로 제외)
-  if (!isJeonse) restoreRepaymentTypeForCategory(row, category);
+  // [2026-11-11 변경] 전세대에서 자동으로 넣은 "만기"가 주담대/신용대 저장소에 남아
+  //  구분을 바꿔도 만기가 그대로 따라오던 문제.
+  //  → 전세대·이자만으로 들어갈 때는 "이전 구분의 상환방식을 저장하지 않고",
+  //    나올 때는 그 구분에 저장된 값이 있으면 그것을, 없으면 기본값(원리금)을 쓴다.
+  if (!isJeonse) {
+    restoreRepaymentTypeForCategory(row, category);
+    // [2026-11-11 추가] 추가대출행: 이 구분에 저장된 상환방식이 없으면 기본값(원리금)으로 되돌린다.
+    //  (전세대에서 자동으로 넣은 "만기"가 그대로 따라오는 것을 막는다)
+    //  상환방식은 repayTypeByCategory 에 저장되므로 그 값을 기준으로 판단한다.
+    if (!row.classList.contains('first-row')) {
+      const savedType = getRepayTypeMap(row)[category];
+      if (!savedType) {
+        const typeInput = row.querySelector('.mort-type');
+        if (typeInput && typeInput.value !== '원리금') {
+          typeInput.value = '원리금';
+          row.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'원리금'"));
+          });
+          const trigger = row.querySelector('.type-btn-trigger');
+          if (trigger) trigger.textContent = '원리금';
+        }
+      }
+    }
+  } else {
+    // 전세대·이자만은 항상 만기일시로 고정한다(저장소에는 쓰지 않는다).
+    const jeonseTypeInput = row.querySelector('.mort-type');
+    if (jeonseTypeInput && jeonseTypeInput.value !== '만기') jeonseTypeInput.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    // [2026-11-11 추가] 병합이 이미 유지된 상태(재진입)에서는 버튼이 새로 만들어지지 않으므로
+    //  칩 문구를 여기서 직접 "만기"로 맞춘다. (원리금으로 남아 보이던 문제)
+    const jeonseTrigger = row.querySelector('.type-btn-trigger');
+    if (jeonseTrigger) jeonseTrigger.textContent = '만기';
+  }
+
+  // [2026-11-11 변경] 상환방식을 확정한 뒤에 병합/해제를 적용한다.
+  //  (병합 해제가 버튼을 새로 만들기 때문에, 먼저 확정해야 칩 문구가 맞게 나온다)
+  applyCompactRepaymentLayout(row, moveRepayment);
 
   // B타입 상환방식 선택기: 현재 선택된 방식 1개만 보이도록 문구를 맞춘다.
   const typeTrigger = row.querySelector('.type-btn-trigger');
@@ -1288,6 +1381,22 @@ function applyJeonseRowLayout(row) {
   // 4개 열을 모두 차지하게 한다. (colgroup을 숨기면 다른 행 폭까지 바뀌므로 건드리지 않는다)
 
   if (isJeonse) {
+    // [2026-11-11 변경] 보유대출(추가대출) 행은 전세대여도 별도 병합을 하지 않는다.
+    //  추가대출행은 아래 C타입(한 줄 병합)으로 통일해 [드롭다운][금액][금리][개월][상환방식]을
+    //  한 줄로 나열한다. (전세대 전용 병합과 겹치면 레이아웃이 깨진다)
+    if (!row.classList.contains('first-row')) {
+      // 상환방식만 만기일시로 맞춘다.
+      const addedTypeInput = row.querySelector('.mort-type');
+      if (addedTypeInput && addedTypeInput.value !== '만기') addedTypeInput.value = '만기';
+      row.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+      });
+      // [2026-11-11 추가] 여기서 return 하면 아래 칩 문구 갱신을 건너뛰어
+      //  전세대 재진입 시 칩이 "원리금"으로 남는다. 여기서 직접 "만기"로 맞춘다.
+      const addedTrigger = row.querySelector('.type-btn-trigger');
+      if (addedTrigger) addedTrigger.textContent = '만기';
+      return;
+    }
     // 합쳐진 뒤에는 개월수/상환방식 TD가 없으므로, 합치기 전에만 존재 여부를 검사한다.
     if (!isMerged && (!termCell || !repaymentCell)) return;
     // 상환방식: 전세대는 만기일시로 자동 선택
@@ -1306,14 +1415,46 @@ function applyJeonseRowLayout(row) {
     line.className = 'mort-jeonse-line';
 
     // 1) 드롭다운 + 금액
+    // [2026-11-11 추가] 전세대 한 줄 구성에 각 칸 라벨을 붙인다.
+    //   대출구분 / 대출금액 / 금리% / 스트레스금리%
+    //   라벨은 입력칸을 감싸는 <label class="mort-jeonse-field"> 안에 넣어
+    //   라벨을 눌러도 해당 입력칸에 포커스가 가게 한다.
+    const wrapWithLabel = (el, text) => {
+      if (!el) return null;
+      const box = document.createElement('label');
+      box.className = 'mort-jeonse-field';
+      const cap = document.createElement('span');
+      cap.className = 'mort-jeonse-label';
+      cap.textContent = text;
+      box.appendChild(cap);
+      box.appendChild(el);
+      return box;
+    };
+
     const amountRow = amountCell.querySelector('.mort-amount-row');
     if (amountRow) {
-      [...amountRow.children].forEach(child => line.appendChild(child));
+      [...amountRow.children].forEach(child => {
+        if (child.classList.contains('mort-category-select')) {
+          line.appendChild(wrapWithLabel(child, '대출구분'));
+        } else if (child.classList.contains('mort-amt')) {
+          line.appendChild(wrapWithLabel(child, '대출금액'));
+        } else {
+          line.appendChild(child);
+        }
+      });
     }
     // 2) 금리 + ST금리 (금리선택기 6M/2Y는 CSS로 숨김)
     const rateRow = amountCell.querySelector('.input-flex-row');
     if (rateRow) {
-      [...rateRow.children].forEach(child => line.appendChild(child));
+      [...rateRow.children].forEach(child => {
+        if (child.classList.contains('mort-rate')) {
+          line.appendChild(wrapWithLabel(child, '금리%'));
+        } else if (child.classList.contains('mort-st-rate')) {
+          line.appendChild(wrapWithLabel(child, '스트레스금리%'));
+        } else {
+          line.appendChild(child);
+        }
+      });
     }
     // 3) 개월수 (CSS로 숨김 — 값/이벤트는 그대로 살아 있음)
     const termInput = termCell.querySelector('.mort-term');
@@ -1391,7 +1532,15 @@ function applyJeonseRowLayout(row) {
   repayTd.style.width = '30%';
   repayTd.style.padding = '4px 3px';
   // B타입: 현재 선택된 방식 1개만 보이는 트리거 + 3개 선택지 팝업
-  const currentType = typeInput ? typeInput.value : '원리금';
+  // [2026-11-11 변경] 추가대출행이 전세대(자동 만기)에서 다른 구분으로 나올 때
+  //  만기가 그대로 따라오지 않도록, 저장된 상환방식이 없으면 기본값(원리금)을 쓴다.
+  //  (이 함수는 병합을 풀면서 버튼을 새로 만들기 때문에 여기서 값을 정해야 한다)
+  let currentType = typeInput ? typeInput.value : '원리금';
+  if (!isFirstRow) {
+    const savedType = getRepayTypeMap(row)[categoryInput?.value || ''];
+    currentType = savedType || '원리금';
+    if (typeInput && typeInput.value !== currentType) typeInput.value = currentType;
+  }
   const typeLabel = currentType === '만기' ? '만기' : currentType;
   repayTd.innerHTML = `
     <div class="type-btn-row">
@@ -1471,7 +1620,18 @@ function updateLoanCategory(select) {
     __inCategoryChange -= 1;
   }
   // 새 구분에 저장해 둔 입력값이 있으면 되살린다.
+  // [2026-11-11 변경] 전세대·이자만은 상환방식이 "만기"로 고정이므로,
+  //  저장값 복원이 그 값을 덮어쓰지 않도록 복원 후 다시 만기로 맞춘다.
   restoreCategoryInputs(row, select.value);
+  if (select.value === '전세대' || select.value === '이자만') {
+    const jeonseType = row.querySelector('.mort-type');
+    if (jeonseType && jeonseType.value !== '만기') jeonseType.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    const jeonseChip = row.querySelector('.type-btn-trigger');
+    if (jeonseChip) jeonseChip.textContent = '만기';
+  }
   const reductionButton = row.nextElementSibling?.querySelector('.mort-reduction-btn');
   if (reductionButton) {
     // 버튼 노출 여부는 updateMortgageReductionButtons()가 '신용대' 기준으로 일괄 처리한다.
