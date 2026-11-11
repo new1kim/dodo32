@@ -767,6 +767,99 @@ select:focus {
    MOBILE
 ========================================================= */
 
+/* =========================================================
+   최근 조회 히스토리 (2026-11-11 추가 — KB시세조회와 동일한 톤)
+========================================================= */
+
+.gs-history-section {
+    margin-top: 14px;
+}
+
+.gs-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.gs-history-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #777;
+    letter-spacing: 0.3px;
+}
+
+.gs-history-clear {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #a5adb8;
+    cursor: pointer;
+}
+.gs-history-clear:active { opacity: 0.6; }
+
+.gs-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border: 1px solid #e1e4e7;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+.gs-history-item:active { background: #fafafa; transform: scale(0.99); }
+
+.gs-history-info { min-width: 0; overflow: hidden; }
+
+.gs-history-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gs-history-meta {
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gs-history-price {
+    flex: 0 0 auto;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #222;
+    white-space: nowrap;
+}
+
+.gs-history-remove {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: #adb5bd;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+}
+.gs-history-remove:active { background: #ffe3e3; color: #e03131; transform: scale(0.9); }
+
 @media (max-width: 520px) {
 
     .container {
@@ -890,6 +983,23 @@ select:focus {
             예) 도로명, 지번, 지역+건물명칭<br>
             예) 주소 검색이 제일 정확함.
 
+
+        </div>
+
+
+        <!-- [2026-11-11 추가] KB시세조회와 동일한 "최근 조회" 히스토리.
+             공시가격을 조회한 물건지를 로컬에 남겨 두었다가, 다시 들어오면 바로 보여준다. -->
+        <div id="historySection" class="gs-history-section" style="display:none;">
+
+            <div class="gs-history-head">
+
+                <span class="gs-history-title">최근 조회</span>
+
+                <button type="button" class="gs-history-clear" onclick="clearHistory()">전체 삭제</button>
+
+            </div>
+
+            <div id="historyList"></div>
 
         </div>
 
@@ -3457,6 +3567,22 @@ function displayPriceResult(data) {
 
     updateCalcResult(data.price);
 
+    // [2026-11-11 추가] 조회한 물건지를 "최근 조회" 히스토리에 남긴다(KB시세조회와 동일 규칙).
+    addPublicPriceHistory({
+        type: 'publicPropertyPrice',
+        value: Number(data.price) || 0,
+        aptName: data.building || selectedAddressData?.buildingName || '',
+        address: selectedAddressData?.roadAddress || selectedAddressData?.jibunAddress || '',
+        typeLabel: getTypeLabel(data.type),
+        pyeong: data.area || '',
+        exclusiveSqm: data.area || '',
+        supplyPyeong: '',
+        priceField: data.year ? `${data.year}년 공시가격` : '공시가격',
+        dong: data.dong || '',
+        ho: data.ho || '',
+        publicPrice: Number(data.price) || 0
+    });
+
     // 결과를 먼저 화면에 표시하고, 사용자가 확인 버튼을 눌렀을 때만 부모로 전달한다.
     if (window.parent && window.parent !== window && new URLSearchParams(window.location.search).get('mode') === 'public') {
         pendingPublicPropertyPrice = {
@@ -3647,10 +3773,149 @@ function escapeHtml(value) {
 
 
 /* =========================================================
+   최근 조회 히스토리 (2026-11-11 추가)
+   ---------------------------------------------------------
+   KB시세조회.html의 히스토리와 같은 방식이다.
+   물건지를 조회(displayPriceResult)할 때 저장해 두고, 다음에 이 화면을 열면
+   "최근 조회" 목록으로 보여준다. 항목을 탭하면 그 값을 그대로 다시 적용한다.
+   저장 키: publicPriceHistory (KB는 kbSiseHistory — 서로 섞이지 않게 따로 둔다)
+========================================================= */
+const PUBLIC_HISTORY_KEY = 'publicPriceHistory';
+const PUBLIC_HISTORY_MAX = 8;
+
+function loadPublicPriceHistory() {
+    try {
+        const list = JSON.parse(localStorage.getItem(PUBLIC_HISTORY_KEY) || '[]');
+        return Array.isArray(list) ? list : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// 같은 물건지+같은 가격이면 중복 저장하지 않고 맨 앞으로 끌어올린다.
+function publicHistoryKey(h) {
+    return [h.aptName, h.address, h.typeLabel, h.priceField, h.publicPrice, h.dong, h.ho].join('|');
+}
+
+function addPublicPriceHistory(entry) {
+    if (!entry || !entry.publicPrice) return;
+    const list = loadPublicPriceHistory();
+    const key = publicHistoryKey(entry);
+    const idx = list.findIndex(h => publicHistoryKey(h) === key);
+    if (idx !== -1) list.splice(idx, 1);
+    list.unshift(entry);
+    try {
+        localStorage.setItem(PUBLIC_HISTORY_KEY, JSON.stringify(list.slice(0, PUBLIC_HISTORY_MAX)));
+    } catch (e) {
+        console.warn('히스토리 저장 실패', e);
+    }
+    renderPublicPriceHistory();
+}
+
+function clearHistory() {
+    localStorage.removeItem(PUBLIC_HISTORY_KEY);
+    renderPublicPriceHistory();
+}
+
+function removeHistoryItem(index) {
+    const list = loadPublicPriceHistory();
+    list.splice(index, 1);
+    try {
+        localStorage.setItem(PUBLIC_HISTORY_KEY, JSON.stringify(list));
+    } catch (e) {
+        console.warn('히스토리 저장 실패', e);
+    }
+    renderPublicPriceHistory();
+}
+
+/* 항목을 탭하면 값을 다시 적용한다.
+   · 부모 프레임(시세 오버레이)이 있으면 그쪽으로 전달(mode=public일 때만)
+   · 일반 브라우저로 직접 열어 봤을 때는 화면에 금액만 표시 */
+function reapplyPublicHistoryItem(h) {
+    const value = Number(h.publicPrice) || 0;
+    addPublicPriceHistory(h);
+
+    const isPublicMode = new URLSearchParams(window.location.search).get('mode') === 'public';
+
+    if (window.parent && window.parent !== window && isPublicMode) {
+        window.parent.postMessage({
+            type: 'publicPropertyPrice',
+            value: value,
+            aptName: h.aptName || '',
+            address: h.address || '',
+            typeLabel: h.typeLabel || '',
+            pyeong: h.pyeong || '',
+            exclusiveSqm: h.exclusiveSqm || '',
+            supplyPyeong: h.supplyPyeong || '',
+            priceField: h.priceField || '공시가격',
+            dong: h.dong || '',
+            ho: h.ho || '',
+            publicPrice: value
+        }, '*');
+        return;
+    }
+
+    showStatus((h.aptName || h.address || '') + ' · ' + value.toLocaleString('ko-KR') + '원', false);
+}
+
+function renderPublicPriceHistory() {
+    const section = document.getElementById('historySection');
+    const listEl = document.getElementById('historyList');
+    if (!section || !listEl) return;
+
+    const list = loadPublicPriceHistory();
+
+    if (!list.length) {
+        section.style.display = 'none';
+        listEl.innerHTML = ''; // 숨김만 하고 두면 이전 항목 DOM이 남는다
+        return;
+    }
+
+    section.style.display = 'block';
+
+    const meta = (h) => {
+        const unit = [h.dong, h.ho].filter(Boolean).join(' ');
+        return [h.typeLabel, unit, h.priceField]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join(' · ');
+    };
+
+    listEl.innerHTML = list.map((h, i) => `
+        <div class="gs-history-item" data-idx="${i}">
+            <div class="gs-history-info">
+                <div class="gs-history-name">${escapeHtml(h.aptName || h.address || '이름 없음')}</div>
+                <div class="gs-history-meta">${meta(h)}</div>
+            </div>
+            <div class="gs-history-price">${Number(h.publicPrice || 0).toLocaleString('ko-KR')}원</div>
+            <button type="button" class="gs-history-remove" data-idx="${i}" aria-label="이 기록 삭제">✕</button>
+        </div>
+    `).join('');
+}
+
+// 목록 클릭/삭제는 위임 리스너 1개로 처리한다.
+document.addEventListener('click', function (e) {
+    const removeBtn = e.target.closest('.gs-history-remove');
+    if (removeBtn) {
+        e.stopPropagation();
+        removeHistoryItem(Number(removeBtn.dataset.idx));
+        return;
+    }
+    const item = e.target.closest('.gs-history-item');
+    if (!item) return;
+    const h = loadPublicPriceHistory()[Number(item.dataset.idx)];
+    if (h) reapplyPublicHistoryItem(h);
+});
+
+
+/* =========================================================
    초기화
 ========================================================= */
 
 initYearSelect();
+
+// 저장된 최근 조회 목록을 화면에 표시한다.
+renderPublicPriceHistory();
 
 // 기준연도를 바꾸면(조회 버튼 없이) 바로 그 연도로 다시 조회한다.
 document

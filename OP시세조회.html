@@ -62,11 +62,31 @@ body {
     margin-bottom: 18px;
 }
 
+/* [2026-11-11 변경] 헤더 오른쪽 "직접조회" 버튼 삭제로 제목이 오른쪽에 붙던 문제.
+   뒤로가기 버튼을 헤더 안의 절대 위치로 빼서 공간 계산에서 제외하고,
+   제목만 남은 헤더 폭의 정확한 가운데에 놓는다. */
 .header-row {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: center;
+    min-height: 34px;
+}
+
+.header-row .gonsi-back-btn {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.header-row .gonsi-back-btn:active {
+    transform: translateY(-50%) scale(.94);
+}
+
+.header-row h1 {
+    flex: 0 1 auto;
+    text-align: center;
+    margin: 0;
 }
 
 .gonsi-back-btn {
@@ -100,28 +120,7 @@ body {
     color: #777;
 }
 
-.direct-link-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-    padding: 7px 13px 7px 7px;
-    border-radius: 999px;
-    border: 1px solid #dfe6ef;
-    background: #fff;
-    color: #333;
-    font-size: 12.5px;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
-}
-
-.direct-link-btn svg {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-}
+/* [2026-11-11] 헤더의 "직접조회" 링크 버튼 삭제에 따라 .direct-link-btn 스타일도 제거됨 */
 
 
 /* =========================================================
@@ -760,6 +759,100 @@ select:focus {
 
 
 /* =========================================================
+   최근 조회 히스토리 (2026-11-11 추가 — KB시세조회와 동일한 톤)
+========================================================= */
+
+.gs-history-section {
+    margin-top: 14px;
+}
+
+.gs-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.gs-history-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #777;
+    letter-spacing: 0.3px;
+}
+
+.gs-history-clear {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #a5adb8;
+    cursor: pointer;
+}
+.gs-history-clear:active { opacity: 0.6; }
+
+.gs-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border: 1px solid #e1e4e7;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+}
+.gs-history-item:active { background: #fafafa; transform: scale(0.99); }
+
+.gs-history-info { min-width: 0; overflow: hidden; }
+
+.gs-history-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gs-history-meta {
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gs-history-price {
+    flex: 0 0 auto;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #222;
+    white-space: nowrap;
+}
+
+.gs-history-remove {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: #adb5bd;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+}
+.gs-history-remove:active { background: #ffe3e3; color: #e03131; transform: scale(0.9); }
+
+
+/* =========================================================
    MOBILE
 ========================================================= */
 
@@ -788,6 +881,7 @@ select:focus {
     .price-value {
         font-size: 26px;
     }
+}
 
 </style>
 </head>
@@ -819,21 +913,6 @@ select:focus {
             <h1>
                 OP시세 조회
             </h1>
-
-            <a
-                class="direct-link-btn"
-                href="https://www.realtyprice.kr/notice/main/main.do"
-                target="_blank"
-                rel="noopener noreferrer">
-
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="50" r="50" fill="#fff"/>
-                    <path d="M50 3A47 47 0 0 1 50 97A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 3Z" fill="#cd2e3a"/>
-                    <path d="M50 97A47 47 0 0 1 50 3A23.5 23.5 0 0 1 50 50A23.5 23.5 0 0 0 50 97Z" fill="#003478"/>
-                </svg>
-
-                직접조회
-            </a>
 
         </div>
 
@@ -883,9 +962,22 @@ select:focus {
 
         <div class="help-text">
 
-            예) 도로명, 지번, 지역+건물명칭<br>
-            예) 오피스텔명 + 호 (예: 어반시아 301호)
+        </div>
 
+
+        <!-- [2026-11-11 추가] KB시세조회와 동일한 "최근 조회" 히스토리.
+             조회한 오피스텔(동·호 포함)을 로컬에 남겨 두었다가, 다시 들어오면 바로 보여준다. -->
+        <div id="historySection" class="gs-history-section" style="display:none;">
+
+            <div class="gs-history-head">
+
+                <span class="gs-history-title">최근 조회</span>
+
+                <button type="button" class="gs-history-clear" onclick="clearHistory()">전체 삭제</button>
+
+            </div>
+
+            <div id="historyList"></div>
 
         </div>
 
@@ -2596,6 +2688,22 @@ function displayPriceResult(data) {
 
     updateCalcResult(data.price);
 
+    // [2026-11-11 추가] 조회한 오피스텔(동·호 포함)을 "최근 조회" 히스토리에 남긴다.
+    addOfficePriceHistory({
+        type: 'publicPropertyPrice',
+        value: Number(data.price) || 0,
+        aptName: data.building || selectedAddressData?.buildingName || '',
+        address: selectedAddressData?.roadAddress || selectedAddressData?.jibunAddress || '',
+        typeLabel: '오피스텔',
+        pyeong: data.area || '',
+        exclusiveSqm: data.area || '',
+        supplyPyeong: '',
+        priceField: data.year ? `${data.year}년 오피스텔 기준시가` : '오피스텔 기준시가',
+        dong: data.dong || '',
+        ho: data.ho || '',
+        publicPrice: Number(data.price) || 0
+    });
+
     /*
      * 결과를 먼저 화면에 표시하고, 사용자가 확인 버튼을 눌렀을 때만 부모로 전달한다.
      * (오피스텔 정적자료는 앱 번들에 들어 있어 mode 파라미터가 없어도 전달 가능)
@@ -2785,6 +2893,140 @@ function escapeHtml(value) {
 
 
 /* =========================================================
+   최근 조회 히스토리 (2026-11-11 추가)
+   ---------------------------------------------------------
+   KB시세조회.html의 히스토리와 같은 방식이다.
+   동·호까지 확정되어 가격이 나온 순간(displayPriceResult) 저장하고,
+   다음에 이 화면을 열면 "최근 조회" 목록으로 보여준다.
+   저장 키: opPriceHistory (공시가조회 htmlPublicHistory와 섞이지 않게 따로 둔다)
+========================================================= */
+const OFFICE_HISTORY_KEY = 'opPriceHistory';
+const OFFICE_HISTORY_MAX = 8;
+
+function loadOfficePriceHistory() {
+    try {
+        const list = JSON.parse(localStorage.getItem(OFFICE_HISTORY_KEY) || '[]');
+        return Array.isArray(list) ? list : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// 같은 건물+같은 동·호+같은 금액이면 중복 저장하지 않고 맨 앞으로 끌어올린다.
+function officeHistoryKey(h) {
+    return [h.aptName, h.address, h.dong, h.ho, h.publicPrice].join('|');
+}
+
+function addOfficePriceHistory(entry) {
+    if (!entry || !entry.publicPrice) return;
+    const list = loadOfficePriceHistory();
+    const key = officeHistoryKey(entry);
+    const idx = list.findIndex(h => officeHistoryKey(h) === key);
+    if (idx !== -1) list.splice(idx, 1);
+    list.unshift(entry);
+    try {
+        localStorage.setItem(OFFICE_HISTORY_KEY, JSON.stringify(list.slice(0, OFFICE_HISTORY_MAX)));
+    } catch (e) {
+        console.warn('히스토리 저장 실패', e);
+    }
+    renderOfficePriceHistory();
+}
+
+function clearHistory() {
+    localStorage.removeItem(OFFICE_HISTORY_KEY);
+    renderOfficePriceHistory();
+}
+
+function removeHistoryItem(index) {
+    const list = loadOfficePriceHistory();
+    list.splice(index, 1);
+    try {
+        localStorage.setItem(OFFICE_HISTORY_KEY, JSON.stringify(list));
+    } catch (e) {
+        console.warn('히스토리 저장 실패', e);
+    }
+    renderOfficePriceHistory();
+}
+
+/* 항목을 탭하면 그 값을 다시 적용한다.
+   · 부모 프레임(시세 오버레이)이 있으면 그쪽으로 전달
+   · 일반 브라우저로 직접 열어 봤을 때는 화면에 금액만 표시 */
+function reapplyOfficeHistoryItem(h) {
+    const value = Number(h.publicPrice) || 0;
+    addOfficePriceHistory(h);
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: 'publicPropertyPrice',
+            value: value,
+            aptName: h.aptName || '',
+            address: h.address || '',
+            typeLabel: h.typeLabel || '오피스텔',
+            pyeong: h.pyeong || '',
+            exclusiveSqm: h.exclusiveSqm || '',
+            supplyPyeong: h.supplyPyeong || '',
+            priceField: h.priceField || '오피스텔 기준시가',
+            dong: h.dong || '',
+            ho: h.ho || '',
+            publicPrice: value
+        }, '*');
+        return;
+    }
+
+    showStatus((h.aptName || h.address || '') + ' · ' + value.toLocaleString('ko-KR') + '원', false);
+}
+
+function renderOfficePriceHistory() {
+    const section = document.getElementById('historySection');
+    const listEl = document.getElementById('historyList');
+    if (!section || !listEl) return;
+
+    const list = loadOfficePriceHistory();
+
+    if (!list.length) {
+        section.style.display = 'none';
+        listEl.innerHTML = '';
+        return;
+    }
+
+    section.style.display = 'block';
+
+    const meta = (h) => {
+        const unit = [h.dong, h.ho].filter(Boolean).join(' ');
+        return [h.typeLabel, unit, h.priceField]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join(' · ');
+    };
+
+    listEl.innerHTML = list.map((h, i) => `
+        <div class="gs-history-item" data-idx="${i}">
+            <div class="gs-history-info">
+                <div class="gs-history-name">${escapeHtml(h.aptName || h.address || '이름 없음')}</div>
+                <div class="gs-history-meta">${meta(h)}</div>
+            </div>
+            <div class="gs-history-price">${Number(h.publicPrice || 0).toLocaleString('ko-KR')}원</div>
+            <button type="button" class="gs-history-remove" data-idx="${i}" aria-label="이 기록 삭제">✕</button>
+        </div>
+    `).join('');
+}
+
+// 목록 클릭/삭제는 위임 리스너 1개로 처리한다.
+document.addEventListener('click', function (e) {
+    const removeBtn = e.target.closest('.gs-history-remove');
+    if (removeBtn) {
+        e.stopPropagation();
+        removeHistoryItem(Number(removeBtn.dataset.idx));
+        return;
+    }
+    const item = e.target.closest('.gs-history-item');
+    if (!item) return;
+    const h = loadOfficePriceHistory()[Number(item.dataset.idx)];
+    if (h) reapplyOfficeHistoryItem(h);
+});
+
+
+/* =========================================================
    ENTER 키 검색
 ========================================================= */
 
@@ -2804,6 +3046,10 @@ document
 
         }
     );
+
+
+// 저장된 최근 조회 목록을 화면에 표시한다.
+renderOfficePriceHistory();
 
     </script>
 
