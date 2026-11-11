@@ -45,11 +45,30 @@ $files = @(
 $map = [ordered]@{}
 $missing = @()
 
+# [2026-11-12 수정] 해시는 "GitHub에 올라간 그대로(LF)"를 기준으로 계산해야 한다.
+#  이 저장소는 core.autocrlf=true 라서 로컬 파일은 CRLF, GitHub는 LF로 저장된다.
+#  로컬(CRLF) 해시로 매니페스트를 만들면 앱이 받는 파일(LF)과 해시가 달라
+#  매번 "바뀐 파일"로 판단해 불필요하게 다시 받게 된다.
+#  → 텍스트 파일은 CRLF를 LF로 바꿔 해시를 계산한다(바이너리는 그대로).
+$textExt = @('.html', '.js', '.css', '.json', '.md', '.txt', '.gs', '.ps1', '.py')
+
+function Get-GitBlobHash([string]$path) {
+    $ext = [System.IO.Path]::GetExtension($path).ToLower()
+    if ($textExt -contains $ext) {
+        $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+        $text = $text -replace "`r`n", "`n"
+        $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($text)
+    } else {
+        $bytes = [System.IO.File]::ReadAllBytes($path)
+    }
+    $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    return @{ hash = (($sha | ForEach-Object { $_.ToString('x2') }) -join ''); size = $bytes.Length }
+}
+
 foreach ($f in $files) {
     if (-not (Test-Path $f)) { $missing += $f; continue }
-    $hash = (Get-FileHash -Path $f -Algorithm SHA256).Hash.ToLower()
-    $size = (Get-Item $f).Length
-    $map[$f] = [ordered]@{ sha256 = $hash; size = $size }
+    $info = Get-GitBlobHash $f
+    $map[$f] = [ordered]@{ sha256 = $info.hash; size = $info.size }
 }
 
 if ($missing.Count -gt 0) {
