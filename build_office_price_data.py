@@ -4,7 +4,7 @@
 build_office_price_data.py
 ===========================================================================
 매년 국세청이 새로 고시하는 "상업용건물 및 오피스텔 기준시가" 엑셀 파일을
-gonsi.html이 바로 읽을 수 있는 "법정동코드별 JSON"으로 쪼개주는 변환 스크립트.
+OP시세조회.html(오피스텔 공시가 조회)이 바로 읽을 수 있는 "법정동코드별 JSON"으로 쪼개주는 변환 스크립트.
 
 ## 왜 이 스크립트가 필요한가
 국세청 오피스텔 기준시가는 공공데이터포털(data.go.kr)에 "오픈 API"가 아니라
@@ -12,9 +12,9 @@ gonsi.html이 바로 읽을 수 있는 "법정동코드별 JSON"으로 쪼개주
 2020년 데이터에서 멈춰 있고 법정동코드로 서버측 필터링도 안 됨 - 즉
 API로는 이 작업을 자동화할 수 없다. 매년 새 엑셀을 받아서 다시 변환해야 함).
 
-전체 엑셀은 약 250만 행(160MB+)이라 gonsi.html에서 매번 통째로 불러올 수
+전체 엑셀은 약 250만 행(160MB+)이라 OP시세조회.html에서 매번 통째로 불러올 수
 없다. 그래서 법정동코드(10자리) 단위로 쪼갠 작은 JSON 파일(op_gongsi_data/
-{법정동코드}.json)을 미리 만들어두고, gonsi.html은 검색된 주소의 법정동코드에
+{법정동코드}.json)을 미리 만들어두고, OP시세조회.html은 검색된 주소의 법정동코드에
 해당하는 파일 "딱 하나"만 fetch 한다.
 
 ## 매년 해야 할 일 (요약)
@@ -23,8 +23,8 @@ API로는 이 작업을 자동화할 수 없다. 매년 새 엑셀을 받아서 
 2. 그 파일을 이 프로젝트의 OP_gongsi/ 폴더 안에 넣는다
    (파일명은 아무거나 상관없음 - 폴더 안에 .xlsx가 하나만 있으면 자동 인식)
 3. 터미널에서: python build_office_price_data.py
-4. 끝. op_gongsi_data/*.json이 새로 생성되고, gonsi.html의 OFFICE_DATA_YEAR
-   상수도 새 연도로 자동 갱신된다.
+4. 끝. op_gongsi_data/*.json 및 지번 색인(_index.json)이 재생성되고,
+   OP시세조회.html의 OFFICE_DATA_YEAR 상수도 새 연도로 자동 갱신된다.
 
 ## 원본 엑셀 컬럼 구조 (2026년 1월 1일 기준 파일에서 확인, 매년 동일할 것으로 예상)
 시트가 여러 개(1~5)로 나뉘어 있고, 시트마다 헤더가 반복된다. 컬럼 순서:
@@ -88,8 +88,8 @@ import openpyxl
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_DATA_DIR = os.path.join(SCRIPT_DIR, "OP_gongsi")          # 원본 엑셀이 들어있는 폴더 (.gitignore 처리됨)
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "op_gongsi_data")        # gonsi.html이 fetch하는 JSON 폴더
-GONSI_HTML_PATH = os.path.join(SCRIPT_DIR, "gonsi.html")       # OFFICE_DATA_YEAR 상수를 자동 갱신할 대상
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "op_gongsi_data")        # OP시세조회.html이 fetch하는 JSON 폴더
+GONSI_HTML_PATH = os.path.join(SCRIPT_DIR, "OP시세조회.html")   # OFFICE_DATA_YEAR 상수를 자동 갱신할 대상
 
 # 특수지코드 문자열 → 코드 매핑 (기존 op_gongsi_data 산출물과 대조해 확인한 값)
 SPECIAL_CODE_MAP = {
@@ -168,7 +168,7 @@ def convert(xlsx_path):
 
             category = row[1]
             if category != "오피스텔":
-                continue  # '상가' 행은 gonsi.html에서 쓰지 않으므로 제외
+                continue  # '상가' 행은 OP시세조회.html에서 쓰지 않으므로 제외
 
             kept_rows += 1
 
@@ -234,12 +234,12 @@ def convert(xlsx_path):
 def write_output(year, by_dong):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # 작년까지의 결과를 먼저 지운다. 그대로 두면 올해 데이터에서 사라진
-    # 법정동코드의 파일이 낡은 채로 남아 잘못된 값을 보여줄 수 있다.
-    old_files = glob.glob(os.path.join(OUTPUT_DIR, "*.json"))
+    # 작년까지의 법정동 JSON만 지운다. _index.json도 지웠다가 재생성하지 않으면
+    # 행정구역 개편 전 코드로만 남은 오피스텔(예: 양지 어반시아)을 더 이상 찾지 못한다.
+    old_files = glob.glob(os.path.join(OUTPUT_DIR, "[0-9]" * 10 + ".json"))
     for f in old_files:
         os.remove(f)
-    print("기존 JSON %d개 삭제 후 재생성" % len(old_files))
+    print("기존 법정동 JSON %d개 삭제 후 재생성 (_index.json은 유지)" % len(old_files))
 
     for dong_code, parcels in by_dong.items():
         b = []
@@ -248,19 +248,59 @@ def write_output(year, by_dong):
 
         out_path = os.path.join(OUTPUT_DIR, dong_code + ".json")
         with io.open(out_path, "w", encoding="utf-8") as f:
-            # 용량을 줄이기 위해 들여쓰기 없이 저장 (gonsi.html은 fetch 후 JSON.parse만 함)
+            # 용량을 줄이기 위해 들여쓰기 없이 저장 (OP시세조회.html은 fetch 후 JSON.parse만 함)
             json.dump({"y": year, "b": b}, f, ensure_ascii=False, separators=(",", ":"))
 
     print("op_gongsi_data/ 에 %d개 파일 생성 완료" % len(by_dong))
 
 
+def rebuild_office_index():
+    ""새로 생성한 법정동 JSON과 정확히 일치하도록 지번 색인을 재생성한다.
+
+    OP시세조회.html은 주소검색이 돌려준 현재 법정동코드 파일을 먼저 요청한 뒤,
+    없으면 이 색인으로 국세청 원본 코드(행정구역 개편 전)를 찾아 재시도한다.
+    데이터 파일만 새로 만들고 색인을 그대로 두면 새 지번이 빠지거나 오래된 후보가
+    남아 잘못된 파일을 선택할 수 있으므로 매 출력 생성 후 반드시 다시 만든다.
+    """
+    index = {}
+    for filename in os.listdir(OUTPUT_DIR):
+        if not re.match(r"^\d{10}\.json$", filename):
+            continue
+        code = filename[:10]
+        file_path = os.path.join(OUTPUT_DIR, filename)
+        try:
+            with io.open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (IOError, ValueError) as error:
+            print("경고: 색인 생성에서 JSON 파일을 건너뜁니다: %s (%s)" % (filename, error))
+            continue
+        for parcel in data.get("b", []):
+            if not isinstance(parcel, list) or len(parcel) < 2:
+                continue
+            key = str(parcel[0]) + "-" + str(parcel[1])
+            codes = index.setdefault(key, [])
+            if code not in codes:
+                codes.append(code)
+
+    for codes in index.values():
+        codes.sort()
+
+    index_path = os.path.join(OUTPUT_DIR, "_index.json")
+    with io.open(index_path, "w", encoding="utf-8") as f:
+        json.dump(index, f, ensure_ascii=False, separators=(", ":"))
+
+    print("지번 색인 재생성: %d개 지번 → %s (%.0fKB)" % (
+        len(index), os.path.basename(index_path), os.path.getsize(index_path) / 1024
+    ))
+
+
 def update_gonsi_html_year(year):
     """
-    gonsi.html의 `const OFFICE_DATA_YEAR = '2026';` 값을 새 연도로 자동 갱신한다.
+    OP시세조회.html의 `const OFFICE_DATA_YEAR = '2026';` 값을 새 연도로 자동 갱신한다.
     (매년 이 상수 갱신을 깜빡하는 게 가장 흔한 실수라 스크립트가 대신 처리한다)
     """
     if not os.path.isfile(GONSI_HTML_PATH):
-        print("경고: gonsi.html을 찾지 못해 OFFICE_DATA_YEAR 자동 갱신을 건너뜁니다.")
+        print("경고: OP시세조회.html을 찾지 못해 OFFICE_DATA_YEAR 자동 갱신을 건너뜁니다.")
         return
 
     with io.open(GONSI_HTML_PATH, "r", encoding="utf-8") as f:
@@ -269,27 +309,28 @@ def update_gonsi_html_year(year):
     pattern = re.compile(r"const OFFICE_DATA_YEAR = '(\d{4})';")
     match = pattern.search(html)
     if not match:
-        print("경고: gonsi.html에서 OFFICE_DATA_YEAR 상수를 찾지 못해 자동 갱신을 건너뜁니다.")
+        print("경고: OP시세조회.html에서 OFFICE_DATA_YEAR 상수를 찾지 못해 자동 갱신을 건너뜁니다.")
         return
 
     old_year = match.group(1)
     if old_year == year:
-        print("gonsi.html의 OFFICE_DATA_YEAR는 이미 %s년으로 되어 있습니다." % year)
+        print("OP시세조회.html의 OFFICE_DATA_YEAR는 이미 %s년으로 되어 있습니다." % year)
         return
 
     html = pattern.sub("const OFFICE_DATA_YEAR = '%s';" % year, html, count=1)
     with io.open(GONSI_HTML_PATH, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print("gonsi.html의 OFFICE_DATA_YEAR를 %s -> %s 로 갱신했습니다." % (old_year, year))
+    print("OP시세조회.html의 OFFICE_DATA_YEAR를 %s -> %s 로 갱신했습니다." % (old_year, year))
 
 
 def main():
     xlsx_path = find_source_xlsx()
     year, by_dong = convert(xlsx_path)
     write_output(year, by_dong)
+    rebuild_office_index()
     update_gonsi_html_year(year)
-    print("완료. gonsi.html을 새로고침해서 %s년 오피스텔 기준시가가 정상 조회되는지 확인해보세요." % year)
+    print("완료. OP시세조회.html을 새로고침해서 %s년 오피스텔 기준시가가 정상 조회되는지 확인해보세요." % year)
 
 
 if __name__ == "__main__":

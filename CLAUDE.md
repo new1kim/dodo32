@@ -12,6 +12,13 @@
 - 백업을 만들었으면 백업 경로와 복구 명령만 간단히 포함한다.
 - 검증하지 못한 내용은 완료했다고 표현하지 말고, 확인하지 못한 이유를 명시한다.
 
+### 🔁 반복 실패 시 중단 규칙 (2026-11-11 사용자 지정)
+- **동일한 작업이 5번 이상 실패하면 즉시 반복을 멈추고** 원인과 해결책을 브리핑한다.
+- 5번 이상 실패한 작업은 같은 방법을 계속 반복해도 의미가 없다고 판단한다.
+  → 접근 방식 자체를 바꾸거나, 사용자에게 판단을 요청한다.
+- 브리핑 형식: `지금까지 시도한 것 → 실패 원인 → 대안(다른 접근) → 권장안`
+- 같은 수정을 반복 적용하는 것도 실패로 센다(결과가 바뀌지 않으면 실패).
+
 ### Node.js 검증 환경
 - Node.js는 설치되어 있으나 현재 시스템 `PATH`에 등록되어 있지 않을 수 있다.
 - Node 실행 파일: `C:\Program Files\nodejs\node.exe`
@@ -45,16 +52,17 @@ Consult_Main.html              Consult_calculator_logic.js
 Consult_calculator_ui.js       Consult_style.css
 DSR_Main.html                  DSR_calculator_logic.js
 DSR_calculator_ui.js           DSR_style.css
-시세조회.html                   소액임차보증금.png
+KB시세조회.html                 소액임차보증금.png
 장래예상소득증가율.png           DTI.html
 신용점수기준.png                계산기.html
 날짜계산기.html                 MCG.html
 IDCard.html                    문서스캔.html
 ```
-추가로 root에 있어야 하는 것: `index.html`, `gonsi.html`, `op_gongsi_data/`(~1,936개 JSON)
+추가로 root에 있어야 하는 것: `index.html`, `공시가조회.html`, `OP시세조회.html`, `op_gongsi_data/`(~1,936개 JSON)
 
 > - `상담일지.html`은 **2026-09-22 제거됨** (화면·코드 모두). 전화 수신 팝업은 `Consult_Main.html`로 연결된다.
-> - `gonsi.html`은 `op_gongsi_data/*.json`에 의존하며, 용량 때문에 **GitHub 동기화 대상이 아니라 APK 번들 전용**이다.
+> - `OP시세조회.html`(오피스텔 공시가)은 `op_gongsi_data/*.json`에 의존하며, 용량 때문에 **GitHub 동기화 대상이 아니라 APK 번들 전용**이다.
+> - 화면 파일명 변경(2026-11-11): `시세조회.html`→`KB시세조회.html`, `gonsi.html`→`공시가조회.html`(주택 공시가), 오피스텔은 `OP시세조회.html`로 분리.
 
 ### 📁 콜노트앱 실제 빌드 프로젝트 위치 (2026-11-05 사용자 지정)
 ```
@@ -64,9 +72,19 @@ C:\Users\Administrator\CallNote
 - 이 저장소의 `d:\dodo32\CallNote`는 **GitHub 배포 소스 안의 사본**이며, 위 폴더와 **자동 동기화되지 않는다**(별개 폴더).
 - 화면 파일(HTML/JS/CSS)은 `d:\dodo32` 루트에서 수정·푸시하고, 앱 번들 반영이 필요하면 `C:\Users\Administrator\CallNote\app\src\main\assets\` 쪽도 함께 확인한다.
 
+### 🚫 콜노트 앱 작업 금지 (2026-11-11 사용자 지정)
+- **사용자가 콜노트 앱 작업을 별도로 명시해 요청하기 전까지 앱 관련 작업을 일절 하지 않는다.** 수정뿐 아니라 파일 열람·조사·빌드·테스트·에셋 동기화도 금지한다.
+- 대상: `C:\Users\Administrator\CallNote\`, `d:\dodo32\CallNote\`, `d:\dodo32\.authfix-worktree\CallNote\` 및 그 밖의 콜노트 앱 프로젝트/앱 번들 경로.
+- 화면 파일명이 바뀌어도 앱 쪽 `AssetSyncManager.FILES`·`MainActivity` 의 옛 파일명은 **그대로 둔다.**
+- 콜노트 앱과 별개인 웹(HTML/JS/CSS) 작업만 수행한다. 웹 작업의 앱 반영, 앱 빌드, 에셋 동기화도 별도 요청 없이는 하지 않는다.
+
 ---
 
-## 2. 커밋 전 필수 점검
+## 2. GitHub 반영 및 커밋 전 필수 점검
+- **사용자가 GitHub 푸시를 명시적으로 요청하기 전까지 GitHub에 푸시하거나 원격 저장소에 반영하지 않는다.** 푸시 요청 전에는 로컬 작업만 진행한다.
+- Git 커밋도 사용자가 별도로 요청하지 않는 한 만들지 않는다.
+
+### 커밋 전 필수 점검
 
 ```powershell
 C:\Program Files\Git\cmd\git.exe status --short
@@ -74,8 +92,7 @@ C:\Program Files\Git\cmd\git.exe status --short
 
 - **`D`(삭제)로 잡히는 항목이 있으면 절대 `git add -A` 하지 말 것.**
   실수로 올리면 GitHub에서 파일이 사라져 앱이 즉시 깨진다.
-  (2026-09-22 기준 `상담일지.html`, `사용설명서.html`, `사진스캔.html`,
-   `DSR_calculator_logic.min.js` 가 작업트리에서 삭제된 상태로 잡혀 있었음 — 복구 필요 여부 확인 대상)
+  (과거 기준 `상담일지.html`, `사용설명서.html`, `사진스캔.html` 이 작업트리에서 삭제된 상태로 잡혀 있었음 — 복구 필요 여부 확인 대상)
 - `.gitignore`가 있어도 **이미 추적 중인 파일은 계속 추적된다.** 삭제 방지는 `git status` 육안 확인만이 확실하다.
 
 ---
@@ -188,27 +205,7 @@ Get-Process | Where-Object { $_.ProcessName -match 'java|kotlin|studio' } |
 
 ```powershell
 $ts = Get-Date -Format "yyyyMMdd_HHmmss"
-Copy-Item "gonsi.html" "Backup\file_backups\gonsi.html.$ts.bak" -Force
-```
-
----
-
-## 4. 파일 쌍 동기화 (매우 중요)
-
-root의 화면 파일과 앱 번들 사본이 **짝**을 이룬다. 한쪽만 고치면 앱에서 반영이 안 된다.
-
-| root (배포 소스) | 앱 번들 (APK 포함) |
-|---|---|
-| `gonsi.html` | `CallNote/app/src/main/assets/gonsi.html` |
-| `시세조회.html` | `CallNote/app/src/main/assets/시세조회.html` |
-| `Consult_Main.html` | `CallNote/app/src/main/assets/Consult_Main.html` |
-| `DSR_Main.html` | `CallNote/app/src/main/assets/DSR_Main.html` |
-| `MCG.html` | `CallNote/app/src/main/assets/MCG.html` |
-| `상담일지.html` | `CallNote/app/src/main/assets/상담일지.html` |
-
-수정 후 **해시가 일치하는지 확인**한다:
-```powershell
-(Get-FileHash "gonsi.html").Hash -eq (Get-FileHash "CallNote\app\src\main\assets\gonsi.html").Hash
+Copy-Item "공시가조회.html" "Backup\file_backups\공시가조회.html.$ts.bak" -Force
 ```
 
 ---
@@ -217,7 +214,7 @@ root의 화면 파일과 앱 번들 사본이 **짝**을 이룬다. 한쪽만 �
 
 - HTML/JS 수정 후 **실제 브라우저로 로드해** 콘솔 에러 0건을 확인한다.
 - 검증은 추측이 아니라 **측정**으로 한다. 응답 구조·CORS·타이밍은 실제로 호출해서 확인한다.
-- 임시 검증 스크립트는 `_qa_<대상>.mjs` 로 만들고 **작업 끝나면 삭제**한다.
+- 임시 검증 스크립트는 `_qa_<대상>.mjs` 로 만들고 **작업 끝나면 임시파일들은 모두 삭제**한다.
 - 앱 origin을 흉내낼 때는 `https://appassets.androidx.startup` 을 쓴다 (아래 6번).
 
 ---
@@ -237,7 +234,7 @@ root의 화면 파일과 앱 번들 사본이 **짝**을 이룬다. 한쪽만 �
 | `api.vworld.kr` (공시가격) | ❌ **차단** | **GAS 경유 필수** |
 
 - VWorld는 `domain` 파라미터가 등록값(`127.0.0.1`)이 아니면 `INCORRECT_KEY` 를 낸다.
-- 그래서 `시세조회.html`·`gonsi.html`은 **하이브리드 구조**다:
+- 그래서 `KB시세조회.html`·`공시가조회.html`·`OP시세조회.html`은 **하이브리드 구조**다:
   ```
   kbFetch()/gasFetch() → 1차 직접 호출, 실패 시 console.warn 후 GAS 폴백
   USE_GAS_DIRECTLY = true  →  한 줄로 예전(GAS 전용) 방식 복귀
@@ -249,10 +246,9 @@ root의 화면 파일과 앱 번들 사본이 **짝**을 이룬다. 한쪽만 �
 
 - **이 저장소는 공개**다. 키를 새로 추가하기 전에 반드시 사용자에게 확인받는다.
 - 현재 클라이언트에 노출된 키 (이미 공개된 상태):
-  - 카카오 REST 키 → `gonsi.html`
+  - 카카오 REST 키 → `공시가조회.html`, `OP시세조회.html`
   - VWorld 키 / GAS URL → `시세조회_GAS.gs`, `MCG.html`, `상담일지.html`
-- **난독화는 방어가 아니다.** 클라이언트 키는 요청 시점에 복원되므로 네트워크 탭에 그대로 보인다.
-  실질 대응은 ① 발급처 도메인 제한 ② 키 재발급 ③ 서버 경유 중 하나다.
+- 클라이언트 키는 공개 저장소와 브라우저에 노출된다. 실질 대응은 ① 발급처 도메인 제한 ② 키 재발급 ③ 서버 경유 중 하나다.
 - GAS 스크립트 파일: `시세조회_GAS.gs`, `상담일지.gs`, `.clasp-deploy/`
 
 ---
@@ -378,44 +374,43 @@ DSR = 총 원리금상환액 ÷ 연소득 × 100
 
 ---
 
+## 11. Consult 초기화 동작 (2026-11-11 확정)
 
----
+- 초기화 버튼(`선택초기화()`)은 **"기본값으로 되돌리기"**다.
+  - 본건 행 구분 → `주담대`, 상환방식 → `원리금`
+  - 금리: 저장된 기본값, ST금리: 6M=3 / 5Y·2Y=1.5, 기간: 360개월(저장값 우선)
+  - 구분별 상환방식 기억(`repayTypeByCategory`)·입력값 저장소(`categoryInputStore`)도 **모두 원리금**으로 리셋
+- 초기화 후 드롭다운에서 어떤 구분을 골라도 상환방식이 **원리금**으로 시작해야 한다.
+- ⚠️ 함정: `선택초기화()` 안에서 `const`로 선언한 변수를 **다른 블록에서 참조하면**
+  `ReferenceError`가 나고 초기화가 그 지점에서 조용히 중단된다(화면 일부만 초기화됨).
+  블록을 넘나드는 변수는 함수 최상단에서 `let`으로 선언한다.
 
-## 11. Firebase 연동 정보 (Hosting / Auth / Firestore)
+### 본건 행 금리·ST금리·개월수 저장소 (2026-11-11 확정)
 
-> **주의:** 이 저장소는 공개 GitHub 저장소이자 Android 앱 배포 소스이므로,
-> Firebase 연동 관련 파일은 GitHub main에 커밋하지 않고 `.gitignore` 처리되어 있습니다.
-> Firebase Hosting 빌드는 `.\build_firebase_hosting.ps1`을 통해 `public/` 폴더로 모은 뒤 `firebase deploy --only hosting`으로 진행합니다.
-
-### 1) Firebase 프로젝트 정보
-- **Project ID**: `dodo32-8fee5`
-- **Auth Domain**: `dodo32-8fee5.firebaseapp.com`
-- **Storage Bucket**: `dodo32-8fee5.firebasestorage.app`
-- **Messaging Sender ID**: `586774572409`
-- **App ID**: `1:586774572409:web:0f3565db3e689adec3d3a8`
-- **Measurement ID**: `G-YXVZ12V77S`
-- **API Key**: `AIzaSyCGT7kjtwtyif4NyUUQlawW1ZTFNHH6dLU` (공개 키, 보안은 `firestore.rules`에서 제어)
-
-### 2) Firebase 파일 구성 및 역할
-| 파일 | 역할 |
+| 구분 | 키 |
 |---|---|
-| `vendor/firebase-*-compat.js` | Firebase v9/v10 compat SDK 로컬 복사본 (app, auth, firestore) |
-| `firebase-init.js` | Firebase 초기화 및 `window.DodoFirebase` 전역 객체 제공 |
-| `firebase-auth-ui.js` | 이메일/비밀번호 로그인 모달, 회원가입, 세션 관리, `window.DodoAuth` 제공 |
-| `firestore-consult-store.js` | `users/{uid}/consults/{docId}` 경로에 상담내용 저장/불러오기 (`window.DodoConsult`) |
-| `firestore-usage.js` | `users/{uid}/usage/{eventId}` 경로에 접속 및 화면/버튼 사용내역 기록 (`window.DodoUsage`) |
-| `firestore.rules` | 보안 규칙: 로그인 사용자 본인(`isOwner(uid)`)만 본인 데이터 읽기/쓰기 허용 |
-| `build_firebase_hosting.ps1` | `public/` 폴더에 배포용 정적 자산(HTML, JS, CSS, 이미지, Firebase 모듈)을 빌드/복사하는 스크립트 |
+| 주담대 | `DSR_firstRowRate_주담대_6M` / `_주담대_2Y` (ST·Term 동일 규칙) |
+| 전세대 | `DSR_firstRowRate_전세대` |
+| **원리금** | `DSR_firstRowRate_원리금` (**전용**) |
+| 공용 프로필 | `DSR_firstRowProfileValues` — 6M/5Y 묶음 |
 
-### 3) index.html 로그인 연동 구조
-- `public/index.html` (또는 Firebase Hosting 배포 대상)에서 Firebase Compat SDK 및 `firebase-init.js`, `firebase-auth-ui.js` 로드
-- `window.addEventListener('dodoAuthChanged', ...)` 리스너로 로그인 상태에 따라 `calc_user_name`을 갱신하고 `proceedToApp(name)` 또는 `showNameRequired()` 호출
-- 상단 이름 입력창(`submitUserName`)에서 이메일 형식(`user@domain.com`) 감지 시 Firebase Auth 로그인/회원가입 모달로 자동 연결
-- 로그인 성공 시 사용자 닉네임/이메일 아이디를 표시하고, 하위 iframe(예: `Consult_Main.html`)에서도 Firestore 연동이 유기적으로 동작
+- **원리금 구분은 전용 키만 쓴다.** 공용 프로필 저장소(`firstRowProfileValues`)에도 쓰면
+  초기화로 주담대로 돌아왔을 때 원리금에서 입력한 금리가 다시 읽혀 화면에 남는다.
+  → `saveFirstRowProfileValues()` 는 구분이 `원리금`이면 공용 저장을 건너뛴다.
+- 주담대 키가 **이미 존재하고 값이 빈 문자열**이면 "빈값 유지"다.
+  `applyConsultCachedRateToFirstRow()` 는 이 경우 기본값/공용 값을 다시 읽어 채우지 않는다.
+- 초기화(`clearFirstRowCategoryRateStore`)는 `주담대_6M / 주담대_2Y / 전세대 / 원리금` **4종**을 모두 비운다.
+- 초기화 후 **금리 칸은 항상 빈값**이다. 저장된 기본값 금리를 초기화 때 칸에 채우던 동작은 제거됐다
+  (그 값이 구분을 바꿔도 그대로 남아 "원리금 금리가 초기화 후에도 남는" 원인이었음).
+  기본값 금리는 사용자가 [6M/5Y 전환] 버튼을 누를 때만 적용된다.
 
-## 커뮤니케이션 규칙 (사용자 지정)
+### 구분 전환 시 금리 동기화 규칙 (2026-11-11 확정)
 
-- **요청을 명확히 이해하지 못하면, 추측으로 코드를 작성하지 말고 반드시 질문한다.**
-  - 질문 시: 가능한 해석을 2~3가지 제시 → 각 해석의 차이점 설명 → 추천안 함께 안내
-  - 답변을 받은 뒤에만 구현에 착수한다.
-- 요청 내용을 한 번에 해석하려 하지 말고, 애매한 부분이 있으면 그 지점을 짚어 질문한다.
+- `syncFirstRowRateAndStRate(row, force)`가 유일한 진입점. 모든 구분이 **전용 저장소 기준**으로 맞춰진다.
+  - 전용 키에 값이 있으면 그 값, 없으면 **빈값**(이전 구분 값이 남지 않게).
+  - `isDsrRestoredFromStorage()`(복원 직후)면 손대지 않는다. 단 `__inCategoryChange > 0`(사용자가 드롭다운으로 전환)이면 예외.
+- ⚠️ 함정: 예전엔 `applyJeonseRowLayout` 안에서 `saveFirstRowStRate` 인라인 저장 → 재진입된 sync가
+  플래그 때문에 **통째로 무시**되어 이전 구분 금리가 그대로 남았다. 지금은 "sync 중에는 저장하지 않음" 방식이다.
+- `saveFirstRowProfileValues()`는 sync 중(`__syncingFirstRowRate`)이면 전용 키에 쓰지 않는다.
+- `saveCategoryInputs/restoreCategoryInputs`는 본건 행에서 금리·ST·개월수를 다루지 않는다(전용 키와 중복·충돌 방지).
+
