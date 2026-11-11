@@ -1,7 +1,6 @@
 /* =========================================================================
    이용 제한(인증) 게이트 - API 통신 모듈
    ⚠️ 이 파일에는 API 엔드포인트(GAS URL)가 포함되어 있습니다.
-   난수화/난독화 등 보안 처리는 이 파일을 대상으로 진행하세요.
    ========================================================================= */
 const GATE_GAS_URL = "https://script.google.com/macros/s/AKfycbwW_7x4agccYUUn2BoLTpcln8auXCqYATYay3bGFy_gzT4yvuSy2Ae005hwcEBJjCaOpg/exec";
 const GATE_SESSION_KEY = "dsr_gate_session";
@@ -121,7 +120,9 @@ function lockApp(reason) {
 
   document.getElementById('auth-section').style.display = 'flex';
   // .frame-toggle-group도 프레임과 함께 숨겨야 한다 - 안 그러면 잠긴 뒤에도 토글 칩만 남는다
-  document.querySelectorAll('.nav-btn, .main-wrapper, .frame-toggle-group').forEach(el => el.classList.add('locked-content'));
+  // #priceBubbleList(시세조회 버블)는 버튼이 아니라 div라 .nav-btn 선택자에 잡히지 않으므로 따로 잠근다.
+  document.querySelectorAll('.nav-btn, .main-wrapper, .frame-toggle-group, #priceBubbleList').forEach(el => el.classList.add('locked-content'));
+  if (typeof 시세버블닫기 === 'function') 시세버블닫기();
 
   const nameInput = document.getElementById('user-name-input');
   const counterEl = document.getElementById('today-count');

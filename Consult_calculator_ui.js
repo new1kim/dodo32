@@ -5,6 +5,8 @@ const TEXT_NUMBER_INPUT_SELECTOR = 'input[type="text"], input[type="number"], te
 const CHECKBOX_INPUT_SELECTOR = 'input[type="checkbox"]';
 /* 대출 종류 드롭다운 선택값 목록 (저장/복원 유효성 검사에 사용) */
 const VALID_LOAN_CATEGORIES = ['주담대', '전세대', '신용대', '이자만', '원리금', '연간원리금'];
+/* 본건(첫 행) 드롭다운에 표시하는 구분 (2026-11-11: 3개로 축소) */
+const FIRST_ROW_LOAN_CATEGORIES = ['주담대', '전세대', '원리금'];
 
 /* DSR_Main과 Consult_Main은 같은 origin의 iframe이므로 localStorage를 공유한다.
    상담 화면은 입력값을 별도 저장소로 격리해 DSR 계산 화면과 서로 덮어쓰지 않게 한다. */
@@ -750,8 +752,79 @@ function setMortgageRepaymentType(btn, type) {
   const buttons = btn.parentElement.querySelectorAll('.type-btn');
   buttons.forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  // B타입: 선택된 방식 1개만 보이는 버튼 문구를 갱신하고 팝업을 닫는다.
+  const trigger = row.querySelector('.type-btn-trigger');
+  if (trigger) trigger.textContent = type;
+  closeRepaymentTypeMenu();
+  // 현재 구분에서 마지막으로 고른 방식을 기억한다(구분을 오가도 되살아나게).
+  // hidden input(.mort-loan-category)이 병합 과정에서 잠시 행 밖에 있을 수 있으므로
+  // 드롭다운 값을 우선 사용한다.
+  const category = row.querySelector('.mort-category-select')?.value
+    || row.querySelector('.mort-loan-category')?.value
+    || '';
+  saveRepayTypeForCategory(row, category, type);
   if (typeof 자동계산 === 'function') 자동계산();
   if (typeof saveDSRInputs === 'function') saveDSRInputs();
+  applyJeonseRowLayout(row);
+}
+
+/* ── 상환방식 선택기 (순환형) ──
+   [2026-11-11 변경] 팝업 대신 클릭할 때마다 다음 방식으로 순환한다.
+   원리금 → 원금 → 만기 → 원리금 ...
+   기존 .type-btn 버튼/이벤트는 그대로 두고, 순환 시 해당 버튼을 클릭해 준다
+   (계산·저장 로직은 setMortgageRepaymentType 그대로 사용). */
+const REPAYMENT_TYPE_CYCLE = ['원리금', '원금', '만기'];
+
+function toggleRepaymentTypeMenu(trigger) {
+  const row = trigger.closest('tr');
+  if (!row) return;
+  const typeInput = row.querySelector('.mort-type');
+
+  // [2026-11-11 추가] 전세대·이자만은 상환방식이 "만기"로 고정이다.
+  //  칩을 누르면 만기 → 원리금으로 순환해 계산이 바뀌고, 다시 만기로 돌아오지 않아
+  //  "화면은 만기인데 계산은 원리금"이 되는 문제가 있었다.
+  //  → 이 구분에서는 클릭을 무시하고 항상 만기로 유지한다.
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  if (category === '전세대' || category === '이자만') {
+    if (typeInput && typeInput.value !== '만기') typeInput.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    trigger.textContent = '만기';
+    if (typeof 자동계산 === 'function') 자동계산();
+    return;
+  }
+
+  const current = typeInput ? typeInput.value : '원리금';
+  const idx = REPAYMENT_TYPE_CYCLE.indexOf(current);
+  const next = REPAYMENT_TYPE_CYCLE[(idx + 1) % REPAYMENT_TYPE_CYCLE.length];
+  const nextBtn = [...row.querySelectorAll('.type-btn')]
+    .find(btn => (btn.getAttribute('onclick') || '').includes(`'${next}'`));
+  if (nextBtn) {
+    setMortgageRepaymentType(nextBtn, next);
+  } else if (typeInput) {
+    typeInput.value = next;
+    trigger.textContent = next;
+    if (typeof 자동계산 === 'function') 자동계산();
+    if (typeof saveDSRInputs === 'function') saveDSRInputs();
+  }
+}
+
+function closeRepaymentTypeMenu() {
+  document.querySelectorAll('.type-btn-group.is-open').forEach(group => {
+    group.classList.remove('is-open');
+    const trigger = group.closest('tr')?.querySelector('.type-btn-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
+}
+
+// 팝업 바깥을 누르면 닫기
+if (!window.__repaymentTypeMenuBound) {
+  window.__repaymentTypeMenuBound = true;
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('.type-btn-group, .type-btn-trigger')) return;
+    closeRepaymentTypeMenu();
+  });
 }
 
 /* 구분이 "연간원리금"이면 금액·금리·ST금리·개월수·상환방식·거치 입력을 숨기고
@@ -822,6 +895,13 @@ function applyAnnualRepaymentMode(row) {
   const repaymentCell = row.querySelector('.mortgage-repayment-cell');
   setDisplay(termCell, isAnnual);
   setDisplay(repaymentCell, isAnnual);
+  // 금액칸 TD는 항상 보여야 한다.
+  // (신용대·원리금 병합/해제 과정에서 display:none 이 남아 연간원리금 입력칸까지 사라지던 문제)
+  const amountCellEl = row.querySelector('.mort-exclude-amount-cell');
+  if (amountCellEl) {
+    amountCellEl.style.display = '';
+    delete amountCellEl.dataset.prevDisplay;
+  }
   // 금액 칸 안의 입력 줄: 연간원리금 모드에서는 줄바꿈 없이 한 줄 유지
   const amountRow = row.querySelector('.mort-amount-row');
   if (amountRow) amountRow.classList.toggle('is-annual-row', isAnnual);
@@ -833,6 +913,668 @@ function applyAnnualRepaymentMode(row) {
     const index = [...document.querySelectorAll('#mortgage-inputs .mortgage-row')].indexOf(row);
     amtInput.placeholder = index === 0 ? '본건 대출금액입력' : `보유대출금액 ${index}`;
   }
+}
+
+/* 구분이 "전세대"일 때만 적용하는 화면 전용 레이아웃 (2026-11-11 재구현).
+   TD가 나뉘어 있으면 열 폭(colgroup 55/15/15/15%)에 갇혀 정렬이 틀어지므로,
+   전세대일 때는 4개 TD를 1개 TD로 합치고 그 안에 한 줄 컨테이너(.mort-jeonse-line)를 만든다.
+   - 1행: 드롭다운 · 대출금액(40%) · 금리(25%) · ST금리(25%)   [개월수 숨김]
+   - 2행: 메모 입력창(기존 .mortgage-memo-row) 그대로 유지
+   - 금리선택기(6M/2Y) 숨김, 상환방식은 만기일시(내부값 '만기')로 자동 선택 후 선택기 숨김
+   계산 로직/입력값은 건드리지 않고 표시만 바꾼다. 다른 구분으로 돌아오면 원래 구조로 복원한다. */
+/* C타입: 상환방식 선택기를 메모 행 오른쪽 슬롯으로 옮기거나 원래 자리로 되돌린다.
+   - 옮길 때: .type-btn-row를 메모 행의 .mort-repayment-slot 안으로 이동
+   - 되돌릴 때: .mortgage-repayment-cell 안으로 다시 이동
+   숨겨진 상태값(.mort-type / .mort-loan-category)은 행에 그대로 두어 계산 로직이 계속 찾을 수 있게 한다. */
+function moveRepaymentToMemoRow(row, move) {
+  if (!row) return;
+  const memoRow = row.nextElementSibling;
+  if (!memoRow || !memoRow.classList.contains('mortgage-memo-row')) return;
+  const slot = memoRow.querySelector('.mort-repayment-slot');
+  const repaymentCell = row.querySelector('.mortgage-repayment-cell');
+  const typeRow = row.querySelector('.type-btn-row') || slot?.querySelector('.type-btn-row');
+  if (!slot || !repaymentCell || !typeRow) return;
+
+  if (move) {
+    if (typeRow.parentElement !== slot) slot.appendChild(typeRow);
+  } else if (typeRow.parentElement !== repaymentCell) {
+    // 원래 자리(상환방식 TD)의 맨 앞으로 되돌린다.
+    repaymentCell.insertBefore(typeRow, repaymentCell.firstChild);
+  }
+}
+
+/* C타입: 신용대 · 원리금 행을 TD 하나로 병합한다.
+   [드롭다운][금액][금리][개월][상환방식] 을 한 줄로 정렬하고,
+   2번째 행(메모)는 그대로 둔다. 다른 구분으로 돌아오면 원래 3-TD 구조로 복원한다. */
+function applyCompactRepaymentLayout(row, compact) {
+  if (!row) return;
+  const amountCell = row.querySelector('.mort-exclude-amount-cell');
+  const termCell = row.querySelector('.mort-term')?.closest('td');
+  const repaymentCell = row.querySelector('.mortgage-repayment-cell');
+  if (!amountCell) return;
+  const merged = amountCell.classList.contains('mort-compact-single-cell');
+
+  if (compact) {
+    if (merged) return;
+    if (!termCell || !repaymentCell) return;
+
+    const line = document.createElement('div');
+    line.className = 'mort-compact-line';
+
+    // 1) 드롭다운 + 금액 (+ 추가 행이면 금리까지)
+    const amountRow = amountCell.querySelector('.mort-amount-row');
+    if (amountRow) [...amountRow.children].forEach(child => line.appendChild(child));
+    // 2) 본건 행의 금리/ST금리 줄(금리선택기 포함)도 한 줄로 끌어온다.
+    //    (이걸 빼먹으면 주담대로 돌아올 때 금리·ST금리 칸이 사라짐)
+    const rateRow = amountCell.querySelector('.input-flex-row');
+    if (rateRow) [...rateRow.children].forEach(child => line.appendChild(child));
+    // 3) 개월수
+    const termInput = termCell.querySelector('.mort-term');
+    if (termInput) line.appendChild(termInput);
+    // 4) 상환방식
+    const typeRow = repaymentCell.querySelector('.type-btn-row');
+    if (typeRow) line.appendChild(typeRow);
+    // 4) 숨겨진 상태값은 행에 그대로 둔다.
+    repaymentCell.querySelectorAll('.mort-type, .mort-loan-category').forEach(input => row.appendChild(input));
+
+    // 나머지 TD 제거 후 금액 TD 하나만 남긴다.
+    [...row.children].filter(el => el.tagName === 'TD' && el !== amountCell).forEach(el => el.remove());
+    amountCell.className = 'no-bg mort-exclude-amount-cell mort-compact-single-cell';
+    amountCell.removeAttribute('style');
+    amountCell.colSpan = 4;
+    amountCell.innerHTML = '';
+    amountCell.appendChild(line);
+    row.dataset.compactMerged = '1';
+    return;
+  }
+
+  // ── 해제: 원래 3-TD 구조로 되돌린다 ──
+  if (!merged || !row.dataset.compactMerged) return;
+  delete row.dataset.compactMerged;
+
+  const line = amountCell.querySelector('.mort-compact-line');
+  if (!line) return;
+
+  const select = line.querySelector('.mort-category-select');
+  const amt = line.querySelector('.mort-amt');
+  const annual = line.querySelector('.mort-annual');
+  const rate = line.querySelector('.mort-rate');
+  const stRate = line.querySelector('.mort-st-rate');
+  const term = line.querySelector('.mort-term');
+  const typeRow = line.querySelector('.type-btn-row');
+  const isFirstRow = row.classList.contains('first-row');
+
+  // 본건 행은 [드롭다운+금액] 줄과 [금리선택기+금리+ST금리] 줄로 나뉜 원래 구조로 되돌린다.
+  // 추가 행은 금액 줄에 금리까지 한 줄로 들어간다.
+  const amountRow = document.createElement('div');
+  amountRow.className = isFirstRow ? 'mort-amount-row' : 'mort-amount-row mort-amount-row--added';
+  if (select) amountRow.appendChild(select);
+  if (amt) amountRow.appendChild(amt);
+  if (!isFirstRow && rate) amountRow.appendChild(rate);
+  if (annual) amountRow.appendChild(annual);
+
+  amountCell.className = 'no-bg mort-exclude-amount-cell' + (isFirstRow ? ' first-row' : '');
+  amountCell.colSpan = 1;
+  amountCell.style.width = '55%';
+  amountCell.style.padding = '4px 4px';
+  amountCell.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'mort-exclude-amount-wrap';
+
+  if (isFirstRow) {
+    // 본건: 세로 묶음 안에 금액 줄 + 금리/ST금리 줄을 둔다.
+    const col = document.createElement('div');
+    col.className = 'input-flex-col';
+    col.appendChild(amountRow);
+    const profileInput = document.createElement('input');
+    profileInput.type = 'hidden';
+    profileInput.className = 'mort-default-profile';
+    profileInput.value = '6M';
+    col.appendChild(profileInput);
+
+    const rateRow = document.createElement('div');
+    rateRow.className = 'input-flex-row';
+    const profileSwitch = document.createElement('button');
+    profileSwitch.type = 'button';
+    profileSwitch.className = 'mort-default-switch';
+    profileSwitch.dataset.profile = '6M';
+    profileSwitch.setAttribute('aria-label', '6M/5Y 전환');
+    profileSwitch.innerHTML = '<span class="switch-label active">6M</span><span class="switch-label">5Y</span>';
+    rateRow.appendChild(profileSwitch);
+    if (rate) rateRow.appendChild(rate);
+    if (stRate) rateRow.appendChild(stRate);
+    col.appendChild(rateRow);
+    wrap.appendChild(col);
+  } else {
+    wrap.appendChild(amountRow);
+  }
+  amountCell.appendChild(wrap);
+
+  const termTd = document.createElement('td');
+  termTd.className = 'no-bg' + (isFirstRow ? ' first-row' : '');
+  termTd.style.width = '15%';
+  termTd.style.padding = '4px 2px';
+  if (term) termTd.appendChild(term);
+
+  const repayTd = document.createElement('td');
+  repayTd.className = 'no-bg mortgage-repayment-cell' + (isFirstRow ? ' first-row' : '');
+  repayTd.colSpan = 2;
+  repayTd.style.width = '30%';
+  repayTd.style.padding = '4px 3px';
+  if (typeRow) repayTd.appendChild(typeRow);
+  repayTd.innerHTML += `
+    <div class="grace-cell">
+      <input type="checkbox" class="mort-grace-check" title="거치 적용">
+      <input type="text" inputmode="numeric" placeholder="거치(개월)" class="mort-grace-term grace-term-input">
+    </div>`;
+
+  row.appendChild(termTd);
+  row.appendChild(repayTd);
+
+  row.querySelectorAll('.mort-type, .mort-loan-category').forEach(input => repayTd.appendChild(input));
+
+  bindMortgageRowEvents(row);
+  applyAnnualRepaymentMode(row);
+}
+
+/* ST금리 칸 표시/숨김과 값 보존을 함께 처리한다.
+   숨기는 구분에서는 input을 숨기면서 값을 비워 DSR 계산에 섞이지 않게 하고,
+   비우기 직전 값을 row.dataset 에 보관했다가 다른 구분으로 돌아오면 복원한다. */
+function applyStRateVisibility(row, hide) {
+  if (!row) return;
+  const stRateInput = row.querySelector('.mort-st-rate');
+  if (!stRateInput) return;
+  if (hide) {
+    if (row.dataset.stRateSaved === undefined) row.dataset.stRateSaved = stRateInput.value || '';
+    if (stRateInput.value !== '') {
+      stRateInput.value = '';
+      stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    stRateInput.style.display = 'none';
+  } else {
+    stRateInput.style.display = '';
+    if (row.dataset.stRateSaved !== undefined) {
+      const saved = row.dataset.stRateSaved;
+      delete row.dataset.stRateSaved;
+      if (saved !== '' && stRateInput.value === '') {
+        stRateInput.value = saved;
+        stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }
+}
+
+/* ── 구분별 입력값 저장소 (2026-11-11 추가) ──
+   드롭다운 구분마다 금액·금리·ST금리·개월수·상환방식을 각각 따로 기억한다.
+   예) 주담대에 3억/4.5% 를 넣고 전세대로 바꿔 2억/3.7% 를 넣은 뒤
+       다시 주담대로 돌아오면 3억/4.5% 가 그대로 나온다.
+   저장 위치: row.dataset.categoryInputStore = JSON 문자열
+     { "주담대": { amt, rate, stRate, term, type }, "전세대": {...} }
+   본건 행은 금리·ST금리가 이미 별도 키(DSR_firstRowRate_*)로 관리되므로
+   여기서는 금액·개월수·상환방식만 다룬다(중복 저장 방지). */
+const CATEGORY_INPUT_FIELDS = ['amt', 'rate', 'stRate', 'term', 'type'];
+
+function getCategoryInputStore(row) {
+  try {
+    return JSON.parse(row.dataset.categoryInputStore || '{}') || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function readRowInputs(row) {
+  return {
+    amt: row.querySelector('.mort-amt')?.value || '',
+    rate: row.querySelector('.mort-rate')?.value || '',
+    stRate: row.querySelector('.mort-st-rate')?.value || '',
+    term: row.querySelector('.mort-term')?.value || '',
+    type: row.querySelector('.mort-type')?.value || '원리금'
+  };
+}
+
+/* 현재 구분에 지금 화면의 입력값을 저장한다. */
+function saveCategoryInputs(row, category) {
+  if (!row || !category) return;
+  const store = getCategoryInputStore(row);
+  const prev = store[category] || {};
+  const current = readRowInputs(row);
+  // [2026-11-11 변경] 본건 행의 구분별 저장소는 "이 구분 고유값"만 기억한다.
+  //  · 금리·ST금리: 주담대/원리금/전세대는 이미 DSR_firstRowRate_* 전용 키로 분리되어 있으므로 여기서는 저장하지 않는다.
+  //    (여기 저장하면 주담대에 넣은 금리가 원리금으로 돌아와도 다시 복원되는 원인)
+  //  · 개월수·상환방식: 원리금은 따로 기억하지 않는다(초기화 후에도 이전 값이 되살아나지 않도록).
+  const isFirstRow = row.classList.contains('first-row');
+  const isWongum = category === '원리금';
+  // [2026-11-11 변경] 전세대·이자만은 상환방식이 "만기"로 자동 고정된다.
+  //  이 자동값을 저장해 두면 주담대/신용대로 돌아왔을 때 만기가 그대로 따라온다.
+  //  → 전세대·이자만은 상환방식을 저장하지 않는다(저장값이 없으면 기본값 원리금).
+  const isJeonseCategory = category === '전세대' || category === '이자만';
+  const next = isFirstRow
+    ? {
+        amt: current.amt,
+        rate: '',
+        stRate: '',
+        term: isWongum ? '' : current.term,
+        type: isWongum ? '원리금' : current.type
+      }
+    : {
+        amt: current.amt,
+        rate: current.rate,
+        stRate: current.stRate,
+        term: current.term,
+        // 전세대·이자만의 자동 "만기"는 기억하지 않는다.
+        type: isJeonseCategory ? '' : current.type
+      };
+  store[category] = Object.assign({}, prev, next);
+  row.dataset.categoryInputStore = JSON.stringify(store);
+}
+
+/* 저장된 구분 입력값을 화면에 되살린다. 저장값이 없으면 아무것도 하지 않는다. */
+function restoreCategoryInputs(row, category) {
+  if (!row || !category) return;
+  const store = getCategoryInputStore(row);
+  const saved = store[category];
+  if (!saved) return;
+  const setVal = (sel, v) => {
+    const el = row.querySelector(sel);
+    if (!el || v === undefined || v === null) return;
+    if (el.value === String(v)) return;
+    el.value = String(v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const isFirstRow = row.classList.contains('first-row');
+  setVal('.mort-amt', saved.amt);
+  // [2026-11-11 변경] 본건 행의 금리·ST금리·개월수는 각 구분 전용 저장소(DSR_firstRowRate_* 등)가
+  //  담당한다. 여기서 또 복원하면 다른 구분의 값이 이 칸에 되살아난다(원리금 금리 잔존 원인).
+  if (!isFirstRow) {
+    setVal('.mort-rate', saved.rate);
+    setVal('.mort-st-rate', saved.stRate);
+    setVal('.mort-term', saved.term);
+  }
+  if (saved.type) {
+    // [2026-11-11 변경] 전세대·이자만은 상환방식이 항상 "만기"로 고정된다.
+    //  저장된 type(예전에 저장된 "원리금")을 복원하면 칩 문구가 원리금으로 남는다.
+    //  → 이 구분들은 type 복원을 건너뛴다.
+    const isJeonseCategory = category === '전세대' || category === '이자만';
+    if (!isJeonseCategory) {
+      const typeInput = row.querySelector('.mort-type');
+      if (typeInput && typeInput.value !== saved.type) {
+        typeInput.value = saved.type;
+        row.querySelectorAll('.type-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${saved.type}'`));
+        });
+        const trigger = row.querySelector('.type-btn-trigger');
+        if (trigger) trigger.textContent = saved.type;
+      }
+    }
+  } else if (!isFirstRow) {
+    // [2026-11-11 추가] 추가대출행에서 이 구분에 저장된 상환방식이 없으면
+    //  기본값(원리금)으로 되돌린다. (전세대의 자동 "만기"가 따라오지 않게)
+    const typeInput = row.querySelector('.mort-type');
+    if (typeInput && typeInput.value !== '원리금') {
+      typeInput.value = '원리금';
+      row.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'원리금'"));
+      });
+      const trigger = row.querySelector('.type-btn-trigger');
+      if (trigger) trigger.textContent = '원리금';
+    }
+  }
+}
+
+/* 구분별 입력값 저장소를 모두 비운다(초기화용). */
+function clearCategoryInputStore(row) {
+  if (!row) return;
+  delete row.dataset.categoryInputStore;
+}
+
+/* 본건 행의 구분별 전용 저장 키(금리·ST금리·개월수)를 모두 비운다(초기화용).
+   DSR_firstRowRate_주담대_6M / _주담대_2Y / _전세대 / _원리금 ,
+   DSR_firstRowStRate_주담대_6M / _주담대_2Y / _전세대 / _원리금 */
+function clearFirstRowCategoryRateStore() {
+  const categories = ['주담대_6M', '주담대_2Y', '전세대', '원리금'];
+  categories.forEach(cat => {
+    consultLocalStorage.removeItem(`${FIRST_ROW_RATE_KEY_PREFIX}${cat}`);
+    consultLocalStorage.removeItem(`${FIRST_ROW_ST_RATE_KEY_PREFIX}${cat}`);
+    consultLocalStorage.removeItem(`${FIRST_ROW_TERM_KEY_PREFIX}${cat}`);
+  });
+  // 예전 형식(프로필 묶음)도 함께 비운다.
+  consultLocalStorage.removeItem(FIRST_ROW_PROFILE_VALUES_KEY);
+}
+
+/* 구분별 상환방식 기억 (2026-11-11 추가)
+   드롭다운으로 구분을 바꿨다가 돌아오면, 그 구분에서 마지막으로 쓰던 상환방식을 되살린다.
+   예) 주담대=원리금 → 신용대=원금 → 주담대 돌아오면 다시 원리금
+   저장 위치: row.dataset.repayTypeByCategory = JSON 문자열 */
+function getRepayTypeMap(row) {
+  try {
+    return JSON.parse(row.dataset.repayTypeByCategory || '{}') || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveRepayTypeForCategory(row, category, type) {
+  if (!row || !category || !type) return;
+  const map = getRepayTypeMap(row);
+  map[category] = type;
+  row.dataset.repayTypeByCategory = JSON.stringify(map);
+}
+
+function restoreRepaymentTypeForCategory(row, category) {
+  if (!row || !category) return;
+  const map = getRepayTypeMap(row);
+  const saved = map[category];
+  if (!saved) return;
+  const typeInput = row.querySelector('.mort-type');
+  if (!typeInput || typeInput.value === saved) return;
+  typeInput.value = saved;
+  row.querySelectorAll('.type-btn').forEach(btn => {
+    btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${saved}'`));
+  });
+  const trigger = row.querySelector('.type-btn-trigger');
+  if (trigger) trigger.textContent = saved;
+}
+
+function applyJeonseRowLayout(row) {
+  if (!row) return;
+  // 드롭다운(updateLoanCategory)이 호출한 경우 구분 전환으로 표시한다.
+  const isCategorySwitch = __inCategoryChange > 0;
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  // [2026-11-11 변경] "이자만"도 전세대와 동일한 레이아웃을 쓴다.
+  //  (둘 다 원금 상환이 없는 상품이라 만기일시 고정·개월수/거치 불필요)
+  const isJeonse = category === '전세대' || category === '이자만';
+  row.classList.toggle('is-jeonse-layout', isJeonse);
+
+  // 구분이 바뀌면 본건 행의 금리·ST금리를 그 구분 전용 저장소 값으로 갱신한다.
+  // (주담대 6M / 주담대 2Y / 전세대 / 원리금 이 서로 섞이지 않게 함)
+  syncFirstRowRateAndStRate(row, isCategorySwitch);
+
+  // 금리선택기(6M/5Y)를 숨기는 구분: 전세대 · 신용대 · 이자만 · 원리금
+  // (주담대·연간원리금은 현재 상태 유지 — 연간원리금은 기존 CSS가 숨김)
+  const hideRateSwitch = isJeonse || category === '신용대' || category === '이자만' || category === '원리금';
+  row.classList.toggle('is-rate-switch-hidden', hideRateSwitch);
+
+  // 거치 입력(체크박스 + 개월수)을 숨기는 구분: 신용대 · 원리금 · 이자만
+  const hideGrace = category === '신용대' || category === '원리금' || category === '이자만';
+  row.classList.toggle('is-grace-hidden', hideGrace);
+
+  // ST금리 칸을 숨기는 구분: 신용대 · 원리금 · 연간원리금
+  // [2026-11-11 변경] 보유대출(추가대출) 행은 ST금리를 계산하지 않으므로 구분과 무관하게 숨긴다.
+  //  (본건 행에만 ST금리 칸이 보인다 — 전세대→주담대 전환 시 ST칸이 다시 나타나던 문제)
+  // (계산 로직은 hidden 입력도 그대로 읽으므로, 숨길 때 값을 비우고 원래 값은 저장해 둔다.
+  //  → 다시 ST금리를 쓰는 구분으로 돌아오면 저장해 둔 값을 복원한다.)
+  const isFirstRowForSt = row.classList.contains('first-row');
+  const hideStRate = !isFirstRowForSt
+    || category === '신용대' || category === '원리금' || category === '연간원리금';
+  row.classList.toggle('is-st-rate-hidden', hideStRate);
+  applyStRateVisibility(row, hideStRate);
+
+  // C타입: 신용대·원리금은 첫 행을 TD 하나로 병합해
+  // [드롭다운][금액][금리][개월][상환방식] 을 한 줄로 정렬한다.
+  // [2026-11-11 변경] 보유대출(추가대출) 행은 구분과 무관하게 항상 한 줄로 병합한다.
+  //  (전세대→주담대 전환 시 3-TD 구조로 풀려 ST금리 칸이 다시 보이던 문제)
+  const isAddedRow = !row.classList.contains('first-row');
+  const moveRepayment = isAddedRow || category === '신용대' || category === '원리금';
+  row.classList.toggle('is-repayment-moved', moveRepayment);
+  // [2026-11-11 변경] 병합/해제는 상환방식을 정한 뒤에 한다.
+  //  (병합 해제가 버튼을 새로 만들면서 이전 값을 복사해, 전세대 재진입 시
+  //   칩 문구가 "원리금"으로 남는 문제가 있었다)
+  //  → 아래에서 상환방식을 먼저 확정하고, 그 다음에 병합을 적용한다.
+
+  // 구분별 상환방식 기억: 구분을 바꿨다 돌아오면 그 구분에서 쓰던 방식을 되살린다.
+  // (전세대·이자만은 만기 고정이므로 제외)
+  // [2026-11-11 변경] 전세대에서 자동으로 넣은 "만기"가 주담대/신용대 저장소에 남아
+  //  구분을 바꿔도 만기가 그대로 따라오던 문제.
+  //  → 전세대·이자만으로 들어갈 때는 "이전 구분의 상환방식을 저장하지 않고",
+  //    나올 때는 그 구분에 저장된 값이 있으면 그것을, 없으면 기본값(원리금)을 쓴다.
+  if (!isJeonse) {
+    restoreRepaymentTypeForCategory(row, category);
+    // [2026-11-11 추가] 추가대출행: 이 구분에 저장된 상환방식이 없으면 기본값(원리금)으로 되돌린다.
+    //  (전세대에서 자동으로 넣은 "만기"가 그대로 따라오는 것을 막는다)
+    //  상환방식은 repayTypeByCategory 에 저장되므로 그 값을 기준으로 판단한다.
+    if (!row.classList.contains('first-row')) {
+      const savedType = getRepayTypeMap(row)[category];
+      if (!savedType) {
+        const typeInput = row.querySelector('.mort-type');
+        if (typeInput && typeInput.value !== '원리금') {
+          typeInput.value = '원리금';
+          row.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'원리금'"));
+          });
+          const trigger = row.querySelector('.type-btn-trigger');
+          if (trigger) trigger.textContent = '원리금';
+        }
+      }
+    }
+  } else {
+    // 전세대·이자만은 항상 만기일시로 고정한다(저장소에는 쓰지 않는다).
+    const jeonseTypeInput = row.querySelector('.mort-type');
+    if (jeonseTypeInput && jeonseTypeInput.value !== '만기') jeonseTypeInput.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    // [2026-11-11 추가] 병합이 이미 유지된 상태(재진입)에서는 버튼이 새로 만들어지지 않으므로
+    //  칩 문구를 여기서 직접 "만기"로 맞춘다. (원리금으로 남아 보이던 문제)
+    const jeonseTrigger = row.querySelector('.type-btn-trigger');
+    if (jeonseTrigger) jeonseTrigger.textContent = '만기';
+  }
+
+  // [2026-11-11 변경] 상환방식을 확정한 뒤에 병합/해제를 적용한다.
+  //  (병합 해제가 버튼을 새로 만들기 때문에, 먼저 확정해야 칩 문구가 맞게 나온다)
+  applyCompactRepaymentLayout(row, moveRepayment);
+
+  // B타입 상환방식 선택기: 현재 선택된 방식 1개만 보이도록 문구를 맞춘다.
+  const typeTrigger = row.querySelector('.type-btn-trigger');
+  if (typeTrigger) {
+    const activeBtn = row.querySelector('.type-btn.active');
+    if (activeBtn) typeTrigger.textContent = activeBtn.textContent.trim();
+  }
+
+  const cells = [...row.children].filter(el => el.tagName === 'TD');
+  const amountCell = row.querySelector('.mort-exclude-amount-cell');
+  if (!amountCell) return;
+  const isMerged = amountCell.classList.contains('mort-jeonse-single-cell');
+  const termCell = row.querySelector('.mort-term')?.closest('td');
+  const repaymentCell = row.querySelector('.mortgage-repayment-cell');
+
+  // 표의 colgroup(55/15/15/15%)이 열 폭을 고정하므로, 병합된 한 칸은 colspan=4로
+  // 4개 열을 모두 차지하게 한다. (colgroup을 숨기면 다른 행 폭까지 바뀌므로 건드리지 않는다)
+
+  if (isJeonse) {
+    // [2026-11-11 변경] 보유대출(추가대출) 행은 전세대여도 별도 병합을 하지 않는다.
+    //  추가대출행은 아래 C타입(한 줄 병합)으로 통일해 [드롭다운][금액][금리][개월][상환방식]을
+    //  한 줄로 나열한다. (전세대 전용 병합과 겹치면 레이아웃이 깨진다)
+    if (!row.classList.contains('first-row')) {
+      // 상환방식만 만기일시로 맞춘다.
+      const addedTypeInput = row.querySelector('.mort-type');
+      if (addedTypeInput && addedTypeInput.value !== '만기') addedTypeInput.value = '만기';
+      row.querySelectorAll('.type-btn').forEach(btn => {
+        btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+      });
+      // [2026-11-11 추가] 여기서 return 하면 아래 칩 문구 갱신을 건너뛰어
+      //  전세대 재진입 시 칩이 "원리금"으로 남는다. 여기서 직접 "만기"로 맞춘다.
+      const addedTrigger = row.querySelector('.type-btn-trigger');
+      if (addedTrigger) addedTrigger.textContent = '만기';
+      return;
+    }
+    // 합쳐진 뒤에는 개월수/상환방식 TD가 없으므로, 합치기 전에만 존재 여부를 검사한다.
+    if (!isMerged && (!termCell || !repaymentCell)) return;
+    // 상환방식: 전세대는 만기일시로 자동 선택
+    const typeInput = row.querySelector('.mort-type');
+    if (typeInput && typeInput.value !== '만기') typeInput.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+
+    // 이미 합쳐져 있으면 다시 만들지 않는다(재진입 방지).
+    if (isMerged) return;
+
+    // 원래 구조를 복원할 수 있도록 원본 TD/자식들을 기억해 둔다.
+    row.dataset.jeonseMerged = '1';
+    const line = document.createElement('div');
+    line.className = 'mort-jeonse-line';
+
+    // 1) 드롭다운 + 금액
+    // [2026-11-11 추가] 전세대 한 줄 구성에 각 칸 라벨을 붙인다.
+    //   대출구분 / 대출금액 / 금리% / 스트레스금리%
+    //   라벨은 입력칸을 감싸는 <label class="mort-jeonse-field"> 안에 넣어
+    //   라벨을 눌러도 해당 입력칸에 포커스가 가게 한다.
+    const wrapWithLabel = (el, text) => {
+      if (!el) return null;
+      const box = document.createElement('label');
+      box.className = 'mort-jeonse-field';
+      const cap = document.createElement('span');
+      cap.className = 'mort-jeonse-label';
+      cap.textContent = text;
+      box.appendChild(cap);
+      box.appendChild(el);
+      return box;
+    };
+
+    const amountRow = amountCell.querySelector('.mort-amount-row');
+    if (amountRow) {
+      [...amountRow.children].forEach(child => {
+        if (child.classList.contains('mort-category-select')) {
+          line.appendChild(wrapWithLabel(child, '대출구분'));
+        } else if (child.classList.contains('mort-amt')) {
+          line.appendChild(wrapWithLabel(child, '대출금액'));
+        } else {
+          line.appendChild(child);
+        }
+      });
+    }
+    // 2) 금리 + ST금리 (금리선택기 6M/2Y는 CSS로 숨김)
+    const rateRow = amountCell.querySelector('.input-flex-row');
+    if (rateRow) {
+      [...rateRow.children].forEach(child => {
+        if (child.classList.contains('mort-rate')) {
+          line.appendChild(wrapWithLabel(child, '금리%'));
+        } else if (child.classList.contains('mort-st-rate')) {
+          line.appendChild(wrapWithLabel(child, '스트레스금리%'));
+        } else {
+          line.appendChild(child);
+        }
+      });
+    }
+    // 3) 개월수 (CSS로 숨김 — 값/이벤트는 그대로 살아 있음)
+    const termInput = termCell.querySelector('.mort-term');
+    if (termInput) line.appendChild(termInput);
+
+    // 4) 숨겨진 상태값(.mort-type / .mort-loan-category)은 행에 그대로 남겨 계산 로직이 계속 찾을 수 있게 한다.
+    const hiddenInputs = repaymentCell.querySelectorAll('.mort-type, .mort-loan-category');
+    hiddenInputs.forEach(input => row.appendChild(input));
+
+    // 5) 나머지 TD는 제거하고, 금액 TD 하나만 남겨 한 줄 전체를 쓰게 한다.
+    cells.forEach(cell => {
+      if (cell !== amountCell) cell.remove();
+    });
+    amountCell.className = 'no-bg mort-exclude-amount-cell mort-jeonse-single-cell';
+    amountCell.removeAttribute('style');
+    // colgroup(55/15/15/15%)이 열 폭을 고정하므로, 4개 열을 모두 차지하게 한다.
+    // (colgroup을 숨기면 본건·보유대출 행 폭까지 바뀌므로 colspan으로 해결)
+    amountCell.colSpan = 4;
+    amountCell.innerHTML = '';
+    amountCell.appendChild(line);
+    return;
+  }
+
+  // ── 전세대 해제: 원래 4-TD 구조로 되돌린다 ──
+  if (!row.dataset.jeonseMerged) return;
+  delete row.dataset.jeonseMerged;
+
+  const line = amountCell.querySelector('.mort-jeonse-line');
+  if (!line) return;
+
+  const select = line.querySelector('.mort-category-select');
+  const amt = line.querySelector('.mort-amt');
+  const annual = line.querySelector('.mort-annual');
+  const rate = line.querySelector('.mort-rate');
+  const stRate = line.querySelector('.mort-st-rate');
+  const term = line.querySelector('.mort-term');
+  const profileSwitch = line.querySelector('.mort-default-switch');
+  const typeInput = row.querySelector('.mort-type');
+  const categoryInput = row.querySelector('.mort-loan-category');
+  const isFirstRow = row.classList.contains('first-row');
+
+  // 금액 TD 복원 (본건 행은 금리선택기 6M/5Y 버튼도 함께 되살린다)
+  amountCell.className = 'no-bg mort-exclude-amount-cell' + (isFirstRow ? ' first-row' : '');
+  amountCell.colSpan = 1;
+  amountCell.style.width = '55%';
+  amountCell.style.padding = '4px 4px';
+  amountCell.innerHTML = `
+    <div class="mort-exclude-amount-wrap">
+      <div class="input-flex-col">
+        <div class="mort-amount-row">
+          ${select ? select.outerHTML : ''}
+          ${amt ? amt.outerHTML : ''}
+          ${annual ? annual.outerHTML : ''}
+        </div>
+        <input type="hidden" class="mort-default-profile" value="6M">
+        <div class="input-flex-row">
+          ${profileSwitch ? profileSwitch.outerHTML : (isFirstRow ? '<button type="button" class="mort-default-switch" data-profile="6M" aria-label="6M/5Y 전환"><span class="switch-label active">6M</span><span class="switch-label">5Y</span></button>' : '')}
+          <input type="text" inputmode="decimal" placeholder="금리 %" class="mort-rate">
+          <input type="text" inputmode="decimal" placeholder="ST %" class="mort-st-rate">
+        </div>
+      </div>
+    </div>`;
+
+  // 개월수 TD 복원
+  const termTd = document.createElement('td');
+  termTd.className = 'no-bg' + (row.classList.contains('first-row') ? ' first-row' : '');
+  termTd.style.width = '15%';
+  termTd.style.padding = '4px 2px';
+  termTd.appendChild(term || document.createElement('input'));
+
+  // 상환방식 TD 복원
+  const repayTd = document.createElement('td');
+  repayTd.className = 'no-bg mortgage-repayment-cell' + (row.classList.contains('first-row') ? ' first-row' : '');
+  repayTd.colSpan = 2;
+  repayTd.style.width = '30%';
+  repayTd.style.padding = '4px 3px';
+  // B타입: 현재 선택된 방식 1개만 보이는 트리거 + 3개 선택지 팝업
+  // [2026-11-11 변경] 추가대출행이 전세대(자동 만기)에서 다른 구분으로 나올 때
+  //  만기가 그대로 따라오지 않도록, 저장된 상환방식이 없으면 기본값(원리금)을 쓴다.
+  //  (이 함수는 병합을 풀면서 버튼을 새로 만들기 때문에 여기서 값을 정해야 한다)
+  let currentType = typeInput ? typeInput.value : '원리금';
+  if (!isFirstRow) {
+    const savedType = getRepayTypeMap(row)[categoryInput?.value || ''];
+    currentType = savedType || '원리금';
+    if (typeInput && typeInput.value !== currentType) typeInput.value = currentType;
+  }
+  const typeLabel = currentType === '만기' ? '만기' : currentType;
+  repayTd.innerHTML = `
+    <div class="type-btn-row">
+      <button type="button" class="type-btn-trigger" aria-expanded="false" onclick="toggleRepaymentTypeMenu(this)">${typeLabel}</button>
+      <div class="type-btn-group">
+        <button type="button" class="type-btn${currentType === '원리금' ? ' active' : ''}" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
+        <button type="button" class="type-btn${currentType === '원금' ? ' active' : ''}" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
+        <button type="button" class="type-btn${currentType === '만기' ? ' active' : ''}" onclick="setMortgageRepaymentType(this, '만기')">만기</button>
+      </div>
+    </div>
+    <div class="grace-cell">
+      <input type="checkbox" class="mort-grace-check" title="거치 적용">
+      <input type="text" inputmode="numeric" placeholder="거치(개월)" class="mort-grace-term grace-term-input">
+    </div>`;
+
+  row.appendChild(termTd);
+  row.appendChild(repayTd);
+
+  // 숨겨둔 상태값을 상환방식 TD 안으로 되돌린다.
+  if (typeInput) repayTd.appendChild(typeInput);
+  if (categoryInput) repayTd.appendChild(categoryInput);
+
+  // 입력값 복원(구조를 새로 만들었으므로 값/이벤트를 다시 연결)
+  const newAmt = amountCell.querySelector('.mort-amt');
+  const newRate = amountCell.querySelector('.mort-rate');
+  const newStRate = amountCell.querySelector('.mort-st-rate');
+  if (newAmt && amt) newAmt.value = amt.value;
+  if (newRate && rate) newRate.value = rate.value;
+  if (newStRate && stRate) newStRate.value = stRate.value;
+  if (term && termTd.firstChild) term.value = term.value;
+
+  bindMortgageRowEvents(row);
+  applyAnnualRepaymentMode(row);
+  if (typeof 자동계산 === 'function') 자동계산();
 }
 
 // 보유대출 구분 드롭다운: 선택값은 기존 대출구분 저장/계산 로직에서 그대로 사용한다.
@@ -861,8 +1603,35 @@ function updateLoanCategory(select) {
   }
 
   const categoryInput = row.querySelector('.mort-loan-category');
+  const prevCategory = categoryInput ? categoryInput.value : '';
+  // 구분을 바꾸기 전에, 지금 화면의 입력값을 이전 구분 저장소에 남긴다.
+  if (prevCategory && prevCategory !== select.value) {
+    saveCategoryInputs(row, prevCategory);
+  }
   if (categoryInput) categoryInput.value = select.value;
+  // 구분별 색상 팔레트용 속성 동기화
+  select.dataset.cat = select.value;
   applyAnnualRepaymentMode(row);
+  // applyJeonseRowLayout → sync 가 "구분 전환"임을 알 수 있게 표시한다.
+  __inCategoryChange += 1;
+  try {
+    applyJeonseRowLayout(row);
+  } finally {
+    __inCategoryChange -= 1;
+  }
+  // 새 구분에 저장해 둔 입력값이 있으면 되살린다.
+  // [2026-11-11 변경] 전세대·이자만은 상환방식이 "만기"로 고정이므로,
+  //  저장값 복원이 그 값을 덮어쓰지 않도록 복원 후 다시 만기로 맞춘다.
+  restoreCategoryInputs(row, select.value);
+  if (select.value === '전세대' || select.value === '이자만') {
+    const jeonseType = row.querySelector('.mort-type');
+    if (jeonseType && jeonseType.value !== '만기') jeonseType.value = '만기';
+    row.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'만기'"));
+    });
+    const jeonseChip = row.querySelector('.type-btn-trigger');
+    if (jeonseChip) jeonseChip.textContent = '만기';
+  }
   const reductionButton = row.nextElementSibling?.querySelector('.mort-reduction-btn');
   if (reductionButton) {
     // 버튼 노출 여부는 updateMortgageReductionButtons()가 '신용대' 기준으로 일괄 처리한다.
@@ -988,26 +1757,228 @@ function getDefaultProfileValues(profile, savedData) {
 
 /* 사용자가 본건 행에 직접 입력한 금리·ST금리·기간을 6M/5Y(2Y) 프로필별로 따로 기억한다.
    → 6M에서 5.55를 넣고 5Y로 바꿔 4.75를 넣은 뒤 다시 6M으로 돌아오면 5.55가 그대로 나온다.
-   저장 위치: CONSULT_DSR_firstRowProfileValues = { "6M": {...}, "5Y": {...}, "2Y": {...} } */
+   저장 위치: CONSULT_DSR_firstRowProfileValues = { "6M": {...}, "5Y": {...}, "2Y": {...} }
+
+   [2026-11-11 변경] ST금리·금리 저장소를 구분별로 분리한다.
+   · 주담대 6M  → DSR_firstRowStRate_주담대_6M  / DSR_firstRowRate_주담대_6M
+   · 주담대 2Y  → DSR_firstRowStRate_주담대_2Y  / DSR_firstRowRate_주담대_2Y
+   · 전세대     → DSR_firstRowStRate_전세대      / DSR_firstRowRate_전세대
+   기간은 기존 프로필 저장소를 그대로 쓴다. */
 const FIRST_ROW_PROFILE_VALUES_KEY = 'DSR_firstRowProfileValues';
+const FIRST_ROW_ST_RATE_KEY_PREFIX = 'DSR_firstRowStRate_';
+const FIRST_ROW_RATE_KEY_PREFIX = 'DSR_firstRowRate_';
 
 function getFirstRowProfileValues() {
   const data = getStoredJson(FIRST_ROW_PROFILE_VALUES_KEY);
   return (data && typeof data === 'object') ? data : {};
 }
 
+/* 본건 행의 금리·ST금리 저장 키를 구분·프로필로 만든다.
+   · 전세대·원리금 → 프로필(6M/2Y)과 무관하게 구분별 하나의 키
+   · 그 외(주담대 등) → 주담대_6M / 주담대_2Y 로 프로필별 분리
+   [2026-11-11 추가] 원리금도 주담대와 섮이지 않게 전용 키를 쓴다. */
+function firstRowRateStorageSuffix(row) {
+  const category = row?.querySelector('.mort-loan-category')?.value || '주담대';
+  if (category === '전세대') return '전세대';
+  if (category === '원리금') return '원리금';
+  const profile = row?.querySelector('.mort-default-profile')?.value
+    || row?.querySelector('.mort-default-switch')?.dataset.profile
+    || '6M';
+  // 주담대는 6M / 2Y(5Y) 두 가지로만 나눈다.
+  const normalized = (profile === '5Y' || profile === '2Y') ? '2Y' : '6M';
+  return `주담대_${normalized}`;
+}
+
+function firstRowStRateKey(row) {
+  return `${FIRST_ROW_ST_RATE_KEY_PREFIX}${firstRowRateStorageSuffix(row)}`;
+}
+
+function getFirstRowStRate(row) {
+  const saved = consultLocalStorage.getItem(firstRowStRateKey(row));
+  return saved === null ? null : saved;
+}
+
+/* 금리 저장 키: ST금리와 같은 구분·프로필 규칙을 쓰고 접두사만 다르다. */
+function firstRowRateKey(row) {
+  return `${FIRST_ROW_RATE_KEY_PREFIX}${firstRowRateStorageSuffix(row)}`;
+}
+
+function getFirstRowRate(row) {
+  const saved = consultLocalStorage.getItem(firstRowRateKey(row));
+  return saved === null ? null : saved;
+}
+
+function setFirstRowRate(row, value) {
+  // sync로 화면 값을 맞추는 중이거나 복원 중에는 쓰지 않는다(다른 구분 값을 덮어쓰는 것 방지).
+  if (__syncingFirstRowRate || isDsrRestoring()) return;
+  consultLocalStorage.setItem(firstRowRateKey(row), value == null ? '' : String(value));
+}
+
+/* ── 원리금 전용 개월수 저장소 (2026-11-11 추가) ──
+   원리금 구분의 금리·ST금리는 firstRowRateKey/firstRowStRateKey 가
+   '원리금' 접미사로 이미 분리해 둔다. 개월수도 같은 방식으로 분리한다. */
+const FIRST_ROW_TERM_KEY_PREFIX = 'DSR_firstRowTerm_';
+
+function firstRowTermKey(row) {
+  return `${FIRST_ROW_TERM_KEY_PREFIX}${firstRowRateStorageSuffix(row)}`;
+}
+
+function getFirstRowTerm(row) {
+  const saved = consultLocalStorage.getItem(firstRowTermKey(row));
+  return saved === null ? null : saved;
+}
+
+function setFirstRowTerm(row, value) {
+  consultLocalStorage.setItem(firstRowTermKey(row), value == null ? '' : String(value));
+}
+
+/* 본건 행의 개월수를 현재 구분·프로필 전용 저장소 값으로 맞춘다.
+   저장된 값이 없으면 전세대는 빈값(개월수 숨김 상태)으로 둔다. */
+function syncFirstRowTerm(row) {
+  if (!row || !row.classList.contains('first-row')) return;
+  if (isDsrRestoring()) return;
+  const termInput = row.querySelector('.mort-term');
+  if (!termInput) return;
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  const saved = getFirstRowTerm(row);
+  let next;
+  if (saved !== null) {
+    next = String(saved);
+  } else if (category === '원리금' || category === '전세대' || category === '이자만') {
+    next = '';
+  } else {
+    return; // 담보는 기존 기본값 로직을 그대로 둔다.
+  }
+  if (termInput.value === next) return;
+  termInput.value = next;
+  termInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* 본건 행의 금리를 현재 구분·프로필 전용 저장소 값으로 맞춘다.
+   저장된 값이 없으면 전세대는 빈값으로 비우고, 담보는 건드리지 않는다.
+   (전세대 진입 시 이전 구분의 금리가 남아 전세대 저장소를 덮어쓰는 것을 막음) */
+function syncFirstRowRate(row) {
+  if (!row || !row.classList.contains('first-row')) return;
+  if (isDsrRestoring()) return;
+  const rateInput = row.querySelector('.mort-rate');
+  if (!rateInput) return;
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  const saved = getFirstRowRate(row);
+  let next;
+  if (saved !== null && String(saved).trim() !== '') {
+    next = String(saved);
+  } else if (category === '전세대' || category === '원리금') {
+    // [2026-11-11 변경] 원리금도 전용 저장소만 쓴다.
+    //  저장값이 없으면 빈값으로 비운다(이전 구분/기본값 금리가 그대로 남지 않게).
+    next = '';
+  } else {
+    // [2026-11-11 변경] 담보(주담대)도 다른 구분과 같은 규칙으로 맞춘다.
+    //  전용 키에 값이 없으면 빈값이다. (이전 구분의 값이 그대로 남지 않게)
+    //  기본값 설정 금리는 사용자가 [6M/5Y 전환] 버튼을 누를 때 applyDefaultProfileToRow 가 적용한다.
+    //  복원(새로고침/불러오기) 직후에는 저장값을 덮지 않도록 손대지 않는다.
+    //  단, 사용자가 드롭다운으로 구분을 바꿨을 때(__categorySwitchSync)는 저장소 기준으로 맞춘다.
+    if (isDsrRestoredFromStorage() && !__categorySwitchSync) return;
+    next = '';
+  }
+  if (rateInput.value === next) return;
+  rateInput.value = next;
+  rateInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* 본건 행의 ST금리를 현재 구분·프로필 전용 저장소 값으로 맞춘다.
+   저장된 값이 없으면 전세대는 빈값, 담보는 그대로 둔다.
+   (구분/프로필을 바꿀 때마다 호출되어 서로 섞이지 않게 한다) */
+function syncFirstRowStRate(row) {
+  if (!row || !row.classList.contains('first-row')) return;
+  if (isDsrRestoring()) return;
+  const stRateInput = row.querySelector('.mort-st-rate');
+  if (!stRateInput) return;
+  const category = row.querySelector('.mort-loan-category')?.value || '';
+  const saved = getFirstRowStRate(row);
+  let next;
+  if (saved !== null && String(saved).trim() !== '') {
+    next = String(saved);
+  } else if (category === '전세대' || category === '원리금') {
+    // [2026-11-11 변경] 원리금 ST금리도 전용 저장소만 쓴다.
+    next = '';
+  } else {
+    return; // 담보는 기존 기본값 로직을 그대로 둔다.
+  }
+  if (stRateInput.value === next) return;
+  stRateInput.value = next;
+  stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* 구분·프로필이 바뀔 때 금리·ST금리를 각자의 전용 저장소 값으로 맞춘다.
+   sync 중 발생하는 input 이벤트가 saveFirstRowProfileValues를 다시 호출해
+   이전 구분의 값으로 새 구분 저장소를 덮어쓰는 것을 막기 위해 플래그로 잠근다.
+   [2026-11-11 변경] 예전에는 이 플래그가 켜져 있으면 sync 자체를 건너뛰었다.
+   그런데 applyJeonseRowLayout → saveFirstRowStRate 인라인 저장 도중 다시 sync가 불리면
+   (원리금 → 주담대 전환) 그 호출이 통째로 무시되어 주담대 금리칸에 원리금 값이 남았다.
+   그래서 "sync를 건너뛰는" 대신 "sync 중에는 전용 저장소에 쓰지 않는" 방식으로 바꿔다. */
+let __syncingFirstRowRate = false;
+function isSyncingFirstRowRate() { return __syncingFirstRowRate; }
+// 적용 중인 구분을 기억한다. (sync 도중 인라인 저장이 다른 구분 키를 덮어쓰지 않게 함)
+let __activeCategory = '';
+// 구분(드롭다운)을 바꿔 sync를 돌릴 때만 true. 복원 직후 잠금(__dsrRestoredFromStorage)을 무시하고
+// 전용 저장소 값을 화면에 확실히 입히기 위해서다.
+let __categorySwitchSync = false;
+// 드롭다운(updateLoanCategory) 처리 중임을 나타내는 카운터 (구분 전환 sync 판별용)
+let __inCategoryChange = 0;
+function syncFirstRowRateAndStRate(row, force) {
+  const prevSyncing = __syncingFirstRowRate;
+  const prevCategory = __activeCategory;
+  const prevForce = __categorySwitchSync;
+  if (force) __categorySwitchSync = true;
+  __syncingFirstRowRate = true;
+  __activeCategory = row?.querySelector('.mort-loan-category')?.value || '';
+  try {
+    syncFirstRowStRate(row);
+    syncFirstRowRate(row);
+    syncFirstRowTerm(row);
+  } finally {
+    __syncingFirstRowRate = prevSyncing;
+    __activeCategory = prevCategory;
+    __categorySwitchSync = prevForce;
+  }
+}
+
+function setFirstRowStRate(row, value) {
+  if (__syncingFirstRowRate || isDsrRestoring()) return;
+  consultLocalStorage.setItem(firstRowStRateKey(row), value == null ? '' : String(value));
+}
+
 function saveFirstRowProfileValues(row, profile) {
   if (!row || !profile) return;
+  // 구분/프로필 전환에 따른 동기화 중에는 저장하지 않는다(이전 값이 새 구분을 덮어쓰는 것 방지).
+  if (__syncingFirstRowRate) return;
   const rateInput = row.querySelector('.mort-rate');
   const stRateInput = row.querySelector('.mort-st-rate');
   const termInput = row.querySelector('.mort-term');
-  const all = getFirstRowProfileValues();
-  all[profile] = {
-    rate: rateInput ? rateInput.value : '',
-    stRate: stRateInput ? stRateInput.value : '',
-    term: termInput ? termInput.value : ''
-  };
-  setStoredJson(FIRST_ROW_PROFILE_VALUES_KEY, all);
+  // [2026-11-11 변경] 원리금 구분은 전용 저장소(DSR_firstRowRate_원리금 등)만 쓴다.
+  //  공용 프로필 저장소(FIRST_ROW_PROFILE_VALUES_KEY)에도 함께 쓰면,
+  //  초기화로 주담대로 돌아왔을 때 원리금에서 입력한 금리가 다시 읽혀 표시된다.
+  const isWongumRow = (row.querySelector('.mort-loan-category')?.value || '') === '원리금';
+  if (!isWongumRow) {
+    const all = getFirstRowProfileValues();
+    all[profile] = {
+      rate: rateInput ? rateInput.value : '',
+      stRate: stRateInput ? stRateInput.value : '',
+      term: termInput ? termInput.value : ''
+    };
+    setStoredJson(FIRST_ROW_PROFILE_VALUES_KEY, all);
+  }
+  // 금리·ST금리·개월수는 구분별 전용 키에도 함께 저장한다(원리금 포함).
+  // [2026-11-11 변경] sync로 화면에 값을 입히는 중에는 저장하지 않는다.
+  //  (그 시점의 화면 값은 "이전 구분의 값"일 수 있어 다른 구분의 저장소를 덮어쓴다)
+  if (__syncingFirstRowRate) return;
+  // [2026-11-11 변경] 구분이 확정되기 전(행 생성 직후 등)에는 저장하지 않는다.
+  //  이때 화면 값은 이전 구분의 값일 수 있어 엉뚱한 구분 키로 저장된다.
+  const rowCategory = row.querySelector('.mort-loan-category')?.value || '';
+  if (__activeCategory && rowCategory && __activeCategory !== rowCategory) return;
+  if (stRateInput) setFirstRowStRate(row, stRateInput.value);
+  if (rateInput) setFirstRowRate(row, rateInput.value);
+  if (termInput) setFirstRowTerm(row, termInput.value);
 }
 
 function applyDefaultProfileToRow(row, profile) {
@@ -1128,8 +2099,15 @@ function bindMortgageRowEvents(row) {
     const legacyMap = { '신용': '신용대', '전세': '전세대' };
     if (legacyMap[catInput.value]) catInput.value = legacyMap[catInput.value];
     if (!VALID_LOAN_CATEGORIES.includes(catInput.value)) catInput.value = '주담대';
+    // 본건 행은 주담대·전세대·원리금 3개만 있으므로, 그 외 값은 주담대로 보정한다.
+    if (row.classList.contains('first-row') && !FIRST_ROW_LOAN_CATEGORIES.includes(catInput.value)) {
+      catInput.value = '주담대';
+    }
     categorySelect.value = catInput.value;
+    // 구분별 색상 팔레트용 속성 동기화
+    categorySelect.dataset.cat = catInput.value;
     applyAnnualRepaymentMode(row);
+    applyJeonseRowLayout(row);
   }
 
   const profileSelect = row.querySelector('.mort-default-switch');
@@ -1406,8 +2384,15 @@ function 주담대행추가() {
   newRow.style.textAlign = "center";
   const profileSelectMarkup = isFirstRow ? `<button type="button" class="mort-default-switch" data-profile="6M" aria-label="6M/5Y 전환"><span class="switch-label active">6M</span><span class="switch-label">5Y</span></button>` : '';
   const categoryDefault = isFirstRow ? '주담대' : '신용대';
-  const loanCategorySelectMarkup = `
-    <select class="mort-category-select" aria-label="대출 종류" onchange="updateLoanCategory(this)">
+  // [2026-11-11 변경] 본건(첫 행)은 주담대·전세대·원리금 3개만 표시한다.
+  //  추가 행(보유대출)은 기존 목록을 그대로 유지한다.
+  const loanCategoryOptionsMarkup = isFirstRow
+    ? `
+      <option value="주담대" ${categoryDefault === '주담대' ? 'selected' : ''}>주담대</option>
+      <option value="전세대" ${categoryDefault === '전세대' ? 'selected' : ''}>전세대</option>
+      <option value="원리금" ${categoryDefault === '원리금' ? 'selected' : ''}>원리금</option>
+    `
+    : `
       <option value="주담대" ${categoryDefault === '주담대' ? 'selected' : ''}>주담대</option>
       <option value="전세대" ${categoryDefault === '전세대' ? 'selected' : ''}>전세대</option>
       <option value="신용대" ${categoryDefault === '신용대' ? 'selected' : ''}>신용대</option>
@@ -1415,6 +2400,9 @@ function 주담대행추가() {
       <option value="원리금" ${categoryDefault === '원리금' ? 'selected' : ''}>원리금</option>
       <option value="연간원리금" ${categoryDefault === '연간원리금' ? 'selected' : ''}>연간원리금</option>
       <option value="행삭제">행삭제</option>
+    `;
+  const loanCategorySelectMarkup = `
+    <select class="mort-category-select" data-cat="${categoryDefault}" aria-label="대출 종류" onchange="updateLoanCategory(this)">${loanCategoryOptionsMarkup}
     </select>
   `;
 
@@ -1460,6 +2448,7 @@ function 주담대행추가() {
     </td>
     <td class="no-bg mortgage-repayment-cell${firstRowClass}" colspan="2" style="width: ${repaymentCellWidth}; padding: 4px 3px;">
       <div class="type-btn-row">
+        <button type="button" class="type-btn-trigger" aria-expanded="false" onclick="toggleRepaymentTypeMenu(this)">원리금</button>
         <div class="type-btn-group">
           <button type="button" class="type-btn active" onclick="setMortgageRepaymentType(this, '원리금')">원리금</button>
           <button type="button" class="type-btn" onclick="setMortgageRepaymentType(this, '원금')">원금</button>
@@ -1486,12 +2475,16 @@ function 주담대행추가() {
   const needDateMarkup = '';
   const reductionButtonMarkup = isFirstRow ? '' : `<button type="button" class="mort-reduction-btn" hidden style="display:none;" aria-label="DSR 39.9% 기준 추가가능 금액"></button>`;
   const memoTextareaMarkup = `<textarea class="mort-memo" placeholder="메모 입력" lang="ko" rows="1" autocomplete="off"></textarea>`;
+  // 신용대·원리금은 상환방식 선택기를 메모 행 오른쪽으로 옮긴다(C타입).
+  // → 첫 행은 드롭다운·금액·금리·개월만 쓰고, 상환방식은 메모 옆에 둔다.
+  const repaymentSlotMarkup = `<div class="mort-repayment-slot"></div>`;
   memoRow.innerHTML = `
     <td colspan="4" class="no-bg">
       <div class="mortgage-memo-row-inner">
         ${reductionButtonMarkup}
         ${needDateMarkup}
         ${memoTextareaMarkup}
+        ${repaymentSlotMarkup}
       </div>
     </td>
   `;
@@ -1513,6 +2506,7 @@ function 주담대행추가() {
     if (savedDefault) applyDefaultProfileToRow(newRow, '6M');
   }
   updateMortgagePlaceholders();
+  applyJeonseRowLayout(newRow);
   adjustTableFontSize();
   fitAllNumericInputFontSizes();
   if (typeof 자동계산 === 'function') 자동계산();
@@ -2561,22 +3555,28 @@ function 선택초기화() {
   if (ltvMinorLeaseInput) ltvMinorLeaseInput.value = "";
 
   const firstRow = document.querySelector('#mortgage-inputs .mortgage-row');
+  // 아래 두 값은 뒤쪽(병합 해제) 블록에서도 다시 쓰므로 이 if 블록 밖에서 선언한다.
+  //  (블록 안 const 로 두면 뒤 블록에서 ReferenceError 가 나 초기화가 중간에 멈춘다)
+  let resetProfile = '6M';
+  let resetProfileValues = { rate: '', stRate: '', term: '' };
   if (firstRow) {
     const mortAmt = firstRow.querySelector('.mort-amt');
     if (mortAmt) mortAmt.value = '';
     const mortAnnual = firstRow.querySelector('.mort-annual');
     if (mortAnnual) mortAnnual.value = '';
 
+    // [2026-11-11 재변경] 초기화는 "화면을 빈 상태로 되돌리기"다.
+    //  · 금리: 빈값 (예전에는 저장된 기본값 금리를 칸에 채웠는데, 그 값이 구분을 바꿔도
+    //    그대로 보여 "원리금 금리가 초기화 후에도 남는" 문제가 생겼다)
+    //  · ST금리: 6M=3% / 5Y·2Y=1.5% (기본값 설정 팝업 저장값이 있으면 그것)
+    //  · 기간: 360개월 (기본값 설정 팝업 저장값이 있으면 그것)
     const rateInput = firstRow.querySelector('.mort-rate');
-    if (rateInput) rateInput.value = savedDefaultFirstRowData?.rate || '';
+    if (rateInput) rateInput.value = '';
 
-    // ST금리/기간은 프로필(6M/5Y/2Y)별 저장값을 따로 읽고, 저장값이 없으면
-    // 프로필 기본값(6M 3%, 5Y·2Y 1.5%)을 넣는다. 초기화 경로라 input 이벤트가 없어
-    // 자동계산은 아래에서 한 번만 직접 돌린다.
-    const resetProfile = firstRow.querySelector('.mort-default-profile')?.value
+    resetProfile = firstRow.querySelector('.mort-default-profile')?.value
       || firstRow.querySelector('.mort-default-switch')?.dataset.profile
       || '6M';
-    const resetProfileValues = getDefaultProfileValues(resetProfile, savedDefaultFirstRowData);
+    resetProfileValues = getDefaultProfileValues(resetProfile, savedDefaultFirstRowData);
 
     const stRateInput = firstRow.querySelector('.mort-st-rate');
     if (stRateInput) {
@@ -2619,13 +3619,63 @@ function 선택초기화() {
     firstRowTypeButtons.forEach(btn => btn.classList.remove('active'));
     const firstDefaultTypeBtn = firstRow.querySelector('.type-btn:nth-child(1)');
     if (firstDefaultTypeBtn) firstDefaultTypeBtn.classList.add('active');
+    // 상환방식 칩 문구도 기본값(원리금)으로 되돌린다.
+    const firstTypeTrigger = firstRow.querySelector('.type-btn-trigger');
+    if (firstTypeTrigger) firstTypeTrigger.textContent = '원리금';
 
     const firstRowCategoryInput = firstRow.querySelector('.mort-loan-category');
     const firstRowCategorySelect = firstRow.querySelector('.mort-category-select');
     // 초기화 후 기본값: 본건대출행 = 주담대 (추가대출행은 생성 시 신용대가 기본)
     if (firstRowCategoryInput) firstRowCategoryInput.value = '주담대';
-    if (firstRowCategorySelect) firstRowCategorySelect.value = '주담대';
-    applyAnnualRepaymentMode(firstRow);
+    if (firstRowCategorySelect) {
+      firstRowCategorySelect.value = '주담대';
+      firstRowCategorySelect.dataset.cat = '주담대';
+    }
+
+    // 구분별로 기억해 둔 상환방식·ST금리 백업은 나중에 지운다.
+    // (병합 해제 코드가 dataset.compactMerged 를 보고 동작하므로, 먼저 지우면
+    //  "원리금 → 초기화" 시 TD 병합이 풀리지 않아 ST칸이 막대로 찌그러졌다)
+    // 구분별 입력값 저장소(금액·금리·ST·개월·상환방식)도 모두 비운다.
+    clearCategoryInputStore(firstRow);
+
+    // 구분별 전용 저장 키(DSR_firstRowRate_* / DSR_firstRowStRate_*)도 비운다.
+    // → 초기화 후 다시 계산할 때 예전 사용자 입력값이 되살아나지 않게 한다.
+    clearFirstRowCategoryRateStore();
+
+    // applyJeonseRowLayout()이 저장소를 다시 읽어 기본값을 덮어쓰지 않도록
+    // 복원 중 플래그를 켜두고 실행한다.
+    const prevRestoring = __dsrRestoring;
+    __dsrRestoring = true;
+    try {
+      // 병합 구조(전세대/원리금)를 먼저 확실히 해제한다.
+      // (dataset 플래그가 남아 있는 이 시점에 해제해야 원래 3-TD 구조로 돌아간다)
+      applyCompactRepaymentLayout(firstRow, false);
+      applyJeonseRowLayout(firstRow);
+      // 그래도 병합이 남아 있으면 플래그를 되살려 한 번 더 해제한다.
+      const stillMerged = firstRow.querySelector('.mort-compact-single-cell, .mort-jeonse-single-cell');
+      if (stillMerged) {
+        if (firstRow.querySelector('.mort-compact-single-cell')) firstRow.dataset.compactMerged = '1';
+        if (firstRow.querySelector('.mort-jeonse-single-cell')) firstRow.dataset.jeonseMerged = '1';
+        applyCompactRepaymentLayout(firstRow, false);
+        applyJeonseRowLayout(firstRow);
+      }
+      // 플래그로 막혔을 수 있으므로 기본값을 다시 적용한다.
+      //  (금리는 초기화 시 항상 빈값 - 위 주석 참조)
+      const rateInput = firstRow.querySelector('.mort-rate');
+      if (rateInput) rateInput.value = '';
+      const stInput = firstRow.querySelector('.mort-st-rate');
+      if (stInput) stInput.value = resetProfileValues.stRate
+        || (resetProfile === '5Y' || resetProfile === '2Y' ? '1.5' : '3');
+      const termEl = firstRow.querySelector('.mort-term');
+      if (termEl) termEl.value = resetProfileValues.term || '360';
+    } finally {
+      __dsrRestoring = prevRestoring;
+    }
+    // 병합 해제가 끝난 뒤에 기억용 플래그를 지운다.
+    delete firstRow.dataset.repayTypeByCategory;
+    delete firstRow.dataset.stRateSaved;
+    delete firstRow.dataset.jeonseMerged;
+    delete firstRow.dataset.compactMerged;
   }
 
   // 현재 폼 데이터만 비우고, 저장 이력/신규 슬롯은 유지한다.
@@ -2667,6 +3717,38 @@ function 선택초기화() {
 
   updateIncomeCalc();
   if (typeof openAllInfoTabs === 'function') openAllInfoTabs();
+
+  // 초기화 후에는 모든 구분의 상환방식을 "원리금"으로 맞춰 둔다.
+  //  (원리금 구분에 예전에 골랐던 방식이 남아 있지 않도록)
+  //  위의 consultLoanTypeChanged / housingStatusChanged 이벤트가
+  //  applyJeonseRowLayout → saveRepayTypeForCategory 를 다시 호출해
+  //  예전 값을 되살리므로, 반드시 이벤트 처리가 모두 끝난 뒤에 설정한다.
+  const resetRow = document.querySelector('#mortgage-inputs .mortgage-row');
+  if (resetRow) {
+    try {
+      const resetRepayMap = {};
+      const resetInputStore = {};
+      ['주담대', '전세대', '원리금', '신용대', '이자만', '연간원리금'].forEach(cat => {
+        resetRepayMap[cat] = '원리금';
+        // 구분별 입력값 저장소의 상환방식도 원리금으로 맞춘다.
+        // (restoreCategoryInputs 가 저장소의 type 을 되살려 '만기'로 되돌리던 문제)
+        resetInputStore[cat] = { type: '원리금' };
+      });
+      resetRow.dataset.repayTypeByCategory = JSON.stringify(resetRepayMap);
+      resetRow.dataset.categoryInputStore = JSON.stringify(resetInputStore);
+    } catch (e) {
+      console.warn('[초기화] 상환방식 저장소 초기화 실패', e);
+    }
+    const typeInput2 = resetRow.querySelector('.mort-type');
+    if (typeInput2) typeInput2.value = '원리금';
+    const trigger2 = resetRow.querySelector('.type-btn-trigger');
+    if (trigger2) trigger2.textContent = '원리금';
+    // 활성 버튼 표시도 원리금으로 맞춘다.
+    resetRow.querySelectorAll('.type-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes("'원리금'"));
+    });
+  }
+
   showBubble("입력 내용이 초기화되었습니다.");
 }
 
@@ -3573,12 +4655,18 @@ function loadMortgageRows() {
         const isFirstRow = currentRow.classList.contains('first-row');
         const defaultCategory = isFirstRow ? '주담대' : '신용대';
         // 새로고침 복원: 저장된 드롭다운 값을 그대로 되살린다.
-        //   (예전 버전의 '원리금' → '신용대', '이자만' → '전세대' 호환 매핑만 保유)
-        const LEGACY_CATEGORY_MAP = { '원리금': '신용대', '전세': '전세대' };
+        //  [2026-11-11 수정] '원리금'은 이제 정식 옵션이므로 '신용대'로 바꾸지 않는다.
+        //  (예전에는 원리금→신용대 로 매핑해서, 본건에서 원리금이 풀리는 원인이었다)
+        //  예전 버전 호환으로 '전세'만 '전세대'로 바꿔준다.
+        const LEGACY_CATEGORY_MAP = { '전세': '전세대' };
         const restoredCategory = LEGACY_CATEGORY_MAP[rowData.loanCategory] || rowData.loanCategory;
-        const storedCategory = VALID_LOAN_CATEGORIES.includes(restoredCategory)
+        let storedCategory = VALID_LOAN_CATEGORIES.includes(restoredCategory)
           ? restoredCategory
           : defaultCategory;
+        // 본건 행은 주담대·전세대·원리금만 있으므로, 그 외 값은 주담대로 보정한다.
+        if (isFirstRow && !FIRST_ROW_LOAN_CATEGORIES.includes(storedCategory)) {
+          storedCategory = '주담대';
+        }
         if (loanCategory) loanCategory.value = storedCategory;
         if (graceCheck) graceCheck.checked = rowData.graceCheck;
         if (graceTerm) graceTerm.value = rowData.graceTerm;
@@ -3598,8 +4686,18 @@ function loadMortgageRows() {
         else if (rowData.repaymentType === '만기') typeButtons[2]?.classList.add('active');
 
         const categorySelect = currentRow.querySelector('.mort-category-select');
-        if (categorySelect) categorySelect.value = storedCategory;
+        if (categorySelect) {
+          categorySelect.value = storedCategory;
+          categorySelect.dataset.cat = storedCategory;
+        }
         applyAnnualRepaymentMode(currentRow);
+        applyJeonseRowLayout(currentRow);
+        // 복원 후 상환방식 표시(칩 문구·버튼 active)를 저장된 값과 맞춘다.
+        const restoreTrigger = currentRow.querySelector('.type-btn-trigger');
+        if (restoreTrigger) {
+          const activeBtn = currentRow.querySelector('.type-btn.active');
+          if (activeBtn) restoreTrigger.textContent = activeBtn.textContent.trim();
+        }
         const reductionButton = memoRow?.querySelector('.mort-reduction-btn');
         if (reductionButton) reductionButton.hidden = true;
 
@@ -4784,6 +5882,9 @@ function refreshJeonseMortgageUi() {
       setMortgageRepaymentType(principalInterestButton, '원리금');
     }
   }
+
+  // 전세대 행 레이아웃(금리선택기·상환방식 선택기 숨김)을 모든 대출 행에 다시 적용한다.
+  document.querySelectorAll('#mortgage-inputs .mortgage-row').forEach(row => applyJeonseRowLayout(row));
 }
 window.addEventListener('DOMContentLoaded', () => setTimeout(refreshJeonseMortgageUi, 0));
 window.addEventListener('consultLoanTypeChanged', refreshJeonseMortgageUi);
@@ -5579,23 +6680,50 @@ function applyConsultCachedRateToFirstRow() {
   };
 
   if (stRateInput) {
-    // 전세 분기: 1주택 체크 시 ST금리 1.5%(무주택은 0%)
-    const stRate = loanType === '전세'
-      ? (housingStatus === '1주택' ? '1.5' : '0')
-      : (pickUser('stRate') || savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3'));
-    stRateInput.value = stRate;
-    stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+    // [2026-11-11 변경] ST금리 저장소를 구분별로 분리했다.
+    //  · 주담대 6M → DSR_firstRowStRate_주담대_6M
+    //  · 주담대 2Y → DSR_firstRowStRate_주담대_2Y
+    //  · 전세대     → DSR_firstRowStRate_전세대
+    // 저장된 값이 있으면 그 값을, 없으면 전세대는 빈값 / 담보는 기본값을 쓴다.
+    const savedStRate = getFirstRowStRate(row);
+    let stRate;
+    if (savedStRate !== null && String(savedStRate).trim() !== '') {
+      stRate = String(savedStRate);
+    } else if (loanType === '전세') {
+      stRate = '';
+    } else {
+      stRate = pickUser('stRate') || savedProfileValues.stRate || (profile === '5Y' || profile === '2Y' ? '1.5' : '3');
+    }
+    if (stRateInput.value !== stRate) {
+      stRateInput.value = stRate;
+      stRateInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   }
   if (termInput) {
-    const term = loanType === '전세'
-      ? '24'
-      : (pickUser('term') || savedProfileValues.term || '360');
-    termInput.value = term;
-    termInput.dispatchEvent(new Event('input', { bubbles: true }));
+    // 사다리: 구분별 전용 저장소 → 사용자 입력값 → 기본값 설정 팝업 → 360
+    const savedTerm = getFirstRowTerm(row);
+    let term;
+    if (savedTerm !== null) {
+      term = String(savedTerm);
+    } else if (loanType === '전세') {
+      term = '24';
+    } else {
+      term = pickUser('term') || savedProfileValues.term || '360';
+    }
+    if (termInput.value !== term) {
+      termInput.value = term;
+      termInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   }
 
-  // 금리도 사용자가 입력한 값 → 기본값 설정 팝업 저장값 → 신한은행 캐시 금리 순으로 적용한다.
-  const value = pickUser('rate') || savedProfileValues.rate || consultCachedRateValue(consultCurrentRateCategory(), profile);
+  // 금리도 구분별 전용 저장소 → 사용자가 입력한 값 → 기본값 설정 팝업 저장값 → 신한은행 캐시 금리 순으로 적용한다.
+  const savedRate = getFirstRowRate(row);
+  // [2026-11-11 변경] 주담대 저장소 키가 이미 있고 값이 비어 있으면 "빈값 유지"다.
+  //  (원리금에서 쓰던 값·기본값을 다시 읽어와 주담대 칸에 되살리는 것을 막는다)
+  const isBlankDamBoRate = (row.querySelector('.mort-loan-category')?.value || '') !== '원리금'
+    && savedRate !== null && String(savedRate).trim() === '';
+  const value = (savedRate !== null && String(savedRate).trim() !== '' ? String(savedRate) : '')
+    || (isBlankDamBoRate ? '' : (pickUser('rate') || savedProfileValues.rate || consultCachedRateValue(consultCurrentRateCategory(), profile)));
   const rateInput = row.querySelector('.mort-rate');
   if (!value || !rateInput) return;
   rateInput.value = String(value);

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -99,6 +99,8 @@
                     <div class="market-price-menu" id="marketPriceMenu" hidden>
                       <button type="button" onclick="openMarketPriceOverlay('kb')">KB시세</button>
                       <button type="button" onclick="openMarketPriceOverlay('public')">공시가 조회</button>
+                      <!-- [2026-11-11 추가] 오피스텔(도보·서보) 상담용 OP시세 조회 -->
+                      <button type="button" data-price-mode="op" onclick="openMarketPriceOverlay('op')">OP시세</button>
                     </div>
                   </div>
                 </div>
@@ -693,8 +695,8 @@
   <!-- 화면 캡쳐용 라이브러리 (html2canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- JavaScript 파일 연결 -->
-  <script src="Consult_calculator_logic.min.js"></script>
-  <script src="Consult_calculator_ui.min.js"></script>
+  <script src="Consult_calculator_logic.js"></script>
+  <script src="Consult_calculator_ui.js"></script>
   <script>
     (function () {
       function parseDisplayValue(rawText) {
@@ -991,17 +993,18 @@
       var isCoveredJeonse = isJeonse && (guarantee === '도시보증' || guarantee === '서울보증');
       var parts = [];
       var isDanger = false;
-      // 담보 분기에서는 항상 DSR/DTI를 표시한다.
-      // 전세는 도시보증·서울보증 + 1주택인 경우에만 DSR을 표시한다.
-      var shouldShowDsr = !isJeonse || (isCoveredJeonse && housingStatus === '1주택');
+      // [2026-11-11 변경] 도보·서보 선택 시 1주택자만 DSR을 표시하던 조건을 주석 처리하고,
+      // 1주택 여부와 상관없이 항상 DSR을 함께 표시한다.
+      // var shouldShowDsr = !isJeonse || (isCoveredJeonse && housingStatus === '1주택');
       function addRatio(label, value) {
         if (!value || value === '-') return;
         var ratio = parseFloat(value);
         var type = Number.isFinite(ratio) && ratio < 40 ? 'safe-ratio' : 'danger-ratio';
-        parts.push({ text: `${label} ${value}`, type: type });
+        parts.push({ text: `${label} ${value}`, type: type, label: label, value: value });
         if (Number.isFinite(ratio) && ratio >= 40) isDanger = true;
       }
-      if (shouldShowDsr) addRatio('DSR', dsrVal);
+      // if (shouldShowDsr) addRatio('DSR', dsrVal);
+      addRatio('DSR', dsrVal);
       addRatio('DTI', dtiVal);
 
       // 신DTI는 주담대가 2건 이상일 때만 표시한다.
@@ -1016,8 +1019,14 @@
         var partEl = document.createElement('span');
         partEl.textContent = (index === 0 ? ' - ' : '') + (part.text || part);
         if (part.type) partEl.className = 'loan-info-' + part.type;
+        // 하이라이트 대상 식별용 (DSR / DTI / 신DTI)
+        partEl.dataset.ratioLabel = part.label;
         loanInfoSummary.appendChild(partEl);
       });
+      // 값이 실제로 바뀐 지표만 하이라이트한다.
+      if (typeof window.__flashRatioChange === 'function') {
+        window.__flashRatioChange(parts);
+      }
       if (loanInfoHeader) loanInfoHeader.classList.toggle('info-tab-header-danger', isDanger);
     }
     window.addEventListener('DOMContentLoaded', updateLoanInfoSummary);
@@ -1031,6 +1040,57 @@
       var resultEl = document.getElementById(id);
       if (resultEl) loanInfoSummaryObserver.observe(resultEl, { childList: true, characterData: true, subtree: true });
     });
+
+    /* ── DSR·DTI·신DTI 값 변경 하이라이트 (2026-11-11 추가) ──
+       [수정] 숨겨져 있는 DSR정보 탭 대신, 화면에 보이는 "대출정보 제목줄 요약"에 표시한다.
+       값이 바뀌면 0.5초 기다렸다가 1초 동안 배경 플래시를 보여준다.
+       · 빠르게 연속 입력하면 타이머가 리셋되어 마지막 변경 기준으로 한 번만 표시
+       · 첫 렌더(페이지 로드/복원 직후)에는 표시하지 않는다
+       · 계산 로직은 건드리지 않고 표시만 담당 */
+    (function () {
+      var FLASH_DELAY = 500;      // 값 변경 후 대기
+      var FLASH_DURATION = 1000;  // 하이라이트 표시 시간
+      var lastValues = {};        // { DSR: '36.48%', DTI: ..., 신DTI: ... }
+      var pendingTimers = {};
+      var removeTimers = {};
+      var initialized = false;
+
+      function flashEl(el, key) {
+        if (!el) return;
+        // 애니메이션 재실행을 위해 클래스를 잠깐 분리한다.
+        el.classList.remove('dsr-value-flash');
+        void el.offsetWidth; // 강제 리플로우
+        el.classList.add('dsr-value-flash');
+        clearTimeout(removeTimers[key]);
+        removeTimers[key] = setTimeout(function () {
+          el.classList.remove('dsr-value-flash');
+        }, FLASH_DURATION);
+      }
+
+      /* 요약줄에 렌더된 지표들(parts)을 받아, 값이 실제로 바뀐 것만 하이라이트한다. */
+      window.__flashRatioChange = function (parts) {
+        if (!Array.isArray(parts)) return;
+        parts.forEach(function (part) {
+          var label = part.label;
+          var value = part.value;
+          if (!label) return;
+          var prev = lastValues[label];
+          lastValues[label] = value;
+          // 첫 렌더 직후는 건너뛴다.
+          if (!initialized) return;
+          if (!value || value === '-' || value === '대출 불가') return;
+          if (prev === value) return;
+          clearTimeout(pendingTimers[label]);
+          pendingTimers[label] = setTimeout(function () {
+            var el = loanInfoSummary.querySelector('[data-ratio-label="' + label + '"]');
+            if (el) flashEl(el, label);
+          }, FLASH_DELAY);
+        });
+      };
+
+      // 초기 값이 안정된 뒤부터 하이라이트를 허용한다.
+      window.setTimeout(function () { initialized = true; }, 800);
+    })();
   </script>
 
   <!-- DSR정보 탭 - 기본 펼침, 클릭할 때마다 토글. 제목줄에 DSR 값을 같이 보여준다. -->
@@ -1091,6 +1151,25 @@
       var menu = document.getElementById('marketPriceMenu');
       if (button) button.textContent = isJeonse ? '시세조회' : 'KB시세 조회';
       if (menu && !isJeonse) menu.hidden = true;
+      refreshMarketPriceOpItem();
+    }
+
+    /* [2026-11-11 추가] OP시세(오피스텔) 항목은 "도보·서보"를 고른 상담에서만 보여준다.
+       · 구분 버튼(propertyCategoryBtn)이 도보/서보이거나
+       · 저장된 보증 구분(CONSULT_DSR_propertyJeonseGuarantee)이 도시보증/서울보증이면 표시
+       그 외(담보·전세 일반)에서는 숨긴다. */
+    function isOpPriceAvailable() {
+      var categoryBtn = document.getElementById('propertyCategoryBtn');
+      var categoryText = categoryBtn ? categoryBtn.textContent.trim() : '';
+      var guarantee = String(window.localStorage.getItem('CONSULT_DSR_propertyJeonseGuarantee') || '').trim();
+      return categoryText === '도보' || categoryText === '서보'
+        || guarantee === '도시보증' || guarantee === '서울보증';
+    }
+
+    function refreshMarketPriceOpItem() {
+      var opBtn = document.querySelector('#marketPriceMenu button[data-price-mode="op"]');
+      if (!opBtn) return;
+      opBtn.hidden = !isOpPriceAvailable();
     }
 
     function toggleMarketPriceMenu() {
@@ -1098,6 +1177,8 @@
       var menu = document.getElementById('marketPriceMenu');
       if (!isJeonse) { openMarketPriceOverlay('kb'); return; }
       if (menu) {
+        // 메뉴를 열 때마다 도보·서보 여부를 다시 판단해 OP 항목을 보이거나 숨긴다.
+        refreshMarketPriceOpItem();
         menu.hidden = !menu.hidden;
         menu.style.display = menu.hidden ? 'none' : 'flex';
         if (!menu.hidden) {
@@ -1125,7 +1206,16 @@
         menu.hidden = true;
         menu.style.display = 'none';
       }
-      frame.src = mode === 'public' ? 'gonsi.html?mode=public' : '시세조회.html?mode=kb';
+      // [2026-11-11 변경] OP시세(오피스텔)도 같은 오버레이에서 연다.
+      //  · kb     → KB시세조회.html
+      //  · public → 공시가조회.html (주택 공시가)
+      //  · op     → OP시세조회.html (오피스텔 기준시가)
+      var pageMap = {
+        public: '공시가조회.html?mode=public',
+        op: 'OP시세조회.html?mode=op',
+        kb: 'KB시세조회.html?mode=kb'
+      };
+      frame.src = pageMap[mode] || pageMap.kb;
       overlay.style.display = 'block';
     }
 
@@ -1139,6 +1229,11 @@
     window.addEventListener('DOMContentLoaded', refreshMarketPriceBranch);
     window.addEventListener('storage', refreshMarketPriceBranch);
     window.addEventListener('consultLoanTypeChanged', refreshMarketPriceBranch);
+    // 구분(담보/도보/서보) 버튼이 바뀌면 OP 항목 표시도 같이 갱신한다.
+    //  · consultLoanTypeChanged : 구분 버튼 클릭/복원 시 발생
+    //  · consultGuaranteeChanged: 보증 구분만 바뀌는 경우를 위한 보조 이벤트
+    window.addEventListener('consultLoanTypeChanged', refreshMarketPriceOpItem);
+    window.addEventListener('consultGuaranteeChanged', refreshMarketPriceOpItem);
 
     window.addEventListener('message', function (e) {
       if (!e.data || !e.data.type) return;

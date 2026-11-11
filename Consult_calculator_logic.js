@@ -365,7 +365,9 @@ function 자동계산() {
 
     const amt = amtEl ? (parseFloat(amtEl.value.replace(/,/g, '')) || 0) : 0;
     const pureRate = rateEl ? (parseFloat(rateEl.value) / 100 || 0) : 0;
-    const stRateValue = stRateEl ? (parseFloat(stRateEl.value) || 0) : 0;
+    // [2026-11-11 변경] ST금리는 본건(첫 행)에만 반영한다.
+    //  보유대출(추가대출) 행은 ST금리를 계산하지 않는다(칸도 숨김).
+    const stRateValue = (index === 0 && stRateEl) ? (parseFloat(stRateEl.value) || 0) : 0;
     const combinedRate = (pureRate * 100 + stRateValue) / 100;
     const term = termEl ? (parseInt(termEl.value) || 0) : 0;
     const type = typeEl ? typeEl.value : "원리금";
@@ -394,7 +396,12 @@ function 자동계산() {
 
     // 금액·금리·개월수가 덜 입력된 행은 계산에서 제외한다.
     // (예: 금액만 입력하고 금리/개월수가 빈 행이 들어오면 계산값이 NaN이 되어 화면 전체가 깨짐)
-    if (!(amt > 0) || !(combinedRate > 0) || !(term > 0)) return;
+    // [2026-11-11 수정] 전세대·이자만은 만기일시(원금 미상환)라 개월수를 쓰지 않는다.
+    //  (화면에서도 개월수 칸이 숨겨져 값이 비어 있다)
+    //  → 이 구분들은 개월수가 없어도 계산에서 제외하지 않는다.
+    //    예전에는 term > 0 조건에 걸려 DSR/DTI가 0.00%로 나왔다.
+    const isInterestOnlyCategory = (loanCategory === "전세대" || loanCategory === "이자만");
+    if (!(amt > 0) || !(combinedRate > 0) || (!isInterestOnlyCategory && !(term > 0))) return;
 
     const { graceTerm, postTerm } = getGraceAdjustedTerm(row, term);
 

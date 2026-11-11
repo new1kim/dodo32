@@ -1,0 +1,94 @@
+{
+    "version":  "20261112_011412",
+    "generatedAt":  "2026-11-12T01:14:12+09:00",
+    "files":  {
+                  "index.html":  {
+                                     "sha256":  "e6b1b95674e612448fbf324a866bfeda72bdacf5ea7ee6945b37496d5c5a9cec",
+                                     "size":  62218
+                                 },
+                  "gate-auth.js":  {
+                                       "sha256":  "94bc9bd30d1aba3f9f501a34339bb259cce1158f8d3f6271620259667eb5c2f8",
+                                       "size":  16213
+                                   },
+                  "Consult_Main.html":  {
+                                            "sha256":  "b55f7f901b8f5c6afd3f32df6e68095a0ff85a573ab4809166481de0cb1f07b2",
+                                            "size":  88148
+                                        },
+                  "Consult_calculator_logic.js":  {
+                                                      "sha256":  "bfa27d7b860a3b3abffef5973f19df9a6b2461f23392a3132b580f5d89e4a4f5",
+                                                      "size":  34637
+                                                  },
+                  "Consult_calculator_ui.js":  {
+                                                   "sha256":  "ad3eb985f41d9ff2de54840c0fa42626ca87ff187c4f136cf11f14c97a4ac275",
+                                                   "size":  341699
+                                               },
+                  "Consult_style.css":  {
+                                            "sha256":  "4611b3b02901e101608e707dee03cc28812745537c6459fcf66420f1cafa4f21",
+                                            "size":  116861
+                                        },
+                  "DSR_Main.html":  {
+                                        "sha256":  "c8d9916647e48c42f8d4bb57f133d21f9e4e7390473acd607d1987d48dc0252d",
+                                        "size":  30067
+                                    },
+                  "DSR_calculator_logic.js":  {
+                                                  "sha256":  "b462be86d7f451da03c2d09169a3a63bea69eba93fef01e12c361cf6f045a3d9",
+                                                  "size":  26751
+                                              },
+                  "DSR_calculator_ui.js":  {
+                                               "sha256":  "89198a99b9ca5e0e42931e069889630ba12f2368939db011f5b34751e1f58a59",
+                                               "size":  119052
+                                           },
+                  "DSR_style.css":  {
+                                        "sha256":  "4eb7468eb32575bc3b06ead71645ce0b4a8d177922c87ed1c3b1db3679d0c008",
+                                        "size":  51007
+                                    },
+                  "KB시세조회.html":  {
+                                      "sha256":  "f9fa1a990b7d93cc95cd1813a32e4746ad8e3f82351cbea8f52bcf651805e35b",
+                                      "size":  39446
+                                  },
+                  "공시가조회.html":  {
+                                     "sha256":  "4f56ba8ba2b640fac19acfcde3051705a9e714f082c51cf7f568d39e6793e98e",
+                                     "size":  113329
+                                 },
+                  "OP시세조회.html":  {
+                                      "sha256":  "2ddf20e353358dcd19d9cebb5ea18f4fdfd987a975f9fd19f12e63bc513cbb5f",
+                                      "size":  76445
+                                  },
+                  "DTI.html":  {
+                                   "sha256":  "c6564a2fd1644e8a5fdf5b9f9fc1675a598b8cc7e916fea04008156387a4af5f",
+                                   "size":  38983
+                               },
+                  "계산기.html":  {
+                                   "sha256":  "0a77de9b9d6e690aa6ece21bdf8c0dd0e89e1ddb7b1ee051a154f4b2cdd033f6",
+                                   "size":  53931
+                               },
+                  "날짜계산기.html":  {
+                                     "sha256":  "ffe2b2b52faccff35b498909848f470791cd0f2e91764d27d99c9ef4ae193089",
+                                     "size":  64366
+                                 },
+                  "MCG.html":  {
+                                   "sha256":  "afbf4495d41195444821237ab3209f96acc7f431d151e4c0773f23c5e65d7e64",
+                                   "size":  35279
+                               },
+                  "IDCard.html":  {
+                                      "sha256":  "721a73122156bd4d249872c78c1689b689593334f2740406d21c175822958c90",
+                                      "size":  75923
+                                  },
+                  "문서스캔.html":  {
+                                    "sha256":  "f6cfb80143be99bfc5c28e4f83280a92c95913b11ccf496a9847d6b1861d39e7",
+                                    "size":  68546
+                                },
+                  "소액임차보증금.png":  {
+                                      "sha256":  "4627a8d26417a41874f1be397bb3ae927711ca541dd9200229964ae4c3238b61",
+                                      "size":  187649
+                                  },
+                  "장래예상소득증가율.png":  {
+                                        "sha256":  "a124526d23d512c4d52248ae3dec11253ef1e3c2331747455d47358ab511d5f1",
+                                        "size":  474496
+                                    },
+                  "신용점수기준.png":  {
+                                     "sha256":  "6b4c72c4d1e76d25586d369db329eae97f02b0cb8c3e3e84f7e4b0ea175ba466",
+                                     "size":  13207
+                                 }
+              }
+}
