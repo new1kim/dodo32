@@ -45,14 +45,35 @@ $files = @(
 $map = [ordered]@{}
 $missing = @()
 
-# [2026-11-12 수정] 해시는 "GitHub에 올라간 그대로(LF)"를 기준으로 계산해야 한다.
+# [2026-11-12 수정] 해시는 "GitHub에 올라간 그대로"를 기준으로 계산해야 한다.
 #  이 저장소는 core.autocrlf=true 라서 로컬 파일은 CRLF, GitHub는 LF로 저장된다.
 #  로컬(CRLF) 해시로 매니페스트를 만들면 앱이 받는 파일(LF)과 해시가 달라
 #  매번 "바뀐 파일"로 판단해 불필요하게 다시 받게 된다.
 #  → 텍스트 파일은 CRLF를 LF로 바꿔 해시를 계산한다(바이너리는 그대로).
+#
+#  ⚠️ 예외: DSR_calculator_logic.js 는 GitHub에 CRLF로 저장되어 있다(과거 커밋 이력).
+#     이런 파일은 LF로 바꾸면 해시가 어긋나므로, "GitHub에 저장된 그대로"를 쓴다.
+#     → git show HEAD:<파일> 로 실제 저장본을 읽어 해시를 계산한다.
 $textExt = @('.html', '.js', '.css', '.json', '.md', '.txt', '.gs', '.ps1', '.py')
 
 function Get-GitBlobHash([string]$path) {
+    # git에 저장된 그대로(줄바꿈 변환 없이) 읽는다.
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        & git show "HEAD:$path" > $tmp 2>$null
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $tmp) -and (Get-Item $tmp).Length -gt 0) {
+            $bytes = [System.IO.File]::ReadAllBytes($tmp)
+            # PowerShell 리다이렉션은 UTF-16으로 쓸 수 있으므로, 앞 2바이트가 BOM이면 UTF-8로 재해석
+            if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+                $text = [System.Text.Encoding]::Unicode.GetString($bytes, 2, $bytes.Length - 2)
+                $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($text)
+            }
+            $sha = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+            return @{ hash = (($sha | ForEach-Object { $_.ToString('x2') }) -join ''); size = $bytes.Length }
+        }
+    } catch { } finally { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
+
+    # git에 없는(아직 커밋 안 된) 파일은 로컬 내용으로 계산한다.
     $ext = [System.IO.Path]::GetExtension($path).ToLower()
     if ($textExt -contains $ext) {
         $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
