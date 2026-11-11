@@ -956,58 +956,37 @@
       }
     }
 
-    async function submitUserName() {
+    function submitUserName() {
       const nameInput = document.getElementById('user-name-input');
-      const name = nameInput.value.trim();
+      const name = nameInput ? nameInput.value.trim() : '';
 
       if (!name) {
         alert("사용자 이름을 입력해주세요.");
         return;
       }
 
-      const submitBtn = document.querySelector('.user-submit-btn');
-      const counterEl = document.getElementById('today-count');
-
-      if (!GATE_ENABLED) {
-        // 인증 기능 OFF: Google Apps Script의 register를 호출하지 않고 즉시 진입한다.
-        writeStoredText(STORAGE_KEYS.userName, name);
-        setCounterText(`${name} 기록중...`);
-        try {
-          proceedToApp(name);
-        } catch (err) {
-          // 사용량 통신 실패가 화면 진입을 막지 않도록 한다.
-          // 이름은 이미 저장했으므로 다음 로드부터 입력창 없이 바로 진입한다.
-          console.error('인증 OFF 사용량 기록 오류:', err);
-          setCounterText(name);
-          if (submitBtn) submitBtn.disabled = false;
-        }
-        return;
-      }
-
-      if (submitBtn) submitBtn.disabled = true;
-      if (counterEl) counterEl.textContent = "확인중...";
+      // 이름만 기록하고 인증 서버와 무관하게 바로 앱 화면을 연다.
+      writeStoredText(STORAGE_KEYS.userName, name);
+      setCounterText(`${name} 기록중...`);
+      enterAppShell(name);
 
       try {
-        const uid = getDeviceId();
-        const result = await callGateAPI({ action: "register", uid, name });
+        updateFramesSrc();
+      } catch (error) {
+        console.error('[화면 열기 실패]', error);
+      }
 
-        if (!result || result.allowed !== true) {
-          alert(GATE_MESSAGES[result && result.reason] || "사용자 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
-          if (counterEl) counterEl.textContent = "이름 입력 필요";
-          return;
-        }
+      // 사용량·접속 기록은 부가 기능이므로 실패해도 화면 진입은 유지한다.
+      try {
+        startButtonUsageTracking(앱웹뷰인가() ? '상담' : 'DSR 계산');
+      } catch (error) {
+        console.error('[사용량 기록 실패]', error);
+      }
 
-        writeStoredText(STORAGE_KEYS.userName, name);
-        const session = saveGateSession(uid, name);
-        proceedToApp(name);
-        // 최초 인증 성공도 사용횟수에 포함한다. 서버에서 10초 중복을 차단한다.
-        logUsageBackground(session);
-      } catch (err) {
-        console.error("등록 확인 실패:", err);
-        alert(`${GATE_MESSAGES.network_error}\n${err.message || "응답 없음"}`);
-        if (counterEl) counterEl.textContent = "이름 입력 필요";
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
+      try {
+        startWorkerRecordAccess(name);
+      } catch (error) {
+        console.error('[접속 기록 실패]', error);
       }
     }
 
